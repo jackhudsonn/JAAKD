@@ -3,6 +3,6 @@
 ## Members
 
 - Jack Hudson
-- Kyle Erhabor
 - Andrew Joffe
+- Kyle Erhabor
 - Diwakar Sandhu
