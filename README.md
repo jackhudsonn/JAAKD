@@ -1,1 +1,5 @@
 # JAAKD
+
+## Members
+
+- Kyle Erhabor
