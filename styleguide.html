@@ -290,14 +290,33 @@
   }
 
   .order-tab.buy {
-    background: var(--primary);
-    color: var(--secondary-dark);
-    border-color: var(--primary-dark);
+    background: var(--primary-button-bg);
+    color: var(--primary-button-text);
+    border-color: var(--primary-button-border);
   }
 
   .order-tab.sell {
-    background: var(--quaternary-bg);
-    color: var(--secondary-dark);
+    background: var(--secondary-button-bg);
+    color: var(--secondary-button-text);
+    border-color: var(--secondary-button-border);
+  }
+
+  /* Make order tabs behave like buttons (hover/color/transition) */
+  .order-tab {
+    cursor: pointer;
+    transition: background-color 160ms cubic-bezier(.2,.8,.2,1),
+                color 160ms cubic-bezier(.2,.8,.2,1),
+                border-color 160ms cubic-bezier(.2,.8,.2,1),
+                transform 160ms cubic-bezier(.2,.8,.2,1),
+                box-shadow 200ms cubic-bezier(.2,.8,.2,1);
+  }
+
+  .order-tab.buy:hover {
+    background: var(--primary-button-bg-hover);
+  }
+
+  .order-tab.sell:hover {
+    background: var(--secondary-button-bg-hover);
   }
 
   .order-field {
@@ -482,8 +501,8 @@
           <h3>Place Order &mdash; AAPL</h3>
           <div class="order-form">
             <div class="order-tabs">
-              <div class="order-tab buy">Buy</div>
-              <div class="order-tab sell">Sell</div>
+              <button type="button" class="order-tab buy">Buy</button>
+              <button type="button" class="order-tab sell">Sell</button>
             </div>
             <div class="order-field">
               Quantity

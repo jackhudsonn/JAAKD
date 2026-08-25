@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Style Guide</title>
+<link rel="stylesheet" href="prototypes\Jack\css\style.css">
+<style>
+  body {
+    font-family: var(--font-base);
+    background: var(--primary-bg);
+    color: var(--secondary);
+    padding: var(--space-xl);
+  }
+
+  h1 {
+    color: var(--primary);
+    margin-bottom: var(--space-xs);
+  }
+
+  h2 {
+    color: var(--secondary);
+    border-bottom: 1px solid var(--quaternary-bg);
+    padding-bottom: var(--space-xs);
+    margin-top: var(--space-xxl);
+  }
+
+  section {
+    margin-bottom: var(--space-xxl);
+  }
+
+  /* COLOR SWATCHES */
+  .swatch-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: var(--space-md);
+  }
+
+  .swatch {
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    border: 1px solid var(--quaternary-bg);
+  }
+
+  .swatch-color {
+    height: 80px;
+  }
+
+  .swatch-label {
+    background: var(--secondary-bg);
+    padding: var(--space-xs) var(--space-sm);
+    font-size: 0.85rem;
+    line-height: 1.4;
+  }
+
+  .swatch-label code {
+    display: block;
+    color: var(--primary-light);
+  }
+
+  /* SPACING SCALE */
+  .space-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    margin-bottom: var(--space-sm);
+  }
+
+  .space-name {
+    width: 100px;
+    font-family: monospace;
+  }
+
+  .space-bar {
+    background: var(--primary);
+    height: var(--space-lg);
+    border-radius: var(--radius-sm);
+  }
+
+  /* RADIUS */
+  .radius-row {
+    display: flex;
+    gap: var(--space-lg);
+    flex-wrap: wrap;
+  }
+
+  .radius-box {
+    width: 100px;
+    height: 100px;
+    background: var(--tertiary-bg);
+    border: 2px solid var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: monospace;
+    font-size: 0.8rem;
+  }
+
+  /* NESTED CARDS */
+  .card-stack {
+    max-width: 320px;
+  }
+
+  .card-stack .card {
+    padding: var(--space-lg);
+    border-radius: var(--radius-lg);
+    font-family: monospace;
+    font-size: 0.85rem;
+  }
+
+  .card-stack .card-1 {
+    background: var(--secondary-bg);
+    border: 1px solid var(--secondary-bg-border);
+  }
+
+  .card-stack .card-2 {
+    background: var(--tertiary-bg);
+    border: 1px solid var(--tertiary-bg-border);
+    margin-top: var(--space-md);
+  }
+
+  .card-stack .card-3 {
+    background: var(--quaternary-bg);
+    border: 1px solid var(--quaternary-bg-border);
+    margin-top: var(--space-md);
+  }
+
+  /* BUTTONS */
+  .button-row {
+    display: flex;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    font-family: var(--font-base);
+    font-size: 1rem;
+    padding: var(--space-sm) var(--space-lg);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+  }
+
+  .btn-primary {
+    background: var(--primary-button-bg);
+    color: var(--primary-button-text);
+    border: 2px solid var(--primary-button-border);
+  }
+
+  .btn-primary:hover {
+    background: var(--primary-button-bg-hover);
+  }
+
+  .btn-secondary {
+    background: var(--secondary-button-bg);
+    color: var(--secondary-button-text);
+    border: 2px solid var(--secondary-button-border);
+  }
+
+  .btn-secondary:hover {
+    background: var(--secondary-button-bg-hover);
+  }
+
+  /* TRADING PLATFORM SAMPLE */
+  .app {
+    background: var(--secondary-bg);
+    border: 1px solid var(--secondary-bg-border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+
+  .app-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--primary-bg);
+    padding: var(--space-md) var(--space-lg);
+    border-bottom: 1px solid var(--quaternary-bg);
+  }
+
+  .app-brand {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-weight: bold;
+    font-size: 1.1rem;
+  }
+
+  .app-brand span {
+    color: var(--primary);
+  }
+
+  .app-nav {
+    display: flex;
+    gap: var(--space-sm);
+  }
+
+  .app-nav a {
+    color: var(--secondary-dark);
+    text-decoration: none;
+    font-size: 0.9rem;
+    padding: var(--space-xxs) var(--space-sm);
+    border-radius: var(--radius-sm);
+  }
+
+  .app-nav a.active {
+    background: var(--tertiary-bg);
+    color: var(--secondary-light);
+  }
+
+  .app-body {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: var(--space-lg);
+    padding: var(--space-lg);
+  }
+
+  .panel {
+    background: var(--tertiary-bg);
+    border: 1px solid var(--tertiary-bg-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+  }
+
+  .panel h3 {
+    margin: 0 0 var(--space-sm);
+    font-size: 0.95rem;
+    color: var(--secondary-dark);
+  }
+
+  .ticker-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--quaternary-bg);
+    border: 1px solid var(--quaternary-bg-border);
+    border-radius: var(--radius-sm);
+    padding: var(--space-sm) var(--space-md);
+    margin-bottom: var(--space-xs);
+  }
+
+  .ticker-symbol {
+    font-weight: bold;
+  }
+
+  .ticker-symbol small {
+    display: block;
+    font-weight: normal;
+    color: var(--secondary-dark);
+    font-size: 0.75rem;
+  }
+
+  .ticker-price {
+    text-align: right;
+  }
+
+  .ticker-change-up {
+    color: var(--success);
+    font-size: 0.8rem;
+  }
+
+  .ticker-change-even {
+    color: var(--neutral);
+    font-size: 0.8rem;
+  }
+
+  .ticker-change-down {
+    color: var(--fail);
+    font-size: 0.8rem;
+  }
+
+  .order-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .order-tabs {
+    display: flex;
+    gap: var(--space-xs);
+    margin-bottom: var(--space-xs);
+  }
+
+  .order-tab {
+    flex: 1;
+    text-align: center;
+    padding: var(--space-xs);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--quaternary-bg-border);
+    font-size: 0.85rem;
+  }
+
+  .order-tab.buy {
+    background: var(--primary-button-bg);
+    color: var(--primary-button-text);
+    border-color: var(--primary-button-border);
+  }
+
+  .order-tab.sell {
+    background: var(--secondary-button-bg);
+    color: var(--secondary-button-text);
+    border-color: var(--secondary-button-border);
+  }
+
+  /* Make order tabs behave like buttons (hover/color/transition) */
+  .order-tab {
+    cursor: pointer;
+    transition: background-color 160ms cubic-bezier(.2,.8,.2,1),
+                color 160ms cubic-bezier(.2,.8,.2,1),
+                border-color 160ms cubic-bezier(.2,.8,.2,1),
+                transform 160ms cubic-bezier(.2,.8,.2,1),
+                box-shadow 200ms cubic-bezier(.2,.8,.2,1);
+  }
+
+  .order-tab.buy:hover {
+    background: var(--primary-button-bg-hover);
+  }
+
+  .order-tab.sell:hover {
+    background: var(--secondary-button-bg-hover);
+  }
+
+  .order-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xxs);
+    font-size: 0.8rem;
+    color: var(--secondary-dark);
+  }
+
+  .order-field input {
+    font-family: var(--font-base);
+    background: var(--quaternary-bg);
+    border: 1px solid var(--quaternary-bg-border);
+    border-radius: var(--radius-sm);
+    padding: var(--space-xs) var(--space-sm);
+    color: var(--secondary-light);
+  }
+
+  .order-summary {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: var(--secondary-dark);
+    padding-top: var(--space-xs);
+    border-top: 1px solid var(--quaternary-bg-border);
+  }
+</style>
+</head>
+<body>
+
+  <h1>Style Guide</h1>
+  <p>Visual reference for the color palette, spacing scale, and radii defined in <code>global.css</code>.</p>
+
+  <section>
+    <h2>Colors</h2>
+    <div class="swatch-grid">
+      <div class="swatch">
+        <div class="swatch-color" style="background: var(--primary-bg);"></div>
+        <div class="swatch-label">primary-bg<code>#333333</code></div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background: var(--secondary-bg);"></div>
+        <div class="swatch-label">secondary-bg<code>#444444</code></div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background: var(--tertiary-bg);"></div>
+        <div class="swatch-label">tertiary-bg<code>#555555</code></div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background: var(--quaternary-bg);"></div>
+        <div class="swatch-label">quaternary-bg<code>#666666</code></div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background: var(--primary);"></div>
+        <div class="swatch-label">primary<code>#ff8c00</code></div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background: var(--primary-dark);"></div>
+        <div class="swatch-label">primary-dark<code>#e67e00</code></div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background: var(--primary-light);"></div>
+        <div class="swatch-label">primary-light<code>#ffa500</code></div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background: var(--secondary);"></div>
+        <div class="swatch-label">secondary<code>#f5f5f5</code></div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background: var(--secondary-dark);"></div>
+        <div class="swatch-label">secondary-dark<code>#e0e0e0</code></div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background: var(--secondary-light);"></div>
+        <div class="swatch-label">secondary-light<code>#ffffff</code></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Buttons</h2>
+    <div class="button-row">
+      <button class="btn btn-primary">Primary Button</button>
+      <button class="btn btn-secondary">Secondary Button</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>Spacing Scale</h2>
+    <div class="space-row">
+      <span class="space-name">xxs</span>
+      <div class="space-bar" style="width: var(--space-xxs);"></div>
+      <span>0.25rem</span>
+    </div>
+    <div class="space-row">
+      <span class="space-name">xs</span>
+      <div class="space-bar" style="width: var(--space-xs);"></div>
+      <span>0.5rem</span>
+    </div>
+    <div class="space-row">
+      <span class="space-name">sm</span>
+      <div class="space-bar" style="width: var(--space-sm);"></div>
+      <span>0.75rem</span>
+    </div>
+    <div class="space-row">
+      <span class="space-name">md</span>
+      <div class="space-bar" style="width: var(--space-md);"></div>
+      <span>1rem</span>
+    </div>
+    <div class="space-row">
+      <span class="space-name">lg</span>
+      <div class="space-bar" style="width: var(--space-lg);"></div>
+      <span>1.5rem</span>
+    </div>
+    <div class="space-row">
+      <span class="space-name">xl</span>
+      <div class="space-bar" style="width: var(--space-xl);"></div>
+      <span>2rem</span>
+    </div>
+    <div class="space-row">
+      <span class="space-name">xxl</span>
+      <div class="space-bar" style="width: var(--space-xxl);"></div>
+      <span>3rem</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>Border Radius</h2>
+    <div class="radius-row">
+      <div class="radius-box" style="border-radius: var(--radius-sm);">sm (4px)</div>
+      <div class="radius-box" style="border-radius: var(--radius-md);">md (8px)</div>
+      <div class="radius-box" style="border-radius: var(--radius-lg);">lg (16px)</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Stacked Cards</h2>
+    <div class="card-stack">
+      <div class="card card-1">
+        secondary-bg
+        <div class="card card-2">
+          tertiary-bg
+          <div class="card card-3">quaternary-bg</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Trading Platform Sample</h2>
+    <div class="app">
+      <div class="app-header">
+        <div class="app-brand">JAAKD<span>Trade</span></div>
+        <div class="app-nav">
+          <a href="#" class="active">Watchlist</a>
+          <a href="#">Transactions</a>
+          <a href="#">Analytics</a>
+        </div>
+      </div>
+      <div class="app-body">
+        <div class="panel">
+          <h3>Watchlist</h3>
+          <div class="ticker-row">
+            <div class="ticker-symbol">AAPL<small>Apple Inc.</small></div>
+            <div class="ticker-price">$214.32<div class="ticker-change-up">&#9650; 1.24%</div></div>
+          </div>
+          <div class="ticker-row">
+            <div class="ticker-symbol">TSLA<small>Tesla Inc.</small></div>
+            <div class="ticker-price">$187.05<div class="ticker-change-down">&#9660; 0.62%</div></div>
+          </div>
+          <div class="ticker-row">
+            <div class="ticker-symbol">MSFT<small>Microsoft Corp.</small></div>
+            <div class="ticker-price">$402.10<div class="ticker-change-even">&#9679; 0.00%</div></div>
+          </div>
+          <div class="ticker-row">
+            <div class="ticker-symbol">NVDA<small>NVIDIA Corp.</small></div>
+            <div class="ticker-price">$126.88<div class="ticker-change-up">&#9650; 2.03%</div></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>Place Order &mdash; AAPL</h3>
+          <div class="order-form">
+            <div class="order-tabs">
+              <button type="button" class="order-tab buy">Buy</button>
+              <button type="button" class="order-tab sell">Sell</button>
+            </div>
+            <div class="order-field">
+              Quantity
+              <input type="text" value="10">
+            </div>
+            <div class="order-field">
+              Price
+              <input type="text" value="214.32">
+            </div>
+            <div class="order-summary">
+              <span>Est. Total</span>
+              <span>$2,143.20</span>
+            </div>
+            <button class="btn btn-primary">Confirm Buy</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</body>
+</html>
