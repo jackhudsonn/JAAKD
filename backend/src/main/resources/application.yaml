@@ -1,0 +1,18 @@
+server:
+    port: 8080
+
+spring:
+  application:
+    name: backend
+
+  autoconfigure:
+    exclude: ## remove after adding the datasource configuration
+      - org.springframework.boot.hibernate.autoconfigure.HibernateJpaAutoConfiguration
+      - org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration
+      - org.springframework.boot.devtools.autoconfigure.DevToolsDataSourceAutoConfiguration
+
+
+  #datasource:
+  #  url: 
+  #  username: 
+  #  password: 
