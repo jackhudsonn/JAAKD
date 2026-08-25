@@ -1,5 +1,7 @@
-server:
-    port: 8080
+info:
+  app:
+    name: backend
+    description: Backend service for JAAKD
 
 spring:
   application:
@@ -11,8 +13,22 @@ spring:
       - org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration
       - org.springframework.boot.devtools.autoconfigure.DevToolsDataSourceAutoConfiguration
 
-
   #datasource:
   #  url: 
   #  username: 
   #  password: 
+
+server:
+    port: 8080
+
+management:
+  info:
+    env:
+      enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health, info
+  endpoint:
+    health:
+      show-details: always
