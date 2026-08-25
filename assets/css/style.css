@@ -1,9 +1,10 @@
 :root {
-  --bg: #f7f4ef;
-  --surface: #fffdfa;
-  --ink: #222222;
-  --accent: #146c94;
-  --border: #d8d1c5;
+  @import url("./colors.css");
+  --bg: var(--light-bg);
+  --surface: var(--light-surface);
+  --ink: var(--light-ink);
+  --accent: var(--light-accent);
+  --border: var(--light-border);
 }
 
 * {
@@ -13,7 +14,7 @@
 body {
   margin: 0;
   font-family: "Trebuchet MS", "Segoe UI", sans-serif;
-  background: linear-gradient(180deg, #f1ebe2 0%, #f9f6f1 35%, #f7f4ef 100%);
+  background: linear-gradient(180deg, #f1ebe2 0%, #f9f6f1 35%, var(--bg) 100%);
   color: var(--ink);
 }
 

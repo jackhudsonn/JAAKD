@@ -1,0 +1,49 @@
+/* Centralized color tokens for light and dark themes */
+:root {
+  /* Dark theme tokens (used by styleguide/global.css) */
+  --primary-bg: #333333;
+  --secondary-bg: #444444;
+  --tertiary-bg: #555555;
+  --quaternary-bg: #666666;
+
+  --secondary-bg-border: var(--tertiary-bg);
+  --tertiary-bg-border: var(--quaternary-bg);
+  --quaternary-bg-border: #777777;
+
+  /* Brand / accents */
+  --primary: #ff8c00;
+  --primary-dark: #e67e00;
+  --primary-light: #ffa500;
+
+  /* Secondary (light) palette */
+  --secondary: #f5f5f5;
+  --secondary-dark: #e8e8e8;
+  --secondary-light: #ffffff;
+
+  /* Status */
+  --success: #28a745;
+  --fail: #dc3545;
+
+  /* Button text overrides */
+  --primary-button-text: var(--primary-bg);
+  --secondary-button-text: #a85200;
+
+  /* Button backgrounds and borders */
+  --primary-button-bg: var(--primary);
+  --primary-button-bg-hover: var(--primary-light);
+  --primary-button-border: var(--primary-dark);
+
+  --secondary-button-bg: var(--secondary);
+  --secondary-button-bg-hover: var(--secondary-light);
+  --secondary-button-border: var(--secondary-dark);
+
+  /* neutral token */
+  --neutral: var(--secondary-dark);
+
+  /* Light theme tokens (used by site style) */
+  --light-bg: #f7f4ef;
+  --light-surface: #fffdfa;
+  --light-ink: #222222;
+  --light-accent: #146c94;
+  --light-border: #9a8f80;
+}

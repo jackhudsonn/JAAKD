@@ -1,5 +1,6 @@
-/* COLOR PALLETTE */
-/* -------------- */
+/* Centralized colors imported from colors.css */
+@import url("./colors.css");
+
 :root {
     /* dark background */
     --primary-bg: #333333;
