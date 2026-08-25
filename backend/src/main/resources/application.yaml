@@ -14,9 +14,9 @@ spring:
       - org.springframework.boot.devtools.autoconfigure.DevToolsDataSourceAutoConfiguration
 
   #datasource:
-  #  url: 
-  #  username: 
-  #  password: 
+  #  url: ${DATABASE_URL}
+  #  username: ${DATABASE_USERNAME}
+  #  password: ${DATABASE_PASSWORD}
 
 server:
     port: 8080
