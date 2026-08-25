@@ -1,7 +1,7 @@
 /* COLOR PALLETTE */
 /* -------------- */
 :root {
-    /* dark background */
+    /* Dark theme tokens */
     --primary-bg: #333333;
     --secondary-bg: #444444;
     --tertiary-bg: #555555;
@@ -11,37 +11,45 @@
     --tertiary-bg-border: var(--quaternary-bg);
     --quaternary-bg-border: #777777;
 
-    /* primary color (orange) */
-    --primary: #e67e22;
+    /* Brand / accents */
+    --primary: #ff8c00;
     --primary-dark: #e67e00;
     --primary-light: #ffa500;
 
-    /* secondary color (light) */
+    /* Secondary (light) palette */
     --secondary: #f5f5f5;
-    --secondary-dark: #e0e0e0;
+    --secondary-dark: #e8e8e8;
     --secondary-light: #ffffff;
 
-    /* accent color  */
+    /* Status */
     --success: #28a745;
-    --neutral: var(--secondary-dark);
     --fail: #dc3545;
 
-    /* buttons */
+    /* Button tokens */
     --primary-button-bg: var(--primary);
     --primary-button-bg-hover: var(--primary-light);
-    --primary-button-text: var(--secondary-dark);
     --primary-button-border: var(--primary-dark);
+    --primary-button-text: var(--primary-bg);
 
     --secondary-button-bg: var(--secondary);
     --secondary-button-bg-hover: var(--secondary-light);
-    --secondary-button-text: var(--primary-dark);
     --secondary-button-border: var(--secondary-dark);
+    --secondary-button-text: #a85200;
+
+    /* neutral */
+    --neutral: var(--secondary-dark);
+
+    /* Light theme tokens (for pages that use light variables) */
+    --light-bg: #f7f4ef;
+    --light-surface: #fffdfa;
+    --light-ink: #222222;
+    --light-accent: #146c94;
+    --light-border: #9a8f80;
 
     /* typography */
     --font-base: "Trebuchet MS", "Segoe UI", sans-serif;
 
     /* SPACING SCALE */
-    /* -------------- */
     --space-xxs: 0.25rem;
     --space-xs: 0.5rem;
     --space-sm: 0.75rem;
