@@ -1,42 +1,7 @@
-/* COLOR PALLETTE */
-/* -------------- */
+/* Centralized colors imported from colors.css */
+@import url("./colors.css");
+
 :root {
-    /* dark background */
-    --primary-bg: #333333;
-    --secondary-bg: #444444;
-    --tertiary-bg: #555555;
-    --quaternary-bg: #666666;
-
-    --secondary-bg-border: var(--tertiary-bg);
-    --tertiary-bg-border: var(--quaternary-bg);
-    --quaternary-bg-border: #777777;
-
-    /* primary color (orange) */
-    --primary: #ff8c00;
-    --primary-dark: #e67e00;
-    --primary-light: #ffa500;
-
-    /* secondary color (light) */
-    --secondary: #f5f5f5;
-    --secondary-dark: #e0e0e0;
-    --secondary-light: #ffffff;
-
-    /* accent color  */
-    --success: #28a745;
-    --neutral: var(--secondary-dark);
-    --fail: #dc3545;
-
-    /* buttons */
-    --primary-button-bg: var(--primary);
-    --primary-button-bg-hover: var(--primary-light);
-    --primary-button-text: var(--secondary-dark);
-    --primary-button-border: var(--primary-dark);
-
-    --secondary-button-bg: var(--secondary);
-    --secondary-button-bg-hover: var(--secondary-light);
-    --secondary-button-text: var(--primary-dark);
-    --secondary-button-border: var(--secondary-dark);
-
     /* typography */
     --font-base: "Trebuchet MS", "Segoe UI", sans-serif;
 
