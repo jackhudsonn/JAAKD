@@ -1,0 +1,77 @@
+/*
+shared cards/headers/layout
+*/
+.app-header {
+  min-height: 68px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding:
+    var(--space-md)
+    var(--space-xl);
+
+  background:
+    var(--primary-bg);
+
+  border-bottom:
+    1px solid
+    var(--quaternary-bg);
+}
+
+.app-brand {
+  display: flex;
+  align-items: center;
+
+  gap:
+    var(--space-xs);
+
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.app-brand span {
+  color:
+    var(--primary);
+}
+
+.panel {
+  padding:
+    var(--space-lg);
+
+  background:
+    var(--tertiary-bg);
+
+  border:
+    1px solid
+    var(--tertiary-bg-border);
+
+  border-radius:
+    var(--radius-md);
+}
+
+.card {
+  padding:
+    var(--space-lg);
+
+  background:
+    var(--secondary-bg);
+
+  border:
+    1px solid
+    var(--secondary-bg-border);
+
+  border-radius:
+    var(--radius-lg);
+}
+
+.eyebrow {
+  color:
+    var(--primary);
+
+  font-size: 0.75rem;
+  font-weight: 700;
+
+  letter-spacing: 0.13em;
+}

@@ -1,3 +1,4 @@
+@if (!user()) {
 <div class="auth-shell">
 
   <header class="app-header">
@@ -131,15 +132,6 @@
 
       </div>
 
-
-      <button
-        type="button"
-        class="signout-button"
-        (click)="logout()">
-        Sign Out
-      </button>
-
-
       @if (message()) {
 
         <div class="status-message">
@@ -153,3 +145,42 @@
   </main>
 
 </div>
+} @else {
+  <div class="dashboard-shell">
+
+    <header class="app-header">
+      <div class="app-brand">
+        JAAKD<span>Trade</span>
+      </div>
+
+      <button
+        type="button"
+        class="btn btn-secondary"
+        (click)="logout()">
+        Sign Out
+      </button>
+    </header>
+
+    <main class="dashboard-content">
+
+      <p class="eyebrow">
+        ACCOUNT
+      </p>
+
+      <h1>
+        Welcome to JAAKD
+      </h1>
+
+      <p>
+        Signed in as {{ user()?.email }}
+      </p>
+
+      <section class="dashboard-card">
+        Dashboard content coming next.
+      </section>
+
+    </main>
+
+  </div>
+
+}

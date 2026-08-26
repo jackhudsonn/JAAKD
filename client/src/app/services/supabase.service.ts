@@ -13,7 +13,7 @@ export class SupabaseService {
   }
 
   signUp(email: string, password: string, fullName: string) {
-    return this.supabase.auth.signUp({ email, password, 
+    return this.supabase.auth.signUp({ email, password,
         options: {
             data: {
                 full_name: fullName
@@ -30,4 +30,7 @@ export class SupabaseService {
   getSession() {
     return this.supabase.auth.getSession();
   }
+  onAuthStateChange(callback: any) {
+  return this.supabase.auth.onAuthStateChange(callback);
+}
 }

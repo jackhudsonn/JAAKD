@@ -1,7 +1,7 @@
-import { Component, signal } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { User } from '@supabase/supabase-js';
 import { SupabaseService } from './services/supabase.service';
-
 
 @Component({
   selector: 'app-root',
@@ -10,36 +10,84 @@ import { SupabaseService } from './services/supabase.service';
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
-export class App {
-  email: string = '';
-  password: string = '';
-  fullName: string = '';
-  message = signal('');
+export class App implements OnInit {
+  email = '';
+  password = '';
+  fullName = '';
 
-  constructor(private supabaseService: SupabaseService) {}
+  message = signal('');
+  user = signal<User | null>(null);
+
+  constructor(
+    private supabaseService: SupabaseService
+  ) {}
+
+  async ngOnInit() {
+    const { data } =
+      await this.supabaseService.getSession();
+
+    this.user.set(
+      data.session?.user ?? null
+    );
+
+    this.supabaseService.onAuthStateChange(
+      (_event: string, session: any) => {
+        this.user.set(
+          session?.user ?? null
+        );
+      }
+    );
+  }
 
   async login() {
-    const { error } = await this.supabaseService.signIn(this.email, this.password);
+    const { error } =
+      await this.supabaseService.signIn(
+        this.email,
+        this.password
+      );
+
     if (error) {
       this.message.set(error.message);
       return;
     }
-    this.message.set('Logged in successfully!');
+
+    this.message.set('');
   }
+
   async signUp() {
-    const { error } = await this.supabaseService.signUp(this.email, this.password, this.fullName);
+    const { data, error } =
+      await this.supabaseService.signUp(
+        this.email,
+        this.password,
+        this.fullName
+      );
+
     if (error) {
       this.message.set(error.message);
       return;
     }
-    this.message.set('Account created. Signed up successfully!');
+
+    if (data.session) {
+      this.message.set('');
+    } else {
+      this.message.set(
+        'Account created. Check your email to confirm your account.'
+      );
+    }
   }
+
   async logout() {
-    const { error } = await this.supabaseService.signOut();
+    const { error } =
+      await this.supabaseService.signOut();
+
     if (error) {
       this.message.set(error.message);
       return;
     }
-    this.message.set('Signed out successfully!');
+
+    this.email = '';
+    this.password = '';
+    this.fullName = '';
+    this.message.set('');
   }
 }
