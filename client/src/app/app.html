@@ -12,6 +12,11 @@
   placeholder="Password"
 />
 
-<button (click)="login()">Login</button>
+<button
+  type="button"
+  (click)="login()"
+>
+  Login
+</button>
 
-<p>{{ message }}</p>
+<p>{{ message() }}</p>

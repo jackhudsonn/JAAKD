@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { SupabaseService } from './services/supabase.service';
 
@@ -13,16 +13,16 @@ import { SupabaseService } from './services/supabase.service';
 export class App {
   email: string = '';
   password: string = '';
-  message: string = '';
+  message = signal('');
 
   constructor(private supabaseService: SupabaseService) {}
 
   async login() {
     const { error } = await this.supabaseService.signIn(this.email, this.password);
     if (error) {
-      this.message = error.message;
+      this.message.set(error.message);
       return;
     }
-    this.message = 'Logged in successfully!';
+    this.message.set('Logged in successfully!');
   }
 }
