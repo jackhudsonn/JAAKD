@@ -7,6 +7,7 @@ import {
   RouterOutlet
 } from '@angular/router';
 import { User } from '@supabase/supabase-js';
+import { LucideLogOut } from '@lucide/angular';
 import { SupabaseService } from './services/supabase.service';
 
 @Component({
@@ -16,7 +17,8 @@ import { SupabaseService } from './services/supabase.service';
     FormsModule,
     RouterOutlet,
     RouterLink,
-    RouterLinkActive
+    RouterLinkActive,
+    LucideLogOut
   ],
   templateUrl: './app.html',
   styleUrl: './app.css'

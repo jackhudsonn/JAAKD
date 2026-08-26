@@ -125,6 +125,14 @@
 
 /* SIGN OUT */
 
+.btn-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  line-height: 0;
+}
+
 .btn-signout {
   background:
     rgba(255, 140, 0, 0.08);

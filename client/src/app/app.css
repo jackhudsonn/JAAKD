@@ -243,12 +243,3 @@
   font-size:
     var(--font-size-sm);
 }
-
-
-/* LOGGED-IN ACCOUNT AREA */
-
-.account-menu {
-  justify-self:
-    end;
-
-  display:
