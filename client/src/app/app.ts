@@ -1,12 +1,28 @@
-import { Component, signal } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { Component } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { SupabaseService } from './services/supabase.service';
+
 
 @Component({
-  imports: [RouterOutlet],
   selector: 'app-root',
-  styleUrl: './app.css',
+  standalone: true,
+  imports: [FormsModule],
   templateUrl: './app.html',
+  styleUrl: './app.css',
 })
 export class App {
-  protected readonly title = signal('my-app');
+  email: string = '';
+  password: string = '';
+  message: string = '';
+
+  constructor(private supabaseService: SupabaseService) {}
+
+  async login() {
+    const { error } = await this.supabaseService.signIn(this.email, this.password);
+    if (error) {
+      this.message = error.message;
+      return;
+    }
+    this.message = 'Logged in successfully!';
+  }
 }
