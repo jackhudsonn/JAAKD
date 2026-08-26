@@ -1,13 +1,18 @@
 :host {
   display: block;
+
   min-height: 100vh;
 }
+
 
 .auth-shell,
 .authenticated-shell {
   min-height: 100vh;
-  background: var(--primary-bg);
+
+  background:
+    var(--primary-bg);
 }
+
 
 .auth-shell {
   background:
@@ -19,13 +24,16 @@
     var(--primary-bg);
 }
 
+
 .auth-main {
-  width: min(1100px, 100%);
+  width:
+    min(1100px, 100%);
 
   min-height:
-    calc(100vh - 68px);
+    calc(100vh - 72px);
 
-  margin: 0 auto;
+  margin:
+    0 auto;
 
   padding:
     var(--space-xxl)
@@ -40,12 +48,16 @@
   gap:
     var(--space-xxl);
 
-  align-items: center;
+  align-items:
+    center;
 }
 
+
 .welcome-section {
-  max-width: 580px;
+  max-width:
+    580px;
 }
+
 
 .welcome-section h1 {
   margin:
@@ -54,53 +66,82 @@
     var(--space-md);
 
   color:
-    var(--secondary-light);
+    var(--text-primary);
 
   font-size:
     clamp(
-      2.7rem,
+      2.8rem,
       6vw,
-      4.6rem
+      4.75rem
     );
 
-  line-height: 1;
-  letter-spacing: -0.04em;
+  font-weight:
+    700;
+
+  line-height:
+    0.98;
+
+  letter-spacing:
+    -0.045em;
 }
+
 
 .welcome-copy {
-  max-width: 500px;
+  max-width:
+    500px;
+
+  margin: 0;
 
   color:
-    var(--secondary-dark);
+    var(--text-secondary);
 
-  line-height: 1.7;
+  font-size:
+    var(--font-size-md);
+
+  line-height:
+    var(--line-height-relaxed);
 }
+
 
 .feature-list {
   margin-top:
     var(--space-xl);
 
-  display: grid;
+  display:
+    grid;
 
   gap:
     var(--space-sm);
+
+  color:
+    var(--text-secondary);
+
+  font-size:
+    var(--font-size-sm);
 }
+
 
 .feature-list > div {
-  display: flex;
-  align-items: center;
+  display:
+    flex;
+
+  align-items:
+    center;
 
   gap:
     var(--space-sm);
 }
+
 
 .feature-dot {
   width: 9px;
   height: 9px;
 
-  flex: 0 0 9px;
+  flex:
+    0 0 9px;
 
-  border-radius: 50%;
+  border-radius:
+    50%;
 
   background:
     var(--primary);
@@ -109,6 +150,9 @@
     0 0 0 4px
     rgba(255, 140, 0, 0.12);
 }
+
+
+/* LOGIN CARD */
 
 .auth-card {
   padding:
@@ -123,12 +167,17 @@
 
   border-radius:
     var(--radius-lg);
+
+  box-shadow:
+    var(--shadow-md);
 }
+
 
 .card-heading {
   margin-bottom:
     var(--space-lg);
 }
+
 
 .card-heading h2 {
   margin:
@@ -137,21 +186,30 @@
     var(--space-xs);
 
   color:
-    var(--secondary-light);
+    var(--text-primary);
+
+  font-size:
+    var(--font-size-xl);
 }
+
 
 .card-heading p {
   margin: 0;
 
   color:
-    var(--secondary-dark);
+    var(--text-secondary);
+
+  font-size:
+    var(--font-size-sm);
 }
+
 
 .auth-actions {
   margin-top:
     var(--space-lg);
 
-  display: grid;
+  display:
+    grid;
 
   grid-template-columns:
     1fr 1fr;
@@ -159,6 +217,7 @@
   gap:
     var(--space-sm);
 }
+
 
 .status-message {
   margin-top:
@@ -171,35 +230,25 @@
   background:
     var(--tertiary-bg);
 
+  color:
+    var(--text-primary);
+
   border:
     1px solid
     var(--quaternary-bg-border);
 
   border-radius:
     var(--radius-md);
+
+  font-size:
+    var(--font-size-sm);
 }
+
+
+/* LOGGED-IN ACCOUNT AREA */
 
 .account-menu {
-  display: flex;
-  align-items: center;
+  justify-self:
+    end;
 
-  gap:
-    var(--space-md);
-
-  color:
-    var(--secondary-dark);
-
-  font-size: 0.8rem;
-}
-
-@media (max-width: 800px) {
-  .auth-main {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 650px) {
-  .account-menu span {
-    display: none;
-  }
-}
+  display:

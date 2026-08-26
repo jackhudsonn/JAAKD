@@ -1,44 +1,65 @@
 /*
-  Colors, fonts, spacing
+   changes colors, typography sizing, spacing
 */
 :root {
   /* Backgrounds */
-  --primary-bg: #333333;
-  --secondary-bg: #444444;
-  --tertiary-bg: #555555;
-  --quaternary-bg: #666666;
+  --primary-bg: #2f3030;
+  --secondary-bg: #414342;
+  --tertiary-bg: #505251;
+  --quaternary-bg: #5d605e;
 
-  --secondary-bg-border: var(--tertiary-bg);
-  --tertiary-bg-border: var(--quaternary-bg);
-  --quaternary-bg-border: #777777;
+  --secondary-bg-border: #555856;
+  --tertiary-bg-border: #666966;
+  --quaternary-bg-border: #777a77;
 
   /* Brand */
   --primary: #ff8c00;
-  --primary-dark: #e67e00;
-  --primary-light: #ffa500;
+  --primary-dark: #d97700;
+  --primary-light: #ffa31a;
 
-  /* Light palette */
+  /* Text */
   --secondary: #f5f5f5;
-  --secondary-dark: #e8e8e8;
+  --secondary-dark: #d6d8d7;
   --secondary-light: #ffffff;
 
+  --text-primary: #ffffff;
+  --text-secondary: #d6d8d7;
+  --text-muted: #aeb2b0;
+
   /* Status */
-  --success: #28a745;
-  --fail: #dc3545;
+  --success: #4fc46a;
+  --fail: #e45b65;
+  --neutral: #c6c9c7;
 
   /* Buttons */
   --primary-button-bg: var(--primary);
   --primary-button-bg-hover: var(--primary-light);
   --primary-button-border: var(--primary-dark);
-  --primary-button-text: var(--primary-bg);
+  --primary-button-text: #242424;
 
-  --secondary-button-bg: var(--secondary);
-  --secondary-button-bg-hover: var(--secondary-light);
-  --secondary-button-border: var(--secondary-dark);
-  --secondary-button-text: #a85200;
+  --secondary-button-bg: #f5f5f5;
+  --secondary-button-bg-hover: #ffffff;
+  --secondary-button-border: #dedede;
+  --secondary-button-text: #8f4900;
 
   /* Typography */
-  --font-base: "Trebuchet MS", "Segoe UI", sans-serif;
+  --font-base:
+    "Trebuchet MS",
+    "Segoe UI",
+    Arial,
+    sans-serif;
+
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-md: 1.125rem;
+  --font-size-lg: 1.35rem;
+  --font-size-xl: 1.75rem;
+  --font-size-xxl: 2.25rem;
+
+  --line-height-tight: 1.2;
+  --line-height-base: 1.5;
+  --line-height-relaxed: 1.7;
 
   /* Spacing */
   --space-xxs: 0.25rem;
@@ -53,4 +74,11 @@
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 16px;
+
+  /* Shadows */
+  --shadow-sm:
+    0 2px 8px rgba(0, 0, 0, 0.12);
+
+  --shadow-md:
+    0 8px 24px rgba(0, 0, 0, 0.18);
 }

@@ -1,7 +1,9 @@
 .btn {
-  font-family: var(--font-base);
-  font-size: 1rem;
-  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 42px;
 
   padding:
     var(--space-sm)
@@ -10,19 +12,51 @@
   border-radius:
     var(--radius-md);
 
+  font-family:
+    var(--font-base);
+
+  font-size:
+    var(--font-size-sm);
+
+  font-weight: 700;
+
+  line-height: 1;
+
+  text-decoration: none;
+
   cursor: pointer;
 
   transition:
-    background-color 160ms cubic-bezier(.2,.8,.2,1),
-    color 160ms cubic-bezier(.2,.8,.2,1),
-    border-color 160ms cubic-bezier(.2,.8,.2,1),
-    transform 160ms cubic-bezier(.2,.8,.2,1),
-    box-shadow 200ms cubic-bezier(.2,.8,.2,1);
+    background-color 160ms cubic-bezier(.2, .8, .2, 1),
+    color 160ms cubic-bezier(.2, .8, .2, 1),
+    border-color 160ms cubic-bezier(.2, .8, .2, 1),
+    transform 160ms cubic-bezier(.2, .8, .2, 1),
+    box-shadow 200ms cubic-bezier(.2, .8, .2, 1);
 }
 
 .btn:hover {
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+
+  box-shadow:
+    var(--shadow-sm);
 }
+
+.btn:active {
+  transform: translateY(0);
+
+  box-shadow: none;
+}
+
+.btn:focus-visible {
+  outline:
+    3px solid
+    rgba(255, 140, 0, 0.3);
+
+  outline-offset: 2px;
+}
+
+
+/* PRIMARY */
 
 .btn-primary {
   background:
@@ -39,7 +73,15 @@
 .btn-primary:hover {
   background:
     var(--primary-button-bg-hover);
+
+  border-color:
+    var(--primary);
+
+  color: #1f1f1f;
 }
+
+
+/* SECONDARY */
 
 .btn-secondary {
   background:
@@ -55,11 +97,54 @@
 
 .btn-secondary:hover {
   background:
-    var(--secondary-button-bg-hover);
+    var(--primary);
+
+  color:
+    var(--primary-bg);
+
+  border-color:
+    var(--primary-dark);
 }
 
-.btn-danger {
-  background: var(--fail);
-  color: white;
-  border: 2px solid var(--fail);
+
+/* SIGN OUT */
+
+.btn-signout {
+  background:
+    var(--primary);
+
+  color:
+    var(--primary-bg);
+
+  border:
+    2px solid
+    var(--primary-dark);
+}
+
+.btn-signout:hover {
+  background:
+    var(--primary-light);
+
+  border-color:
+    var(--primary-light);
+
+  color: #1f1f1f;
+
+  box-shadow:
+    0 4px 16px
+    rgba(255, 140, 0, 0.25);
+}
+
+
+/* SMALL BUTTON */
+
+.btn-small {
+  min-height: 34px;
+
+  padding:
+    var(--space-xs)
+    var(--space-sm);
+
+  font-size:
+    var(--font-size-xs);
 }
