@@ -3,7 +3,7 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { environment } from '../../environments/environment';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class SupabaseService {
   private supabase: SupabaseClient;
@@ -13,13 +13,10 @@ export class SupabaseService {
   }
 
   signUp(email: string, password: string, fullName: string) {
-    return this.supabase.auth.signUp({ email, password,
-        options: {
-            data: {
-                full_name: fullName
-            }
-        }
-     });
+    return this.supabase.auth.signUp({
+      email,
+      password,
+    });
   }
   signIn(email: string, password: string) {
     return this.supabase.auth.signInWithPassword({ email, password });
@@ -31,6 +28,6 @@ export class SupabaseService {
     return this.supabase.auth.getSession();
   }
   onAuthStateChange(callback: any) {
-  return this.supabase.auth.onAuthStateChange(callback);
-}
+    return this.supabase.auth.onAuthStateChange(callback);
+  }
 }

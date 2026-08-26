@@ -13,8 +13,6 @@ import { SupabaseService } from './services/supabase.service';
 export class App implements OnInit {
   email = '';
   password = '';
-  fullName = '';
-
   message = signal('');
   user = signal<User | null>(null);
 
@@ -58,8 +56,7 @@ export class App implements OnInit {
     const { data, error } =
       await this.supabaseService.signUp(
         this.email,
-        this.password,
-        this.fullName
+        this.password
       );
 
     if (error) {
@@ -87,7 +84,6 @@ export class App implements OnInit {
 
     this.email = '';
     this.password = '';
-    this.fullName = '';
     this.message.set('');
   }
 }
