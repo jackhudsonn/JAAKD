@@ -1,23 +1,36 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import {
+  Router,
+  RouterLink,
+  RouterLinkActive,
+  RouterOutlet
+} from '@angular/router';
 import { User } from '@supabase/supabase-js';
 import { SupabaseService } from './services/supabase.service';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [FormsModule],
+  imports: [
+    FormsModule,
+    RouterOutlet,
+    RouterLink,
+    RouterLinkActive
+  ],
   templateUrl: './app.html',
-  styleUrl: './app.css',
+  styleUrl: './app.css'
 })
 export class App implements OnInit {
   email = '';
   password = '';
+
   message = signal('');
   user = signal<User | null>(null);
 
   constructor(
-    private supabaseService: SupabaseService
+    private supabaseService: SupabaseService,
+    private router: Router
   ) {}
 
   async ngOnInit() {
@@ -50,6 +63,7 @@ export class App implements OnInit {
     }
 
     this.message.set('');
+    await this.router.navigate(['/dashboard']);
   }
 
   async signUp() {
@@ -66,6 +80,7 @@ export class App implements OnInit {
 
     if (data.session) {
       this.message.set('');
+      await this.router.navigate(['/dashboard']);
     } else {
       this.message.set(
         'Account created. Check your email to confirm your account.'
@@ -85,5 +100,7 @@ export class App implements OnInit {
     this.email = '';
     this.password = '';
     this.message.set('');
+
+    await this.router.navigate(['/']);
   }
 }

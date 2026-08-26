@@ -1,22 +1,37 @@
 @if (!user()) {
-  <div class="auth-shell">
-    <header class="app-header">
-      <div class="app-brand">JAAKD<span>Trade</span></div>
 
-      <div class="app-tagline">Secure Trading Platform</div>
+  <div class="auth-shell">
+
+    <header class="app-header">
+      <div class="app-brand">
+        JAAKD<span>Trade</span>
+      </div>
+
+      <div class="app-tagline">
+        Secure Trading Platform
+      </div>
     </header>
 
     <main class="auth-main">
-      <section class="welcome-section">
-        <p class="eyebrow">JAAKD TRADING PLATFORM</p>
 
-        <h1>Trade with confidence.</h1>
+      <section class="welcome-section">
+
+        <p class="eyebrow">
+          JAAKD TRADING PLATFORM
+        </p>
+
+        <h1>
+          Trade with confidence.
+        </h1>
 
         <p class="welcome-copy">
-          Access your account, manage trades, and monitor your portfolio from one secure platform.
+          Access your account, manage trades,
+          and monitor your portfolio from one
+          secure platform.
         </p>
 
         <div class="feature-list">
+
           <div>
             <span class="feature-dot"></span>
             Secure account access
@@ -31,32 +46,71 @@
             <span class="feature-dot"></span>
             Order tracking
           </div>
+
         </div>
+
       </section>
 
       <section class="auth-card">
+
         <div class="card-heading">
-          <h2>Account Access</h2>
 
-          <p>Sign in or create an account to continue.</p>
+          <h2>
+            Account Access
+          </h2>
+
+          <p>
+            Sign in or create an account to continue.
+          </p>
+
         </div>
 
         <div class="form-field">
-          <label for="email"> Email </label>
 
-          <input id="email" type="email" [(ngModel)]="email" placeholder="name@example.com" />
+          <label for="email">
+            Email
+          </label>
+
+          <input
+            id="email"
+            type="email"
+            [(ngModel)]="email"
+            placeholder="name@example.com"
+          />
+
         </div>
 
         <div class="form-field">
-          <label for="password"> Password </label>
 
-          <input id="password" type="password" [(ngModel)]="password" placeholder="Password" />
+          <label for="password">
+            Password
+          </label>
+
+          <input
+            id="password"
+            type="password"
+            [(ngModel)]="password"
+            placeholder="Password"
+          />
+
         </div>
 
         <div class="auth-actions">
-          <button type="button" class="btn btn-primary" (click)="login()">Sign In</button>
 
-          <button type="button" class="btn btn-secondary" (click)="signUp()">Create Account</button>
+          <button
+            type="button"
+            class="btn btn-primary"
+            (click)="login()">
+            Sign In
+          </button>
+
+          <button
+            type="button"
+            class="btn btn-secondary"
+            (click)="signUp()">
+            Create Account
+          </button>
+
         </div>
 
         @if (message()) {
@@ -64,416 +118,64 @@
             {{ message() }}
           </div>
         }
+
       </section>
+
     </main>
+
   </div>
+
 } @else {
 
-<div class="dashboard-shell">
+  <div class="authenticated-shell">
 
-  <header class="app-header">
+    <header class="app-header">
 
-    <div class="app-brand">
-      JAAKD<span>Trade</span>
-    </div>
+      <div class="app-brand">
+        JAAKD<span>Trade</span>
+      </div>
 
-    <nav class="app-nav">
-      <a class="active">Dashboard</a>
-      <a>Transactions</a>
-      <a>Analytics</a>
-    </nav>
+      <nav class="app-nav">
 
-    <div class="account-menu">
-
-      <span>
-        {{ user()?.email }}
-      </span>
-
-      <button
-        type="button"
-        class="btn btn-secondary"
-        (click)="logout()">
-        Sign Out
-      </button>
-
-    </div>
-
-  </header>
-
-
-  <main class="dashboard-content">
-
-    <section class="dashboard-heading">
-
-      <div>
-
-        <p class="eyebrow">
-          ACCOUNT OVERVIEW
-        </p>
-
-        <h1>
+        <a
+          routerLink="/dashboard"
+          routerLinkActive="active">
           Dashboard
-        </h1>
+        </a>
 
-        <p class="dashboard-subtitle">
-          Welcome back. Here's your trading overview.
-        </p>
+        <a
+          routerLink="/transactions"
+          routerLinkActive="active">
+          Transactions
+        </a>
 
-      </div>
+        <a
+          routerLink="/analytics"
+          routerLinkActive="active">
+          Analytics
+        </a>
 
-      <div class="market-status">
-        <span class="status-dot"></span>
-        Market Open
-      </div>
+      </nav>
 
-    </section>
+      <div class="account-menu">
 
-
-    <!-- SUMMARY CARDS -->
-
-    <section class="summary-grid">
-
-      <article class="summary-card">
-
-        <span class="summary-label">
-          Portfolio Value
+        <span>
+          {{ user()?.email }}
         </span>
-
-        <strong>
-          $25,000.00
-        </strong>
-
-        <span class="positive">
-          ▲ 2.4% today
-        </span>
-
-      </article>
-
-
-      <article class="summary-card">
-
-        <span class="summary-label">
-          Cash Available
-        </span>
-
-        <strong>
-          $10,000.00
-        </strong>
-
-        <span class="summary-note">
-          Available to trade
-        </span>
-
-      </article>
-
-
-      <article class="summary-card">
-
-        <span class="summary-label">
-          Total Return
-        </span>
-
-        <strong>
-          +$1,245.32
-        </strong>
-
-        <span class="positive">
-          ▲ 5.2%
-        </span>
-
-      </article>
-
-
-      <article class="summary-card">
-
-        <span class="summary-label">
-          Open Orders
-        </span>
-
-        <strong>
-          0
-        </strong>
-
-        <span class="summary-note">
-          No pending orders
-        </span>
-
-      </article>
-
-    </section>
-
-
-    <!-- MAIN DASHBOARD -->
-
-    <section class="dashboard-grid">
-
-
-      <!-- WATCHLIST -->
-
-      <article class="panel watchlist-panel">
-
-        <div class="panel-header">
-
-          <div>
-
-            <p class="eyebrow">
-              MARKETS
-            </p>
-
-            <h2>
-              Watchlist
-            </h2>
-
-          </div>
-
-          <button
-            type="button"
-            class="small-button">
-            + Add
-          </button>
-
-        </div>
-
-
-        <div class="ticker-row">
-
-          <div class="ticker-symbol">
-            AAPL
-
-            <small>
-              Apple Inc.
-            </small>
-
-          </div>
-
-          <div class="ticker-price">
-
-            $214.32
-
-            <span class="positive">
-              ▲ 1.24%
-            </span>
-
-          </div>
-
-        </div>
-
-
-        <div class="ticker-row">
-
-          <div class="ticker-symbol">
-            TSLA
-
-            <small>
-              Tesla Inc.
-            </small>
-
-          </div>
-
-          <div class="ticker-price">
-
-            $187.05
-
-            <span class="negative">
-              ▼ 0.62%
-            </span>
-
-          </div>
-
-        </div>
-
-
-        <div class="ticker-row">
-
-          <div class="ticker-symbol">
-            MSFT
-
-            <small>
-              Microsoft Corp.
-            </small>
-
-          </div>
-
-          <div class="ticker-price">
-
-            $402.10
-
-            <span class="neutral">
-              ● 0.00%
-            </span>
-
-          </div>
-
-        </div>
-
-
-        <div class="ticker-row">
-
-          <div class="ticker-symbol">
-            NVDA
-
-            <small>
-              NVIDIA Corp.
-            </small>
-
-          </div>
-
-          <div class="ticker-price">
-
-            $126.88
-
-            <span class="positive">
-              ▲ 2.03%
-            </span>
-
-          </div>
-
-        </div>
-
-      </article>
-
-
-      <!-- ORDER ENTRY -->
-
-      <article class="panel">
-
-        <div class="panel-header">
-
-          <div>
-
-            <p class="eyebrow">
-              TRADING
-            </p>
-
-            <h2>
-              Place Order
-            </h2>
-
-          </div>
-
-        </div>
-
-
-        <div class="order-tabs">
-
-          <button
-            type="button"
-            class="order-tab buy">
-            Buy
-          </button>
-
-          <button
-            type="button"
-            class="order-tab sell">
-            Sell
-          </button>
-
-        </div>
-
-
-        <div class="form-field">
-
-          <label>
-            Symbol
-          </label>
-
-          <input
-            type="text"
-            value="AAPL"
-          />
-
-        </div>
-
-
-        <div class="form-field">
-
-          <label>
-            Quantity
-          </label>
-
-          <input
-            type="number"
-            value="10"
-          />
-
-        </div>
-
-
-        <div class="form-field">
-
-          <label>
-            Price
-          </label>
-
-          <input
-            type="text"
-            value="$214.32"
-          />
-
-        </div>
-
-
-        <div class="order-summary">
-
-          <span>
-            Estimated Total
-          </span>
-
-          <strong>
-            $2,143.20
-          </strong>
-
-        </div>
-
 
         <button
           type="button"
-          class="btn btn-primary confirm-order">
-          Review Order
+          class="btn btn-secondary"
+          (click)="logout()">
+          Sign Out
         </button>
 
-      </article>
-
-    </section>
-
-
-    <!-- RECENT ACTIVITY -->
-
-    <section class="panel activity-panel">
-
-      <div class="panel-header">
-
-        <div>
-
-          <p class="eyebrow">
-            ACTIVITY
-          </p>
-
-          <h2>
-            Recent Transactions
-          </h2>
-
-        </div>
-
       </div>
 
+    </header>
 
-      <div class="empty-state">
+    <router-outlet></router-outlet>
 
-        <strong>
-          No transactions yet
-        </strong>
-
-        <p>
-          Your completed trades will appear here.
-        </p>
-
-      </div>
-
-    </section>
-
-  </main>
-
-</div>
+  </div>
 
 }
