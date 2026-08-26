@@ -3,14 +3,14 @@
 */
 :root {
   /* Backgrounds */
-  --primary-bg: #2f3030;
-  --secondary-bg: #414342;
-  --tertiary-bg: #505251;
-  --quaternary-bg: #5d605e;
+  --primary-bg: #3a3b3b;
+  --secondary-bg: #414141;
+  --tertiary-bg: #474747;
+  --quaternary-bg: #4e4f4f;
 
-  --secondary-bg-border: #555856;
-  --tertiary-bg-border: #666966;
-  --quaternary-bg-border: #777a77;
+  --secondary-bg-border: rgba(0,0,0,0.06);
+  --tertiary-bg-border: rgba(0,0,0,0.06);
+  --quaternary-bg-border: rgba(0,0,0,0.06);
 
   /* Brand */
   --primary: #ff8c00;
@@ -77,8 +77,8 @@
 
   /* Shadows */
   --shadow-sm:
-    0 2px 8px rgba(0, 0, 0, 0.12);
+    0 1px 6px rgba(0, 0, 0, 0.06);
 
   --shadow-md:
-    0 8px 24px rgba(0, 0, 0, 0.18);
+    0 4px 14px rgba(0, 0, 0, 0.08);
 }

@@ -237,7 +237,7 @@ shared cards/headers/layout
 
   border:
     1px solid
-    var(--tertiary-bg-border);
+    rgba(0,0,0,0.06);
 
   border-radius:
     var(--radius-md);
@@ -252,7 +252,7 @@ shared cards/headers/layout
 
   border:
     1px solid
-    var(--secondary-bg-border);
+    rgba(0,0,0,0.05);
 
   border-radius:
     var(--radius-lg);
