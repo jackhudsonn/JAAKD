@@ -12,11 +12,11 @@ export class SupabaseService {
     this.supabase = createClient(environment.supabaseUrl, environment.supabasePublishableKey);
   }
 
-  signUp(email: string, password: string) {
+  signUp(email: string, password: string, fullName: string) {
     return this.supabase.auth.signUp({ email, password, 
         options: {
             data: {
-                full_name: '',
+                full_name: fullName
             }
         }
      });

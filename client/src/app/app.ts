@@ -13,6 +13,7 @@ import { SupabaseService } from './services/supabase.service';
 export class App {
   email: string = '';
   password: string = '';
+  fullName: string = '';
   message = signal('');
 
   constructor(private supabaseService: SupabaseService) {}
@@ -24,5 +25,21 @@ export class App {
       return;
     }
     this.message.set('Logged in successfully!');
+  }
+  async signUp() {
+    const { error } = await this.supabaseService.signUp(this.email, this.password, this.fullName);
+    if (error) {
+      this.message.set(error.message);
+      return;
+    }
+    this.message.set('Account created. Signed up successfully!');
+  }
+  async logout() {
+    const { error } = await this.supabaseService.signOut();
+    if (error) {
+      this.message.set(error.message);
+      return;
+    }
+    this.message.set('Signed out successfully!');
   }
 }
