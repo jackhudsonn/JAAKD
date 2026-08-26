@@ -1,0 +1,16 @@
+.auth-card {
+  background: var(--secondary-bg);
+  border: 1px solid var(--tertiary-bg);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: var(--primary-bg);
+  border: 2px solid var(--primary-dark);
+}
+
+.btn-primary:hover {
+  background: var(--primary-light);
+}
