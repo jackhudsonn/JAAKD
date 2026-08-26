@@ -1,59 +1,173 @@
-# MyApp
+# JAAKD Frontend
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.1.5.
+Angular frontend for JAAKD.
 
-## Development server
-
-To start a local development server, run:
+## Run
 
 ```bash
-ng serve
+npm install
+npm start
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+Open:
 
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
+```text
+http://localhost:4200
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+---
 
-```bash
-ng generate --help
+## Main Structure
+
+```text
+src/
+├── app/
+│   ├── dashboard/
+│   ├── transactions/
+│   ├── analytics/
+│   └── services/
+│
+├── styles/
+│   ├── tokens.css
+│   ├── buttons.css
+│   ├── forms.css
+│   └── layout.css
+│
+└── styles.css
 ```
 
-## Building
+---
 
-To build the project run:
+## How to Edit Styling
 
-```bash
-ng build
+### Change the whole application
+
+Use `src/styles/`.
+Angular loads `client/src/styles.css` globally, so every component under `src/app/` automatically has access to the shared styles it imports from `src/styles/` (`tokens.css`, `buttons.css`, `forms.css`, and `layout.css`). You do **not** need to import these styles separately into each component.
+
+Use `src/styles/` for styles that should apply across the entire application, such as colors, buttons, forms, and shared layouts. Use component CSS such as `dashboard.css`, `transactions.css`, or `analytics.css` only for styling specific to that page.
+
+
+**`tokens.css`**
+- Colors
+- Fonts
+- Spacing
+- Border radius
+- Success/error colors
+
+**`buttons.css`**
+- Buttons
+- Hover states
+- Click/active states
+
+**`forms.css`**
+- Inputs
+- Labels
+- Selects
+- Form controls
+
+**`layout.css`**
+- Header
+- Navigation
+- Cards
+- Panels
+- Account controls
+
+### Change only one page
+
+Use that page's CSS:
+
+```text
+dashboard/dashboard.css
+transactions/transactions.css
+analytics/analytics.css
+app.css
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+### Easy Rule
 
-## Running unit tests
+> Should this change everywhere? → `src/styles/`
 
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+> Only this page? → the page's `.css`
 
-```bash
-ng test
+---
+
+## Authentication
+
+Authentication is handled in:
+
+```text
+src/app/services/supabase.service.ts
 ```
 
-## Running end-to-end tests
+Current methods:
 
-For end-to-end (e2e) testing, run:
+- Sign up
+- Sign in
+- Sign out
+- Get session
+- Listen for auth changes
 
-```bash
-ng e2e
+The frontend uses the Supabase **publishable key only**.
+
+---
+
+## Routing
+
+Routes are configured in:
+
+```text
+src/app/app.routes.ts
 ```
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+Current routes:
 
-## Additional Resources
+```text
+/dashboard
+/transactions
+/analytics
+```
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+---
+
+## Connecting the Backend
+
+The frontend should eventually call Spring Boot rather than directly modifying trading data.
+
+```text
+Angular
+   ↓
+Spring Boot
+   ↓
+PostgreSQL
+```
+
+First test:
+
+```text
+GET /api/health
+```
+
+Then:
+
+```text
+GET /api/instruments
+POST /api/orders
+```
+
+Authenticated requests will eventually send the Supabase access token to Spring Boot.
+
+---
+
+## Current Mock Data
+
+These dashboard values are currently placeholders:
+
+- Prices
+- Portfolio value
+- Cash
+- Returns
+- Market status
+- Order values
+
+They should be replaced with backend/API data as development continues.
