@@ -1,0 +1,3 @@
+dashboard: https://lucide.dev/icons/gauge
+transactions: https://lucide.dev/icons/arrow-right-left
+analytics: https://lucide.dev/icons/chart-no-axes-combined
