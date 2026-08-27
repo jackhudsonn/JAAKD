@@ -11,6 +11,7 @@
   --secondary-bg-border: rgba(0,0,0,0.06);
   --tertiary-bg-border: rgba(0,0,0,0.06);
   --quaternary-bg-border: rgba(0,0,0,0.06);
+  --surface-divider: var(--quaternary-bg);
 
   /* Brand */
   --primary: #ff8c00;

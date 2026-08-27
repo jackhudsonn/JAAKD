@@ -25,7 +25,7 @@ shared cards/headers/layout
 
   border-bottom:
     1px solid
-    var(--quaternary-bg);
+    var(--surface-divider);
 
   backdrop-filter:
     blur(8px);
@@ -263,16 +263,19 @@ shared cards/headers/layout
     #1f1f1f;
 }
 
-.dropdown-signout {
-  margin-top:
-    var(--space-xxs);
+.profile-end {
+  justify-self: end;
+}
 
-  padding:
-    0.75rem
-    1rem;
+.avatar-menu-wrapper {
+  position: relative;
+}
 
-  width:
-    100%;
+.avatar-button {
+  display: inline-flex;
+  align-items: center;
+
+  padding: 0;
 
   background:
     transparent;
@@ -280,40 +283,13 @@ shared cards/headers/layout
   border:
     none;
 
-  border-radius:
-    7px;
-
-  color:
-    var(--secondary-dark);
-
-  text-align:
-    left;
-
-  font-size:
-    0.9rem;
-
-  font-weight:
-    700;
-
   cursor:
     pointer;
 }
 
-.dropdown-signout:hover {
-  background:
-    var(--tertiary-bg);
-
-  color:
-    var(--secondary-light);
-}
-
-.profile-end {
-  justify-self: end;
-}
-
 .account-avatar {
-  width: 40px;
-  height: 40px;
+  width: 48px;
+  height: 48px;
 
   display: grid;
   place-items: center;
@@ -335,6 +311,129 @@ shared cards/headers/layout
   font-weight:
     800;
 
+}
+
+.avatar-dropdown {
+  position: absolute;
+  top:
+    calc(100% + var(--space-xs));
+
+  right: 0;
+
+  min-width:
+    240px;
+
+  padding:
+    var(--space-xs);
+
+  background:
+    var(--secondary-bg);
+
+  border:
+    1px solid
+    var(--tertiary-bg-border);
+
+  border-radius:
+    10px;
+
+  box-shadow:
+    var(--shadow-md);
+
+  animation:
+    dropdown-pop 140ms cubic-bezier(.2,.8,.2,1);
+
+  z-index:
+    10;
+}
+
+.avatar-dropdown-ident {
+  display: flex;
+  flex-direction: column;
+
+  gap:
+    2px;
+
+  padding:
+    0.75rem
+    0.9rem;
+}
+
+.avatar-dropdown-name {
+  color:
+    var(--secondary-light);
+
+  font-size:
+    var(--font-size-base);
+
+  font-weight:
+    700;
+}
+
+.avatar-dropdown-email {
+  color:
+    var(--secondary-dark);
+
+  font-size:
+    var(--font-size-sm);
+
+  font-weight:
+    600;
+
+  word-break:
+    break-word;
+}
+
+.avatar-dropdown-actions {
+  margin-top:
+    var(--space-xs);
+
+  padding-top:
+    var(--space-xs);
+
+  border-top:
+    1px solid
+    var(--surface-divider);
+}
+
+.dropdown-signout {
+  width:
+    100%;
+
+  padding:
+    0.75rem
+    0.9rem;
+
+  background:
+    transparent;
+
+  border:
+    none;
+
+  border-radius:
+    7px;
+
+  color:
+    var(--secondary-dark);
+
+  text-align:
+    left;
+
+  font-size:
+    var(--font-size-sm);
+
+  font-weight:
+    700;
+
+  cursor:
+    pointer;
+}
+
+.dropdown-signout:hover {
+  background:
+    var(--tertiary-bg);
+
+  color:
+    var(--secondary-light);
 }
 
 

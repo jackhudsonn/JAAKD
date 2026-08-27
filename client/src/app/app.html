@@ -99,16 +99,39 @@
               <a routerLink="/transactions" routerLinkActive="active" role="menuitem" (click)="closeMenu()"> Transactions </a>
 
               <a routerLink="/analytics" routerLinkActive="active" role="menuitem" (click)="closeMenu()"> Analytics </a>
-
-              <button type="button" class="dropdown-signout" (click)="logout(); closeMenu()"> Sign Out </button>
             </div>
           }
         </div>
       </nav>
 
-      <div class="profile-end" [attr.title]="user()?.email || 'Signed in user'">
-        <div class="account-avatar" aria-hidden="true">
-          {{ (user()?.email || 'U').charAt(0).toUpperCase() }}
+      <div class="profile-end">
+        <div class="avatar-menu-wrapper">
+          <button
+            type="button"
+            class="avatar-button"
+            (click)="toggleAvatarMenu()"
+            [attr.aria-expanded]="avatarOpen()"
+            aria-haspopup="menu"
+            aria-label="Account menu"
+          >
+            <div class="account-avatar" aria-hidden="true">
+              {{ displayInitial }}
+            </div>
+          </button>
+
+          @if (avatarOpen()) {
+            <div class="avatar-dropdown" role="menu" aria-label="Account menu">
+              <div class="avatar-dropdown-ident">
+                <div class="avatar-dropdown-name">{{ displayName }}</div>
+
+                <div class="avatar-dropdown-email">{{ user()?.email }}</div>
+              </div>
+
+              <div class="avatar-dropdown-actions">
+                <button type="button" class="dropdown-signout" (click)="logout(); closeAvatarMenu()"> Sign Out </button>
+              </div>
+            </div>
+          }
         </div>
       </div>
     </header>

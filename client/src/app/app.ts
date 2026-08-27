@@ -28,6 +28,7 @@ export class App implements OnInit {
   message = signal('');
   user = signal<User | null>(null);
   menuOpen = signal(false);
+  avatarOpen = signal(false);
 
   constructor(
     private supabaseService: SupabaseService,
@@ -107,6 +108,7 @@ export class App implements OnInit {
   }
 
   toggleMenu() {
+    this.avatarOpen.set(false);
     this.menuOpen.update((open) => !open);
   }
 
@@ -114,19 +116,38 @@ export class App implements OnInit {
     this.menuOpen.set(false);
   }
 
+  toggleAvatarMenu() {
+    this.menuOpen.set(false);
+    this.avatarOpen.update((open) => !open);
+  }
+
+  closeAvatarMenu() {
+    this.avatarOpen.set(false);
+  }
+
+  get displayName() {
+    return this.user()?.user_metadata?.['full_name'] || this.user()?.email || 'Signed in user';
+  }
+
+  get displayInitial() {
+    return this.displayName.charAt(0).toUpperCase();
+  }
+
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent) {
-    if (!this.menuOpen()) {
+    if (!this.menuOpen() && !this.avatarOpen()) {
       return;
     }
 
     if (!this.elementRef.nativeElement.contains(event.target as Node)) {
+      this.closeAvatarMenu();
       this.closeMenu();
     }
   }
 
   @HostListener('document:keydown.escape')
   onEscape() {
+    this.closeAvatarMenu();
     this.closeMenu();
   }
 }
