@@ -1,7 +1,7 @@
 @if (!user()) {
   <div class="auth-shell">
     <header class="app-header">
-      <div class="app-brand">JAAKD<span>+</span></div>
+      <div class="app-brand"><span class="brand-word">JAAKD</span><span class="brand-plus">+</span></div>
 
       <div class="app-tagline">Secure Trading Platform</div>
     </header>
@@ -70,34 +70,51 @@
 } @else {
   <div class="authenticated-shell">
     <header class="app-header authenticated-header">
+      <div class="header-left">
+        <div class="header-menu">
+          <button
+            type="button"
+            class="btn btn-icon menu-button"
+            (click)="toggleMenu()"
+            aria-haspopup="menu"
+            [attr.aria-expanded]="menuOpen()"
+            aria-label="Open navigation menu"
+          >
+            <svg lucideMenu></svg>
+          </button>
+
+          @if (menuOpen()) {
+            <nav class="nav-dropdown" role="menu" aria-label="Main navigation">
+              <a routerLink="/dashboard" routerLinkActive="active" role="menuitem" (click)="closeMenu()"> Dashboard </a>
+
+              <a routerLink="/transactions" routerLinkActive="active" role="menuitem" (click)="closeMenu()"> Transactions </a>
+
+              <a routerLink="/analytics" routerLinkActive="active" role="menuitem" (click)="closeMenu()"> Analytics </a>
+            </nav>
+          }
+        </div>
+      </div>
+
       <div class="app-brand">JAAKD<span>+</span></div>
 
-      <nav class="app-nav" aria-label="Main navigation">
-        <a routerLink="/dashboard" routerLinkActive="active"> Dashboard </a>
+      <div class="header-right">
+        <div class="account-avatar" aria-hidden="true">
+          {{ (user()?.email || 'U').charAt(0).toUpperCase() }}
+        </div>
 
-        <a routerLink="/transactions" routerLinkActive="active"> Transactions </a>
-
-        <a routerLink="/analytics" routerLinkActive="active"> Analytics </a>
-      </nav>
-
-      <div class="account-menu">
         <div class="account-identity">
-          <div class="account-avatar">
-            {{ (user()?.email || 'U').charAt(0).toUpperCase() }}
-          </div>
-
           <div class="account-details">
-            <span class="account-label"> Signed in </span>
+            <span class="account-label">Signed in as</span>
 
             <span class="account-email">
               {{ user()?.email }}
             </span>
           </div>
-        </div>
 
-        <button type="button" class="btn btn-signout btn-icon" (click)="logout()" aria-label="Sign Out" title="Sign Out">
-          <svg lucideLogOut></svg>
-        </button>
+          <button type="button" class="btn btn-icon btn-signout" (click)="logout()" aria-label="Sign Out" title="Sign Out">
+            <svg lucideLogOut></svg>
+          </button>
+        </div>
       </div>
     </header>
 

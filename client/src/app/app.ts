@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, ElementRef, HostListener, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
   Router,
@@ -7,7 +7,7 @@ import {
   RouterOutlet
 } from '@angular/router';
 import { User } from '@supabase/supabase-js';
-import { LucideLogOut } from '@lucide/angular';
+import { LucideLogOut, LucideMenu } from '@lucide/angular';
 import { SupabaseService } from './services/supabase.service';
 
 @Component({
@@ -18,6 +18,7 @@ import { SupabaseService } from './services/supabase.service';
     RouterOutlet,
     RouterLink,
     RouterLinkActive,
+    LucideMenu,
     LucideLogOut
   ],
   templateUrl: './app.html',
@@ -29,10 +30,12 @@ export class App implements OnInit {
 
   message = signal('');
   user = signal<User | null>(null);
+  menuOpen = signal(false);
 
   constructor(
     private supabaseService: SupabaseService,
-    private router: Router
+    private router: Router,
+    private elementRef: ElementRef<HTMLElement>
   ) {}
 
   async ngOnInit() {
@@ -104,5 +107,29 @@ export class App implements OnInit {
     this.message.set('');
 
     await this.router.navigate(['/']);
+  }
+
+  toggleMenu() {
+    this.menuOpen.update((open) => !open);
+  }
+
+  closeMenu() {
+    this.menuOpen.set(false);
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent) {
+    if (!this.menuOpen()) {
+      return;
+    }
+
+    if (!this.elementRef.nativeElement.contains(event.target as Node)) {
+      this.closeMenu();
+    }
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape() {
+    this.closeMenu();
   }
 }
