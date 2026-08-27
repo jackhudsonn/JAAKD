@@ -11,5 +11,6 @@ Each member has their own subfolder to work in freely:
 - `Diwakar/`
 - `Jack/`
 - `Kyle/`
+- `share/` (for any group work)
 
 Feel free to organize your own subfolder however makes sense for what you're prototyping. Once a prototype is ready, work with the team to integrate it into the main project.
