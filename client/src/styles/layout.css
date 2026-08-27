@@ -2,14 +2,14 @@
 shared cards/headers/layout
 */
 .app-header {
-  min-height: 96px;
+  min-height: 80px;
 
   display: grid;
 
   grid-template-columns:
-    minmax(0, 1fr)
     auto
-    minmax(0, 1fr);
+    1fr
+    auto;
 
   align-items: center;
 
@@ -17,7 +17,7 @@ shared cards/headers/layout
     var(--space-xl);
 
   padding:
-    var(--space-xl)
+    var(--space-lg)
     var(--space-xl);
 
   background:
@@ -70,45 +70,49 @@ shared cards/headers/layout
   font-weight: 600;
 }
 
-/* ACCOUNT */
+/* AUTHENTICATED NAV */
 
-.header-left {
+.app-nav {
   justify-self: start;
 
-  display: flex;
-  align-items: center;
-}
-
-.header-right {
-  justify-self: end;
-
-  display: flex;
+  display: inline-flex;
   align-items: center;
 
   gap:
-    var(--space-md);
+    var(--space-xs);
+
+  margin-left:
+    var(--space-lg);
 }
 
-.header-menu {
-  position: relative;
-}
+.app-nav a,
+.nav-more-button {
+  padding:
+    0.5rem
+    0.7rem;
 
-.menu-button {
-  width: 62px;
-  height: 62px;
-  padding: 0;
-
-  background:
-    transparent;
+  border-radius:
+    8px;
 
   color:
     var(--secondary-dark);
 
-  border:
-    1px solid transparent;
+  text-decoration:
+    none;
+
+  font-size:
+    0.9rem;
+
+  font-weight:
+    700;
+
+  transition:
+    color 140ms ease,
+    background-color 140ms ease;
 }
 
-.menu-button:hover {
+.app-nav a:hover,
+.nav-more-button:hover {
   background:
     rgba(255, 255, 255, 0.06);
 
@@ -116,9 +120,55 @@ shared cards/headers/layout
     var(--secondary-light);
 }
 
-.menu-button svg {
-  width: 30px;
-  height: 30px;
+.app-nav a.active {
+  color:
+    var(--secondary-light);
+}
+
+.menu-wrapper {
+  position: relative;
+}
+
+.nav-more-button {
+  display: inline-flex;
+  align-items: center;
+
+  gap:
+    0.35rem;
+
+  background:
+    transparent;
+
+  border:
+    none;
+
+  cursor:
+    pointer;
+}
+
+.chevron {
+  width: 0.45rem;
+  height: 0.45rem;
+
+  border-right:
+    2px solid
+    currentColor;
+
+  border-bottom:
+    2px solid
+    currentColor;
+
+  transform:
+    rotate(45deg);
+
+  transition:
+    transform 140ms ease;
+}
+
+.chevron.open {
+  transform:
+    rotate(-135deg)
+    translateY(-1px);
 }
 
 @keyframes dropdown-pop {
@@ -145,7 +195,7 @@ shared cards/headers/layout
   display: flex;
   flex-direction: column;
 
-  min-width: 248px;
+  min-width: 220px;
 
   padding:
     var(--space-xxs);
@@ -184,7 +234,7 @@ shared cards/headers/layout
   text-decoration: none;
 
   font-size:
-    var(--font-size-base);
+    0.9rem;
 
   font-weight:
     700;
@@ -213,9 +263,57 @@ shared cards/headers/layout
     #1f1f1f;
 }
 
+.dropdown-signout {
+  margin-top:
+    var(--space-xxs);
+
+  padding:
+    0.75rem
+    1rem;
+
+  width:
+    100%;
+
+  background:
+    transparent;
+
+  border:
+    none;
+
+  border-radius:
+    7px;
+
+  color:
+    var(--secondary-dark);
+
+  text-align:
+    left;
+
+  font-size:
+    0.9rem;
+
+  font-weight:
+    700;
+
+  cursor:
+    pointer;
+}
+
+.dropdown-signout:hover {
+  background:
+    var(--tertiary-bg);
+
+  color:
+    var(--secondary-light);
+}
+
+.profile-end {
+  justify-self: end;
+}
+
 .account-avatar {
-  width: 60px;
-  height: 60px;
+  width: 40px;
+  height: 40px;
 
   display: grid;
   place-items: center;
@@ -233,78 +331,10 @@ shared cards/headers/layout
     var(--primary-light);
 
   font-size:
-    var(--font-size-md);
+    var(--font-size-base);
   font-weight:
     800;
 
-}
-
-.account-identity {
-  display: flex;
-  align-items: center;
-
-  gap:
-    var(--space-lg);
-}
-
-.account-details {
-  display: flex;
-  flex-direction: column;
-
-  gap:
-    var(--space-xxs);
-
-  min-width:
-    0;
-}
-
-.account-label {
-  color:
-    #bdbdbd;
-
-  font-size:
-    var(--font-size-sm);
-
-  font-weight:
-    700;
-
-  text-transform:
-    uppercase;
-
-  letter-spacing:
-    0.08em;
-}
-
-.account-email {
-  max-width:
-    260px;
-
-  overflow:
-    hidden;
-
-  color:
-    var(--secondary-light);
-
-  font-size:
-    var(--font-size-base);
-
-  font-weight:
-    600;
-
-  text-overflow:
-    ellipsis;
-
-  white-space:
-    nowrap;
-}
-
-.btn-signout {
-  font-size:
-    var(--font-size-base);
-
-  padding:
-    0.9rem
-    1.3rem;
 }
 
 
@@ -378,17 +408,12 @@ shared cards/headers/layout
       stretch;
   }
 
-  .header-left,
-  .app-brand,
-  .header-right {
-    justify-self: stretch;
-  }
+  .app-nav {
+    margin-left:
+      var(--space-sm);
 
-  .header-right {
-    justify-content: flex-end;
-
-    grid-column:
-      3;
+    gap:
+      0;
   }
 
 }

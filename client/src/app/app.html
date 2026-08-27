@@ -70,50 +70,45 @@
 } @else {
   <div class="authenticated-shell">
     <header class="app-header authenticated-header">
-      <div class="header-left">
-        <div class="header-menu">
+      <div class="app-brand">JAAKD<span>+</span></div>
+
+      <nav class="app-nav" aria-label="Main navigation">
+        <a routerLink="/dashboard" routerLinkActive="active"> Dashboard </a>
+
+        <a routerLink="/transactions" routerLinkActive="active"> Transactions </a>
+
+        <a routerLink="/analytics" routerLinkActive="active"> Analytics </a>
+
+        <div class="menu-wrapper">
           <button
             type="button"
-            class="btn btn-icon menu-button"
+            class="nav-more-button"
             (click)="toggleMenu()"
-            aria-haspopup="menu"
             [attr.aria-expanded]="menuOpen()"
-            aria-label="Open navigation menu"
+            aria-haspopup="menu"
+            aria-label="More navigation"
           >
-            <svg lucideMenu></svg>
+            <span>More</span>
+            <span class="chevron" [class.open]="menuOpen()"></span>
           </button>
 
           @if (menuOpen()) {
-            <nav class="nav-dropdown" role="menu" aria-label="Main navigation">
+            <div class="nav-dropdown" role="menu" aria-label="More navigation links">
               <a routerLink="/dashboard" routerLinkActive="active" role="menuitem" (click)="closeMenu()"> Dashboard </a>
 
               <a routerLink="/transactions" routerLinkActive="active" role="menuitem" (click)="closeMenu()"> Transactions </a>
 
               <a routerLink="/analytics" routerLinkActive="active" role="menuitem" (click)="closeMenu()"> Analytics </a>
-            </nav>
+
+              <button type="button" class="dropdown-signout" (click)="logout(); closeMenu()"> Sign Out </button>
+            </div>
           }
         </div>
-      </div>
+      </nav>
 
-      <div class="app-brand">JAAKD<span>+</span></div>
-
-      <div class="header-right">
+      <div class="profile-end" [attr.title]="user()?.email || 'Signed in user'">
         <div class="account-avatar" aria-hidden="true">
           {{ (user()?.email || 'U').charAt(0).toUpperCase() }}
-        </div>
-
-        <div class="account-identity">
-          <div class="account-details">
-            <span class="account-label">Signed in as</span>
-
-            <span class="account-email">
-              {{ user()?.email }}
-            </span>
-          </div>
-
-          <button type="button" class="btn btn-icon btn-signout" (click)="logout()" aria-label="Sign Out" title="Sign Out">
-            <svg lucideLogOut></svg>
-          </button>
         </div>
       </div>
     </header>
