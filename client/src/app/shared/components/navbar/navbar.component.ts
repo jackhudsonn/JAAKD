@@ -19,11 +19,11 @@ export class NavbarComponent {
   constructor(private elementRef: ElementRef<HTMLElement>) {}
 
   get displayName() {
-    return this.user?.user_metadata?.['full_name'] || this.user?.email || 'Signed in user';
+    return this.user?.user_metadata?.['full_name'];
   }
 
   get displayInitial() {
-    return this.displayName.charAt(0).toUpperCase();
+    return this.displayName?.charAt(0).toUpperCase() || 'U';
   }
 
   toggleMenu() {
