@@ -15,7 +15,7 @@ client/src/
 │   │   │   └── auth.guard.ts        # Redirects unauthenticated users to /auth/login
 │   │   ├── interceptors/            # HTTP interceptors (e.g. auth token injection) — placeholder
 │   │   ├── models/
-│   │   │   └── index.ts             # Shared domain interfaces: Trade, Position, MarketQuote
+│   │   │   └── index.ts             # Shared domain interfaces: Trades, Position, MarketQuote
 │   │   └── services/
 │   │       └── supabase.service.ts  # Supabase client wrapper (auth, session)
 │   │
@@ -23,9 +23,9 @@ client/src/
 │   │   ├── auth/
 │   │   │   ├── login/               # Login page — full-page layout, no shell
 │   │   │   └── register/            # Register page — stub, same layout as login
-│   │   ├── dashboard/               # Main trading overview page
-│   │   ├── transactions/            # Trade history page
-│   │   └── analytics/               # Portfolio performance page
+│   │   ├── dashboard/
+│   │   ├── transact/
+│   │   └── trade/
 │   │
 │   ├── layout/
 │   │   └── shell/                   # Authenticated app shell: top nav + <router-outlet>
@@ -64,8 +64,8 @@ client/src/
 
 / (ShellComponent, canActivate: authGuard)
   /dashboard      →  DashboardComponent    (lazy)
-  /transactions   →  TransactionsComponent (lazy)
-  /analytics      →  AnalyticsComponent    (lazy)
+  /transact   →  TransactComponent (lazy)
+  /trade          →  TradeComponent    (lazy)
 
 **            →  redirects to /
 ```
@@ -93,5 +93,4 @@ The `authGuard` checks the active Supabase session. Unauthenticated requests are
 - **`core/interceptors/auth-token.interceptor.ts`** — Attach Supabase JWT to outgoing API requests
 - **`core/services/market.service.ts`** — Real-time market data via Kafka WebSocket bridge
 - **`shared/components/navbar/`** — Extract nav from `ShellComponent` once it grows
-- **`shared/components/chart-card/`** — Reusable chart widget for dashboard and analytics
 - **`features/auth/register/`** — Full registration form once backend user provisioning is ready

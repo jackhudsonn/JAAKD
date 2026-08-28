@@ -4,11 +4,11 @@
   <nav class="app-nav" aria-label="Main navigation">
     <a routerLink="/dashboard" routerLinkActive="active" (click)="closeMenus()"> Dashboard </a>
 
-    <a routerLink="/transactions" routerLinkActive="active" (click)="closeMenus()">
-      Transactions
+    <a routerLink="/transact" routerLinkActive="active" (click)="closeMenus()">
+      Transact
     </a>
 
-    <a routerLink="/analytics" routerLinkActive="active" (click)="closeMenus()"> Analytics </a>
+    <a routerLink="/trade" routerLinkActive="active" (click)="closeMenus()"> Trade </a>
 
     <div class="menu-wrapper">
       <button
@@ -35,21 +35,21 @@
           </a>
 
           <a
-            routerLink="/transactions"
+            routerLink="/transact"
             routerLinkActive="active"
             role="menuitem"
             (click)="closeMenu()"
           >
-            Transactions
+            Transact
           </a>
 
           <a
-            routerLink="/analytics"
+            routerLink="/trade"
             routerLinkActive="active"
             role="menuitem"
             (click)="closeMenu()"
           >
-            Analytics
+            Trade
           </a>
         </div>
       }
