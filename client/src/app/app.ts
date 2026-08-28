@@ -1,25 +1,15 @@
-import { Component, ElementRef, HostListener, OnInit, signal } from '@angular/core';
+import { Component, ElementRef, HostListener, OnInit, ViewChild, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import {
-  Router,
-  RouterLink,
-  RouterLinkActive,
-  RouterOutlet
-} from '@angular/router';
+import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { User } from '@supabase/supabase-js';
 import { SupabaseService } from './services/supabase.service';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [
-    FormsModule,
-    RouterOutlet,
-    RouterLink,
-    RouterLinkActive
-  ],
+  imports: [FormsModule, RouterOutlet, RouterLink, RouterLinkActive],
   templateUrl: './app.html',
-  styleUrl: './app.css'
+  styleUrl: './app.css',
 })
 export class App implements OnInit {
   email = '';
@@ -30,35 +20,28 @@ export class App implements OnInit {
   menuOpen = signal(false);
   avatarOpen = signal(false);
 
+  @ViewChild('navMenu')
+  navMenu?: ElementRef<HTMLElement>;
+
+  @ViewChild('avatarMenu')
+  avatarMenu?: ElementRef<HTMLElement>;
   constructor(
     private supabaseService: SupabaseService,
     private router: Router,
-    private elementRef: ElementRef<HTMLElement>
   ) {}
 
   async ngOnInit() {
-    const { data } =
-      await this.supabaseService.getSession();
+    const { data } = await this.supabaseService.getSession();
 
-    this.user.set(
-      data.session?.user ?? null
-    );
+    this.user.set(data.session?.user ?? null);
 
-    this.supabaseService.onAuthStateChange(
-      (_event: string, session: any) => {
-        this.user.set(
-          session?.user ?? null
-        );
-      }
-    );
+    this.supabaseService.onAuthStateChange((_event: string, session: any) => {
+      this.user.set(session?.user ?? null);
+    });
   }
 
   async login() {
-    const { error } =
-      await this.supabaseService.signIn(
-        this.email,
-        this.password
-      );
+    const { error } = await this.supabaseService.signIn(this.email, this.password);
 
     if (error) {
       this.message.set(error.message);
@@ -70,11 +53,7 @@ export class App implements OnInit {
   }
 
   async signUp() {
-    const { data, error } =
-      await this.supabaseService.signUp(
-        this.email,
-        this.password
-      );
+    const { data, error } = await this.supabaseService.signUp(this.email, this.password);
 
     if (error) {
       this.message.set(error.message);
@@ -85,15 +64,12 @@ export class App implements OnInit {
       this.message.set('');
       await this.router.navigate(['/dashboard']);
     } else {
-      this.message.set(
-        'Account created. Check your email to confirm your account.'
-      );
+      this.message.set('Account created. Check your email to confirm your account.');
     }
   }
 
   async logout() {
-    const { error } =
-      await this.supabaseService.signOut();
+    const { error } = await this.supabaseService.signOut();
 
     if (error) {
       this.message.set(error.message);
@@ -125,6 +101,11 @@ export class App implements OnInit {
     this.avatarOpen.set(false);
   }
 
+  closeMenus() {
+    this.closeMenu();
+    this.closeAvatarMenu();
+  }
+
   get displayName() {
     return this.user()?.user_metadata?.['full_name'] || this.user()?.email || 'Signed in user';
   }
@@ -132,22 +113,28 @@ export class App implements OnInit {
   get displayInitial() {
     return this.displayName.charAt(0).toUpperCase();
   }
+@HostListener('document:click', ['$event'])
+onDocumentClick(event: MouseEvent) {
+  const target = event.target as Node;
 
-  @HostListener('document:click', ['$event'])
-  onDocumentClick(event: MouseEvent) {
-    if (!this.menuOpen() && !this.avatarOpen()) {
-      return;
-    }
-
-    if (!this.elementRef.nativeElement.contains(event.target as Node)) {
-      this.closeAvatarMenu();
-      this.closeMenu();
-    }
-  }
-
-  @HostListener('document:keydown.escape')
-  onEscape() {
-    this.closeAvatarMenu();
+  if (
+    this.menuOpen() &&
+    this.navMenu &&
+    !this.navMenu.nativeElement.contains(target)
+  ) {
     this.closeMenu();
   }
+
+  if (
+    this.avatarOpen() &&
+    this.avatarMenu &&
+    !this.avatarMenu.nativeElement.contains(target)
+  ) {
+    this.closeAvatarMenu();
+  }
+}
+@HostListener('document:keydown.escape')
+onEscape() {
+  this.closeMenus();
+}
 }

@@ -1,7 +1,9 @@
 @if (!user()) {
   <div class="auth-shell">
     <header class="app-header">
-      <div class="app-brand"><span class="brand-word">JAAKD</span><span class="brand-plus">+</span></div>
+      <div class="app-brand">
+        <span class="brand-word">JAAKD</span><span class="brand-plus">+</span>
+      </div>
 
       <div class="app-tagline">Secure Trading Platform</div>
     </header>
@@ -73,13 +75,15 @@
       <div class="app-brand">JAAKD<span>+</span></div>
 
       <nav class="app-nav" aria-label="Main navigation">
-        <a routerLink="/dashboard" routerLinkActive="active"> Dashboard </a>
+        <a routerLink="/dashboard" routerLinkActive="active" (click)="closeMenus()"> Dashboard </a>
 
-        <a routerLink="/transactions" routerLinkActive="active"> Transactions </a>
+        <a routerLink="/transactions" routerLinkActive="active" (click)="closeMenus()">
+          Transactions
+        </a>
 
-        <a routerLink="/analytics" routerLinkActive="active"> Analytics </a>
+        <a routerLink="/analytics" routerLinkActive="active" (click)="closeMenus()"> Analytics </a>
 
-        <div class="menu-wrapper">
+        <div class="menu-wrapper" #navMenu>
           <button
             type="button"
             class="nav-more-button"
@@ -94,18 +98,39 @@
 
           @if (menuOpen()) {
             <div class="nav-dropdown" role="menu" aria-label="More navigation links">
-              <a routerLink="/dashboard" routerLinkActive="active" role="menuitem" (click)="closeMenu()"> Dashboard </a>
+              <a
+                routerLink="/dashboard"
+                routerLinkActive="active"
+                role="menuitem"
+                (click)="closeMenu()"
+              >
+                Dashboard
+              </a>
 
-              <a routerLink="/transactions" routerLinkActive="active" role="menuitem" (click)="closeMenu()"> Transactions </a>
+              <a
+                routerLink="/transactions"
+                routerLinkActive="active"
+                role="menuitem"
+                (click)="closeMenu()"
+              >
+                Transactions
+              </a>
 
-              <a routerLink="/analytics" routerLinkActive="active" role="menuitem" (click)="closeMenu()"> Analytics </a>
+              <a
+                routerLink="/analytics"
+                routerLinkActive="active"
+                role="menuitem"
+                (click)="closeMenu()"
+              >
+                Analytics
+              </a>
             </div>
           }
         </div>
       </nav>
 
       <div class="profile-end">
-        <div class="avatar-menu-wrapper">
+        <div class="avatar-menu-wrapper" #avatarMenu>
           <button
             type="button"
             class="avatar-button"
@@ -128,7 +153,13 @@
               </div>
 
               <div class="avatar-dropdown-actions">
-                <button type="button" class="dropdown-signout" (click)="logout(); closeAvatarMenu()"> Sign Out </button>
+                <button
+                  type="button"
+                  class="dropdown-signout"
+                  (click)="logout(); closeAvatarMenu()"
+                >
+                  Sign Out
+                </button>
               </div>
             </div>
           }
