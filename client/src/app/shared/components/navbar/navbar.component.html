@@ -2,11 +2,29 @@
   <div class="app-brand">JAAKD<span>+</span></div>
 
   <nav class="app-nav" aria-label="Main navigation">
-    <a routerLink="/dashboard" routerLinkActive="active"> Dashboard </a>
+<a
+  routerLink="/dashboard"
+  routerLinkActive="active"
+  (click)="closeMenus()"
+>
+  Dashboard
+</a>
 
-    <a routerLink="/transactions" routerLinkActive="active"> Transactions </a>
+<a
+  routerLink="/transactions"
+  routerLinkActive="active"
+  (click)="closeMenus()"
+>
+  Transactions
+</a>
 
-    <a routerLink="/analytics" routerLinkActive="active"> Analytics </a>
+<a
+  routerLink="/analytics"
+  routerLinkActive="active"
+  (click)="closeMenus()"
+>
+  Analytics
+</a>
 
     <div class="menu-wrapper">
       <button

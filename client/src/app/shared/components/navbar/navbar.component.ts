@@ -35,6 +35,7 @@ export class NavbarComponent {
     this.menuOpen.set(false);
   }
 
+
   toggleAvatarMenu() {
     this.menuOpen.set(false);
     this.avatarOpen.update((open) => !open);
@@ -43,19 +44,39 @@ export class NavbarComponent {
   closeAvatarMenu() {
     this.avatarOpen.set(false);
   }
+  closeMenus() {
+  this.closeMenu();
+  this.closeAvatarMenu();
+}
 
-  @HostListener('document:click', ['$event'])
-  onDocumentClick(event: MouseEvent) {
-    if (!this.menuOpen() && !this.avatarOpen()) return;
-    if (!this.elementRef.nativeElement.contains(event.target as Node)) {
-      this.closeAvatarMenu();
-      this.closeMenu();
-    }
-  }
+@HostListener('document:click', ['$event'])
+onDocumentClick(event: MouseEvent) {
+  const target = event.target as Node;
 
-  @HostListener('document:keydown.escape')
-  onEscape() {
-    this.closeAvatarMenu();
+  const menuWrapper =
+    this.elementRef.nativeElement.querySelector('.menu-wrapper');
+
+  const avatarWrapper =
+    this.elementRef.nativeElement.querySelector('.avatar-menu-wrapper');
+
+  if (
+    this.menuOpen() &&
+    menuWrapper &&
+    !menuWrapper.contains(target)
+  ) {
     this.closeMenu();
   }
+
+  if (
+    this.avatarOpen() &&
+    avatarWrapper &&
+    !avatarWrapper.contains(target)
+  ) {
+    this.closeAvatarMenu();
+  }
+}
+@HostListener('document:keydown.escape')
+onEscape() {
+  this.closeMenus();
+}
 }
