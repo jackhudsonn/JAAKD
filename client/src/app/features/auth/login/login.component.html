@@ -1,6 +1,8 @@
 <div class="auth-shell">
   <header class="app-header">
-    <div class="app-brand"><span class="brand-word">JAAKD</span><span class="brand-plus">+</span></div>
+    <div class="app-brand">
+      <span class="brand-word">JAAKD</span><span class="brand-plus">+</span>
+    </div>
 
     <div class="app-tagline">Secure Trading Platform</div>
   </header>
@@ -55,7 +57,7 @@
       <div class="auth-actions">
         <button type="button" class="btn btn-primary" (click)="login()">Sign In</button>
 
-        <button type="button" class="btn btn-secondary" (click)="signUp()">Create Account</button>
+        <a class="btn btn-secondary" routerLink="/auth/register"> Create Account </a>
       </div>
 
       @if (message()) {
