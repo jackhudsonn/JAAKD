@@ -1,10 +1,12 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { ShellComponent } from './layout/shell/shell.component';
+import { AuthShellComponent } from './layout/auth-shell/auth-shell.component';
 
 export const routes: Routes = [
   {
     path: 'auth',
+    component: AuthShellComponent,
     children: [
       {
         path: 'login',

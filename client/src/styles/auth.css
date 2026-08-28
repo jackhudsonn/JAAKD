@@ -182,3 +182,19 @@
   font-size:
     var(--font-size-sm);
 }
+
+@media (max-width: 899px) {
+  .auth-main {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    padding: var(--space-xl) var(--space-md);
+  }
+
+  .welcome-section {
+    display: none;
+  }
+
+  .auth-card {
+    width: min(440px, 100%);
+  }
+}
