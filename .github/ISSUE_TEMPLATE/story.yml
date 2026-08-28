@@ -1,0 +1,64 @@
+name: Story
+description: Use for product or engineering stories with story points, acceptance criteria, and implementation notes.
+title: "[Story]: "
+labels:
+  - story
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template for a single Jira-style story.
+
+        GitHub still handles assignees, labels, projects, milestones, and reviewers separately.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: One or two sentences describing the user need or work item.
+      placeholder: As a user, I want ... so that ...
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance criteria
+      description: List the conditions that must be true for this story to be complete.
+      placeholder: |
+        - [ ] Criterion one
+        - [ ] Criterion two
+    validations:
+      required: true
+  - type: dropdown
+    id: story-points
+    attributes:
+      label: Story points
+      description: Relative effort estimate using your team’s point scale.
+      options:
+        - 1
+        - 2
+        - 3
+        - 5
+        - 8
+        - 13
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies
+      description: Note any blockers, upstream work, API changes, or related issues.
+      placeholder: None / depends on ...
+  - type: textarea
+    id: notes
+    attributes:
+      label: Implementation notes
+      description: Add design links, technical constraints, edge cases, or rollout notes.
+      placeholder: Include any context that helps the assignee deliver this cleanly.
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Story readiness
+      options:
+        - label: I have added the relevant labels, assignee, project, and milestone in GitHub.
+        - label: The acceptance criteria are specific enough to verify completion.
+        - label: Any dependencies or blockers are documented above.
