@@ -9,15 +9,15 @@ export const routes: Routes = [
       {
         path: 'login',
         loadComponent: () =>
-          import('./features/auth/login/login.component').then(m => m.LoginComponent)
+          import('./features/auth/login/login.component').then((m) => m.LoginComponent),
       },
       {
         path: 'register',
         loadComponent: () =>
-          import('./features/auth/register/register.component').then(m => m.RegisterComponent)
+          import('./features/auth/register/register.component').then((m) => m.RegisterComponent),
       },
-      { path: '', redirectTo: 'login', pathMatch: 'full' }
-    ]
+      { path: '', redirectTo: 'login', pathMatch: 'full' },
+    ],
   },
   {
     path: '',
@@ -28,19 +28,26 @@ export const routes: Routes = [
       {
         path: 'dashboard',
         loadComponent: () =>
-          import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent)
+          import('./features/dashboard/dashboard.component').then((m) => m.DashboardComponent),
       },
       {
         path: 'transactions',
         loadComponent: () =>
-          import('./features/transactions/transactions.component').then(m => m.TransactionsComponent)
+          import('./features/transactions/transactions.component').then(
+            (m) => m.TransactionsComponent,
+          ),
       },
       {
         path: 'analytics',
         loadComponent: () =>
-          import('./features/analytics/analytics.component').then(m => m.AnalyticsComponent)
-      }
-    ]
+          import('./features/analytics/analytics.component').then((m) => m.AnalyticsComponent),
+      },
+      {
+        path: 'profile',
+        loadComponent: () =>
+          import('./features/profile/profile.component').then((m) => m.ProfileComponent),
+      },
+    ],
   },
-  { path: '**', redirectTo: '' }
+  { path: '**', redirectTo: '' },
 ];

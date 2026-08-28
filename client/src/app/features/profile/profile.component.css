@@ -1,0 +1,179 @@
+.account-page {
+  width: min(1100px, calc(100% - 2rem));
+  margin: 0 auto;
+
+  padding: 3rem 0 4rem;
+}
+
+.account-heading {
+  margin-bottom: 2rem;
+}
+
+.account-heading h1 {
+  margin-bottom: 0.5rem;
+}
+
+.account-heading > p:last-child {
+  margin: 0;
+
+  color: var(--text-secondary);
+
+  font-size: var(--font-size-md);
+}
+
+.account-summary {
+  margin-bottom: 1.5rem;
+
+  display: flex;
+  align-items: center;
+
+  gap: 1rem;
+}
+
+.account-summary-avatar {
+  width: 56px;
+  height: 56px;
+
+  display: grid;
+  place-items: center;
+
+  flex: 0 0 56px;
+
+  border-radius: 50%;
+
+  background: var(--tertiary-bg);
+
+  border: 1px solid var(--tertiary-bg-border);
+
+  color: var(--primary);
+
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+
+.account-summary h2 {
+  margin: 0 0 0.25rem;
+
+  font-size: var(--font-size-lg);
+}
+
+.account-summary p {
+  margin: 0;
+
+  color: var(--text-secondary);
+
+  font-size: var(--font-size-sm);
+}
+
+.account-section {
+  margin-bottom: 1.5rem;
+}
+
+.account-section-heading {
+  margin-bottom: 1.5rem;
+
+  padding-bottom: 1rem;
+
+  border-bottom: 1px solid var(--tertiary-bg-border);
+}
+
+.account-section-heading h2 {
+  margin-bottom: 0.35rem;
+
+  font-size: var(--font-size-lg);
+}
+
+.account-section-heading p {
+  margin: 0;
+
+  color: var(--text-secondary);
+
+  font-size: var(--font-size-sm);
+}
+
+.account-details-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+
+  gap: 1rem 2rem;
+}
+
+.account-detail {
+  min-width: 0;
+
+  display: grid;
+
+  gap: 0.35rem;
+}
+
+.account-detail span {
+  color: var(--text-secondary);
+
+  font-size: 0.75rem;
+  font-weight: 700;
+
+  letter-spacing: 0.04em;
+
+  text-transform: uppercase;
+}
+
+.account-detail strong {
+  color: var(--text-primary);
+
+  font-size: var(--font-size-base);
+  font-weight: 600;
+
+  overflow-wrap: anywhere;
+}
+
+.security-action {
+  margin-top: 1.5rem;
+
+  padding-top: 1.25rem;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 1rem;
+
+  border-top: 1px solid var(--tertiary-bg-border);
+}
+
+.security-action strong {
+  color: var(--text-primary);
+}
+
+.security-action p {
+  margin: 0.25rem 0 0;
+
+  color: var(--text-secondary);
+
+  letter-spacing: 0.08em;
+}
+
+.security-action .btn {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 700px) {
+  .account-page {
+    padding-top: 2rem;
+  }
+
+  .account-details-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .security-action {
+    align-items: stretch;
+
+    flex-direction: column;
+  }
+
+  .security-action .btn {
+    width: 100%;
+  }
+}

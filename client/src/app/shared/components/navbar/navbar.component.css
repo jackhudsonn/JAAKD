@@ -381,3 +381,47 @@
   }
 
 }
+
+.avatar-dropdown-actions {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.account-menu-link,
+.dropdown-signout {
+  width: 100%;
+
+  padding: 0.75rem 0.9rem;
+
+  display: flex;
+  align-items: center;
+
+  border: 0;
+  border-radius: 8px;
+
+  background: transparent;
+
+  color: var(--text-primary);
+
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 600;
+
+  text-align: left;
+  text-decoration: none;
+
+  cursor: pointer;
+
+  transition:
+    background-color 150ms ease,
+    color 150ms ease;
+}
+
+.account-menu-link:hover,
+.dropdown-signout:hover {
+  background: var(--tertiary-bg);
+}
+
+.dropdown-signout {
+  color: var(--text-secondary);
+}

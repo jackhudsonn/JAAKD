@@ -1,17 +1,114 @@
-<div class="auth-shell">
+<div class="register-page">
   <header class="app-header">
-    <div class="app-brand"><span class="brand-word">JAAKD</span><span class="brand-plus">+</span></div>
+    <div class="app-brand">
+      <span class="brand-word">JAAKD</span><span class="brand-plus">+</span>
+    </div>
+
+    <div class="app-tagline">Secure Trading Platform</div>
   </header>
 
-  <main class="auth-main">
-    <section class="welcome-section">
-      <h1>Create an account.</h1>
+  <main class="register-main">
+    <section class="register-hero">
+      <p class="eyebrow">CREATE YOUR ACCOUNT</p>
+
+      <h1>Start trading with confidence.</h1>
+
+      <p>
+        Set up your secure JAAKD account to access your portfolio,
+        orders, holdings, and trading activity.
+      </p>
     </section>
 
-    <section class="auth-card">
+    <section class="auth-card register-card">
       <div class="card-heading">
-        <h2>Register</h2>
-        <p>Registration coming soon.</p>
+        <h2>Create Account</h2>
+        <p>Enter your personal and account information below.</p>
+      </div>
+
+      <div class="register-grid">
+        <div class="form-field">
+          <label for="firstName">First Name *</label>
+          <input id="firstName" type="text" [(ngModel)]="firstName" />
+        </div>
+
+        <div class="form-field">
+          <label for="lastName">Last Name *</label>
+          <input id="lastName" type="text" [(ngModel)]="lastName" />
+        </div>
+
+        <div class="form-field full-width">
+          <label for="email">Email *</label>
+          <input
+            id="email"
+            type="email"
+            [(ngModel)]="email"
+            placeholder="name@example.com"
+          />
+        </div>
+
+        <div class="form-field">
+          <label for="password">Password *</label>
+          <input
+            id="password"
+            type="password"
+            [(ngModel)]="password"
+            placeholder="Minimum 6 characters"
+          />
+        </div>
+
+        <div class="form-field">
+          <label for="confirmPassword">Confirm Password *</label>
+          <input
+            id="confirmPassword"
+            type="password"
+            [(ngModel)]="confirmPassword"
+          />
+        </div>
+
+        <div class="form-field">
+          <label for="dob">Date of Birth</label>
+          <input id="dob" type="date" [(ngModel)]="dob" />
+        </div>
+
+        <div class="form-field">
+          <label for="country">Country</label>
+          <input id="country" type="text" [(ngModel)]="country" />
+        </div>
+
+        <div class="form-field">
+          <label for="city">City</label>
+          <input id="city" type="text" [(ngModel)]="city" />
+        </div>
+
+        <div class="form-field">
+          <label for="state">State</label>
+          <input id="state" type="text" [(ngModel)]="state" />
+        </div>
+
+        <div class="form-field full-width">
+          <label for="zipCode">ZIP / Postal Code</label>
+          <input id="zipCode" type="text" [(ngModel)]="zipCode" />
+        </div>
+      </div>
+
+      @if (message()) {
+        <div class="status-message">
+          {{ message() }}
+        </div>
+      }
+
+      <div class="register-actions">
+        <button
+          type="button"
+          class="btn btn-primary"
+          (click)="signUp()">
+          Create Account
+        </button>
+
+        <p>
+          Already have an account?
+          <a routerLink="/auth/login">Sign In</a>
+        </p>
       </div>
     </section>
   </main>

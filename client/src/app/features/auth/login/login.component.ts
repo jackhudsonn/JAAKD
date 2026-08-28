@@ -8,7 +8,7 @@ import { SupabaseService } from '../../../core/services/supabase.service';
   standalone: true,
   imports: [FormsModule, RouterLink],
   templateUrl: './login.component.html',
-  styleUrl: './login.component.css',
+  styleUrl: './login.component.css'
 })
 export class LoginComponent {
   email = '';
@@ -17,34 +17,28 @@ export class LoginComponent {
 
   constructor(
     private supabaseService: SupabaseService,
-    private router: Router,
+    private router: Router
   ) {}
 
   async login() {
-    const { error } = await this.supabaseService.signIn(this.email, this.password);
+    if (!this.email || !this.password) {
+      this.message.set('Enter your email and password.');
+      return;
+    }
+
+    const { error } = await this.supabaseService.signIn(
+      this.email,
+      this.password
+    );
 
     if (error) {
-      this.message.set(error.message);
+      this.message.set(
+        'Email or password is incorrect. Don’t have an account? Create one below.'
+      );
       return;
     }
 
     this.message.set('');
     await this.router.navigate(['/dashboard']);
-  }
-
-  async signUp() {
-    const { data, error } = await this.supabaseService.signUp(this.email, this.password);
-
-    if (error) {
-      this.message.set(error.message);
-      return;
-    }
-
-    if (data.session) {
-      this.message.set('');
-      await this.router.navigate(['/dashboard']);
-    } else {
-      this.message.set('Account created. Check your email to confirm your account.');
-    }
   }
 }

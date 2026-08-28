@@ -2,29 +2,13 @@
   <div class="app-brand">JAAKD<span>+</span></div>
 
   <nav class="app-nav" aria-label="Main navigation">
-<a
-  routerLink="/dashboard"
-  routerLinkActive="active"
-  (click)="closeMenus()"
->
-  Dashboard
-</a>
+    <a routerLink="/dashboard" routerLinkActive="active" (click)="closeMenus()"> Dashboard </a>
 
-<a
-  routerLink="/transactions"
-  routerLinkActive="active"
-  (click)="closeMenus()"
->
-  Transactions
-</a>
+    <a routerLink="/transactions" routerLinkActive="active" (click)="closeMenus()">
+      Transactions
+    </a>
 
-<a
-  routerLink="/analytics"
-  routerLinkActive="active"
-  (click)="closeMenus()"
->
-  Analytics
-</a>
+    <a routerLink="/analytics" routerLinkActive="active" (click)="closeMenus()"> Analytics </a>
 
     <div class="menu-wrapper">
       <button
@@ -41,11 +25,32 @@
 
       @if (menuOpen()) {
         <div class="nav-dropdown" role="menu" aria-label="More navigation links">
-          <a routerLink="/dashboard" routerLinkActive="active" role="menuitem" (click)="closeMenu()"> Dashboard </a>
+          <a
+            routerLink="/dashboard"
+            routerLinkActive="active"
+            role="menuitem"
+            (click)="closeMenu()"
+          >
+            Dashboard
+          </a>
 
-          <a routerLink="/transactions" routerLinkActive="active" role="menuitem" (click)="closeMenu()"> Transactions </a>
+          <a
+            routerLink="/transactions"
+            routerLinkActive="active"
+            role="menuitem"
+            (click)="closeMenu()"
+          >
+            Transactions
+          </a>
 
-          <a routerLink="/analytics" routerLinkActive="active" role="menuitem" (click)="closeMenu()"> Analytics </a>
+          <a
+            routerLink="/analytics"
+            routerLinkActive="active"
+            role="menuitem"
+            (click)="closeMenu()"
+          >
+            Analytics
+          </a>
         </div>
       }
     </div>
@@ -69,12 +74,25 @@
       @if (avatarOpen()) {
         <div class="avatar-dropdown" role="menu" aria-label="Account menu">
           <div class="avatar-dropdown-ident">
-            <div class="avatar-dropdown-name">{{ displayName }}</div>
+            <div class="avatar-dropdown-name">
+              {{ displayName }}
+            </div>
 
-            <div class="avatar-dropdown-email">{{ user?.email }}</div>
+            <div class="avatar-dropdown-email">
+              {{ user?.email }}
+            </div>
           </div>
 
           <div class="avatar-dropdown-actions">
+            <a
+              routerLink="/profile"
+              class="account-menu-link"
+              role="menuitem"
+              (click)="closeAvatarMenu()"
+            >
+              Account
+            </a>
+
             <button
               type="button"
               class="dropdown-signout"

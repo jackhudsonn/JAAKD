@@ -1,0 +1,121 @@
+<main class="account-page">
+
+  <header class="account-heading">
+    <p class="eyebrow">ACCOUNT</p>
+
+    <h1>Account</h1>
+
+    <p>
+      Manage your personal information and account settings.
+    </p>
+  </header>
+
+
+  <section class="account-summary card">
+
+    <div class="account-summary-avatar">
+      {{ (metadata['first_name'] || user()?.email || 'U').charAt(0).toUpperCase() }}
+    </div>
+
+    <div class="account-summary-info">
+      <h2>
+        {{ metadata['first_name'] || '' }}
+        {{ metadata['last_name'] || '' }}
+      </h2>
+
+      <p>
+        {{ user()?.email || '—' }}
+      </p>
+    </div>
+
+  </section>
+
+
+  <section class="account-section card">
+
+    <div class="account-section-heading">
+      <h2>Personal Information</h2>
+
+      <p>
+        Information associated with your JAAKD account.
+      </p>
+    </div>
+
+
+    <div class="account-details-grid">
+
+      <div class="account-detail">
+        <span>First Name</span>
+        <strong>{{ metadata['first_name'] || '—' }}</strong>
+      </div>
+
+      <div class="account-detail">
+        <span>Last Name</span>
+        <strong>{{ metadata['last_name'] || '—' }}</strong>
+      </div>
+
+      <div class="account-detail">
+        <span>Date of Birth</span>
+        <strong>{{ metadata['dob'] || '—' }}</strong>
+      </div>
+
+      <div class="account-detail">
+        <span>City</span>
+        <strong>{{ metadata['city'] || '—' }}</strong>
+      </div>
+
+      <div class="account-detail">
+        <span>State</span>
+        <strong>{{ metadata['state'] || '—' }}</strong>
+      </div>
+
+      <div class="account-detail">
+        <span>Country</span>
+        <strong>{{ metadata['country'] || '—' }}</strong>
+      </div>
+
+      <div class="account-detail">
+        <span>ZIP / Postal Code</span>
+        <strong>{{ metadata['zip_code'] || '—' }}</strong>
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <section class="account-section card">
+
+    <div class="account-section-heading">
+      <h2>Security</h2>
+
+      <p>
+        Manage your sign-in information.
+      </p>
+    </div>
+
+
+    <div class="account-detail">
+      <span>Email</span>
+      <strong>{{ user()?.email || '—' }}</strong>
+    </div>
+
+
+    <div class="security-action">
+
+      <div>
+        <strong>Password</strong>
+        <p>••••••••••••</p>
+      </div>
+
+      <button
+        type="button"
+        class="btn btn-secondary">
+        Reset Password
+      </button>
+
+    </div>
+
+  </section>
+
+</main>

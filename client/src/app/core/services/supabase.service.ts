@@ -11,9 +11,34 @@ export class SupabaseService {
   constructor() {
     this.supabase = createClient(environment.supabaseUrl, environment.supabasePublishableKey);
   }
-
-  signUp(email: string, password: string) {
-    return this.supabase.auth.signUp({ email, password });
+  signUp(
+    email: string,
+    password: string,
+    profile: {
+      firstName: string;
+      lastName: string;
+      dob?: string;
+      city?: string;
+      state?: string;
+      country?: string;
+      zipCode?: string;
+    },
+  ) {
+    return this.supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          first_name: profile.firstName,
+          last_name: profile.lastName,
+          dob: profile.dob,
+          city: profile.city,
+          state: profile.state,
+          country: profile.country,
+          zip_code: profile.zipCode,
+        },
+      },
+    });
   }
 
   signIn(email: string, password: string) {
