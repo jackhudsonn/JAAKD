@@ -1,0 +1,7 @@
+:host {
+  display: block;
+
+  min-height: 100vh;
+}
+
+/* Auth layout and card styles live in styles/auth.css */

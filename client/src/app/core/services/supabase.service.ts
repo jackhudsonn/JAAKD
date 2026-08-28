@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { environment } from '../../environments/environment';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root',
@@ -13,21 +13,22 @@ export class SupabaseService {
   }
 
   signUp(email: string, password: string) {
-    return this.supabase.auth.signUp({
-      email,
-      password,
-    });
+    return this.supabase.auth.signUp({ email, password });
   }
+
   signIn(email: string, password: string) {
     return this.supabase.auth.signInWithPassword({ email, password });
   }
+
   signOut() {
     return this.supabase.auth.signOut();
   }
+
   getSession() {
     return this.supabase.auth.getSession();
   }
-  onAuthStateChange(callback: any) {
+
+  onAuthStateChange(callback: (event: string, session: any) => void) {
     return this.supabase.auth.onAuthStateChange(callback);
   }
 }

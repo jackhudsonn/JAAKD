@@ -1,0 +1,13 @@
+:host {
+  display: block;
+
+  min-height: 100vh;
+}
+
+
+.authenticated-shell {
+  min-height: 100vh;
+
+  background:
+    var(--primary-bg);
+}

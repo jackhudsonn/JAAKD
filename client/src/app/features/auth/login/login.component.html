@@ -1,0 +1,68 @@
+<div class="auth-shell">
+  <header class="app-header">
+    <div class="app-brand"><span class="brand-word">JAAKD</span><span class="brand-plus">+</span></div>
+
+    <div class="app-tagline">Secure Trading Platform</div>
+  </header>
+
+  <main class="auth-main">
+    <section class="welcome-section">
+      <p class="eyebrow">JAAKD TRADING PLATFORM</p>
+
+      <h1>Trade with confidence.</h1>
+
+      <p class="welcome-copy">
+        Access your account, manage trades, and monitor your portfolio from one secure platform.
+      </p>
+
+      <div class="feature-list">
+        <div>
+          <span class="feature-dot"></span>
+          Secure account access
+        </div>
+
+        <div>
+          <span class="feature-dot"></span>
+          Portfolio visibility
+        </div>
+
+        <div>
+          <span class="feature-dot"></span>
+          Order tracking
+        </div>
+      </div>
+    </section>
+
+    <section class="auth-card">
+      <div class="card-heading">
+        <h2>Account Access</h2>
+
+        <p>Sign in or create an account to continue.</p>
+      </div>
+
+      <div class="form-field">
+        <label for="email"> Email </label>
+
+        <input id="email" type="email" [(ngModel)]="email" placeholder="name@example.com" />
+      </div>
+
+      <div class="form-field">
+        <label for="password"> Password </label>
+
+        <input id="password" type="password" [(ngModel)]="password" placeholder="Password" />
+      </div>
+
+      <div class="auth-actions">
+        <button type="button" class="btn btn-primary" (click)="login()">Sign In</button>
+
+        <button type="button" class="btn btn-secondary" (click)="signUp()">Create Account</button>
+      </div>
+
+      @if (message()) {
+        <div class="status-message">
+          {{ message() }}
+        </div>
+      }
+    </section>
+  </main>
+</div>

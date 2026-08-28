@@ -3,6 +3,7 @@
 @import './styles/buttons.css';
 @import './styles/forms.css';
 @import './styles/layout.css';
+@import './styles/auth.css';
 
 *,
 *::before,

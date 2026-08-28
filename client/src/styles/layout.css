@@ -1,6 +1,11 @@
 /*
-shared cards/headers/layout
+  Shared structural classes used across multiple components.
+  Nav-specific styles live in shared/components/navbar/navbar.component.css.
 */
+
+
+/* HEADER SHELL — used by login page and authenticated shell */
+
 .app-header {
   min-height: 80px;
 
@@ -31,6 +36,7 @@ shared cards/headers/layout
     blur(8px);
 }
 
+
 .app-brand {
   display: inline-flex;
   align-items: center;
@@ -51,6 +57,7 @@ shared cards/headers/layout
     -0.01em;
 }
 
+
 .app-brand span {
   display: inline-flex;
   align-items: center;
@@ -68,372 +75,6 @@ shared cards/headers/layout
     translateY(-0.04em);
 
   font-weight: 600;
-}
-
-/* AUTHENTICATED NAV */
-
-.app-nav {
-  justify-self: start;
-
-  display: inline-flex;
-  align-items: center;
-
-  gap:
-    var(--space-xs);
-
-  margin-left:
-    var(--space-lg);
-}
-
-.app-nav a,
-.nav-more-button {
-  padding:
-    0.5rem
-    0.7rem;
-
-  border-radius:
-    8px;
-
-  color:
-    var(--secondary-dark);
-
-  text-decoration:
-    none;
-
-  font-size:
-    0.9rem;
-
-  font-weight:
-    700;
-
-  transition:
-    color 140ms ease,
-    background-color 140ms ease;
-}
-
-.app-nav a:hover,
-.nav-more-button:hover {
-  background:
-    rgba(255, 255, 255, 0.06);
-
-  color:
-    var(--secondary-light);
-}
-
-.app-nav a.active {
-  color:
-    var(--secondary-light);
-}
-
-.menu-wrapper {
-  position: relative;
-}
-
-.nav-more-button {
-  display: inline-flex;
-  align-items: center;
-
-  gap:
-    0.35rem;
-
-  background:
-    transparent;
-
-  border:
-    none;
-
-  cursor:
-    pointer;
-}
-
-.chevron {
-  width: 0.45rem;
-  height: 0.45rem;
-
-  border-right:
-    2px solid
-    currentColor;
-
-  border-bottom:
-    2px solid
-    currentColor;
-
-  transform:
-    rotate(45deg);
-
-  transition:
-    transform 140ms ease;
-}
-
-.chevron.open {
-  transform:
-    rotate(-135deg)
-    translateY(-1px);
-}
-
-@keyframes dropdown-pop {
-  from {
-    opacity: 0;
-    transform:
-      translateY(-6px);
-  }
-
-  to {
-    opacity: 1;
-    transform:
-      translateY(0);
-  }
-}
-
-.nav-dropdown {
-  position: absolute;
-  top:
-    calc(100% + var(--space-xs));
-
-  left: 0;
-
-  display: flex;
-  flex-direction: column;
-
-  min-width: 220px;
-
-  padding:
-    var(--space-xxs);
-
-  background:
-    var(--secondary-bg);
-
-  border:
-    1px solid
-    var(--tertiary-bg-border);
-
-  border-radius:
-    10px;
-
-  box-shadow:
-    var(--shadow-md);
-
-  animation:
-    dropdown-pop 140ms cubic-bezier(.2,.8,.2,1);
-
-  z-index: 10;
-}
-
-.nav-dropdown a {
-  padding:
-    0.85rem
-    1rem;
-
-  border-radius:
-    7px;
-
-  color:
-    var(--secondary-dark);
-
-  text-align: left;
-  text-decoration: none;
-
-  font-size:
-    0.9rem;
-
-  font-weight:
-    700;
-
-  cursor:
-    pointer;
-
-  transition:
-    color 150ms ease,
-    background-color 150ms ease;
-}
-
-.nav-dropdown a:hover {
-  background:
-    var(--tertiary-bg);
-
-  color:
-    var(--secondary-light);
-}
-
-.nav-dropdown a.active {
-  background:
-    var(--primary);
-
-  color:
-    #1f1f1f;
-}
-
-.profile-end {
-  justify-self: end;
-}
-
-.avatar-menu-wrapper {
-  position: relative;
-}
-
-.avatar-button {
-  display: inline-flex;
-  align-items: center;
-
-  padding: 0;
-
-  background:
-    transparent;
-
-  border:
-    none;
-
-  cursor:
-    pointer;
-}
-
-.account-avatar {
-  width: 48px;
-  height: 48px;
-
-  display: grid;
-  place-items: center;
-
-  border-radius: 50%;
-
-  background:
-    var(--tertiary-bg);
-
-  border:
-    1px solid
-    var(--quaternary-bg-border);
-
-  color:
-    var(--primary-light);
-
-  font-size:
-    var(--font-size-base);
-  font-weight:
-    800;
-
-}
-
-.avatar-dropdown {
-  position: absolute;
-  top:
-    calc(100% + var(--space-xs));
-
-  right: 0;
-
-  min-width:
-    240px;
-
-  padding:
-    var(--space-xs);
-
-  background:
-    var(--secondary-bg);
-
-  border:
-    1px solid
-    var(--tertiary-bg-border);
-
-  border-radius:
-    10px;
-
-  box-shadow:
-    var(--shadow-md);
-
-  animation:
-    dropdown-pop 140ms cubic-bezier(.2,.8,.2,1);
-
-  z-index:
-    10;
-}
-
-.avatar-dropdown-ident {
-  display: flex;
-  flex-direction: column;
-
-  gap:
-    2px;
-
-  padding:
-    0.75rem
-    0.9rem;
-}
-
-.avatar-dropdown-name {
-  color:
-    var(--secondary-light);
-
-  font-size:
-    var(--font-size-base);
-
-  font-weight:
-    700;
-}
-
-.avatar-dropdown-email {
-  color:
-    var(--secondary-dark);
-
-  font-size:
-    var(--font-size-sm);
-
-  font-weight:
-    600;
-
-  word-break:
-    break-word;
-}
-
-.avatar-dropdown-actions {
-  margin-top:
-    var(--space-xs);
-
-  padding-top:
-    var(--space-xs);
-
-  border-top:
-    1px solid
-    var(--surface-divider);
-}
-
-.dropdown-signout {
-  width:
-    100%;
-
-  padding:
-    0.75rem
-    0.9rem;
-
-  background:
-    transparent;
-
-  border:
-    none;
-
-  border-radius:
-    7px;
-
-  color:
-    var(--secondary-dark);
-
-  text-align:
-    left;
-
-  font-size:
-    var(--font-size-sm);
-
-  font-weight:
-    700;
-
-  cursor:
-    pointer;
-}
-
-.dropdown-signout:hover {
-  background:
-    var(--tertiary-bg);
-
-  color:
-    var(--secondary-light);
 }
 
 
@@ -454,6 +95,7 @@ shared cards/headers/layout
     var(--radius-md);
 }
 
+
 .card {
   padding:
     var(--space-lg);
@@ -468,6 +110,7 @@ shared cards/headers/layout
   border-radius:
     var(--radius-lg);
 }
+
 
 .eyebrow {
   margin:
@@ -507,12 +150,48 @@ shared cards/headers/layout
       stretch;
   }
 
-  .app-nav {
-    margin-left:
-      var(--space-sm);
+}
 
-    gap:
-      0;
-  }
 
+/* PAGE LAYOUT */
+
+.page-content {
+  width: min(1200px, 100%);
+
+  margin: 0 auto;
+
+  padding:
+    var(--space-xxl)
+    var(--space-xl);
+}
+
+.page-content h1 {
+  margin: 0;
+
+  color:
+    var(--secondary-light);
+}
+
+.page-description {
+  color:
+    var(--secondary-dark);
+
+  margin-bottom:
+    var(--space-xl);
+}
+
+.empty-page {
+  min-height: 220px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  text-align: center;
+}
+
+.empty-page p {
+  color:
+    var(--secondary-dark);
 }
