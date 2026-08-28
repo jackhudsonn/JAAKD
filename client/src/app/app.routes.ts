@@ -1,10 +1,12 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { ShellComponent } from './layout/shell/shell.component';
+import { AuthShellComponent } from './layout/auth-shell/auth-shell.component';
 
 export const routes: Routes = [
   {
     path: 'auth',
+    component: AuthShellComponent,
     children: [
       {
         path: 'login',
@@ -31,16 +33,16 @@ export const routes: Routes = [
           import('./features/dashboard/dashboard.component').then((m) => m.DashboardComponent),
       },
       {
-        path: 'transactions',
+        path: 'transact',
         loadComponent: () =>
-          import('./features/transactions/transactions.component').then(
-            (m) => m.TransactionsComponent,
+          import('./features/transact/transact.component').then(
+            (m) => m.TransactComponent,
           ),
       },
       {
-        path: 'analytics',
+        path: 'trade',
         loadComponent: () =>
-          import('./features/analytics/analytics.component').then((m) => m.AnalyticsComponent),
+          import('./features/trade/trade.component').then((m) => m.TradeComponent),
       },
       {
         path: 'profile',
