@@ -1,4 +1,4 @@
-import { Component, ElementRef, HostListener, Input, Output, EventEmitter, signal, computed } from '@angular/core';
+import { Component, ElementRef, HostListener, Input, Output, EventEmitter, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { User } from '@supabase/supabase-js';
 
@@ -11,6 +11,7 @@ import { User } from '@supabase/supabase-js';
 })
 export class NavbarComponent {
   @Input() user: User | null = null;
+  @Input() profileName: string | null = null;
   @Output() logoutClicked = new EventEmitter<void>();
 
   menuOpen = signal(false);
@@ -19,7 +20,14 @@ export class NavbarComponent {
   constructor(private elementRef: ElementRef<HTMLElement>) {}
 
   get displayName() {
-    return this.user?.user_metadata?.['full_name'];
+    const metadataFirstName = this.user?.user_metadata?.['first_name'];
+    const metadataLastName = this.user?.user_metadata?.['last_name'];
+    const metadataName = [metadataFirstName, metadataLastName]
+      .filter(Boolean)
+      .join(' ')
+      .trim();
+
+    return this.profileName?.trim() || metadataName || 'User';
   }
 
   get displayInitial() {

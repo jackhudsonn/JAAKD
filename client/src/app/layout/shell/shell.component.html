@@ -1,5 +1,5 @@
 <div class="authenticated-shell">
-  <app-navbar [user]="user()" (logoutClicked)="logout()" />
+  <app-navbar [user]="user()" [profileName]="displayName()" (logoutClicked)="logout()" />
 
   <router-outlet />
 </div>
