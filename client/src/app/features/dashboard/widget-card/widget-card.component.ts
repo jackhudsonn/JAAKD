@@ -1,10 +1,7 @@
-import { Component, input } from '@angular/core';
+import { Component, input, output } from '@angular/core';
 
-/**
- * Thin presentational shell used by every dashboard widget.
- * Provides the consistent card chrome (title + optional subtitle/actions slot)
- * so individual widgets only need to implement their own content.
- */
+export type WidgetStatus = 'idle' | 'loading' | 'error';
+
 @Component({
   selector: 'app-widget-card',
   standalone: true,
@@ -14,4 +11,7 @@ import { Component, input } from '@angular/core';
 export class WidgetCardComponent {
   title = input.required<string>();
   subtitle = input<string | null>(null);
+  // Defaults to 'idle' so existing widgets need no changes.
+  status = input<WidgetStatus>('idle');
+  retry = output<void>();
 }

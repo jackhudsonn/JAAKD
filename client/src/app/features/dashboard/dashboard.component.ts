@@ -6,6 +6,7 @@ import { WatchlistWidgetComponent } from './widgets/watchlist/watchlist.componen
 import { TopMoversWidgetComponent } from './widgets/top-movers/top-movers.component';
 import { AllocationByAssetWidgetComponent } from './widgets/allocation-by-asset/allocation-by-asset.component';
 import { PerformanceGraphWidgetComponent } from './widgets/performance-graph/performance-graph.component';
+import { ToBeDeletedWidgetComponent } from './widgets/to-be-deleted/to-be-deleted.component';
 import { WIDGET_CATALOGUE, WidgetId } from './dashboard-widget.model';
 
 @Component({
@@ -19,6 +20,7 @@ import { WIDGET_CATALOGUE, WidgetId } from './dashboard-widget.model';
     TopMoversWidgetComponent,
     AllocationByAssetWidgetComponent,
     PerformanceGraphWidgetComponent,
+    ToBeDeletedWidgetComponent,
   ],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css',
