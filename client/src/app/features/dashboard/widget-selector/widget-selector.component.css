@@ -4,8 +4,14 @@
   display: inline-block;
 }
 
+.widget-selector-trigger {
+  width: 40px;
+  min-height: 40px;
+  padding: 0;
+}
+
 .widget-selector-trigger-compact {
-  display: none;
+  display: inline-flex;
 
   position: relative;
 
@@ -36,23 +42,7 @@
   line-height: 1;
 }
 
-/* Not enough room for the full "Widgets (x/y)" label alongside the
-   dashboard title, so swap to an icon + count-badge trigger instead. */
-@media (max-width: 600px) {
-  .widget-selector-trigger {
-    width: 40px;
-    min-height: 40px;
-    padding: 0;
-  }
 
-  .widget-selector-trigger-full {
-    display: none;
-  }
-
-  .widget-selector-trigger-compact {
-    display: inline-flex;
-  }
-}
 
 .widget-selector-panel {
   position: absolute;

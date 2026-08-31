@@ -5,7 +5,7 @@
 
   gap: var(--space-md);
 
-  margin-bottom: var(--space-lg);
+  margin-bottom: var(--space-xs);
 }
 
 .dashboard-header {
@@ -93,10 +93,6 @@
   }
 }
 
-/* Not enough horizontal room to keep the title stack and the full
-   "Widgets (x/y)" button side by side, so the toolbar switches to a
-   compact icon-only trigger — see widget-selector.component for the
-   actual button markup/styles. */
 @media (max-width: 600px) {
   .dashboard-topbar {
     align-items: center;
