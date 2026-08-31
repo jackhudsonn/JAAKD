@@ -2,6 +2,12 @@ import { Injectable } from '@angular/core';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { environment } from '../../../environments/environment';
 
+export interface ProfileRow {
+  id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -51,6 +57,14 @@ export class SupabaseService {
 
   getSession() {
     return this.supabase.auth.getSession();
+  }
+
+  getProfile(userId: string) {
+    return this.supabase
+      .from('profiles')
+      .select('id, full_name, avatar_url')
+      .eq('id', userId)
+      .single<ProfileRow>();
   }
 
   onAuthStateChange(callback: (event: string, session: any) => void) {

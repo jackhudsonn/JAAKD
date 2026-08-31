@@ -14,13 +14,12 @@
   <section class="account-summary card">
 
     <div class="account-summary-avatar">
-      {{ (metadata['first_name'] || user()?.email || 'U').charAt(0).toUpperCase() }}
+      {{ (displayName() || user()?.email || 'U').charAt(0).toUpperCase() }}
     </div>
 
     <div class="account-summary-info">
       <h2>
-        {{ metadata['first_name'] || '' }}
-        {{ metadata['last_name'] || '' }}
+        {{ displayName() || user()?.email || '—' }}
       </h2>
 
       <p>

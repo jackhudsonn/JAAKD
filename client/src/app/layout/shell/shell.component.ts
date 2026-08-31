@@ -13,6 +13,7 @@ import { NavbarComponent } from '../../shared/components/navbar/navbar.component
 })
 export class ShellComponent implements OnInit {
   user = signal<User | null>(null);
+  displayName = signal<string | null>(null);
 
   constructor(
     private supabaseService: SupabaseService,
@@ -21,11 +22,30 @@ export class ShellComponent implements OnInit {
 
   async ngOnInit() {
     const { data } = await this.supabaseService.getSession();
-    this.user.set(data.session?.user ?? null);
+    await this.setSessionUser(data.session?.user ?? null);
 
     this.supabaseService.onAuthStateChange((_event: string, session: any) => {
-      this.user.set(session?.user ?? null);
+      void this.setSessionUser(session?.user ?? null);
     });
+  }
+
+  async setSessionUser(user: User | null) {
+    this.user.set(user);
+    this.displayName.set(null);
+
+    if (!user) {
+      return;
+    }
+
+    const { data } = await this.supabaseService.getProfile(user.id);
+    const metadataFirstName = user.user_metadata?.['first_name'];
+    const metadataLastName = user.user_metadata?.['last_name'];
+    const metadataName = [metadataFirstName, metadataLastName]
+      .filter(Boolean)
+      .join(' ')
+      .trim();
+
+    this.displayName.set(data?.full_name?.trim() || metadataName || null);
   }
 
   async logout() {
