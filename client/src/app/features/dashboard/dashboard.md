@@ -35,7 +35,7 @@ dashboard/
 
 2. **Rendering** — `DashboardComponent` holds a `selectedWidgets` signal (the logical selection) and a `displayWidgets` signal (what the grid actually renders). The two are kept in sync with a short delay on removal so exit animations play before the DOM slot is removed.
 
-3. **Widget card chrome** — every widget wraps its content in `<app-widget-card [title]="..." [subtitle]="...">`. This keeps visual consistency without duplicating markup.
+3. **Widget card chrome** — every widget wraps its content in `<app-widget-card [title]="..." [subtitle]="..." [status]="status()" (retry)="onRetry()">`. The card automatically renders a shimmer skeleton for `'loading'` and an unavailable message with a retry button for `'error'`; `'idle'` (the default) renders the widget content as normal.
 
 4. **Constraints** — `MIN_SELECTED_WIDGETS` and `MAX_SELECTED_WIDGETS` are defined in the model file. The selector disables checkboxes at these limits.
 
@@ -52,7 +52,10 @@ dashboard/
      my-widget.component.css
    ```
 
-   Wrap content with `<app-widget-card>` and import `WidgetCardComponent`.
+   Wrap content with `<app-widget-card>` and import `WidgetCardComponent` and `WidgetStatus`.
+   Add a `status = signal<WidgetStatus>('idle')` to the component class, set it to `'loading'`
+   while fetching data and `'error'` on failure, and pass `[status]="status()"` and
+   `(retry)="onRetry()"` to the card. The card handles all state rendering automatically.
 
 2. **Register the widget ID**
 
