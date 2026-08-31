@@ -1,0 +1,24 @@
+<app-widget-card title="Performance">
+  <div widget-actions class="value-summary">
+    <span class="amount">{{ endValue() | number: '1.2-2' }}</span>
+    <span class="change" [class.positive]="isPositive()" [class.negative]="!isPositive()">
+      {{ isPositive() ? '+' : '' }}{{ changeAmount() | number: '1.2-2' }}
+      ({{ isPositive() ? '+' : '' }}{{ changePct() | number: '1.2-2' }}%)
+    </span>
+  </div>
+
+  <app-line-chart [points]="series()" [positive]="isPositive()" />
+
+  <div class="interval-tabs">
+    @for (interval of intervals; track interval.id) {
+      <button
+        type="button"
+        class="interval-tab"
+        [class.active]="selectedInterval() === interval.id"
+        (click)="selectInterval(interval.id)"
+      >
+        {{ interval.label }}
+      </button>
+    }
+  </div>
+</app-widget-card>
