@@ -1,0 +1,17 @@
+<app-widget-card title="Top Movers" [subtitle]="activeMode.label">
+  <div class="mover-list" [class.fading]="fading()">
+    @for (mover of activeMovers; track mover.symbol) {
+      <div class="mover-row">
+        <span class="symbol">{{ mover.symbol }}</span>
+        <span
+          class="amount"
+          [class.positive]="mover.changeAmount >= 0"
+          [class.negative]="mover.changeAmount < 0"
+        >
+          {{ mover.changeAmount >= 0 ? '+' : '' }}{{ mover.changeAmount | number: '1.2-2' }}
+          ({{ mover.changePct >= 0 ? '+' : '' }}{{ mover.changePct | number: '1.2-2' }}%)
+        </span>
+      </div>
+    }
+  </div>
+</app-widget-card>

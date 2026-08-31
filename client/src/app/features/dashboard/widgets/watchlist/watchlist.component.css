@@ -1,0 +1,103 @@
+.add-ticker {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.add-ticker input {
+  width: 90px;
+
+  padding: var(--space-xxs) var(--space-sm);
+
+  font-size: var(--font-size-sm);
+  color: var(--secondary-light);
+
+  background: var(--tertiary-bg);
+  border: 1px solid var(--quaternary-bg-border);
+  border-radius: var(--radius-sm);
+
+  outline: none;
+}
+
+.add-ticker input:focus {
+  border-color: var(--primary);
+}
+
+.btn-add {
+  min-height: 30px;
+  width: 30px;
+  padding: 0;
+
+  font-size: var(--font-size-md);
+  line-height: 1;
+}
+
+.watchlist-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+
+  gap: var(--space-sm);
+}
+
+.symbol {
+  color: var(--secondary-light);
+  font-weight: 700;
+}
+
+.price-stack {
+  display: flex;
+  align-items: baseline;
+
+  gap: var(--space-sm);
+}
+
+.price {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.change {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  min-width: 64px;
+  text-align: right;
+}
+
+.change.positive {
+  color: var(--success);
+}
+
+.change.negative {
+  color: var(--fail);
+}
+
+/* Not enough horizontal room on narrow viewports for symbol + price +
+   change + remove button all in one row, so stack price above the
+   percent change instead of squeezing them side by side. */
+@media (max-width: 600px) {
+  .price-stack {
+    flex-direction: column;
+    align-items: flex-end;
+
+    gap: 2px;
+  }
+
+  .change {
+    min-width: 0;
+  }
+}
+
+.remove-btn {
+  background: none;
+  border: none;
+
+  color: var(--text-muted);
+  font-size: var(--font-size-md);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.remove-btn:hover {
+  color: var(--fail);
+}

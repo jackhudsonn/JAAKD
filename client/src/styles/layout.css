@@ -7,7 +7,7 @@
 /* HEADER SHELL — used by login page and authenticated shell */
 
 .app-header {
-  min-height: 80px;
+  height: var(--header-height);
 
   display: grid;
 

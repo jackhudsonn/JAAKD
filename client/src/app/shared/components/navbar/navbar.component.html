@@ -66,6 +66,19 @@
   </nav>
 
   <div class="profile-end">
+    <button
+      type="button"
+      class="hamburger-button"
+      (click)="toggleMobileMenu()"
+      [attr.aria-expanded]="mobileMenuOpen()"
+      aria-haspopup="menu"
+      aria-label="Open navigation menu"
+    >
+      <span class="hamburger-bar"></span>
+      <span class="hamburger-bar"></span>
+      <span class="hamburger-bar"></span>
+    </button>
+
     <div class="avatar-menu-wrapper">
       <button
         type="button"
@@ -114,5 +127,21 @@
       }
     </div>
   </div>
+
+  @if (mobileMenuOpen()) {
+    <div class="mobile-nav-dropdown" role="menu" aria-label="Mobile navigation links">
+      <a routerLink="/dashboard" routerLinkActive="active" role="menuitem" (click)="closeMenus()">
+        Dashboard
+      </a>
+
+      <a routerLink="/transact" routerLinkActive="active" role="menuitem" (click)="closeMenus()">
+        Transact
+      </a>
+
+      <a routerLink="/trade" routerLinkActive="active" role="menuitem" (click)="closeMenus()">
+        Trade
+      </a>
+    </div>
+  }
 </header>
 }

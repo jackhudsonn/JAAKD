@@ -1,0 +1,11 @@
+<div class="scrollable-list">
+  @if (items().length === 0) {
+    <p class="scrollable-list-empty">{{ emptyMessage() }}</p>
+  } @else {
+    @for (item of items(); track trackBy()(item)) {
+      <div class="scrollable-list-row">
+        <ng-container [ngTemplateOutlet]="rowTemplate()" [ngTemplateOutletContext]="{ $implicit: item }" />
+      </div>
+    }
+  }
+</div>

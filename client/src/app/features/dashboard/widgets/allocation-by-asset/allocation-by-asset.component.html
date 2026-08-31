@@ -1,0 +1,16 @@
+<app-widget-card [title]="title()">
+  @if (selectedCategory()) {
+    <div widget-actions>
+      <button type="button" class="btn btn-secondary btn-back" (click)="goBack()">
+        ← Back
+      </button>
+    </div>
+  }
+
+  <app-pie-chart [slices]="slices()" (sliceClick)="onSliceClick($event)" />
+
+  @if (!selectedCategory()) {
+    <p class="drilldown-hint">Click a slice to see its breakdown.</p>
+  }
+</app-widget-card>
+

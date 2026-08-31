@@ -1,0 +1,43 @@
+.mover-list {
+  display: flex;
+  flex-direction: column;
+
+  gap: var(--space-sm);
+
+  opacity: 1;
+
+  transition: opacity 250ms ease;
+}
+
+.mover-list.fading {
+  opacity: 0;
+}
+
+.mover-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: var(--space-xs) var(--space-sm);
+
+  background: var(--tertiary-bg);
+  border-radius: var(--radius-sm);
+}
+
+.symbol {
+  color: var(--secondary-light);
+  font-weight: 700;
+}
+
+.amount {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.amount.positive {
+  color: var(--success);
+}
+
+.amount.negative {
+  color: var(--fail);
+}

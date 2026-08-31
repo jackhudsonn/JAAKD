@@ -1,0 +1,44 @@
+/*
+  Standardized scrollable list shell. Height is fixed at 260px across every
+  usage so Open Orders, Watchlist, and any future scrollable widget/list all
+  share the same "vibe" instead of each picking their own max-height.
+
+  No custom scrollbar styling per the design decision — relies on the
+  browser/OS default scrollbar.
+*/
+.scrollable-list {
+  display: flex;
+  flex-direction: column;
+
+  gap: var(--space-sm);
+
+  max-height: 260px;
+
+  overflow-y: auto;
+
+  background-color: var(--tertiary-bg);
+
+  padding: 4px;
+}
+
+.scrollable-list-row {
+  padding: var(--space-sm);
+
+  background: var(--quaternary-bg);
+
+  border: 1px solid var(--quaternary-bg-border);
+  border-radius: var(--radius-sm);
+
+  transition: background-color 120ms ease;
+}
+
+.scrollable-list-row:hover {
+  background: var(--quaternary-bg);
+}
+
+.scrollable-list-empty {
+  margin: 0;
+
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
