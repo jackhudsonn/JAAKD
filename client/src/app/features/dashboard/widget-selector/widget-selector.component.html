@@ -1,0 +1,36 @@
+<div class="widget-selector">
+  <button
+    type="button"
+    class="btn btn-secondary widget-selector-trigger"
+    (click)="toggleOpen()"
+    [attr.aria-label]="'Widgets (' + count() + '/' + catalogue.length + ')'"
+  >
+    <span class="widget-selector-trigger-compact">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="4" width="7" height="7" rx="1.5" />
+        <rect x="14" y="4" width="7" height="7" rx="1.5" />
+        <rect x="3" y="13" width="7" height="7" rx="1.5" />
+        <rect x="14" y="13" width="7" height="7" rx="1.5" />
+      </svg>
+      <span class="widget-selector-badge">{{ count() }}</span>
+    </span>
+  </button>
+
+  @if (open) {
+    <div class="widget-selector-panel">
+      <p class="widget-selector-hint">Choose 2–{{ catalogue.length }} widgets to display.</p>
+
+      @for (widget of catalogue; track widget.id) {
+        <label class="widget-selector-option" [class.disabled]="isDisabled(widget.id)">
+          <input
+            type="checkbox"
+            [checked]="isChecked(widget.id)"
+            [disabled]="isDisabled(widget.id)"
+            (change)="onToggleWidget(widget.id)"
+          />
+          {{ widget.label }}
+        </label>
+      }
+    </div>
+  }
+</div>

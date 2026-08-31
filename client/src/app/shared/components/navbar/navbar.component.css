@@ -1,5 +1,14 @@
 /* NAV BAR */
 
+.authenticated-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+
+  z-index: 100;
+}
+
 .app-nav {
   justify-self: start;
 
@@ -196,6 +205,11 @@
 
 .profile-end {
   justify-self: end;
+
+  display: flex;
+  align-items: center;
+
+  gap: var(--space-sm);
 }
 
 .avatar-menu-wrapper {
@@ -378,6 +392,112 @@
 
     gap:
       0;
+  }
+
+}
+
+/* HAMBURGER MENU (mobile, < 600px) */
+
+.hamburger-button {
+  display: none;
+
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  gap: 4px;
+
+  width: 40px;
+  height: 40px;
+
+  padding: 0;
+
+  background: transparent;
+
+  border: 1px solid var(--quaternary-bg-border);
+  border-radius: var(--radius-sm);
+
+  cursor: pointer;
+}
+
+.hamburger-bar {
+  width: 18px;
+  height: 2px;
+
+  background: var(--secondary-dark);
+
+  border-radius: 2px;
+
+  transition: background-color 140ms ease;
+}
+
+.hamburger-button:hover .hamburger-bar {
+  background: var(--secondary-light);
+}
+
+.mobile-nav-dropdown {
+  display: none;
+}
+
+@media (max-width: 600px) {
+
+  .app-nav {
+    display: none;
+  }
+
+  .hamburger-button {
+    display: inline-flex;
+  }
+
+  .mobile-nav-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+
+    display: flex;
+    flex-direction: column;
+
+    padding: var(--space-xxs);
+
+    background: var(--secondary-bg);
+
+    border-top: 1px solid var(--tertiary-bg-border);
+    border-bottom: 1px solid var(--tertiary-bg-border);
+
+    box-shadow: var(--shadow-md);
+
+    animation: dropdown-pop 140ms cubic-bezier(.2,.8,.2,1);
+
+    z-index: 10;
+  }
+
+  .mobile-nav-dropdown a {
+    padding: 0.85rem 1rem;
+
+    border-radius: 7px;
+
+    color: var(--secondary-dark);
+
+    text-align: left;
+    text-decoration: none;
+
+    font-size: 0.9rem;
+    font-weight: 700;
+
+    transition:
+      color 150ms ease,
+      background-color 150ms ease;
+  }
+
+  .mobile-nav-dropdown a:hover {
+    background: var(--tertiary-bg);
+    color: var(--secondary-light);
+  }
+
+  .mobile-nav-dropdown a.active {
+    background: var(--primary);
+    color: #1f1f1f;
   }
 
 }

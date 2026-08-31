@@ -1,0 +1,108 @@
+.widget-selector {
+  position: relative;
+
+  display: inline-block;
+}
+
+.widget-selector-trigger {
+  width: 40px;
+  min-height: 40px;
+  padding: 0;
+}
+
+.widget-selector-trigger-compact {
+  display: inline-flex;
+
+  position: relative;
+
+  align-items: center;
+  justify-content: center;
+}
+
+.widget-selector-badge {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: var(--primary);
+
+  border-radius: 999px;
+
+  color: #1f1f1f;
+  font-size: 0.65rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+
+
+.widget-selector-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + var(--space-xs));
+
+  z-index: 20;
+
+  /* Cap the width against the viewport (minus the page's horizontal
+     padding) so the panel can never extend past the visible screen,
+     regardless of how narrow the viewport or how far right the trigger
+     button sits. */
+  width: min(240px, calc(100vw - (2 * var(--space-xl))));
+
+  display: flex;
+  flex-direction: column;
+
+  gap: var(--space-xs);
+
+  padding: var(--space-md);
+
+  background: var(--secondary-bg);
+
+  border: 1px solid var(--secondary-bg-border);
+  border-radius: var(--radius-md);
+
+  box-shadow: var(--shadow-md);
+}
+
+.widget-selector-option {
+  min-width: 0;
+
+  overflow-wrap: anywhere;
+}
+
+
+.widget-selector-hint {
+  margin: 0 0 var(--space-xs);
+
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.widget-selector-option {
+  display: flex;
+  align-items: center;
+
+  gap: var(--space-sm);
+
+  color: var(--secondary-light);
+  font-size: var(--font-size-sm);
+
+  cursor: pointer;
+}
+
+.widget-selector-option.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.widget-selector-option input {
+  accent-color: var(--primary);
+}

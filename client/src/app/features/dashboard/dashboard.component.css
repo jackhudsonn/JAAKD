@@ -1,375 +1,100 @@
-.dashboard-content {
-  width: min(1200px, 100%);
-
-  margin: 0 auto;
-
-  padding:
-    var(--space-xxl)
-    var(--space-xl);
-}
-
-.dashboard-heading {
+.dashboard-topbar {
   display: flex;
+  align-items: flex-start;
   justify-content: space-between;
-  align-items: center;
 
-  margin-bottom:
-    var(--space-xl);
+  gap: var(--space-md);
+
+  margin-bottom: var(--space-xs);
 }
 
-.dashboard-heading h1 {
-  margin: 0;
-
-  color:
-    var(--secondary-light);
-
-  font-size: 2.2rem;
+.dashboard-header {
+  min-width: 0;
 }
 
-.dashboard-subtitle {
-  margin:
-    var(--space-xs)
-    0
-    0;
-
-  color:
-    var(--secondary-dark);
-}
-
-.market-status {
+.dashboard-toolbar {
   display: flex;
-  align-items: center;
-
-  gap:
-    var(--space-xs);
-
-  padding:
-    var(--space-xs)
-    var(--space-sm);
-
-  border:
-    1px solid
-    var(--tertiary-bg-border);
-
-  border-radius: 999px;
-
-  background:
-    var(--secondary-bg);
-
-  font-size: 0.8rem;
+  justify-content: flex-end;
+  flex-shrink: 0;
 }
 
-.status-dot {
-  width: 8px;
-  height: 8px;
-
-  border-radius: 50%;
-
-  background:
-    var(--success);
-}
-
-.summary-grid {
+/*
+  2-column layout driven purely by the order of the selectedWidgets() array
+  in the component — no fixed grid areas. Removing a widget shifts the rest
+  up; adding one appends to the end, so the array order IS the visual order.
+  All slots stretch to a uniform row height (align-items: stretch, the
+  default) and every widget-card fills its slot at height: 100%, so cards
+  never end up visually different heights.
+*/
+.widget-grid {
   display: grid;
 
-  grid-template-columns:
-    repeat(4, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: 1fr;
 
-  gap:
-    var(--space-md);
-
-  margin-bottom:
-    var(--space-xl);
+  gap: var(--space-lg);
 }
 
-.summary-card {
-  display: flex;
-  flex-direction: column;
+.widget-slot {
+  min-width: 0;
 
-  gap:
-    var(--space-xs);
+  /* Base state for the enter/leave transitions below. Also transitioning
+     grid-column/width/justify-self here (where supported) lets the reflow
+     that happens when a sibling is added/removed feel smoother rather than
+     an abrupt snap into the new position. */
+  opacity: 1;
+  transform: scale(1);
 
-  padding:
-    var(--space-lg);
-
-  background:
-    var(--secondary-bg);
-
-  border:
-    1px solid
-    var(--secondary-bg-border);
-
-  border-radius:
-    var(--radius-md);
+  transition:
+    opacity 260ms cubic-bezier(.2, .8, .2, 1),
+    transform 260ms cubic-bezier(.2, .8, .2, 1);
 }
 
-.summary-label {
-  color:
-    var(--secondary-dark);
+/* ENTER: starts slightly shrunk + faded, the .widget-enter class is removed
+   a frame after mount so the browser animates back to the base state above. */
+.widget-slot.widget-enter {
+  opacity: 0;
+  transform: scale(0.94) translateY(6px);
 
-  font-size: 0.8rem;
+  transition: none;
 }
 
-.summary-card strong {
-  color:
-    var(--secondary-light);
+/* LEAVE: fades/shrinks out. The slot is only actually removed from the DOM
+   once this transition finishes (see dashboard.component.ts), which is what
+   makes the remaining widgets slide smoothly into the freed-up space. */
+.widget-slot.widget-leave {
+  opacity: 0;
+  transform: scale(0.94);
 
-  font-size: 1.5rem;
+  pointer-events: none;
 }
 
-.summary-note {
-  color:
-    var(--secondary-dark);
+/* When an odd number of widgets is selected, the trailing widget would
+   otherwise sit alone in the left column. Center it under the grid instead. */
+.slot-centered {
+  grid-column: 1 / -1;
 
-  font-size: 0.75rem;
-}
+  width: calc(50% - (var(--space-lg) / 2));
 
-.dashboard-grid {
-  display: grid;
-
-  grid-template-columns:
-    1.3fr 1fr;
-
-  gap:
-    var(--space-lg);
-
-  margin-bottom:
-    var(--space-lg);
-}
-
-.panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-
-  margin-bottom:
-    var(--space-md);
-}
-
-.panel-header h2 {
-  margin: 0;
-
-  color:
-    var(--secondary-light);
-
-  font-size: 1.1rem;
-}
-
-.small-button {
-  padding:
-    var(--space-xs)
-    var(--space-sm);
-
-  border:
-    1px solid
-    var(--quaternary-bg-border);
-
-  border-radius:
-    var(--radius-sm);
-
-  background:
-    var(--quaternary-bg);
-
-  color:
-    var(--secondary-light);
-
-  cursor: pointer;
-}
-
-.ticker-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-
-  padding:
-    var(--space-sm)
-    var(--space-md);
-
-  margin-bottom:
-    var(--space-xs);
-
-  background:
-    var(--quaternary-bg);
-
-  border:
-    1px solid
-    var(--quaternary-bg-border);
-
-  border-radius:
-    var(--radius-sm);
-}
-
-.ticker-symbol {
-  font-weight: 700;
-}
-
-.ticker-symbol small {
-  display: block;
-
-  margin-top: 2px;
-
-  color:
-    var(--secondary-dark);
-
-  font-weight: 400;
-  font-size: 0.75rem;
-}
-
-.ticker-price {
-  display: flex;
-  flex-direction: column;
-
-  text-align: right;
-}
-
-.positive {
-  color:
-    var(--success);
-
-  font-size: 0.75rem;
-}
-
-.negative {
-  color:
-    var(--fail);
-
-  font-size: 0.75rem;
-}
-
-.neutral {
-  color:
-    var(--secondary-dark);
-
-  font-size: 0.75rem;
-}
-
-.order-tabs {
-  display: grid;
-
-  grid-template-columns:
-    1fr 1fr;
-
-  gap:
-    var(--space-xs);
-
-  margin-bottom:
-    var(--space-md);
-}
-
-.order-tab {
-  padding:
-    var(--space-xs);
-
-  border-radius:
-    var(--radius-sm);
-
-  cursor: pointer;
-}
-
-.order-tab.buy {
-  background:
-    var(--primary-button-bg);
-
-  color:
-    var(--primary-button-text);
-
-  border:
-    1px solid
-    var(--primary-button-border);
-}
-
-.order-tab.sell {
-  background:
-    var(--secondary-button-bg);
-
-  color:
-    var(--secondary-button-text);
-
-  border:
-    1px solid
-    var(--secondary-button-border);
-}
-
-.order-summary {
-  display: flex;
-  justify-content: space-between;
-
-  margin-top:
-    var(--space-md);
-
-  padding-top:
-    var(--space-md);
-
-  border-top:
-    1px solid
-    var(--quaternary-bg-border);
-
-  color:
-    var(--secondary-dark);
-
-  font-size: 0.85rem;
-}
-
-.order-summary strong {
-  color:
-    var(--secondary-light);
-}
-
-.confirm-order {
-  width: 100%;
-
-  margin-top:
-    var(--space-md);
-}
-
-.activity-panel {
-  min-height: 180px;
-}
-
-.empty-state {
-  padding:
-    var(--space-xl);
-
-  text-align: center;
-
-  color:
-    var(--secondary-dark);
-}
-
-.empty-state strong {
-  color:
-    var(--secondary-light);
-}
-
-.empty-state p {
-  margin-bottom: 0;
+  justify-self: center;
 }
 
 @media (max-width: 900px) {
-
-  .summary-grid {
-    grid-template-columns:
-      repeat(2, 1fr);
+  .widget-grid {
+    grid-template-columns: 1fr;
   }
 
-  .dashboard-grid {
-    grid-template-columns:
-      1fr;
-  }
+  .slot-centered {
+    grid-column: auto;
 
+    width: 100%;
+
+    justify-self: stretch;
+  }
 }
 
-@media (max-width: 550px) {
-
-  .summary-grid {
-    grid-template-columns:
-      1fr;
+@media (max-width: 600px) {
+  .dashboard-topbar {
+    align-items: center;
   }
-
-  .dashboard-content {
-    padding:
-      var(--space-xl)
-      var(--space-md);
-  }
-
 }
