@@ -98,9 +98,3 @@
     justify-self: stretch;
   }
 }
-
-@media (max-width: 600px) {
-  .dashboard-topbar {
-    align-items: center;
-  }
-}
