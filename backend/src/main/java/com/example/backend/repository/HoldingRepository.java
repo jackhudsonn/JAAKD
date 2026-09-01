@@ -11,5 +11,5 @@ public interface HoldingRepository extends JpaRepository<Holding, UUID> {
 
     List<Holding> findByPortfolioId(UUID portfolioId);
 
-    Optional<Holding> findByPortfolioIdAndTicker(UUID portfolioId, String ticker);
+    Optional<Holding> findByPortfolioIdAndInstrumentId(UUID portfolioId, UUID instrumentId);
 }
