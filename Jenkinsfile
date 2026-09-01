@@ -34,7 +34,7 @@ pipeline {
 
         stage('Backend: Security Scan') {
             steps {
-                owaspDependencyCheck additionalArguments: '--scan backend --format XML', odcInstallation: 'OWASP-DC'
+                owaspDependencyCheck name: 'backend-scan'
             }
             post {
                 always {
