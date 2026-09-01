@@ -11,6 +11,10 @@ pipeline {
         IMAGE_TAG      = "${env.BUILD_NUMBER}"
     }
 
+    tools {
+        nodejs 'NodeJS'
+    }
+
     stages {
         
         stage('Checkout') {
