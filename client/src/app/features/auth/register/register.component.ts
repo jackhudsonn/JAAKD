@@ -8,13 +8,15 @@ import { SupabaseService } from '../../../core/services/supabase.service';
   standalone: true,
   imports: [FormsModule, RouterLink],
   templateUrl: './register.component.html',
-  styleUrl: './register.component.css'
+  styleUrl: './register.component.css',
 })
 export class RegisterComponent {
   firstName = '';
   lastName = '';
   email = '';
   password = '';
+  showPassword = false;
+  showConfirmPassword = false;
   confirmPassword = '';
   dob = '';
   city = '';
@@ -26,8 +28,16 @@ export class RegisterComponent {
 
   constructor(
     private supabaseService: SupabaseService,
-    private router: Router
+    private router: Router,
   ) {}
+
+  togglePasswordVisibility() {
+    this.showPassword = !this.showPassword;
+  }
+
+  toggleConfirmPasswordVisibility() {
+    this.showConfirmPassword = !this.showConfirmPassword;
+  }
 
   async signUp() {
     if (!this.firstName || !this.lastName || !this.email || !this.password) {
@@ -45,19 +55,15 @@ export class RegisterComponent {
       return;
     }
 
-    const { data, error } = await this.supabaseService.signUp(
-      this.email,
-      this.password,
-      {
-        firstName: this.firstName,
-        lastName: this.lastName,
-        dob: this.dob,
-        city: this.city,
-        state: this.state,
-        country: this.country,
-        zipCode: this.zipCode
-      }
-    );
+    const { data, error } = await this.supabaseService.signUp(this.email, this.password, {
+      firstName: this.firstName,
+      lastName: this.lastName,
+      dob: this.dob,
+      city: this.city,
+      state: this.state,
+      country: this.country,
+      zipCode: this.zipCode,
+    });
 
     if (error) {
       this.message.set(error.message);

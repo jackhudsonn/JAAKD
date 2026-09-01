@@ -94,8 +94,7 @@
 .account-details-grid {
   display: grid;
 
-  grid-template-columns:
-    repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 
   gap: 1rem 2rem;
 }
@@ -127,53 +126,41 @@
 
   overflow-wrap: anywhere;
 }
-
-.security-action {
+.security-password {
   margin-top: 1.5rem;
-
   padding-top: 1.25rem;
 
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-
+  display: grid;
   gap: 1rem;
 
   border-top: 1px solid var(--tertiary-bg-border);
 }
 
-.security-action strong {
+.security-password-copy {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.security-password-copy strong {
   color: var(--text-primary);
 }
 
-.security-action p {
-  margin: 0.25rem 0 0;
+.security-password-copy p {
+  margin: 0;
+
+  max-width: 520px;
 
   color: var(--text-secondary);
 
-  letter-spacing: 0.08em;
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
 }
 
-.security-action .btn {
-  flex: 0 0 auto;
+.reset-password-button {
+  width: fit-content;
 }
 
-@media (max-width: 700px) {
-  .account-page {
-    padding-top: 2rem;
-  }
-
-  .account-details-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .security-action {
-    align-items: stretch;
-
-    flex-direction: column;
-  }
-
-  .security-action .btn {
-    width: 100%;
-  }
+.password-reset-message {
+  margin-top: 0;
+  width: fit-content;
 }

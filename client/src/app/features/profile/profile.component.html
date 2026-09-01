@@ -1,18 +1,13 @@
 <main class="account-page">
-
   <header class="account-heading">
     <p class="eyebrow">ACCOUNT</p>
 
     <h1>Account</h1>
 
-    <p>
-      Manage your personal information and account settings.
-    </p>
+    <p>Manage your personal information and account settings.</p>
   </header>
 
-
   <section class="account-summary card">
-
     <div class="account-summary-avatar">
       {{ (displayName() || user()?.email || 'U').charAt(0).toUpperCase() }}
     </div>
@@ -26,23 +21,16 @@
         {{ user()?.email || '—' }}
       </p>
     </div>
-
   </section>
 
-
   <section class="account-section card">
-
     <div class="account-section-heading">
       <h2>Personal Information</h2>
 
-      <p>
-        Information associated with your JAAKD account.
-      </p>
+      <p>Information associated with your JAAKD account.</p>
     </div>
 
-
     <div class="account-details-grid">
-
       <div class="account-detail">
         <span>First Name</span>
         <strong>{{ metadata['first_name'] || '—' }}</strong>
@@ -77,44 +65,45 @@
         <span>ZIP / Postal Code</span>
         <strong>{{ metadata['zip_code'] || '—' }}</strong>
       </div>
-
     </div>
-
   </section>
 
-
   <section class="account-section card">
-
     <div class="account-section-heading">
       <h2>Security</h2>
 
-      <p>
-        Manage your sign-in information.
-      </p>
+      <p>Manage your sign-in information.</p>
     </div>
-
 
     <div class="account-detail">
       <span>Email</span>
       <strong>{{ user()?.email || '—' }}</strong>
     </div>
 
-
-    <div class="security-action">
-
-      <div>
+    <div class="security-password">
+      <div class="security-password-copy">
         <strong>Password</strong>
-        <p>••••••••••••</p>
+
+        <p>
+          Your password is securely managed through Supabase Auth. For security, JAAKD does not
+          display or store your password.
+        </p>
       </div>
 
       <button
         type="button"
-        class="btn btn-secondary">
-        Reset Password
+        class="btn btn-secondary reset-password-button"
+        (click)="resetPassword()"
+        [disabled]="resetLoading()"
+      >
+        {{ resetLoading() ? 'Sending...' : 'Send Password Reset Email' }}
       </button>
 
+      @if (resetMessage()) {
+        <div class="status-message password-reset-message">
+          {{ resetMessage() }}
+        </div>
+      }
     </div>
-
   </section>
-
 </main>
