@@ -1,15 +1,21 @@
 .dashboard-topbar {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
 
   gap: var(--space-md);
 
-  margin-bottom: var(--space-xs);
+  margin-bottom: var(--space-md);
 }
 
 .dashboard-header {
   min-width: 0;
+}
+
+/* the shared .page-description bottom margin isn't needed here — the
+   topbar's own margin-bottom already spaces it from the widget grid */
+.dashboard-header .page-description {
+  margin-bottom: 0;
 }
 
 .dashboard-toolbar {

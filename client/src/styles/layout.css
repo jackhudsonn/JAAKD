@@ -161,7 +161,7 @@
   margin: 0 auto;
 
   padding:
-    var(--space-xxl)
+    var(--space-xl)
     var(--space-xl);
 }
 
@@ -176,8 +176,10 @@
   color:
     var(--secondary-dark);
 
-  margin-bottom:
-    var(--space-xl);
+  margin:
+    var(--space-xxs)
+    0
+    var(--space-lg);
 }
 
 .empty-page {

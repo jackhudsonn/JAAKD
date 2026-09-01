@@ -5,28 +5,48 @@
 }
 
 .widget-selector-trigger {
+  position: relative;
+
   width: 40px;
   min-height: 40px;
   padding: 0;
+
+  background: var(--secondary-bg);
+  color: var(--secondary-light);
+
+  border: 1px solid var(--secondary-bg-border);
+}
+
+.widget-selector-trigger:hover,
+.widget-selector-trigger:focus-visible {
+  background: var(--tertiary-bg);
+
+  border-color: var(--primary);
+
+  color: var(--secondary-light);
+}
+
+.widget-selector-trigger:active {
+  background: var(--quaternary-bg);
 }
 
 .widget-selector-trigger-compact {
   display: inline-flex;
 
-  position: relative;
-
   align-items: center;
   justify-content: center;
 }
 
+/* Positioned relative to the full button (not the icon), so it overlaps the
+   corner like an iOS app-icon badge instead of sitting inside the icon box. */
 .widget-selector-badge {
   position: absolute;
-  top: -6px;
+  top: -8px;
   right: -8px;
 
-  min-width: 16px;
-  height: 16px;
-  padding: 0 3px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
 
   display: flex;
   align-items: center;
@@ -35,9 +55,11 @@
   background: var(--primary);
 
   border-radius: 999px;
+  /* ring in the page background color so the badge reads as layered on top, not embedded in the button */
+  box-shadow: 0 0 0 2px var(--primary-bg);
 
   color: #1f1f1f;
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   font-weight: 800;
   line-height: 1;
 }
@@ -70,6 +92,22 @@
   border-radius: var(--radius-md);
 
   box-shadow: var(--shadow-md);
+
+  opacity: 0;
+  transform: translateY(-6px) scale(0.98);
+  transform-origin: top right;
+  pointer-events: none;
+
+  transition:
+    opacity 150ms ease,
+    transform 150ms ease;
+}
+
+.widget-selector-panel.open {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+
+  pointer-events: auto;
 }
 
 .widget-selector-option {

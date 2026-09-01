@@ -1,4 +1,4 @@
-import { Component, computed, output, input } from '@angular/core';
+import { Component, computed, ElementRef, HostListener, inject, output, input } from '@angular/core';
 import {
   MAX_SELECTED_WIDGETS,
   MIN_SELECTED_WIDGETS,
@@ -13,6 +13,8 @@ import {
   styleUrl: './widget-selector.component.css',
 })
 export class WidgetSelectorComponent {
+  private elementRef = inject(ElementRef<HTMLElement>);
+
   selected = input.required<readonly WidgetId[]>();
   toggle = output<WidgetId>();
 
@@ -35,6 +37,13 @@ export class WidgetSelectorComponent {
 
   toggleOpen() {
     this.open = !this.open;
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent) {
+    if (this.open && !this.elementRef.nativeElement.contains(event.target as Node)) {
+      this.open = false;
+    }
   }
 
   onToggleWidget(id: WidgetId) {
