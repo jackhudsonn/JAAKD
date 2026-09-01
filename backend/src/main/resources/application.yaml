@@ -18,6 +18,13 @@ spring:
   #  username: ${DATABASE_USERNAME}
   #  password: ${DATABASE_PASSWORD}
 
+  web:
+    error:
+      include-stacktrace: never
+      include-message: never
+      include-binding-errors: never
+      include-exception: false
+
 server:
     port: 8081
 
@@ -31,4 +38,4 @@ management:
         include: health, info
   endpoint:
     health:
-      show-details: always
+      show-details: when-authorized
