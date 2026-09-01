@@ -1,7 +1,7 @@
 import { Component, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { WidgetCardComponent } from '../../widget-card/widget-card.component';
+import { WidgetCardComponent } from '../../../../shared/components/widget-card/widget-card.component';
 import { ScrollableListComponent } from '../../../../shared/components/scrollable-list/scrollable-list.component';
 import { MOCK_WATCHLIST, MockWatchlistItem } from '../../mock-data';
 
