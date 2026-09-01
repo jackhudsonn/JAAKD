@@ -35,30 +35,33 @@
 
       <div class="form-field">
         <label for="email">Email</label>
-        <input
-          id="email"
-          type="email"
-          [(ngModel)]="email"
-          placeholder="name@example.com"
-        />
+        <input id="email" type="email" [(ngModel)]="email" placeholder="name@example.com" />
       </div>
 
       <div class="form-field">
         <label for="password">Password</label>
-        <input
-          id="password"
-          type="password"
-          [(ngModel)]="password"
-          placeholder="Password"
-        />
+
+        <div class="password-input-wrapper">
+          <input
+            id="password"
+            [type]="showPassword ? 'text' : 'password'"
+            [(ngModel)]="password"
+            placeholder="Enter your password"
+            autocomplete="current-password"
+          />
+
+          <button
+            type="button"
+            class="password-toggle"
+            (click)="togglePasswordVisibility()"
+            [attr.aria-label]="showPassword ? 'Hide password' : 'Show password'"
+          >
+            {{ showPassword ? 'Hide' : 'Show' }}
+          </button>
+        </div>
       </div>
 
-      <button
-        type="button"
-        class="btn btn-primary login-submit"
-        (click)="login()">
-        Sign In
-      </button>
+      <button type="button" class="btn btn-primary login-submit" (click)="login()">Sign In</button>
 
       @if (message()) {
         <div class="status-message">
@@ -69,9 +72,7 @@
       <div class="create-account-section">
         <span>New to JAAKD?</span>
 
-        <a
-          routerLink="/auth/register"
-          class="btn btn-secondary create-account-button">
+        <a routerLink="/auth/register" class="btn btn-secondary create-account-button">
           Create Account
         </a>
       </div>

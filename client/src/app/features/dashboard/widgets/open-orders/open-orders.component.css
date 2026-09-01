@@ -1,0 +1,62 @@
+.order-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: var(--space-sm);
+}
+
+.order-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xxs);
+}
+
+.order-symbol {
+  color: var(--secondary-light);
+  font-weight: 700;
+}
+
+.order-side {
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+}
+
+.order-side.buy {
+  color: var(--success);
+}
+
+.order-side.sell {
+  color: var(--fail);
+}
+
+.order-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+
+  gap: var(--space-xxs);
+
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.order-status {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.remove-btn {
+  background: none;
+  border: none;
+
+  color: var(--text-muted);
+  font-size: var(--font-size-md);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.remove-btn:hover {
+  color: var(--fail);
+}
+

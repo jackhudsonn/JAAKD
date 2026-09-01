@@ -1,0 +1,27 @@
+<app-widget-card title="Portfolio Value">
+  <div class="cycle-stack">
+    <div class="value-display" [class.fading]="valueFading()">
+      <p class="value-label">{{ activeValueLabel }}</p>
+      <p class="value-amount">
+        {{ activeValueAmount | number: '1.2-2' }}
+      </p>
+    </div>
+
+    <div class="value-display" [class.fading]="returnsFading()">
+      <p class="value-label">{{ activeReturnsLabel }}</p>
+      <p
+        class="value-amount returns-amount"
+        [class.positive]="returnsPositive"
+        [class.negative]="!returnsPositive"
+      >
+        {{ returnsPositive ? '+' : '' }}{{ activeReturnsAmount | number: '1.2-2' }}
+      </p>
+    </div>
+  </div>
+
+  <p class="value-hint">
+    <span>Total → Cash → Assets</span>
+    <span>All-Time → Today</span>
+  </p>
+</app-widget-card>
+

@@ -19,6 +19,13 @@ export const routes: Routes = [
           import('./features/auth/register/register.component').then((m) => m.RegisterComponent),
       },
       { path: '', redirectTo: 'login', pathMatch: 'full' },
+      {
+        path: 'update-password',
+        loadComponent: () =>
+          import('./features/auth/update-password/update-password.component').then(
+            (m) => m.UpdatePasswordComponent,
+          ),
+      },
     ],
   },
   {
@@ -35,9 +42,7 @@ export const routes: Routes = [
       {
         path: 'transact',
         loadComponent: () =>
-          import('./features/transact/transact.component').then(
-            (m) => m.TransactComponent,
-          ),
+          import('./features/transact/transact.component').then((m) => m.TransactComponent),
       },
       {
         path: 'trade',

@@ -70,4 +70,15 @@ export class SupabaseService {
   onAuthStateChange(callback: (event: string, session: any) => void) {
     return this.supabase.auth.onAuthStateChange(callback);
   }
+  sendPasswordReset(email: string, redirectTo: string) {
+    return this.supabase.auth.resetPasswordForEmail(email, {
+      redirectTo,
+    });
+  }
+
+  updatePassword(password: string) {
+    return this.supabase.auth.updateUser({
+      password,
+    });
+  }
 }

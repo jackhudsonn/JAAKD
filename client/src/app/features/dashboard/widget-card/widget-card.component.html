@@ -1,0 +1,35 @@
+<article class="widget-card">
+
+  <header class="widget-card-header">
+    <div>
+      <h3>{{ title() }}</h3>
+      @if (subtitle()) {
+        <p class="widget-card-subtitle">{{ subtitle() }}</p>
+      }
+    </div>
+
+    <div class="widget-card-actions">
+      <ng-content select="[widget-actions]" />
+    </div>
+  </header>
+
+  <div class="widget-card-body">
+    @if (status() === 'loading') {
+      <div class="widget-card-skeleton">
+        <div class="skeleton-line skeleton-line-lg"></div>
+        <div class="skeleton-line skeleton-line-md"></div>
+        <div class="skeleton-line skeleton-line-sm"></div>
+        <div class="skeleton-line skeleton-line-lg"></div>
+        <div class="skeleton-line skeleton-line-md"></div>
+      </div>
+    } @else if (status() === 'error') {
+      <div class="widget-card-unavailable">
+        <p>This widget is currently unavailable, sorry for the inconvenience!</p>
+        <button type="button" class="btn btn-secondary" (click)="retry.emit()">Retry</button>
+      </div>
+    } @else {
+      <ng-content />
+    }
+  </div>
+
+</article>
