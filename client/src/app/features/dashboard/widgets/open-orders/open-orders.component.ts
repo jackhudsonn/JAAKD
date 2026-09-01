@@ -1,6 +1,6 @@
 import { Component, signal } from '@angular/core';
 import { DecimalPipe, TitleCasePipe } from '@angular/common';
-import { WidgetCardComponent } from '../../widget-card/widget-card.component';
+import { WidgetCardComponent } from '../../../../shared/components/widget-card/widget-card.component';
 import { ScrollableListComponent } from '../../../../shared/components/scrollable-list/scrollable-list.component';
 import { MOCK_OPEN_ORDERS, MockOrder } from '../../mock-data';
 

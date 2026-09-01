@@ -1,6 +1,6 @@
 import { Component, computed, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
-import { WidgetCardComponent } from '../../widget-card/widget-card.component';
+import { WidgetCardComponent } from '../../../../shared/components/widget-card/widget-card.component';
 import { LineChartComponent } from '../../../../shared/components/line-chart/line-chart.component';
 import {
   PERFORMANCE_INTERVALS,
