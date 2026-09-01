@@ -9,9 +9,9 @@ import jakarta.persistence.Table;
 
 import java.util.UUID;
 
-// Maps to public."watchList".
+// Maps to public.watchlists.
 @Entity
-@Table(name = "`watchList`")
+@Table(name = "watchlists")
 public class Watchlist {
 
     @Id

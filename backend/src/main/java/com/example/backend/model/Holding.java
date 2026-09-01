@@ -7,12 +7,11 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
-import java.time.Instant;
 import java.util.UUID;
 
-// Maps to public."holdingID" — the positions table (table is literally named after its PK column).
+// Maps to public.holdings — the positions table. Ticker moved out to instruments; holdings now references instrumentID.
 @Entity
-@Table(name = "`holdingID`")
+@Table(name = "holdings")
 public class Holding {
 
     @Id
@@ -23,24 +22,21 @@ public class Holding {
     @Column(name = "`portfolioID`", nullable = false)
     private UUID portfolioId;
 
-    @Column(name = "ticker", nullable = false)
-    private String ticker;
-
     @Column(name = "quantity", nullable = false)
     private Long quantity = 0L;
 
-    @Column(name = "`avgCost`", nullable = false)
-    private Double avgCost = 0.0;
+    @Column(name = "cost", nullable = false)
+    private Double cost = 0.0;
 
-    @Column(name = "`lastUpdate`", nullable = false)
-    private Instant lastUpdate;
+    @Column(name = "`instrumentID`", nullable = false)
+    private UUID instrumentId;
 
     protected Holding() {
     }
 
-    public Holding(UUID portfolioId, String ticker) {
+    public Holding(UUID portfolioId, UUID instrumentId) {
         this.portfolioId = portfolioId;
-        this.ticker = ticker;
+        this.instrumentId = instrumentId;
     }
 
     public UUID getHoldingId() {
@@ -51,10 +47,6 @@ public class Holding {
         return portfolioId;
     }
 
-    public String getTicker() {
-        return ticker;
-    }
-
     public Long getQuantity() {
         return quantity;
     }
@@ -63,19 +55,15 @@ public class Holding {
         this.quantity = quantity;
     }
 
-    public Double getAvgCost() {
-        return avgCost;
+    public Double getCost() {
+        return cost;
     }
 
-    public void setAvgCost(Double avgCost) {
-        this.avgCost = avgCost;
+    public void setCost(Double cost) {
+        this.cost = cost;
     }
 
-    public Instant getLastUpdate() {
-        return lastUpdate;
-    }
-
-    public void setLastUpdate(Instant lastUpdate) {
-        this.lastUpdate = lastUpdate;
+    public UUID getInstrumentId() {
+        return instrumentId;
     }
 }

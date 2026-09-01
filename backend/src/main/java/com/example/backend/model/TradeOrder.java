@@ -11,7 +11,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 // Maps to public.orders (named TradeOrder to avoid confusion with the SQL keyword / java.util types).
-// `side` is a raw boolean in the live schema — buy/sell convention must be agreed and enforced in the service layer.
+// `side` is now free-text (was boolean) — convention (e.g. "buy"/"sell") needs reconfirming after this schema change.
 @Entity
 @Table(name = "orders")
 public class TradeOrder {
@@ -24,33 +24,27 @@ public class TradeOrder {
     @Column(name = "`portfolioID`", nullable = false)
     private UUID portfolioId;
 
-    @Column(name = "ticker", nullable = false)
-    private String ticker;
-
     @Column(name = "quantity", nullable = false)
     private Long quantity;
 
     @Column(name = "`initTime`", nullable = false)
     private Instant initTime;
 
-    @Column(name = "market", nullable = false)
-    private String market;
-
-    @Column(name = "side", nullable = false)
-    private boolean side;
+    @Column(name = "side")
+    private String side;
 
     @Column(name = "`initPrice`", nullable = false)
     private Double initPrice;
 
+    @Column(name = "`instrumentID`")
+    private UUID instrumentId;
+
     protected TradeOrder() {
     }
 
-    public TradeOrder(UUID portfolioId, String ticker, Long quantity, String market, boolean side, Double initPrice) {
+    public TradeOrder(UUID portfolioId, Long quantity, Double initPrice) {
         this.portfolioId = portfolioId;
-        this.ticker = ticker;
         this.quantity = quantity;
-        this.market = market;
-        this.side = side;
         this.initPrice = initPrice;
     }
 
@@ -62,10 +56,6 @@ public class TradeOrder {
         return portfolioId;
     }
 
-    public String getTicker() {
-        return ticker;
-    }
-
     public Long getQuantity() {
         return quantity;
     }
@@ -74,15 +64,23 @@ public class TradeOrder {
         return initTime;
     }
 
-    public String getMarket() {
-        return market;
+    public String getSide() {
+        return side;
     }
 
-    public boolean isSide() {
-        return side;
+    public void setSide(String side) {
+        this.side = side;
     }
 
     public Double getInitPrice() {
         return initPrice;
+    }
+
+    public UUID getInstrumentId() {
+        return instrumentId;
+    }
+
+    public void setInstrumentId(UUID instrumentId) {
+        this.instrumentId = instrumentId;
     }
 }

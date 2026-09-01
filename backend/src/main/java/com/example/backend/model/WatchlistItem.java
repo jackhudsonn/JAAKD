@@ -9,9 +9,9 @@ import jakarta.persistence.Table;
 
 import java.util.UUID;
 
-// Maps to public."watchListItem".
+// Maps to public.watchlist_items. Ticker moved out to instruments; now references instrumentID.
 @Entity
-@Table(name = "`watchListItem`")
+@Table(name = "watchlist_items")
 public class WatchlistItem {
 
     @Id
@@ -22,8 +22,8 @@ public class WatchlistItem {
     @Column(name = "`watchListID`", nullable = false)
     private UUID watchListId;
 
-    @Column(name = "ticker", nullable = false)
-    private String ticker;
+    @Column(name = "`instrumentID`", nullable = false)
+    private UUID instrumentId;
 
     @Column(name = "priority", nullable = false)
     private Long priority;
@@ -31,9 +31,9 @@ public class WatchlistItem {
     protected WatchlistItem() {
     }
 
-    public WatchlistItem(UUID watchListId, String ticker, Long priority) {
+    public WatchlistItem(UUID watchListId, UUID instrumentId, Long priority) {
         this.watchListId = watchListId;
-        this.ticker = ticker;
+        this.instrumentId = instrumentId;
         this.priority = priority;
     }
 
@@ -45,8 +45,8 @@ public class WatchlistItem {
         return watchListId;
     }
 
-    public String getTicker() {
-        return ticker;
+    public UUID getInstrumentId() {
+        return instrumentId;
     }
 
     public Long getPriority() {

@@ -9,9 +9,9 @@ import jakarta.persistence.Table;
 
 import java.util.UUID;
 
-// Maps to public.portfolio. No unique constraint on userID — multiple portfolios per user are already possible.
+// Maps to public.portfolios. No unique constraint on userID — multiple portfolios per user are already possible.
 @Entity
-@Table(name = "portfolio")
+@Table(name = "portfolios")
 public class Portfolio {
 
     @Id

@@ -10,9 +10,9 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
 
-// Maps to public.log — the order execution/status trail (named OrderLog to avoid clashing with logging frameworks).
+// Maps to public.logs — the order execution/status trail (named OrderLog to avoid clashing with logging frameworks).
 @Entity
-@Table(name = "log")
+@Table(name = "logs")
 public class OrderLog {
 
     @Id
