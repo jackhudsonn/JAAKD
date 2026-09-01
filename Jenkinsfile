@@ -173,7 +173,9 @@ pipeline {
             }
         }
 
-        post {
+    }
+
+    post {
             always {
                 cleanWs()
             }
@@ -181,8 +183,5 @@ pipeline {
                 echo "Pipeline Failed - Check the logs for details."
             }
         }
-
-
-    }
 
 }
