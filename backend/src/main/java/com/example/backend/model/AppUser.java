@@ -1,13 +1,13 @@
 package com.example.backend.model;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -24,8 +24,9 @@ public class AppUser {
     @Column(name = "email", nullable = false, unique = true)
     private String email;
 
+    @Convert(converter = UserTypeConverter.class)
     @Column(name = "`userType`", nullable = false)
-    private BigDecimal userType = BigDecimal.ZERO;
+    private UserType userType = UserType.RETAIL_CLIENT;
 
     @Column(name = "`firstName`")
     private String firstName;
@@ -67,11 +68,11 @@ public class AppUser {
         this.email = email;
     }
 
-    public BigDecimal getUserType() {
+    public UserType getUserType() {
         return userType;
     }
 
-    public void setUserType(BigDecimal userType) {
+    public void setUserType(UserType userType) {
         this.userType = userType;
     }
 
