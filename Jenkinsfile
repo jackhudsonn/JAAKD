@@ -22,7 +22,7 @@ pipeline {
         stage('Backend: Unit Tests') {
             steps {
                 dir('backend') {
-                    sh './mvnw -B clean verify'
+                    sh 'chmod +x mvnw && ./mvnw -B clean verify'
                 }
             }
             post {
@@ -35,7 +35,7 @@ pipeline {
         stage('Backend: Security Scan') {
             steps {
                 dir('backend') {
-                    sh '.mvnw -B org.owasp:dependency-check-maven:check'
+                    sh 'chmod +x mvnw && ./mvnw -B org.owasp:dependency-check-maven:check'
                 }
             }
             post {
