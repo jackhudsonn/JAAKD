@@ -1,0 +1,146 @@
+.widget-selector {
+  position: relative;
+
+  display: inline-block;
+}
+
+.widget-selector-trigger {
+  position: relative;
+
+  width: 40px;
+  min-height: 40px;
+  padding: 0;
+
+  background: var(--secondary-bg);
+  color: var(--secondary-light);
+
+  border: 1px solid var(--secondary-bg-border);
+}
+
+.widget-selector-trigger:hover,
+.widget-selector-trigger:focus-visible {
+  background: var(--tertiary-bg);
+
+  border-color: var(--primary);
+
+  color: var(--secondary-light);
+}
+
+.widget-selector-trigger:active {
+  background: var(--quaternary-bg);
+}
+
+.widget-selector-trigger-compact {
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+}
+
+/* Positioned relative to the full button (not the icon), so it overlaps the
+   corner like an iOS app-icon badge instead of sitting inside the icon box. */
+.widget-selector-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: var(--primary);
+
+  border-radius: 999px;
+  /* ring in the page background color so the badge reads as layered on top, not embedded in the button */
+  box-shadow: 0 0 0 2px var(--primary-bg);
+
+  color: #1f1f1f;
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+
+
+.widget-selector-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + var(--space-xs));
+
+  z-index: 20;
+
+  /* Cap the width against the viewport (minus the page's horizontal
+     padding) so the panel can never extend past the visible screen,
+     regardless of how narrow the viewport or how far right the trigger
+     button sits. */
+  width: min(240px, calc(100vw - (2 * var(--space-xl))));
+
+  display: flex;
+  flex-direction: column;
+
+  gap: var(--space-xs);
+
+  padding: var(--space-md);
+
+  background: var(--secondary-bg);
+
+  border: 1px solid var(--secondary-bg-border);
+  border-radius: var(--radius-md);
+
+  box-shadow: var(--shadow-md);
+
+  opacity: 0;
+  transform: translateY(-6px) scale(0.98);
+  transform-origin: top right;
+  pointer-events: none;
+
+  transition:
+    opacity 150ms ease,
+    transform 150ms ease;
+}
+
+.widget-selector-panel.open {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+
+  pointer-events: auto;
+}
+
+.widget-selector-option {
+  min-width: 0;
+
+  overflow-wrap: anywhere;
+}
+
+
+.widget-selector-hint {
+  margin: 0 0 var(--space-xs);
+
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.widget-selector-option {
+  display: flex;
+  align-items: center;
+
+  gap: var(--space-sm);
+
+  color: var(--secondary-light);
+  font-size: var(--font-size-sm);
+
+  cursor: pointer;
+}
+
+.widget-selector-option.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.widget-selector-option input {
+  accent-color: var(--primary);
+}

@@ -1,0 +1,46 @@
+<app-widget-card title="Watchlist">
+  <div widget-actions class="add-ticker">
+    <input
+      type="text"
+      placeholder="Add ticker"
+      [ngModel]="newSymbol()"
+      (ngModelChange)="newSymbol.set($event)"
+      (keydown.enter)="addTicker()"
+    />
+    <button type="button" class="btn btn-primary btn-add" (click)="addTicker()">
+      +
+    </button>
+  </div>
+
+  <app-scrollable-list
+    [items]="items()"
+    [trackBy]="trackBySymbol"
+    emptyMessage="Your watchlist is empty."
+  >
+    <ng-template let-item>
+      <div class="watchlist-row">
+        <span class="symbol">{{ item.symbol }}</span>
+
+        <div class="price-stack">
+          <span class="price">{{ item.price | number: '1.2-2' }}</span>
+          <span
+            class="change"
+            [class.positive]="item.changePct >= 0"
+            [class.negative]="item.changePct < 0"
+          >
+            {{ item.changePct >= 0 ? '+' : '' }}{{ item.changePct | number: '1.2-2' }}%
+          </span>
+        </div>
+
+        <button
+          type="button"
+          class="remove-btn"
+          aria-label="Remove from watchlist"
+          (click)="removeTicker(item.symbol)"
+        >
+          ×
+        </button>
+      </div>
+    </ng-template>
+  </app-scrollable-list>
+</app-widget-card>

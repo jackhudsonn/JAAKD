@@ -1,0 +1,33 @@
+<app-widget-card title="Open Orders" [subtitle]="orders().length + ' pending'">
+  <app-scrollable-list
+    [items]="orders()"
+    [trackBy]="trackById"
+    emptyMessage="No open orders."
+  >
+    <ng-template let-order>
+      <div class="order-row">
+        <div class="order-info">
+          <span class="order-symbol">{{ order.symbol }}</span>
+          <span class="order-side" [class.buy]="order.side === 'buy'" [class.sell]="order.side === 'sell'">
+            {{ order.side | titlecase }}
+          </span>
+        </div>
+
+        <div class="order-meta">
+          <span>{{ order.quantity }} @ {{ order.price | number: '1.2-2' }}</span>
+          <span class="order-status">{{ order.status | titlecase }}</span>
+        </div>
+
+        <button
+          type="button"
+          class="remove-btn"
+          aria-label="Cancel order"
+          (click)="cancelOrder(order.id)"
+        >
+          ×
+        </button>
+      </div>
+    </ng-template>
+  </app-scrollable-list>
+</app-widget-card>
+

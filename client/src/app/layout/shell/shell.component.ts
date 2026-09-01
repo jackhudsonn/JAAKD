@@ -45,7 +45,12 @@ export class ShellComponent implements OnInit {
       .join(' ')
       .trim();
 
-    this.displayName.set(data?.full_name?.trim() || metadataName || null);
+    // Build display name from DB profile or auth metadata
+    const profileName = [data?.firstName, data?.lastName]
+      .filter(Boolean)
+      .join(' ')
+      .trim();
+    this.displayName.set(profileName || metadataName || null);
   }
 
   async logout() {

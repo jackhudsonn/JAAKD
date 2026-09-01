@@ -8,17 +8,21 @@ import { SupabaseService } from '../../../core/services/supabase.service';
   standalone: true,
   imports: [FormsModule, RouterLink],
   templateUrl: './login.component.html',
-  styleUrl: './login.component.css'
+  styleUrl: './login.component.css',
 })
 export class LoginComponent {
   email = '';
   password = '';
+  showPassword = false;
   message = signal('');
 
   constructor(
     private supabaseService: SupabaseService,
-    private router: Router
+    private router: Router,
   ) {}
+  togglePasswordVisibility() {
+    this.showPassword = !this.showPassword;
+  }
 
   async login() {
     if (!this.email || !this.password) {
@@ -26,15 +30,10 @@ export class LoginComponent {
       return;
     }
 
-    const { error } = await this.supabaseService.signIn(
-      this.email,
-      this.password
-    );
+    const { error } = await this.supabaseService.signIn(this.email, this.password);
 
     if (error) {
-      this.message.set(
-        'Email or password is incorrect. Don’t have an account? Create one below.'
-      );
+      this.message.set('Email or password is incorrect. Don’t have an account? Create one below.');
       return;
     }
 

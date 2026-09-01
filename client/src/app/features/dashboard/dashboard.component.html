@@ -1,348 +1,55 @@
-<main class="dashboard-content">
+<main class="page-content">
 
-  <section class="dashboard-heading">
-
-    <div>
-
-      <p class="eyebrow">
-        ACCOUNT OVERVIEW
-      </p>
-
+  <div class="dashboard-topbar">
+    <div class="dashboard-header">
       <h1>
         Dashboard
       </h1>
 
-      <p class="dashboard-subtitle">
-        Welcome back. Here's your trading overview.
+      <p class="page-description">
+        Insights into your portfolio.
       </p>
-
     </div>
 
-    <div class="market-status">
-      <span class="status-dot"></span>
-      Market Open
+    <div class="dashboard-toolbar">
+      <app-widget-selector [selected]="selectedWidgets()" (toggle)="onToggleWidget($event)" />
     </div>
+  </div>
 
-  </section>
+  <section class="widget-grid">
 
-
-  <section class="summary-grid">
-
-    <article class="summary-card">
-
-      <span class="summary-label">
-        Portfolio Value
-      </span>
-
-      <strong>
-        $25,000.00
-      </strong>
-
-      <span class="positive">
-        ▲ 2.4% today
-      </span>
-
-    </article>
-
-
-    <article class="summary-card">
-
-      <span class="summary-label">
-        Cash Available
-      </span>
-
-      <strong>
-        $10,000.00
-      </strong>
-
-      <span class="summary-note">
-        Available to trade
-      </span>
-
-    </article>
-
-
-    <article class="summary-card">
-
-      <span class="summary-label">
-        Total Return
-      </span>
-
-      <strong>
-        +$1,245.32
-      </strong>
-
-      <span class="positive">
-        ▲ 5.2%
-      </span>
-
-    </article>
-
-
-    <article class="summary-card">
-
-      <span class="summary-label">
-        Open Orders
-      </span>
-
-      <strong>
-        0
-      </strong>
-
-      <span class="summary-note">
-        No pending orders
-      </span>
-
-    </article>
-
-  </section>
-
-
-  <section class="dashboard-grid">
-
-    <article class="panel">
-
-      <div class="panel-header">
-
-        <div>
-
-          <p class="eyebrow">
-            MARKETS
-          </p>
-
-          <h2>
-            Watchlist
-          </h2>
-
-        </div>
-
-        <button
-          type="button"
-          class="small-button">
-          + Add
-        </button>
-
+    @for (widgetId of displayWidgets(); track widgetId; let last = $last, count = $count) {
+      <div
+        class="widget-slot"
+        [class.slot-centered]="last && count % 2 !== 0"
+        [class.widget-enter]="isEntering(widgetId)"
+        [class.widget-leave]="isLeaving(widgetId)"
+      >
+        @switch (widgetId) {
+          @case ('portfolio-value') {
+            <app-portfolio-value-widget />
+          }
+          @case ('open-orders') {
+            <app-open-orders-widget />
+          }
+          @case ('watchlist') {
+            <app-watchlist-widget />
+          }
+          @case ('top-movers') {
+            <app-top-movers-widget />
+          }
+          @case ('allocation-by-asset') {
+            <app-allocation-by-asset-widget />
+          }
+          @case ('performance-graph') {
+            <app-performance-graph-widget />
+          }
+          @case ('to-be-deleted') {
+            <app-to-be-deleted-widget />
+          }
+        }
       </div>
-
-
-      <div class="ticker-row">
-
-        <div class="ticker-symbol">
-          AAPL
-
-          <small>
-            Apple Inc.
-          </small>
-        </div>
-
-        <div class="ticker-price">
-          $214.32
-
-          <span class="positive">
-            ▲ 1.24%
-          </span>
-        </div>
-
-      </div>
-
-
-      <div class="ticker-row">
-
-        <div class="ticker-symbol">
-          TSLA
-
-          <small>
-            Tesla Inc.
-          </small>
-        </div>
-
-        <div class="ticker-price">
-          $187.05
-
-          <span class="negative">
-            ▼ 0.62%
-          </span>
-        </div>
-
-      </div>
-
-
-      <div class="ticker-row">
-
-        <div class="ticker-symbol">
-          MSFT
-
-          <small>
-            Microsoft Corp.
-          </small>
-        </div>
-
-        <div class="ticker-price">
-          $402.10
-
-          <span class="neutral">
-            ● 0.00%
-          </span>
-        </div>
-
-      </div>
-
-
-      <div class="ticker-row">
-
-        <div class="ticker-symbol">
-          NVDA
-
-          <small>
-            NVIDIA Corp.
-          </small>
-        </div>
-
-        <div class="ticker-price">
-          $126.88
-
-          <span class="positive">
-            ▲ 2.03%
-          </span>
-        </div>
-
-      </div>
-
-    </article>
-
-
-    <article class="panel">
-
-      <div class="panel-header">
-
-        <div>
-
-          <p class="eyebrow">
-            TRADING
-          </p>
-
-          <h2>
-            Place Order
-          </h2>
-
-        </div>
-
-      </div>
-
-
-      <div class="order-tabs">
-
-        <button
-          type="button"
-          class="order-tab buy">
-          Buy
-        </button>
-
-        <button
-          type="button"
-          class="order-tab sell">
-          Sell
-        </button>
-
-      </div>
-
-
-      <div class="form-field">
-
-        <label>
-          Symbol
-        </label>
-
-        <input
-          type="text"
-          value="AAPL"
-        />
-
-      </div>
-
-
-      <div class="form-field">
-
-        <label>
-          Quantity
-        </label>
-
-        <input
-          type="number"
-          value="10"
-        />
-
-      </div>
-
-
-      <div class="form-field">
-
-        <label>
-          Price
-        </label>
-
-        <input
-          type="text"
-          value="$214.32"
-        />
-
-      </div>
-
-
-      <div class="order-summary">
-
-        <span>
-          Estimated Total
-        </span>
-
-        <strong>
-          $2,143.20
-        </strong>
-
-      </div>
-
-
-      <button
-        type="button"
-        class="btn btn-primary confirm-order">
-        Review Order
-      </button>
-
-    </article>
-
-  </section>
-
-
-  <section class="panel activity-panel">
-
-    <div class="panel-header">
-
-      <div>
-
-        <p class="eyebrow">
-          ACTIVITY
-        </p>
-
-        <h2>
-          Recent Transaction
-        </h2>
-
-      </div>
-
-    </div>
-
-
-    <div class="empty-state">
-
-      <strong>
-        No transactions yet
-      </strong>
-
-      <p>
-        Your completed trades will appear here.
-      </p>
-
-    </div>
+    }
 
   </section>
 

@@ -16,6 +16,7 @@ export class NavbarComponent {
 
   menuOpen = signal(false);
   avatarOpen = signal(false);
+  mobileMenuOpen = signal(false);
 
   constructor(private elementRef: ElementRef<HTMLElement>) {}
 
@@ -52,9 +53,21 @@ export class NavbarComponent {
   closeAvatarMenu() {
     this.avatarOpen.set(false);
   }
+
+  toggleMobileMenu() {
+    this.avatarOpen.set(false);
+    this.menuOpen.set(false);
+    this.mobileMenuOpen.update((open) => !open);
+  }
+
+  closeMobileMenu() {
+    this.mobileMenuOpen.set(false);
+  }
+
   closeMenus() {
   this.closeMenu();
   this.closeAvatarMenu();
+  this.closeMobileMenu();
 }
 
 @HostListener('document:click', ['$event'])
@@ -66,6 +79,9 @@ onDocumentClick(event: MouseEvent) {
 
   const avatarWrapper =
     this.elementRef.nativeElement.querySelector('.avatar-menu-wrapper');
+
+  const profileEnd =
+    this.elementRef.nativeElement.querySelector('.profile-end');
 
   if (
     this.menuOpen() &&
@@ -81,6 +97,15 @@ onDocumentClick(event: MouseEvent) {
     !avatarWrapper.contains(target)
   ) {
     this.closeAvatarMenu();
+  }
+
+  if (
+    this.mobileMenuOpen() &&
+    profileEnd &&
+    !profileEnd.contains(target) &&
+    !this.elementRef.nativeElement.querySelector('.mobile-nav-dropdown')?.contains(target)
+  ) {
+    this.closeMobileMenu();
   }
 }
 @HostListener('document:keydown.escape')

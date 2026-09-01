@@ -1,0 +1,15 @@
+.btn-back {
+  min-height: 30px;
+
+  padding: var(--space-xxs) var(--space-sm);
+
+  font-size: var(--font-size-xs);
+}
+
+.drilldown-hint {
+  margin: var(--space-sm);
+
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  text-align: center;
+}
