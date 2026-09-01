@@ -3,9 +3,17 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { environment } from '../../../environments/environment';
 
 export interface ProfileRow {
-  id: string;
-  full_name: string | null;
-  avatar_url: string | null;
+  userID: string;
+  email: string;
+  userType: number;
+  firstName: string | null;
+  lastName: string | null;
+  city: string | null;
+  state: string | null;
+  country: string | null;
+  zipCode: string | null;
+  dob: string | null;
+  avatar: string | null;
 }
 
 @Injectable({
@@ -30,19 +38,23 @@ export class SupabaseService {
       zipCode?: string;
     },
   ) {
+    // Build metadata object only with defined fields
+    // Supabase auth expects snake_case keys in user_metadata
+    const metadata: Record<string, any> = {
+      first_name: profile.firstName,
+      last_name: profile.lastName,
+    };
+    if (profile.dob) metadata['dob'] = profile.dob;
+    if (profile.city) metadata['city'] = profile.city;
+    if (profile.state) metadata['state'] = profile.state;
+    if (profile.country) metadata['country'] = profile.country;
+    if (profile.zipCode) metadata['zip_code'] = profile.zipCode;
+
     return this.supabase.auth.signUp({
       email,
       password,
       options: {
-        data: {
-          first_name: profile.firstName,
-          last_name: profile.lastName,
-          dob: profile.dob,
-          city: profile.city,
-          state: profile.state,
-          country: profile.country,
-          zip_code: profile.zipCode,
-        },
+        data: metadata,
       },
     });
   }
@@ -62,8 +74,8 @@ export class SupabaseService {
   getProfile(userId: string) {
     return this.supabase
       .from('profiles')
-      .select('id, full_name, avatar_url')
-      .eq('id', userId)
+      .select('userID, email, userType, firstName, lastName, city, state, country, zipCode, dob, avatar')
+      .eq('userID', userId)
       .single<ProfileRow>();
   }
 

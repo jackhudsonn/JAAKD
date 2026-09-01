@@ -40,7 +40,17 @@ Angular client --HTTPS + Supabase JWT--> this backend --JDBC (privileged role)--
 
 RLS is enabled on every table but has **no policies defined** (default-deny for the anon/PostgREST API — irrelevant to this backend, since its DB role bypasses RLS).
 
-## Running locally
+## Setup
+
+### 1. Supabase Schema (one-time setup)
+
+See [SETUP_SUPABASE_SCHEMA.md](../SETUP_SUPABASE_SCHEMA.md) — run the SQL files in this order:
+1. `tools/supabase-sql/00-create-profiles-table.sql`
+2. `tools/supabase-sql/01-auth-trigger.sql`
+
+This creates the auth trigger that links `auth.users.id` → `profiles.userID` on signup.
+
+### 2. Running locally
 
 See [REQUIREMENTS.md](REQUIREMENTS.md) for tooling versions and required Supabase access first.
 

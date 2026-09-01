@@ -1,6 +1,7 @@
 -- Supabase Auth Trigger: Link auth.users to profiles
 -- When a new user signs up via Supabase Auth, this trigger creates a matching profiles row
 -- with userID = auth.users.id, enabling the JWT's 'sub' claim to resolve directly to the profile.
+-- Schema columns: userID (PK), email, userType, firstName, lastName, city, state, country, zipCode, dob, avatar
 
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
@@ -10,14 +11,26 @@ BEGIN
     email,
     "userType",
     "firstName",
-    "lastName"
+    "lastName",
+    city,
+    state,
+    country,
+    "zipCode",
+    dob,
+    avatar
   )
   VALUES (
     NEW.id,
     NEW.email,
-    0,  -- default userType (RETAIL_CLIENT)
-    COALESCE(NEW.raw_user_meta_data->>'first_name', ''),
-    COALESCE(NEW.raw_user_meta_data->>'last_name', '')
+    0,
+    COALESCE(NEW.raw_user_meta_data->>'first_name', NULL),
+    COALESCE(NEW.raw_user_meta_data->>'last_name', NULL),
+    COALESCE(NEW.raw_user_meta_data->>'city', NULL),
+    COALESCE(NEW.raw_user_meta_data->>'state', NULL),
+    COALESCE(NEW.raw_user_meta_data->>'country', NULL),
+    COALESCE(NEW.raw_user_meta_data->>'zip_code', NULL),
+    COALESCE(NEW.raw_user_meta_data->>'dob', NULL)::date,
+    NULL
   )
   ON CONFLICT ("userID") DO NOTHING;
   RETURN NEW;

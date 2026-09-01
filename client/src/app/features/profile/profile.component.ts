@@ -33,7 +33,12 @@ export class ProfileComponent implements OnInit {
     const metadataLastName = user.user_metadata?.['last_name'];
     const metadataName = [metadataFirstName, metadataLastName].filter(Boolean).join(' ').trim();
 
-    this.displayName.set(data?.full_name?.trim() || metadataName || null);
+    // Build display name from DB profile or auth metadata
+    const profileName = [data?.firstName, data?.lastName]
+      .filter(Boolean)
+      .join(' ')
+      .trim();
+    this.displayName.set(profileName || metadataName || null);
   }
 
   get metadata() {
