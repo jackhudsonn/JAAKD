@@ -29,7 +29,7 @@ Angular client --HTTPS + Supabase JWT--> this backend --JDBC (privileged role)--
 
 | Table | Key columns | Notes |
 |---|---|---|
-| `profiles` | `userID`(PK), `email`(unique), `userType`, `firstName`, `lastName`, `city`, `state`, `country`, `zipCode`, `dob`, `avatar` | Merged from the old separate `users` + `profiles` tables. **Still NOT linked to `auth.users`** — `userID` is independently generated. Entity: `Profile` |
+| `profiles` | `userID`(PK), `email`(unique), `userType`, `firstName`, `lastName`, `city`, `state`, `country`, `zipCode`, `dob`, `avatar` | Merged from the old separate `users` + `profiles` tables. Linked to `auth.users` via Supabase trigger: when an `auth.users` row is created, the trigger creates a matching `profiles` row with `userID = auth.users.id`. Entity: `Profile` |
 | `portfolios` | `portfolioID`(PK), `cashHoldings`, `userID`(FK→`profiles`, nullable) | No unique constraint on `userID` — a user can have multiple portfolios. Entity: `Portfolio` |
 | `instruments` | `instrumentID`(PK), `ticker`, `type`, `market`, `price`, `last_update` | New: centralized reference data for tradable instruments. Entity: `Instrument` |
 | `holdings` | `holdingID`(PK), `portfolioID`(FK), `instrumentID`(FK), `quantity`, `cost` | The positions table. Entity: `Holding` |

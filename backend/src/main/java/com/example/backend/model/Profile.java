@@ -2,8 +2,6 @@ package com.example.backend.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
@@ -11,14 +9,14 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
 
-// Maps to public.profiles — merged app-user + profile data. NOT linked to auth.users (userID is independent) —
-// see the identity-chain decision needed before ownership-scoped endpoints can resolve "current user".
+// Maps to public.profiles — merged app-user + profile data. Linked to auth.users via Supabase trigger:
+// when auth.users row is created, trigger creates profiles row with userID = auth.users.id.
+// JWT's 'sub' claim (= auth.users.id) resolves directly to profiles.userID for ownership-scoped queries.
 @Entity
 @Table(name = "profiles")
 public class Profile {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "`userID`")
     private UUID userId;
 
@@ -61,6 +59,10 @@ public class Profile {
 
     public UUID getUserId() {
         return userId;
+    }
+
+    public void setUserId(UUID userId) {
+        this.userId = userId;
     }
 
     public String getEmail() {
