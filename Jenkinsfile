@@ -34,13 +34,11 @@ pipeline {
 
         stage('Backend: Security Scan') {
             steps {
-                dir('backend') {
-                    sh 'chmod +x mvnw && ./mvnw -B org.owasp:dependency-check-maven:check'
-                }
+                dependencyCheck additionalArguments: '--scan backend --format XML', odcInstallation: 'OWASP-DC'
             }
             post {
                 always {
-                    dependencyCheckPublisher pattern: 'backend/target/dependency-check-report.xml'
+                    dependencyCheckPublisher pattern: 'dependency-check-report.xml'
                 }
             }
         }
@@ -82,10 +80,20 @@ pipeline {
 
         stage('Backend: Scan Docker Image') {
             steps {
-                sh "docker run --rm \
-                    -v /var/run/docker.sock:/var/run/docker.sock \
-                    aquasec/trivy \
-                    image ${BACKEND_IMAGE}:${IMAGE_TAG}"
+                sh """
+                    docker run --rm \
+                        -v /var/run/docker.sock:/var/run/docker.sock \
+                        -v \$(pwd):/output \
+                        aquasec/trivy image --format json --output /output/trivy-results.json ${BACKEND_IMAGE}:${IMAGE_TAG}
+                """
+            }
+            post {
+                always {
+                    recordIssues(
+                        tools: [trivy(pattern: 'trivy-results.json')],
+                        qualityGates: [[threshold: 1, type: 'TOTAL_HIGH', unstable: false]]
+                    )
+                }
             }
         }
 
