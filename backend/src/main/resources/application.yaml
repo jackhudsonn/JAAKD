@@ -7,16 +7,27 @@ spring:
   application:
     name: backend
 
-  autoconfigure:
-    exclude: ## remove after adding the datasource configuration
-      - org.springframework.boot.hibernate.autoconfigure.HibernateJpaAutoConfiguration
-      - org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration
-      - org.springframework.boot.devtools.autoconfigure.DevToolsDataSourceAutoConfiguration
+  config:
+    import: optional:file:.env[.properties] # loads backend/.env (KEY=value is valid .properties syntax)
 
-  #datasource:
-  #  url: ${DATABASE_URL}
-  #  username: ${DATABASE_USERNAME}
-  #  password: ${DATABASE_PASSWORD}
+  datasource:
+    url: ${SUPABASE_DB_URL}
+    username: ${SUPABASE_DB_USER}
+    password: ${SUPABASE_DB_PASSWORD}
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate # schema is owned by Supabase migrations, never generated from entities
+    properties:
+      hibernate:
+        default_schema: public
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${SUPABASE_URL}/auth/v1/.well-known/jwks.json
 
 server:
     port: 8081
