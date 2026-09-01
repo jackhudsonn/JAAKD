@@ -64,3 +64,10 @@ input, select, forms
 .form-field input::placeholder {
   color: #bdbdbd;
 }
+.password-input-wrapper input::-ms-reveal ,
+.password-input-wrapper input::-ms-clear {
+  display: none;
+}
+.password-input-wrapper input::-webkit-textfield-decoration-container {
+  visibility: hidden;
+}
