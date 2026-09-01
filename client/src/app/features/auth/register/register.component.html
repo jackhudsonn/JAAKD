@@ -6,8 +6,8 @@
       <h1>Start trading with confidence.</h1>
 
       <p>
-        Set up your secure JAAKD account to access your portfolio,
-        orders, holdings, and trading activity.
+        Set up your secure JAAKD account to access your portfolio, orders, holdings, and trading
+        activity.
       </p>
     </section>
 
@@ -30,31 +30,53 @@
 
         <div class="form-field full-width">
           <label for="email">Email *</label>
-          <input
-            id="email"
-            type="email"
-            [(ngModel)]="email"
-            placeholder="name@example.com"
-          />
+          <input id="email" type="email" [(ngModel)]="email" placeholder="name@example.com" />
         </div>
 
         <div class="form-field">
           <label for="password">Password *</label>
-          <input
-            id="password"
-            type="password"
-            [(ngModel)]="password"
-            placeholder="Minimum 6 characters"
-          />
+
+          <div class="password-input-wrapper">
+            <input
+              id="password"
+              [type]="showPassword ? 'text' : 'password'"
+              [(ngModel)]="password"
+              placeholder="Create a password"
+              autocomplete="new-password"
+            />
+
+            <button
+              type="button"
+              class="password-toggle"
+              (click)="togglePasswordVisibility()"
+              [attr.aria-label]="showPassword ? 'Hide password' : 'Show password'"
+            >
+              {{ showPassword ? 'Hide' : 'Show' }}
+            </button>
+          </div>
         </div>
 
         <div class="form-field">
-          <label for="confirmPassword">Confirm Password *</label>
-          <input
-            id="confirmPassword"
-            type="password"
-            [(ngModel)]="confirmPassword"
-          />
+          <label for="confirmPassword"> Confirm Password * </label>
+
+          <div class="password-input-wrapper">
+            <input
+              id="confirmPassword"
+              [type]="showConfirmPassword ? 'text' : 'password'"
+              [(ngModel)]="confirmPassword"
+              placeholder="Re-enter your password"
+              autocomplete="new-password"
+            />
+
+            <button
+              type="button"
+              class="password-toggle"
+              (click)="toggleConfirmPasswordVisibility()"
+              [attr.aria-label]="showConfirmPassword ? 'Hide password' : 'Show password'"
+            >
+              {{ showConfirmPassword ? 'Hide' : 'Show' }}
+            </button>
+          </div>
         </div>
 
         <div class="form-field">
@@ -90,12 +112,7 @@
       }
 
       <div class="register-actions">
-        <button
-          type="button"
-          class="btn btn-primary"
-          (click)="signUp()">
-          Create Account
-        </button>
+        <button type="button" class="btn btn-primary" (click)="signUp()">Create Account</button>
 
         <p>
           Already have an account?
