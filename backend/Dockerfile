@@ -18,7 +18,7 @@ FROM eclipse-temurin:21-jre
 # Sets the working directory
 WORKDIR /app
 # Creates a non-root user and group for running the application
-RUN addgroup -S spring && adduser -S spring -G spring
+RUN addgroup -r spring && adduser -r -g spring spring
 # Switches to the non-root user
 USER spring:spring
 # Copies the built JAR file from the build stage
