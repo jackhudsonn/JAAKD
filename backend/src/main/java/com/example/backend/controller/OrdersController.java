@@ -1,11 +1,17 @@
 package com.example.backend.controller;
 
+import jakarta.validation.Valid;
+
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.backend.dto.PlaceOrderRequest;
 import com.example.backend.service.OrdersService;
+
+import java.util.UUID;
 
 @RestController
 public class OrdersController {
@@ -21,15 +27,32 @@ public class OrdersController {
         return ordersService.ping();
     }
 
-    @PostMapping("/api/orders/create")
-    public String createOrder(@RequestBody String order) {
-        // ordersService.validateOrder(order)
-        return ordersService.createOrder(order);
+    @PostMapping("/api/orders/place")
+    public String placeOrder(@Valid @RequestBody PlaceOrderRequest order) {
+        return ordersService.placeOrder(order);
     }
 
-    @PostMapping("/api/orders/update")
-    public String updateOrder(@RequestBody String order) {
-        return ordersService.updateOrder(order);
+    @PostMapping("/api/orders/{orderId}/accept")
+    public String acceptOrder(@PathVariable UUID orderId) {
+        return ordersService.acceptOrder(orderId);
     }
 
+    @PostMapping("/api/orders/{orderId}/execute")
+    public String executeOrder(@PathVariable UUID orderId, @RequestBody ExecuteOrderRequest request) {
+        return ordersService.executeOrder(orderId, request.getExecutionPrice());
+    }
+
+}
+
+// Simple request DTO for execution price
+class ExecuteOrderRequest {
+    private Double executionPrice;
+
+    public Double getExecutionPrice() {
+        return executionPrice;
+    }
+
+    public void setExecutionPrice(Double executionPrice) {
+        this.executionPrice = executionPrice;
+    }
 }

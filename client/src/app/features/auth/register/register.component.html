@@ -80,28 +80,71 @@
         </div>
 
         <div class="form-field">
-          <label for="dob">Date of Birth</label>
-          <input id="dob" type="date" [(ngModel)]="dob" />
+          <label for="dob">Date of Birth *</label>
+
+          <input id="dob" type="date" [(ngModel)]="dob" [max]="maxDob" required />
+
+          <small>You must be 18 or older to create an account.</small>
         </div>
 
         <div class="form-field">
-          <label for="country">Country</label>
-          <input id="country" type="text" [(ngModel)]="country" />
+          <label for="country">Country *</label>
+
+          <select id="country" [(ngModel)]="countryCode" (change)="onCountryChange()" required>
+            <option value="">Select country</option>
+
+            @for (countryOption of countries; track countryOption.code) {
+              <option [value]="countryOption.code">
+                {{ countryOption.name }}
+              </option>
+            }
+          </select>
         </div>
 
         <div class="form-field">
-          <label for="city">City</label>
-          <input id="city" type="text" [(ngModel)]="city" />
+          <label for="state">State / Region *</label>
+
+          <select
+            id="state"
+            [(ngModel)]="state"
+            (change)="onStateChange()"
+            [disabled]="!countryCode"
+            required
+          >
+            <option value="">Select state / region</option>
+
+            @for (stateOption of states; track stateOption) {
+              <option [value]="stateOption">
+                {{ stateOption }}
+              </option>
+            }
+          </select>
         </div>
 
         <div class="form-field">
-          <label for="state">State</label>
-          <input id="state" type="text" [(ngModel)]="state" />
+          <label for="city">City *</label>
+
+          <select id="city" [(ngModel)]="city" [disabled]="!state" required>
+            <option value="">Select city</option>
+
+            @for (cityOption of cities; track cityOption) {
+              <option [value]="cityOption">
+                {{ cityOption }}
+              </option>
+            }
+          </select>
         </div>
 
         <div class="form-field full-width">
-          <label for="zipCode">ZIP / Postal Code</label>
-          <input id="zipCode" type="text" [(ngModel)]="zipCode" />
+          <label for="zipCode">ZIP / Postal Code *</label>
+
+          <input
+            id="zipCode"
+            type="text"
+            autocomplete="postal-code"
+            [(ngModel)]="zipCode"
+            required
+          />
         </div>
       </div>
 
