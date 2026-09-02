@@ -41,7 +41,9 @@ pipeline {
                 owaspDependencyCheck name: 'backend-scan'
             }
             post {
-                dependencyCheckPublisher pattern: 'dependency-check-report.xml'
+                always {
+                    dependencyCheckPublisher pattern: 'dependency-check-report.xml'
+                }
             }
         }
 
