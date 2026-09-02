@@ -24,3 +24,26 @@ export interface MarketQuote {
   change: number;
   changePct: number;
 }
+
+export type TransactionType = 'deposit' | 'withdrawal';
+export type PaymentMethod = 'bank_transfer' | 'card' | 'crypto_wallet';
+export type TransactionStatus = 'pending' | 'completed' | 'failed' | 'cancelled';
+
+export interface Transaction {
+  id: string;
+  type: TransactionType;
+  amount: number;
+  method: PaymentMethod;
+  status: TransactionStatus;
+  createdAt: string;
+}
+
+export interface Deposit {
+  amount: number;
+  method: PaymentMethod;
+}
+
+export interface Withdrawal {
+  amount: number;
+  method: PaymentMethod;
+}

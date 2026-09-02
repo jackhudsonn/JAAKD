@@ -1,0 +1,30 @@
+<app-form-card title="Deposit Funds" subtitle="Add money to your account">
+
+  <div class="form-field">
+    <label for="deposit-amount">Amount (USD)</label>
+    <input
+      id="deposit-amount"
+      type="number"
+      min="0"
+      step="0.01"
+      placeholder="0.00"
+      [(ngModel)]="amount"
+    />
+  </div>
+
+  <div class="form-field">
+    <label for="deposit-method">Payment Method</label>
+    <select id="deposit-method" [(ngModel)]="method">
+      <option value="bank_transfer">Bank Transfer</option>
+      <option value="card">Debit/Credit Card</option>
+      <option value="crypto_wallet">Crypto Wallet</option>
+    </select>
+  </div>
+
+  @if (error()) {
+    <p class="form-error">{{ error() }}</p>
+  }
+
+  <button type="button" class="btn btn-primary form-submit" (click)="submit()">Deposit</button>
+
+</app-form-card>

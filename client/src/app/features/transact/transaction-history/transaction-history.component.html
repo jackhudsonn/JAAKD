@@ -1,0 +1,77 @@
+<section class="transaction-history card">
+
+  <header class="transaction-history-header">
+    <h2>Transaction History</h2>
+
+    <div class="transaction-filters">
+      <select
+        class="filter-select"
+        aria-label="Filter by type"
+        [value]="typeFilter()"
+        (change)="onTypeFilterChange($event)"
+      >
+        <option value="all">All Types</option>
+        <option value="deposit">Deposit</option>
+        <option value="withdrawal">Withdrawal</option>
+      </select>
+
+      <select
+        class="filter-select"
+        aria-label="Filter by status"
+        [value]="statusFilter()"
+        (change)="onStatusFilterChange($event)"
+      >
+        <option value="all">All Statuses</option>
+        <option value="pending">Pending</option>
+        <option value="completed">Completed</option>
+        <option value="failed">Failed</option>
+        <option value="cancelled">Cancelled</option>
+      </select>
+    </div>
+  </header>
+
+  <div class="transaction-columns" role="row">
+    <button type="button" class="sort-btn" (click)="setSort('createdAt')">
+      Date <span class="sort-indicator">{{ sortIndicator('createdAt') }}</span>
+    </button>
+
+    <button type="button" class="sort-btn" (click)="setSort('type')">
+      Type <span class="sort-indicator">{{ sortIndicator('type') }}</span>
+    </button>
+
+    <button type="button" class="sort-btn" (click)="setSort('amount')">
+      Amount <span class="sort-indicator">{{ sortIndicator('amount') }}</span>
+    </button>
+
+    <span class="column-label">Method</span>
+
+    <button type="button" class="sort-btn" (click)="setSort('status')">
+      Status <span class="sort-indicator">{{ sortIndicator('status') }}</span>
+    </button>
+  </div>
+
+  <app-scrollable-list
+    [items]="rows()"
+    [trackBy]="trackById"
+    emptyMessage="No transactions match your filters."
+  >
+    <ng-template let-transaction>
+      <div class="transaction-row">
+        <span class="transaction-date">{{ transaction.createdAt | date: 'MMM d, y' }}</span>
+
+        <span
+          class="transaction-type"
+          [class.deposit]="transaction.type === 'deposit'"
+          [class.withdrawal]="transaction.type === 'withdrawal'"
+        >
+          {{ formatLabel(transaction.type) }}
+        </span>
+
+        <span class="transaction-amount">{{ transaction.amount | number: '1.2-2' }}</span>
+        <span class="transaction-method">{{ formatLabel(transaction.method) }}</span>
+        <app-status-badge [status]="transaction.status" />
+      </div>
+    </ng-template>
+  </app-scrollable-list>
+
+</section>

@@ -64,6 +64,16 @@ input, select, forms
 .form-field input::placeholder {
   color: #bdbdbd;
 }
+
+.form-error {
+  margin:
+    calc(-1 * var(--space-xs))
+    0
+    var(--space-md);
+
+  color: var(--fail);
+  font-size: var(--font-size-sm);
+}
 .password-input-wrapper input::-ms-reveal ,
 .password-input-wrapper input::-ms-clear {
   display: none;

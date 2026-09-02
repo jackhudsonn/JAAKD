@@ -1,0 +1,29 @@
+.form-card {
+  height: 100%;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: var(--space-md);
+}
+
+.form-card-header h2 {
+  margin: 0;
+
+  color: var(--secondary-light);
+  font-size: var(--font-size-lg);
+}
+
+.form-card-subtitle {
+  margin: var(--space-xxs) 0 0;
+
+  color: var(--secondary-dark);
+  font-size: var(--font-size-sm);
+}
+
+.form-card-body {
+  display: flex;
+  flex-direction: column;
+
+  flex: 1;
+}

@@ -82,3 +82,18 @@ button,
 a {
   -webkit-tap-highlight-color: transparent;
 }
+
+/* 600px and fewer should have smaller headings */
+@media (max-width: 600px) {
+  h1 {
+    font-size: var(--font-size-lg);
+  }
+
+  h2 {
+    font-size: var(--font-size-md);
+  }
+
+  h3 {
+    font-size: var(--font-size-sm);
+  }
+}

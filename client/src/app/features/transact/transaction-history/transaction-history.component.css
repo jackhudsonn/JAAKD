@@ -1,0 +1,129 @@
+.transaction-history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+
+  gap: var(--space-md);
+
+  margin-bottom: var(--space-md);
+}
+
+.transaction-history-header h2 {
+  margin: 0;
+
+  color: var(--secondary-light);
+  font-size: var(--font-size-lg);
+}
+
+.transaction-filters {
+  display: flex;
+  overflow-x: auto;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.filter-select {
+  padding:
+    var(--space-xs)
+    var(--space-sm);
+
+  font-family: var(--font-base);
+  font-size: var(--font-size-sm);
+
+  color: var(--secondary-light);
+  background: var(--tertiary-bg);
+
+  border: 1px solid var(--quaternary-bg-border);
+  border-radius: var(--radius-sm);
+  /* width: 100%; */
+}
+
+.transaction-columns,
+.transaction-row {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr 1.2fr 1fr;
+  align-items: center;
+
+  gap: var(--space-sm);
+}
+
+.transaction-columns {
+  padding: 0 var(--space-sm) var(--space-xs);
+
+  border-bottom: 1px solid var(--surface-divider);
+}
+
+.sort-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xxs);
+
+  background: none;
+  border: none;
+  padding: 0;
+
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+
+  cursor: pointer;
+  text-align: left;
+}
+
+.sort-btn:hover {
+  color: var(--secondary-light);
+}
+
+.sort-indicator {
+  font-size: 0.6rem;
+}
+
+.column-label {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.transaction-date,
+.transaction-method {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.transaction-type {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+
+.transaction-type.deposit {
+  color: var(--success);
+}
+
+.transaction-type.withdrawal {
+  color: var(--fail);
+}
+
+.transaction-amount {
+  color: var(--secondary-light);
+  font-weight: 700;
+}
+
+@media (max-width: 500px) {
+  .transaction-columns {
+    display: none;
+  }
+
+  .transaction-row {
+    grid-template-columns: 1fr 1fr;
+    row-gap: var(--space-xxs);
+  }
+
+  .filter-select {
+    width: 100%;
+  }
+}
