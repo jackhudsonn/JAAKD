@@ -41,9 +41,7 @@ pipeline {
                 owaspDependencyCheck name: 'backend-scan'
             }
             post {
-                always {
-                    dependencyCheckPublisher pattern: 'dependency-check-report.xml'
-                }
+                dependencyCheckPublisher pattern: 'dependency-check-report.xml'
             }
         }
 
@@ -82,6 +80,7 @@ pipeline {
             }
         }
 
+        // We have a lot of vulnerabilities due to outdated dependencies but we still allow the build to proceed
         stage('Backend: Scan Docker Image') {
             steps {
                 sh """
