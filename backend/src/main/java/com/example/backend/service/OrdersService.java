@@ -1,6 +1,7 @@
 package com.example.backend.service;
 
 import org.springframework.stereotype.Service;
+import com.example.backend.dto.PlaceOrderRequest;
 import com.example.backend.model.TradeOrder;
 import com.example.backend.model.OrderLog;
 import com.example.backend.model.Portfolio;
@@ -12,9 +13,6 @@ import com.example.backend.repository.InstrumentRepository;
 import com.example.backend.repository.HoldingRepository;
 import com.example.backend.security.CurrentUserService;
 import com.example.backend.model.Holding;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -28,7 +26,6 @@ public class OrdersService {
     private final InstrumentRepository instrumentRepository;
     private final HoldingRepository holdingRepository;
     private final CurrentUserService currentUserService;
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public OrdersService(
             TradeOrderRepository tradeOrderRepository,
@@ -46,12 +43,12 @@ public class OrdersService {
     }
 
     // ==================== STEP 1: PLACE ====================
-    public String placeOrder(String order) {
+    public String placeOrder(PlaceOrderRequest order) {
         // 1. Extract current user
         UUID userId = currentUserService.getUserId();
         
         // 2. Validate portfolio ownership
-        UUID portfolioId = extractPortfolioId(order);
+        UUID portfolioId = order.portfolioId();
         Portfolio portfolio = portfolioRepository.findById(portfolioId)
                 .orElseThrow(() -> new IllegalArgumentException("Portfolio not found"));
         if (!portfolio.getUserId().equals(userId)) {
@@ -59,16 +56,16 @@ public class OrdersService {
         }
         
         // 3. Validate instrument exists
-        UUID instrumentId = extractInstrumentId(order);
+        UUID instrumentId = order.instrumentId();
         instrumentRepository.findById(instrumentId)
                 .orElseThrow(() -> new IllegalArgumentException("Instrument not found"));
         
-        // 4. Parse order details
-        Long quantity = extractQuantity(order);
-        Double initPrice = extractPrice(order);
-        String side = extractSide(order);
+        // 4. Parse order details (type/format already validated by PlaceOrderRequest)
+        Long quantity = order.quantity();
+        Double initPrice = order.initPrice();
+        String side = order.side();
         
-        // 5. Validate order parameters
+        // 5. Validate business rules (defense in depth alongside PlaceOrderRequest's bean validation)
         if (quantity <= 0) throw new IllegalArgumentException("Quantity must be positive");
         if (initPrice <= 0) throw new IllegalArgumentException("Price must be positive");
         if (!side.equalsIgnoreCase("buy") && !side.equalsIgnoreCase("sell")) {
@@ -83,7 +80,7 @@ public class OrdersService {
             }
         }
         
-        // 7. For SELL: check sufficient stock quantity
+        // 6. For SELL: check sufficient stock quantity
         if (side.equalsIgnoreCase("sell")) {
             Holding holding = holdingRepository.findByPortfolioIdAndInstrumentId(portfolioId, instrumentId)
                     .orElseThrow(() -> new IllegalArgumentException("No holding for this instrument"));
@@ -234,51 +231,6 @@ public class OrdersService {
     private boolean isMarketOpen(Instrument instrument) {
         // TODO: Implement market hours check for instrument
         return true;
-    }
-
-    private UUID extractPortfolioId(String order) {
-        try {
-            JsonNode node = objectMapper.readTree(order);
-            return UUID.fromString(node.get("portfolioId").asText());
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Invalid portfolioId: " + e.getMessage());
-        }
-    }
-
-    private UUID extractInstrumentId(String order) {
-        try {
-            JsonNode node = objectMapper.readTree(order);
-            return UUID.fromString(node.get("instrumentId").asText());
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Invalid instrumentId: " + e.getMessage());
-        }
-    }
-
-    private Long extractQuantity(String order) {
-        try {
-            JsonNode node = objectMapper.readTree(order);
-            return node.get("quantity").asLong();
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Invalid quantity: " + e.getMessage());
-        }
-    }
-
-    private Double extractPrice(String order) {
-        try {
-            JsonNode node = objectMapper.readTree(order);
-            return node.get("initPrice").asDouble();
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Invalid initPrice: " + e.getMessage());
-        }
-    }
-
-    private String extractSide(String order) {
-        try {
-            JsonNode node = objectMapper.readTree(order);
-            return node.get("side").asText();
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Invalid side: " + e.getMessage());
-        }
     }
 
     public String ping() {
