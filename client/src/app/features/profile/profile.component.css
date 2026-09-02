@@ -164,3 +164,48 @@
   margin-top: 0;
   width: fit-content;
 }
+.profile-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.profile-edit-grid .form-field {
+  margin-bottom: 0;
+}
+
+.profile-edit-actions {
+  margin-top: 1.5rem;
+
+  display: flex;
+  gap: 0.75rem;
+}
+
+.profile-edit-actions .btn {
+  width: fit-content;
+}
+
+.form-field small {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+}
+
+@media (max-width: 700px) {
+  .profile-section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .account-details-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-edit-actions {
+    flex-direction: column;
+  }
+
+  .profile-edit-actions .btn {
+    width: 100%;
+  }
+}

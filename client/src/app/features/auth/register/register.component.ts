@@ -2,7 +2,13 @@ import { Component, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { SupabaseService } from '../../../core/services/supabase.service';
+import { LocationDataService, CountryOption } from '../../../core/services/location-data.service';
 
+import {
+  getLatestEligibleDob,
+  isAtLeast18,
+  isValidPostalCode,
+} from '../../../shared/utils/profile-validation';
 @Component({
   selector: 'app-register',
   standalone: true,
@@ -23,13 +29,27 @@ export class RegisterComponent {
   state = '';
   country = '';
   zipCode = '';
+  countries: CountryOption[] = [];
+  states: string[] = [];
+  cities: string[] = [];
+
+  countryCode = '';
+  get maxDob() {
+    return getLatestEligibleDob();
+  }
 
   message = signal('');
 
   constructor(
     private supabaseService: SupabaseService,
     private router: Router,
-  ) {}
+    private locationDataService: LocationDataService,
+  ) {
+    void this.loadCountries();
+  }
+  private async loadCountries() {
+    this.countries = await this.locationDataService.getCountries();
+  }
 
   togglePasswordVisibility() {
     this.showPassword = !this.showPassword;
@@ -38,9 +58,36 @@ export class RegisterComponent {
   toggleConfirmPasswordVisibility() {
     this.showConfirmPassword = !this.showConfirmPassword;
   }
+  async onCountryChange() {
+    this.states = await this.locationDataService.getStates(this.countryCode);
+
+    this.state = '';
+    this.city = '';
+    this.cities = [];
+
+    const selectedCountry = this.countries.find((country) => country.code === this.countryCode);
+
+    this.country = selectedCountry?.name ?? '';
+  }
+
+  async onStateChange() {
+    this.city = '';
+
+    this.cities = await this.locationDataService.getCities(this.countryCode, this.state);
+  }
 
   async signUp() {
-    if (!this.firstName || !this.lastName || !this.email || !this.password) {
+    if (
+      !this.firstName ||
+      !this.lastName ||
+      !this.email ||
+      !this.password ||
+      !this.dob ||
+      !this.country ||
+      !this.state ||
+      !this.city ||
+      !this.zipCode
+    ) {
       this.message.set('Please complete all required fields.');
       return;
     }
@@ -52,6 +99,15 @@ export class RegisterComponent {
 
     if (this.password !== this.confirmPassword) {
       this.message.set('Passwords do not match.');
+      return;
+    }
+    if (!isAtLeast18(this.dob)) {
+      this.message.set('You must be at least 18 years old to create an account.');
+      return;
+    }
+
+    if (!isValidPostalCode(this.countryCode, this.zipCode)) {
+      this.message.set('Enter a valid ZIP / postal code.');
       return;
     }
 

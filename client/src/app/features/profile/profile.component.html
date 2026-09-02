@@ -24,48 +24,139 @@
   </section>
 
   <section class="account-section card">
-    <div class="account-section-heading">
-      <h2>Personal Information</h2>
+    <div class="account-section-heading profile-section-heading">
+      <div>
+        <h2>Personal Information</h2>
+        <p>Information associated with your JAAKD account.</p>
+      </div>
 
-      <p>Information associated with your JAAKD account.</p>
+      @if (!editing()) {
+        <button type="button" class="btn btn-secondary" (click)="startEditing()">Edit</button>
+      }
     </div>
 
-    <div class="account-details-grid">
-      <div class="account-detail">
-        <span>First Name</span>
-        <strong>{{ metadata['first_name'] || '—' }}</strong>
+    @if (!editing()) {
+      <div class="account-details-grid">
+        <div class="account-detail">
+          <span>First Name</span>
+          <strong>{{ metadata['first_name'] || '—' }}</strong>
+        </div>
+
+        <div class="account-detail">
+          <span>Last Name</span>
+          <strong>{{ metadata['last_name'] || '—' }}</strong>
+        </div>
+
+        <div class="account-detail">
+          <span>Date of Birth</span>
+          <strong>{{ metadata['dob'] || '—' }}</strong>
+        </div>
+
+        <div class="account-detail">
+          <span>City</span>
+          <strong>{{ metadata['city'] || '—' }}</strong>
+        </div>
+
+        <div class="account-detail">
+          <span>State</span>
+          <strong>{{ metadata['state'] || '—' }}</strong>
+        </div>
+
+        <div class="account-detail">
+          <span>Country</span>
+          <strong>{{ metadata['country'] || '—' }}</strong>
+        </div>
+
+        <div class="account-detail">
+          <span>ZIP / Postal Code</span>
+          <strong>{{ metadata['zip_code'] || '—' }}</strong>
+        </div>
+      </div>
+    } @else {
+      <div class="account-details-grid profile-edit-grid">
+        <div class="form-field">
+          <label for="profileFirstName">First Name *</label>
+          <input id="profileFirstName" type="text" [(ngModel)]="firstName" />
+        </div>
+
+        <div class="form-field">
+          <label for="profileLastName">Last Name *</label>
+          <input id="profileLastName" type="text" [(ngModel)]="lastName" />
+        </div>
+
+        <div class="form-field">
+          <label for="profileDob">Date of Birth *</label>
+
+          <input id="profileDob" type="date" [(ngModel)]="dob" [max]="maxDob" />
+
+          <small>Account holders must be 18 or older.</small>
+        </div>
+
+        <div class="form-field">
+          <label for="profileCountry">Country *</label>
+
+          <select id="profileCountry" [(ngModel)]="countryCode" (change)="onCountryChange()">
+            <option value="">Select country</option>
+
+            @for (countryOption of countries; track countryOption.code) {
+              <option [value]="countryOption.code">
+                {{ countryOption.name }}
+              </option>
+            }
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label for="profileState">State / Region *</label>
+
+          <select
+            id="profileState"
+            [(ngModel)]="state"
+            (change)="onStateChange()"
+            [disabled]="!countryCode"
+          >
+            <option value="">Select state / region</option>
+
+            @for (stateOption of states; track stateOption) {
+              <option [value]="stateOption">
+                {{ stateOption }}
+              </option>
+            }
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label for="profileCity">City *</label>
+
+          <select id="profileCity" [(ngModel)]="city" [disabled]="!state">
+            <option value="">Select city</option>
+
+            @for (cityOption of cities; track cityOption) {
+              <option [value]="cityOption">
+                {{ cityOption }}
+              </option>
+            }
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label for="profileZipCode"> ZIP / Postal Code * </label>
+
+          <input id="profileZipCode" type="text" autocomplete="postal-code" [(ngModel)]="zipCode" />
+        </div>
       </div>
 
-      <div class="account-detail">
-        <span>Last Name</span>
-        <strong>{{ metadata['last_name'] || '—' }}</strong>
-      </div>
+      <div class="profile-edit-actions">
+        <button type="button" class="btn btn-primary" (click)="saveProfile()">Save Changes</button>
 
-      <div class="account-detail">
-        <span>Date of Birth</span>
-        <strong>{{ metadata['dob'] || '—' }}</strong>
+        <button type="button" class="btn btn-secondary" (click)="cancelEditing()">Cancel</button>
       </div>
-
-      <div class="account-detail">
-        <span>City</span>
-        <strong>{{ metadata['city'] || '—' }}</strong>
+    }
+    @if (profileMessage()) {
+      <div class="status-message">
+        {{ profileMessage() }}
       </div>
-
-      <div class="account-detail">
-        <span>State</span>
-        <strong>{{ metadata['state'] || '—' }}</strong>
-      </div>
-
-      <div class="account-detail">
-        <span>Country</span>
-        <strong>{{ metadata['country'] || '—' }}</strong>
-      </div>
-
-      <div class="account-detail">
-        <span>ZIP / Postal Code</span>
-        <strong>{{ metadata['zip_code'] || '—' }}</strong>
-      </div>
-    </div>
+    }
   </section>
 
   <section class="account-section card">

@@ -74,7 +74,9 @@ export class SupabaseService {
   getProfile(userId: string) {
     return this.supabase
       .from('profiles')
-      .select('userID, email, userType, firstName, lastName, city, state, country, zipCode, dob, avatar')
+      .select(
+        'userID, email, userType, firstName, lastName, city, state, country, zipCode, dob, avatar',
+      )
       .eq('userID', userId)
       .single<ProfileRow>();
   }
@@ -91,6 +93,27 @@ export class SupabaseService {
   updatePassword(password: string) {
     return this.supabase.auth.updateUser({
       password,
+    });
+  }
+  updateProfileMetadata(profile: {
+    firstName: string;
+    lastName: string;
+    dob: string;
+    city: string;
+    state: string;
+    country: string;
+    zipCode: string;
+  }) {
+    return this.supabase.auth.updateUser({
+      data: {
+        first_name: profile.firstName,
+        last_name: profile.lastName,
+        dob: profile.dob,
+        city: profile.city,
+        state: profile.state,
+        country: profile.country,
+        zip_code: profile.zipCode,
+      },
     });
   }
 }
