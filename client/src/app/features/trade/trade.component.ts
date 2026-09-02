@@ -4,6 +4,6 @@ import { Component } from '@angular/core';
   selector: 'app-trade',
   standalone: true,
   templateUrl: './trade.component.html',
-  styleUrl: './trade.component.css'
+  styleUrl: './trade.component.css',
 })
 export class TradeComponent {}

@@ -74,7 +74,9 @@ export class SupabaseService {
   getProfile(userId: string) {
     return this.supabase
       .from('profiles')
-      .select('userID, email, userType, firstName, lastName, city, state, country, zipCode, dob, avatar')
+      .select(
+        'userID, email, userType, firstName, lastName, city, state, country, zipCode, dob, avatar',
+      )
       .eq('userID', userId)
       .single<ProfileRow>();
   }

@@ -2,8 +2,9 @@
   <div widget-actions class="value-summary">
     <span class="amount">{{ endValue() | number: '1.2-2' }}</span>
     <span class="change" [class.positive]="isPositive()" [class.negative]="!isPositive()">
-      {{ isPositive() ? '+' : '' }}{{ changeAmount() | number: '1.2-2' }}
-      ({{ isPositive() ? '+' : '' }}{{ changePct() | number: '1.2-2' }}%)
+      {{ isPositive() ? '+' : '' }}{{ changeAmount() | number: '1.2-2' }} ({{
+        isPositive() ? '+' : ''
+      }}{{ changePct() | number: '1.2-2' }}%)
     </span>
   </div>
 

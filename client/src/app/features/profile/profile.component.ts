@@ -34,10 +34,7 @@ export class ProfileComponent implements OnInit {
     const metadataName = [metadataFirstName, metadataLastName].filter(Boolean).join(' ').trim();
 
     // Build display name from DB profile or auth metadata
-    const profileName = [data?.firstName, data?.lastName]
-      .filter(Boolean)
-      .join(' ')
-      .trim();
+    const profileName = [data?.firstName, data?.lastName].filter(Boolean).join(' ').trim();
     this.displayName.set(profileName || metadataName || null);
   }
 

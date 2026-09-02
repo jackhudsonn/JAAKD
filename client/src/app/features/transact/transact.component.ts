@@ -4,6 +4,6 @@ import { Component } from '@angular/core';
   selector: 'app-transact',
   standalone: true,
   templateUrl: './transact.component.html',
-  styleUrl: './transact.component.css'
+  styleUrl: './transact.component.css',
 })
 export class TransactComponent {}
