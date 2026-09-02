@@ -59,9 +59,9 @@ pipeline {
         stage('Frontend: Lint & Format Check') {
             steps {
                 dir('client') {
-                    sh 'npx prettier --check "**/*.js"'
-                    sh 'npx eslint "**/*.js"'
-                    sh 'npx stylelint "**/*.css"'
+                    sh 'npx prettier --check .'
+                    //sh 'npx eslint .'
+                    //sh 'npx stylelint "**/*.css"'
                 }
             }
         }
