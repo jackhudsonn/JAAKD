@@ -29,24 +29,16 @@ export class LocationDataService {
     return states.map((state) => state.name);
   }
 
-  async getCities(
-    countryCode: string,
-    stateName: string,
-  ): Promise<string[]> {
+  async getCities(countryCode: string, stateName: string): Promise<string[]> {
     const states = await getStatesOfCountry(countryCode);
 
-    const selectedState = states.find(
-      (state) => state.name === stateName,
-    );
+    const selectedState = states.find((state) => state.name === stateName);
 
     if (!selectedState) {
       return [];
     }
 
-    const cities = await getCitiesOfState(
-      countryCode,
-      selectedState.iso2,
-    );
+    const cities = await getCitiesOfState(countryCode, selectedState.iso2);
 
     return cities.map((city) => city.name);
   }
