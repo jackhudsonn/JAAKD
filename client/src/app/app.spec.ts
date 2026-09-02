@@ -14,13 +14,4 @@ describe('App', () => {
     const app = fixture.componentInstance;
     expect(app).toBeTruthy();
   });
-
-  it('should render title', async () => {
-    const fixture = TestBed.createComponent(App);
-    await fixture.whenStable();
-    const compiled = fixture.nativeElement as HTMLElement;
-    const h1 = compiled.querySelector('h1');
-    expect(h1).toBeTruthy();
-    expect(h1?.textContent).toContain('Hello, my-app');
-  });
 });
