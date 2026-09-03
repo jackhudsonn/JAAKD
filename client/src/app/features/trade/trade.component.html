@@ -7,5 +7,9 @@
     <strong> Trading coming soon </strong>
 
     <p>Trading functionality will appear here.</p>
+    <div style="margin-top: 16px">
+      <button (click)="ping()">Ping orders API</button>
+      <span *ngIf="status()" style="margin-left: 12px">{{ status() }}</span>
+    </div>
   </section>
 </main>
