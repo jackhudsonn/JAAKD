@@ -25,6 +25,9 @@ public class Watchlist {
     @Column(name = "name")
     private String name = "New Watchlist";
 
+    @Column(name = "priority", nullable = false)
+    private Long priority;
+
     protected Watchlist() {
     }
 
@@ -46,5 +49,13 @@ public class Watchlist {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public Long getPriority() {
+        return priority;
+    }
+
+    public void setPriority(Long priority) {
+        this.priority = priority;
     }
 }
