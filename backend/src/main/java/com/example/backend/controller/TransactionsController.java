@@ -1,37 +1,47 @@
 package com.example.backend.controller;
 
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import com.example.backend.service.TransactionsService;
-
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
+import com.example.backend.dto.TransactionDtos;
+import com.example.backend.service.TransactionService;
+
+import java.util.UUID;
 
 @RestController
+@RequestMapping("/api/transactions")
 public class TransactionsController {
 
-    private final TransactionsService transactionsService;
+    private final TransactionService transactionService;
 
-    public TransactionsController(TransactionsService transactionsService) {
-        this.transactionsService = transactionsService;
+    public TransactionsController(TransactionService transactionService) {
+        this.transactionService = transactionService;
     }
 
-    @GetMapping("/api/transactions")
+    @GetMapping("/ping")
     public String ping() {
-        return transactionsService.ping();
+        return transactionService.ping();
     }
 
-    @PostMapping("/api/transactions/create")
-    public String createTransaction(@RequestBody String entity) {        
-        return transactionsService.createTransaction(entity);
+    // ==================== STEP 1: PLACE ====================
+    @PostMapping("/place")
+    public String placeTransaction(@RequestBody TransactionDtos transaction) {
+        return transactionService.placeTransaction(transaction);
     }
 
-    @PostMapping("/api/transactions/update")
-    public String updateTransaction(@RequestBody String entity) {
-        return transactionsService.updateTransaction(entity);
+    // ==================== STEP 2: ACCEPT ====================
+    @PostMapping("/accept/{transactionId}")
+    public String acceptTransaction(@PathVariable UUID transactionId) {
+        return transactionService.acceptTransaction(transactionId);
     }
-    
-    
+
+    // ==================== STEP 3: EXECUTE ====================
+    @PostMapping("/execute/{transactionId}")
+    public String executeTransaction(@PathVariable UUID transactionId) {
+        return transactionService.executeTransaction(transactionId, null);
+    }
 }
