@@ -108,7 +108,7 @@ pipeline {
             when { expression { params.DEPLOY_ENV == 'dev' } }
             steps {
                 dir('client') {
-                    sh "docker build -t ${FRONTEND_IMAGE}:${IMAGE_TAG} ."
+                    sh "docker build --build-arg CONFIGURATION=development -t ${FRONTEND_IMAGE}:${IMAGE_TAG} ."
                 }
             }
         }
@@ -171,7 +171,7 @@ pipeline {
             when { expression { params.DEPLOY_ENV == 'prod' } }
             steps {
                 dir('client') {
-                    sh 'npm run build'
+                    sh 'npm run build -- --configuration=production'
                 }
             }
             post { // May not need to archive if we just send it to the registry
