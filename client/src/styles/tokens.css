@@ -8,9 +8,9 @@
   --tertiary-bg: #474747;
   --quaternary-bg: #4e4f4f;
 
-  --secondary-bg-border: rgba(0,0,0,0.06);
-  --tertiary-bg-border: rgba(0,0,0,0.06);
-  --quaternary-bg-border: rgba(0,0,0,0.06);
+  --secondary-bg-border: rgba(0, 0, 0, 0.06);
+  --tertiary-bg-border: rgba(0, 0, 0, 0.06);
+  --quaternary-bg-border: rgba(0, 0, 0, 0.06);
   --surface-divider: var(--quaternary-bg);
 
   /* Brand */
@@ -44,11 +44,7 @@
   --secondary-button-text: #8f4900;
 
   /* Typography */
-  --font-base:
-    "Trebuchet MS",
-    "Segoe UI",
-    Arial,
-    sans-serif;
+  --font-base: 'Trebuchet MS', 'Segoe UI', Arial, sans-serif;
 
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.875rem;
@@ -77,11 +73,9 @@
   --radius-lg: 16px;
 
   /* Shadows */
-  --shadow-sm:
-    0 1px 6px rgba(0, 0, 0, 0.06);
+  --shadow-sm: 0 1px 6px rgba(0, 0, 0, 0.06);
 
-  --shadow-md:
-    0 4px 14px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.08);
 
   /* Layout */
   --header-height: 90px;

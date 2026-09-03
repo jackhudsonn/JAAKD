@@ -4,14 +4,12 @@
   min-height: 100vh;
 }
 
-
 .authenticated-shell {
   min-height: 100vh;
 
   padding-top: var(--header-height);
 
-  background:
-    var(--primary-bg);
+  background: var(--primary-bg);
 }
 
 @media (max-width: 600px) {

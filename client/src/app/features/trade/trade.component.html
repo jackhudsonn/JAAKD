@@ -1,23 +1,15 @@
 <main class="page-content">
+  <h1>Trade</h1>
 
-  <h1>
-    Trade
-  </h1>
-
-  <p class="page-description">
-    Perform a trade.
-  </p>
+  <p class="page-description">Perform a trade.</p>
 
   <section class="panel empty-page">
+    <strong> Trading coming soon </strong>
 
-    <strong>
-      Trading coming soon
-    </strong>
-
-    <p>
-       Trading functionality will appear here.
-    </p>
-
+    <p>Trading functionality will appear here.</p>
+    <div style="margin-top: 16px">
+      <button (click)="ping()">Ping orders API</button>
+      <span *ngIf="status()" style="margin-left: 12px">{{ status() }}</span>
+    </div>
   </section>
-
 </main>

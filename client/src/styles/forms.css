@@ -5,16 +5,13 @@ input, select, forms
   display: flex;
   flex-direction: column;
 
-  gap:
-    var(--space-xs);
+  gap: var(--space-xs);
 
-  margin-bottom:
-    var(--space-md);
+  margin-bottom: var(--space-md);
 }
 
 .form-field label {
-  color:
-    var(--secondary-dark);
+  color: var(--secondary-dark);
 
   font-size: 0.8rem;
   font-weight: 700;
@@ -25,27 +22,19 @@ input, select, forms
 .form-field textarea {
   width: 100%;
 
-  padding:
-    var(--space-sm)
-    var(--space-md);
+  padding: var(--space-sm) var(--space-md);
 
-  font-family:
-    var(--font-base);
+  font-family: var(--font-base);
 
   font-size: 0.95rem;
 
-  color:
-    var(--secondary-light);
+  color: var(--secondary-light);
 
-  background:
-    var(--tertiary-bg);
+  background: var(--tertiary-bg);
 
-  border:
-    1px solid
-    var(--quaternary-bg-border);
+  border: 1px solid var(--quaternary-bg-border);
 
-  border-radius:
-    var(--radius-sm);
+  border-radius: var(--radius-sm);
 
   outline: none;
 }
@@ -53,12 +42,9 @@ input, select, forms
 .form-field input:focus,
 .form-field select:focus,
 .form-field textarea:focus {
-  border-color:
-    var(--primary);
+  border-color: var(--primary);
 
-  box-shadow:
-    0 0 0 3px
-    rgba(255, 140, 0, 0.13);
+  box-shadow: 0 0 0 3px rgba(255, 140, 0, 0.13);
 }
 
 .form-field input::placeholder {
