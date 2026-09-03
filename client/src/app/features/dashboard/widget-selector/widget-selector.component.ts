@@ -1,4 +1,12 @@
-import { Component, computed, ElementRef, HostListener, inject, output, input } from '@angular/core';
+import {
+  Component,
+  computed,
+  ElementRef,
+  HostListener,
+  inject,
+  output,
+  input,
+} from '@angular/core';
 import {
   MAX_SELECTED_WIDGETS,
   MIN_SELECTED_WIDGETS,

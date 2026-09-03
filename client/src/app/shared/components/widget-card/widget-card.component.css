@@ -80,13 +80,23 @@
   animation: skeleton-shimmer 1.4s ease-in-out infinite;
 }
 
-.skeleton-line-sm { width: 35%; }
-.skeleton-line-md { width: 60%; }
-.skeleton-line-lg { width: 85%; }
+.skeleton-line-sm {
+  width: 35%;
+}
+.skeleton-line-md {
+  width: 60%;
+}
+.skeleton-line-lg {
+  width: 85%;
+}
 
 @keyframes skeleton-shimmer {
-  0%   { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 /* ── Error / unavailable ──────────────────────────────────── */

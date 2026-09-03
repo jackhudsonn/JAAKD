@@ -23,4 +23,3 @@ export class OpenOrdersWidgetComponent {
     this.orders.update((orders) => orders.filter((order) => order.id !== id));
   }
 }
-

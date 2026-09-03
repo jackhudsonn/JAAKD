@@ -6,14 +6,8 @@
   min-height: 100vh;
 
   background:
-    radial-gradient(
-      circle at 15% 15%,
-      rgba(255, 140, 0, 0.08),
-      transparent 30%
-    ),
-    var(--primary-bg);
+    radial-gradient(circle at 15% 15%, rgba(255, 140, 0, 0.08), transparent 30%), var(--primary-bg);
 }
-
 
 .auth-main {
   width: min(1180px, 100%);
@@ -63,124 +57,82 @@
 }
 
 .feature-list > div {
-  display:
-    flex;
+  display: flex;
 
-  align-items:
-    center;
+  align-items: center;
 
-  gap:
-    var(--space-sm);
+  gap: var(--space-sm);
 }
-
 
 .feature-dot {
   width: 9px;
   height: 9px;
 
-  flex:
-    0 0 9px;
+  flex: 0 0 9px;
 
-  border-radius:
-    50%;
+  border-radius: 50%;
 
-  background:
-    var(--primary);
+  background: var(--primary);
 
-  box-shadow:
-    0 0 0 4px
-    rgba(255, 140, 0, 0.12);
+  box-shadow: 0 0 0 4px rgba(255, 140, 0, 0.12);
 }
-
 
 .auth-card {
-  padding:
-    var(--space-xl);
+  padding: var(--space-xl);
 
-  background:
-    var(--secondary-bg);
+  background: var(--secondary-bg);
 
-  border:
-    1px solid
-    rgba(0,0,0,0.05);
+  border: 1px solid rgba(0, 0, 0, 0.05);
 
-  border-radius:
-    var(--radius-lg);
+  border-radius: var(--radius-lg);
 
-  box-shadow:
-    0 6px 18px rgba(0,0,0,0.06);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
 }
-
 
 .card-heading {
-  margin-bottom:
-    var(--space-lg);
+  margin-bottom: var(--space-lg);
 }
-
 
 .card-heading h2 {
-  margin:
-    0
-    0
-    var(--space-xs);
+  margin: 0 0 var(--space-xs);
 
-  color:
-    var(--text-primary);
+  color: var(--text-primary);
 
-  font-size:
-    var(--font-size-xl);
+  font-size: var(--font-size-xl);
 }
-
 
 .card-heading p {
   margin: 0;
 
-  color:
-    var(--text-secondary);
+  color: var(--text-secondary);
 
-  font-size:
-    var(--font-size-sm);
+  font-size: var(--font-size-sm);
 }
-
 
 .auth-actions {
-  margin-top:
-    var(--space-lg);
+  margin-top: var(--space-lg);
 
-  display:
-    grid;
+  display: grid;
 
-  grid-template-columns:
-    1fr 1fr;
+  grid-template-columns: 1fr 1fr;
 
-  gap:
-    var(--space-sm);
+  gap: var(--space-sm);
 }
 
-
 .status-message {
-  margin-top:
-    var(--space-md);
+  margin-top: var(--space-md);
 
-  padding:
-    var(--space-sm)
-    var(--space-md);
+  padding: var(--space-sm) var(--space-md);
 
-  background:
-    var(--tertiary-bg);
+  background: var(--tertiary-bg);
 
-  color:
-    var(--text-primary);
+  color: var(--text-primary);
 
-  border:
-    1px solid
-    var(--quaternary-bg-border);
+  border: 1px solid var(--quaternary-bg-border);
 
-  border-radius:
-    var(--radius-md);
+  border-radius: var(--radius-md);
 
-  font-size:
-    var(--font-size-sm);
+  font-size: var(--font-size-sm);
 }
 
 @media (max-width: 899px) {

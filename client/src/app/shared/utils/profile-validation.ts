@@ -1,7 +1,4 @@
-export function isValidPostalCode(
-  countryCode: string,
-  postalCode: string,
-): boolean {
+export function isValidPostalCode(countryCode: string, postalCode: string): boolean {
   const value = postalCode.trim();
 
   if (!value) {
@@ -34,11 +31,7 @@ export function isAtLeast18(dob: string): boolean {
 
   const today = new Date();
 
-  const cutoff = new Date(
-    today.getFullYear() - 18,
-    today.getMonth(),
-    today.getDate(),
-  );
+  const cutoff = new Date(today.getFullYear() - 18, today.getMonth(), today.getDate());
 
   return birthDate <= cutoff;
 }
@@ -46,11 +39,7 @@ export function isAtLeast18(dob: string): boolean {
 export function getLatestEligibleDob(): string {
   const today = new Date();
 
-  const cutoff = new Date(
-    today.getFullYear() - 18,
-    today.getMonth(),
-    today.getDate(),
-  );
+  const cutoff = new Date(today.getFullYear() - 18, today.getMonth(), today.getDate());
 
   const year = cutoff.getFullYear();
   const month = String(cutoff.getMonth() + 1).padStart(2, '0');

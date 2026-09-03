@@ -106,4 +106,3 @@ export class PieChartComponent implements AfterViewInit, OnChanges, OnDestroy {
     };
   }
 }
-

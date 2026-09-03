@@ -29,6 +29,13 @@ spring:
         jwt:
           jwk-set-uri: ${SUPABASE_URL}/auth/v1/.well-known/jwks.json
 
+  web:
+    error:
+      include-stacktrace: never
+      include-message: never
+      include-binding-errors: never
+      include-exception: false
+
 server:
     port: 8081
 
@@ -42,4 +49,4 @@ management:
         include: health, info
   endpoint:
     health:
-      show-details: always
+      show-details: when-authorized
