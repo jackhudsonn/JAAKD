@@ -11,9 +11,7 @@
 .tab-btn {
   flex: 1;
 
-  padding:
-    var(--space-sm)
-    var(--space-md);
+  padding: var(--space-sm) var(--space-md);
 
   font-family: var(--font-base);
   font-size: var(--font-size-sm);

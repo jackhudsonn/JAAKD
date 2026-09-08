@@ -1,7 +1,5 @@
 <app-widget-card title="Trade">
-
   <div class="trade-card-body">
-
     <div class="ticker-section">
       <div class="instrument-tabs">
         @for (tab of instrumentTabs; track tab.id) {
@@ -36,7 +34,11 @@
             <span class="ticker-name">{{ row.asset.name }}</span>
             <div class="price-stack">
               <span class="ticker-price">{{ row.price | number: '1.2-2' }}</span>
-              <span class="change" [class.positive]="row.changePct >= 0" [class.negative]="row.changePct < 0">
+              <span
+                class="change"
+                [class.positive]="row.changePct >= 0"
+                [class.negative]="row.changePct < 0"
+              >
                 {{ row.changePct >= 0 ? '+' : '' }}{{ row.changePct | number: '1.2-2' }}%
               </span>
             </div>
@@ -44,7 +46,5 @@
         </ng-template>
       </app-scrollable-list>
     </div>
-
   </div>
-
 </app-widget-card>

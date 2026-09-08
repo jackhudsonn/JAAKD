@@ -19,7 +19,13 @@ type SortDirection = 'asc' | 'desc';
 @Component({
   selector: 'app-orders-card',
   standalone: true,
-  imports: [WidgetCardComponent, ScrollableListComponent, StatusBadgeComponent, DatePipe, TitleCasePipe],
+  imports: [
+    WidgetCardComponent,
+    ScrollableListComponent,
+    StatusBadgeComponent,
+    DatePipe,
+    TitleCasePipe,
+  ],
   templateUrl: './orders-card.component.html',
   styleUrl: './orders-card.component.css',
 })
@@ -56,7 +62,12 @@ export class OrdersCardComponent implements OnInit, OnDestroy {
       isOpen: order.status === 'pending' || order.status === 'open',
       secondsRemaining:
         order.status === 'pending'
-          ? Math.max(0, Math.ceil((MARKET_ORDER_PENDING_MS - (now - new Date(order.createdAt).getTime())) / 1000))
+          ? Math.max(
+              0,
+              Math.ceil(
+                (MARKET_ORDER_PENDING_MS - (now - new Date(order.createdAt).getTime())) / 1000,
+              ),
+            )
           : null,
     }));
   });

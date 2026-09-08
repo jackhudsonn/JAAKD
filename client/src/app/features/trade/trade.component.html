@@ -40,7 +40,10 @@
   }
 
   @if (activeOrder(); as order) {
-    <app-order-details-popup [order]="order" (closed)="closeOrderPopup()" (cancel)="cancelOrder($event)" />
+    <app-order-details-popup
+      [order]="order"
+      (closed)="closeOrderPopup()"
+      (cancel)="cancelOrder($event)"
+    />
   }
-
 </main>

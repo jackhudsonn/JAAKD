@@ -34,7 +34,13 @@ export class HoldingsCardComponent implements OnInit, OnDestroy {
       const price = getMockPrice(holding.symbol);
       const basePrice = getAsset(holding.symbol)?.basePrice ?? price;
       const changePct = ((price - basePrice) / basePrice) * 100;
-      rows.push({ kind: 'holding', holding, price, marketValue: price * holding.quantity, changePct });
+      rows.push({
+        kind: 'holding',
+        holding,
+        price,
+        marketValue: price * holding.quantity,
+        changePct,
+      });
     }
 
     return rows;

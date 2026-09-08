@@ -105,7 +105,6 @@ a {
   background-clip: padding-box;
 }
 
-
 /* 600px and fewer should have smaller headings */
 @media (max-width: 600px) {
   h1 {

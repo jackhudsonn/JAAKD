@@ -45,17 +45,24 @@ export class TradeComponent implements OnInit, OnDestroy {
   // populated from real HTTP calls that can reject.
   loadError = signal<string | null>(null);
 
-  openOrders = computed(() => this.orders().filter((order) => order.status === 'pending' || order.status === 'open'));
-  historyOrders = computed(() => this.orders().filter((order) => order.status === 'filled' || order.status === 'cancelled'));
+  openOrders = computed(() =>
+    this.orders().filter((order) => order.status === 'pending' || order.status === 'open'),
+  );
+  historyOrders = computed(() =>
+    this.orders().filter((order) => order.status === 'filled' || order.status === 'cancelled'),
+  );
 
   // Only one popup is ever open at a time.
   activeAssetSymbol = signal<string | null>(null);
   activeAssetShowChart = signal(false);
   activeOrderId = signal<string | null>(null);
 
-  activeOrder = computed(() => this.orders().find((order) => order.id === this.activeOrderId()) ?? null);
+  activeOrder = computed(
+    () => this.orders().find((order) => order.id === this.activeOrderId()) ?? null,
+  );
   activeAssetOwnedQuantity = computed(
-    () => this.holdings().find((holding) => holding.symbol === this.activeAssetSymbol())?.quantity ?? 0,
+    () =>
+      this.holdings().find((holding) => holding.symbol === this.activeAssetSymbol())?.quantity ?? 0,
   );
 
   private stopTicking?: () => void;
@@ -116,7 +123,9 @@ export class TradeComponent implements OnInit, OnDestroy {
     // TODO: call OrdersService.cancel(orderId).
     this.orders.update((current) =>
       current.map((order) =>
-        order.id === orderId ? { ...order, status: 'cancelled' as const, cancelledAt: new Date().toISOString() } : order,
+        order.id === orderId
+          ? { ...order, status: 'cancelled' as const, cancelledAt: new Date().toISOString() }
+          : order,
       ),
     );
     this.closeOrderPopup();
@@ -132,7 +141,8 @@ export class TradeComponent implements OnInit, OnDestroy {
         }
       } else if (order.status === 'open' && order.limitPrice !== undefined) {
         const price = getMockPrice(order.symbol);
-        const crossed = order.type === 'buy' ? price <= order.limitPrice : price >= order.limitPrice;
+        const crossed =
+          order.type === 'buy' ? price <= order.limitPrice : price >= order.limitPrice;
         if (crossed) {
           this.fillOrder(order.id, order.limitPrice);
         }
@@ -148,7 +158,9 @@ export class TradeComponent implements OnInit, OnDestroy {
 
     this.orders.update((current) =>
       current.map((o) =>
-        o.id === orderId ? { ...o, status: 'filled' as const, fillPrice, filledAt: new Date().toISOString() } : o,
+        o.id === orderId
+          ? { ...o, status: 'filled' as const, fillPrice, filledAt: new Date().toISOString() }
+          : o,
       ),
     );
 
@@ -169,7 +181,10 @@ export class TradeComponent implements OnInit, OnDestroy {
             h.symbol === order.symbol ? { ...h, quantity: h.quantity + order.quantity } : h,
           );
         }
-        return [...current, { symbol: order.symbol, instrumentType: order.instrumentType, quantity: order.quantity }];
+        return [
+          ...current,
+          { symbol: order.symbol, instrumentType: order.instrumentType, quantity: order.quantity },
+        ];
       }
 
       if (!existing) {

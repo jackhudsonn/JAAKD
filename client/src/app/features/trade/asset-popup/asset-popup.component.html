@@ -1,7 +1,5 @@
 <app-modal [title]="asset()?.name ?? symbol()" (closed)="closed.emit()">
-
   <div class="asset-popup">
-
     <div class="asset-header">
       <span class="asset-symbol">{{ symbol() }}</span>
       @if (asset()) {
@@ -17,8 +15,13 @@
     @if (confirmation(); as order) {
       <div class="order-confirmation">
         <p>
-          Order placed: {{ order.side === 'buy' ? 'Buy' : 'Sell' }} {{ order.quantity }} {{ symbol() }}
-          {{ order.kind === 'market' ? 'at market' : 'at limit ' + (order.limitPrice | number: '1.2-2') }}.
+          Order placed: {{ order.side === 'buy' ? 'Buy' : 'Sell' }} {{ order.quantity }}
+          {{ symbol() }}
+          {{
+            order.kind === 'market'
+              ? 'at market'
+              : 'at limit ' + (order.limitPrice | number: '1.2-2')
+          }}.
         </p>
         <button type="button" class="btn btn-secondary" (click)="closed.emit()">Close</button>
       </div>
@@ -30,7 +33,5 @@
         (placed)="onOrderPlaced($event)"
       />
     }
-
   </div>
-
 </app-modal>

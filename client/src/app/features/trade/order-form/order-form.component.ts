@@ -37,7 +37,8 @@ export class OrderFormComponent {
   // Whole-share cap for buy orders, based on the price that would actually
   // be charged (limit price for limit orders, current mock price for market).
   maxBuyQuantity = computed(() => {
-    const price = this.kind() === 'limit' ? this.limitPrice() ?? this.currentPrice() : this.currentPrice();
+    const price =
+      this.kind() === 'limit' ? (this.limitPrice() ?? this.currentPrice()) : this.currentPrice();
     return price > 0 ? Math.floor(this.accountCash() / price) : 0;
   });
 

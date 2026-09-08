@@ -1,7 +1,5 @@
 <app-modal title="Order Details" (closed)="closed.emit()">
-
   <div class="order-details">
-
     <div class="detail-row">
       <span class="detail-label">Symbol</span>
       <span class="detail-value">{{ order().symbol }}</span>
@@ -48,7 +46,5 @@
     <button type="button" class="btn btn-secondary cancel-btn" (click)="cancel.emit(order().id)">
       Cancel Order
     </button>
-
   </div>
-
 </app-modal>

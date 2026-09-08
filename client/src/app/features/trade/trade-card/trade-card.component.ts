@@ -43,7 +43,9 @@ export class TradeCardComponent implements OnInit, OnDestroy {
     return MOCK_ASSETS.filter((asset) => asset.instrumentType === this.instrument())
       .filter(
         (asset) =>
-          !query || asset.symbol.toLowerCase().includes(query) || asset.name.toLowerCase().includes(query),
+          !query ||
+          asset.symbol.toLowerCase().includes(query) ||
+          asset.name.toLowerCase().includes(query),
       )
       .map((asset) => {
         const price = getMockPrice(asset.symbol);
