@@ -1,0 +1,32 @@
+<app-widget-card title="Holdings">
+  <app-scrollable-list [items]="rows()" [trackBy]="trackByRow" emptyMessage="No holdings yet.">
+    <ng-template let-row>
+      @if (row.kind === 'cash') {
+        <div class="holding-row cash-row">
+          <div class="holding-info">
+            <span class="symbol">USD</span>
+            <span class="name">Cash</span>
+          </div>
+
+          <div class="price-stack">
+            <span class="price">{{ row.amount | number: '1.2-2' }}</span>
+          </div>
+        </div>
+      } @else {
+        <button type="button" class="holding-row selectable" (click)="selectSymbol.emit(row.holding.symbol)">
+          <div class="holding-info">
+            <span class="symbol">{{ row.holding.symbol }}</span>
+            <span class="name">{{ row.holding.quantity }} sh @ {{ row.price | number: '1.2-2' }}</span>
+          </div>
+
+          <div class="price-stack">
+            <span class="price">{{ row.marketValue | number: '1.2-2' }}</span>
+            <span class="change" [class.positive]="row.changePct >= 0" [class.negative]="row.changePct < 0">
+              {{ row.changePct >= 0 ? '+' : '' }}{{ row.changePct | number: '1.2-2' }}%
+            </span>
+          </div>
+        </button>
+      }
+    </ng-template>
+  </app-scrollable-list>
+</app-widget-card>

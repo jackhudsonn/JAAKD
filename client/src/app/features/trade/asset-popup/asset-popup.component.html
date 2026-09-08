@@ -1,0 +1,36 @@
+<app-modal [title]="asset()?.name ?? symbol()" (closed)="closed.emit()">
+
+  <div class="asset-popup">
+
+    <div class="asset-header">
+      <span class="asset-symbol">{{ symbol() }}</span>
+      @if (asset()) {
+        <span class="asset-type">{{ asset()!.instrumentType | titlecase }}</span>
+      }
+      <span class="asset-price">{{ currentPrice() | number: '1.2-2' }}</span>
+    </div>
+
+    @if (showChart()) {
+      <app-line-chart [points]="priceHistory()" />
+    }
+
+    @if (confirmation(); as order) {
+      <div class="order-confirmation">
+        <p>
+          Order placed: {{ order.side === 'buy' ? 'Buy' : 'Sell' }} {{ order.quantity }} {{ symbol() }}
+          {{ order.kind === 'market' ? 'at market' : 'at limit ' + (order.limitPrice | number: '1.2-2') }}.
+        </p>
+        <button type="button" class="btn btn-secondary" (click)="closed.emit()">Close</button>
+      </div>
+    } @else {
+      <app-order-form
+        [currentPrice]="currentPrice()"
+        [ownedQuantity]="ownedQuantity()"
+        [accountCash]="accountCash()"
+        (placed)="onOrderPlaced($event)"
+      />
+    }
+
+  </div>
+
+</app-modal>

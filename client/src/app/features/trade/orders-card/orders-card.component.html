@@ -1,0 +1,50 @@
+<app-widget-card title="Orders" [subtitle]="openOrders().length + ' open'">
+
+  <div class="orders-columns" role="row">
+    <button type="button" class="sort-btn" (click)="setSort('createdAt')">
+      Date <span class="sort-indicator">{{ sortIndicator('createdAt') }}</span>
+    </button>
+
+    <button type="button" class="sort-btn" (click)="setSort('symbol')">
+      Symbol <span class="sort-indicator">{{ sortIndicator('symbol') }}</span>
+    </button>
+
+    <span class="column-label">Type</span>
+    <span class="column-label">Qty</span>
+
+    <button type="button" class="sort-btn" (click)="setSort('status')">
+      Status <span class="sort-indicator">{{ sortIndicator('status') }}</span>
+    </button>
+  </div>
+
+  <app-scrollable-list [items]="rows()" [trackBy]="trackByRow" emptyMessage="No orders yet.">
+    <ng-template let-row>
+      @if (row.isOpen) {
+        <button type="button" class="orders-row selectable" (click)="selectOrder.emit(row.order.id)">
+          <span class="order-date">{{ row.order.createdAt | date: 'MMM d, y' }}</span>
+          <span class="order-type" [class.buy]="row.order.type === 'buy'" [class.sell]="row.order.type === 'sell'">
+            {{ row.order.type | titlecase }}
+          </span>
+          <span class="order-symbol">{{ row.order.symbol }}</span>
+          <span class="order-qty">{{ row.order.quantity }}</span>
+          @if (row.secondsRemaining !== null) {
+            <span class="order-countdown">{{ row.secondsRemaining }}s</span>
+          } @else {
+            <app-status-badge [status]="row.order.status" />
+          }
+        </button>
+      } @else {
+        <div class="orders-row">
+          <span class="order-date">{{ row.order.createdAt | date: 'MMM d, y' }}</span>
+          <span class="order-type" [class.buy]="row.order.type === 'buy'" [class.sell]="row.order.type === 'sell'">
+            {{ row.order.type | titlecase }}
+          </span>
+          <span class="order-symbol">{{ row.order.symbol }}</span>
+          <span class="order-qty">{{ row.order.quantity }}</span>
+          <app-status-badge [status]="row.order.status" />
+        </div>
+      }
+    </ng-template>
+  </app-scrollable-list>
+
+</app-widget-card>

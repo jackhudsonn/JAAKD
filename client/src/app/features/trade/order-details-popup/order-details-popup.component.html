@@ -1,0 +1,54 @@
+<app-modal title="Order Details" (closed)="closed.emit()">
+
+  <div class="order-details">
+
+    <div class="detail-row">
+      <span class="detail-label">Symbol</span>
+      <span class="detail-value">{{ order().symbol }}</span>
+    </div>
+
+    <div class="detail-row">
+      <span class="detail-label">Side</span>
+      <span
+        class="detail-value"
+        [class.buy]="order().side === 'buy'"
+        [class.sell]="order().side === 'sell'"
+      >
+        {{ order().side | titlecase }}
+      </span>
+    </div>
+
+    <div class="detail-row">
+      <span class="detail-label">Type</span>
+      <span class="detail-value">{{ order().kind | titlecase }}</span>
+    </div>
+
+    <div class="detail-row">
+      <span class="detail-label">Quantity</span>
+      <span class="detail-value">{{ order().quantity }}</span>
+    </div>
+
+    @if (order().limitPrice !== undefined) {
+      <div class="detail-row">
+        <span class="detail-label">Limit Price</span>
+        <span class="detail-value">{{ order().limitPrice! | number: '1.2-2' }}</span>
+      </div>
+    }
+
+    <div class="detail-row">
+      <span class="detail-label">Status</span>
+      <app-status-badge [status]="order().status" />
+    </div>
+
+    <div class="detail-row">
+      <span class="detail-label">Placed</span>
+      <span class="detail-value">{{ order().createdAt | date: 'MMM d, y, h:mm a' }}</span>
+    </div>
+
+    <button type="button" class="btn btn-secondary cancel-btn" (click)="cancel.emit(order().id)">
+      Cancel Order
+    </button>
+
+  </div>
+
+</app-modal>

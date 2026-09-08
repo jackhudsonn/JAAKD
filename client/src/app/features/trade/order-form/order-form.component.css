@@ -1,0 +1,66 @@
+.order-form {
+  display: flex;
+  flex-direction: column;
+
+  gap: var(--space-md);
+}
+
+.side-tabs,
+.kind-tabs {
+  display: flex;
+
+  gap: var(--space-sm);
+}
+
+.side-tab,
+.kind-tab {
+  flex: 1;
+
+  padding: var(--space-sm) var(--space-md);
+
+  font-family: var(--font-base);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+
+  color: var(--secondary-dark);
+  background: var(--tertiary-bg);
+
+  border: 1px solid var(--quaternary-bg-border);
+  border-radius: var(--radius-sm);
+
+  cursor: pointer;
+}
+
+.side-tab.buy.active {
+  color: #1f1f1f;
+  background: var(--success);
+  border-color: var(--success);
+}
+
+.side-tab.sell.active {
+  color: #1f1f1f;
+  background: var(--fail);
+  border-color: var(--fail);
+}
+
+.side-tab:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.kind-tab.active {
+  color: #1f1f1f;
+  background: var(--primary);
+  border-color: var(--primary-dark);
+}
+
+.order-hint {
+  margin: calc(-1 * var(--space-xs)) 0 0;
+
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.form-submit {
+  width: 100%;
+}

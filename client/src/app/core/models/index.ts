@@ -1,19 +1,31 @@
 // Domain interfaces — expand as the backend API is defined
 
-export interface Trade {
-  id: string;
+export type InstrumentType = 'crypto' | 'stock' | 'bond';
+export type OrderKind = 'market' | 'limit';
+export type OrderType = 'buy' | 'sell';
+export type OrderStatus = 'pending' | 'open' | 'filled' | 'cancelled';
+
+export interface Holding {
   symbol: string;
-  side: 'buy' | 'sell';
+  instrumentType: InstrumentType;
   quantity: number;
-  price: number;
-  executedAt: string;
 }
 
-export interface Position {
+export interface Order {
+  id: string;
   symbol: string;
+  instrumentType: InstrumentType;
+  kind: OrderKind;
+  type: OrderType;
   quantity: number;
-  averagePrice: number;
-  currentPrice: number;
+  /** Only present on limit orders. */
+  limitPrice?: number;
+  /** Set once the order fills (market: mock price at fill time; limit: the limit price). */
+  fillPrice?: number;
+  status: OrderStatus;
+  createdAt: string;
+  filledAt?: string;
+  cancelledAt?: string;
 }
 
 export interface MarketQuote {

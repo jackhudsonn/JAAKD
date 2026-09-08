@@ -8,16 +8,44 @@
     Perform a trade.
   </p>
 
-  <section class="panel empty-page">
+  @if (loadError()) {
+    <div class="error-banner">
+      <span>{{ loadError() }}</span>
+      <button type="button" class="btn btn-secondary" (click)="dismissError()">Dismiss</button>
+    </div>
+  }
 
-    <strong>
-      Trading coming soon
-    </strong>
+  <section class="trade-grid">
+    <app-trade-card (selectSymbol)="openAsset($event, false)" />
 
-    <p>
-       Trading functionality will appear here.
-    </p>
+    <app-holdings-card
+      [holdings]="holdings()"
+      [accountCash]="accountCash()"
+      (selectSymbol)="openAsset($event, false)"
+    />
 
+    <app-orders-card
+      [openOrders]="openOrders()"
+      [historyOrders]="historyOrders()"
+      (selectOrder)="openOrderDetails($event)"
+    />
+
+    <app-watchlist-card [symbols]="watchlistSymbols()" (selectSymbol)="openAsset($event, true)" />
   </section>
+
+  @if (activeAssetSymbol(); as symbol) {
+    <app-asset-popup
+      [symbol]="symbol"
+      [showChart]="activeAssetShowChart()"
+      [ownedQuantity]="activeAssetOwnedQuantity()"
+      [accountCash]="accountCash()"
+      (closed)="closeAssetPopup()"
+      (orderPlaced)="placeOrder($event)"
+    />
+  }
+
+  @if (activeOrder(); as order) {
+    <app-order-details-popup [order]="order" (closed)="closeOrderPopup()" (cancel)="cancelOrder($event)" />
+  }
 
 </main>

@@ -1,0 +1,95 @@
+<div class="order-form">
+
+  <div class="type-tabs">
+    <button
+      type="button"
+      class="type-tab buy"
+      [class.active]="type() === 'buy'"
+      (click)="setType('buy')"
+    >
+      Buy
+    </button>
+
+    <button
+      type="button"
+      class="type-tab sell"
+      [class.active]="type() === 'sell'"
+      [disabled]="!canSell()"
+      [title]="canSell() ? '' : 'You have no holdings to sell.'"
+      (click)="setType('sell')"
+    >
+      Sell
+    </button>
+  </div>
+
+  <div class="kind-tabs">
+    <button
+      type="button"
+      class="kind-tab"
+      [class.active]="kind() === 'market'"
+      (click)="setKind('market')"
+    >
+      Market
+    </button>
+
+    <button
+      type="button"
+      class="kind-tab"
+      [class.active]="kind() === 'limit'"
+      (click)="setKind('limit')"
+    >
+      Limit
+    </button>
+  </div>
+
+  <div class="form-field">
+    <label for="order-quantity">Quantity (whole shares)</label>
+    <input
+      id="order-quantity"
+      type="number"
+      min="1"
+      step="1"
+      placeholder="0"
+      [ngModel]="quantity()"
+      (ngModelChange)="quantity.set($event)"
+    />
+  </div>
+
+  @if (kind() === 'limit') {
+    <div class="form-field">
+      <label for="order-limit-price">Limit Price</label>
+      <input
+        id="order-limit-price"
+        type="number"
+        min="0"
+        step="0.01"
+        placeholder="0.00"
+        [ngModel]="limitPrice()"
+        (ngModelChange)="limitPrice.set($event)"
+      />
+    </div>
+  }
+
+  <p class="order-hint">
+    @if (type() === 'buy') {
+      Max affordable: {{ maxBuyQuantity() }} share(s)
+    } @else {
+      Owned: {{ ownedQuantity() }} share(s)
+    }
+  </p>
+
+  @if (error()) {
+    <p class="form-error">{{ error() }}</p>
+  }
+
+  <button
+    type="button"
+    class="btn form-submit"
+    [class.btn-primary]="type() === 'buy'"
+    [class.btn-secondary]="type() === 'sell'"
+    (click)="submit()"
+  >
+    {{ type() === 'buy' ? 'Buy' : 'Sell' }} {{ kind() === 'market' ? 'at Market' : 'Limit' }}
+  </button>
+
+</div>

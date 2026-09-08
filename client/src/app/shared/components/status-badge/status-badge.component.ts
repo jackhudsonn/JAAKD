@@ -5,6 +5,7 @@ import { formatLabel } from '../../utils/format-label';
 // reused across the transact and trade pages.
 export type StatusBadgeStatus =
   | 'pending'
+  | 'open'
   | 'completed'
   | 'filled'
   | 'partially_filled'

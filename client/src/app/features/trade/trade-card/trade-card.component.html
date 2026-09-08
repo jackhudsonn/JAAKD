@@ -1,0 +1,50 @@
+<app-widget-card title="Trade">
+
+  <div class="trade-card-body">
+
+    <div class="ticker-section">
+      <div class="instrument-tabs">
+        @for (tab of instrumentTabs; track tab.id) {
+          <button
+            type="button"
+            class="instrument-tab"
+            [class.active]="instrument() === tab.id"
+            (click)="setInstrument(tab.id)"
+          >
+            {{ tab.label }}
+          </button>
+        }
+      </div>
+
+      <input
+        type="text"
+        class="ticker-search"
+        placeholder="Search tickers…"
+        aria-label="Search tickers"
+        [ngModel]="search()"
+        (ngModelChange)="onSearchChange($event)"
+      />
+
+      <app-scrollable-list
+        [items]="filteredTickers()"
+        [trackBy]="trackByTicker"
+        emptyMessage="No tickers match your search."
+      >
+        <ng-template let-row>
+          <button type="button" class="ticker-row" (click)="selectSymbol.emit(row.asset.symbol)">
+            <span class="ticker-symbol">{{ row.asset.symbol }}</span>
+            <span class="ticker-name">{{ row.asset.name }}</span>
+            <div class="price-stack">
+              <span class="ticker-price">{{ row.price | number: '1.2-2' }}</span>
+              <span class="change" [class.positive]="row.changePct >= 0" [class.negative]="row.changePct < 0">
+                {{ row.changePct >= 0 ? '+' : '' }}{{ row.changePct | number: '1.2-2' }}%
+              </span>
+            </div>
+          </button>
+        </ng-template>
+      </app-scrollable-list>
+    </div>
+
+  </div>
+
+</app-widget-card>

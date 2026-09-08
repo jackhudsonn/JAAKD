@@ -24,7 +24,8 @@
   background: rgba(255, 140, 0, 0.14);
 }
 
-.status-partially_filled {
+.status-partially_filled,
+.status-open {
   color: var(--primary-light);
   background: rgba(255, 140, 0, 0.14);
 }
