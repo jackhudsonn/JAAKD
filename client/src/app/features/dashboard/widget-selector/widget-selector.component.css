@@ -64,8 +64,6 @@
   line-height: 1;
 }
 
-
-
 .widget-selector-panel {
   position: absolute;
   right: 0;
@@ -115,7 +113,6 @@
 
   overflow-wrap: anywhere;
 }
-
 
 .widget-selector-hint {
   margin: 0 0 var(--space-xs);

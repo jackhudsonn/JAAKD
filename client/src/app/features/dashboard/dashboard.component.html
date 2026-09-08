@@ -1,14 +1,9 @@
 <main class="page-content">
-
   <div class="dashboard-topbar">
     <div class="dashboard-header">
-      <h1>
-        Dashboard
-      </h1>
+      <h1>Dashboard</h1>
 
-      <p class="page-description">
-        Insights into your portfolio.
-      </p>
+      <p class="page-description">Insights into your portfolio.</p>
     </div>
 
     <div class="dashboard-toolbar">
@@ -17,7 +12,6 @@
   </div>
 
   <section class="widget-grid">
-
     @for (widgetId of displayWidgets(); track widgetId; let last = $last, count = $count) {
       <div
         class="widget-slot"
@@ -50,7 +44,5 @@
         }
       </div>
     }
-
   </section>
-
 </main>

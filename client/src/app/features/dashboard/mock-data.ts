@@ -35,7 +35,7 @@ export interface MockAllocationSlice {
 // TODO: source from account balance + real-time position valuation endpoints.
 export const MOCK_PORTFOLIO_VALUE = {
   cash: 12_430.55,
-  assets: 48_912.10,
+  assets: 48_912.1,
   get total() {
     return this.cash + this.assets;
   },
@@ -56,7 +56,14 @@ export const MOCK_RETURNS = {
 export const MOCK_OPEN_ORDERS: MockOrder[] = [
   { id: 'ord-1', symbol: 'AAPL', side: 'buy', quantity: 10, price: 228.4, status: 'pending' },
   { id: 'ord-2', symbol: 'BTC', side: 'sell', quantity: 0.25, price: 61_200, status: 'pending' },
-  { id: 'ord-3', symbol: 'TSLA', side: 'buy', quantity: 5, price: 245.1, status: 'partially_filled' },
+  {
+    id: 'ord-3',
+    symbol: 'TSLA',
+    side: 'buy',
+    quantity: 5,
+    price: 245.1,
+    status: 'partially_filled',
+  },
   { id: 'ord-4', symbol: 'ETH', side: 'buy', quantity: 1.5, price: 2_980, status: 'pending' },
   { id: 'ord-5', symbol: 'NVDA', side: 'sell', quantity: 8, price: 118.6, status: 'pending' },
 ];
@@ -89,7 +96,7 @@ export const MOCK_TOP_LOSERS: MockMover[] = [
   { symbol: 'AMD', changeAmount: -2.9, changePct: -2.14 },
   { symbol: 'GOOGL', changeAmount: -5.1, changePct: -1.8 },
   { symbol: 'AMZN', changeAmount: -3.2, changePct: -1.7 },
-  { symbol: 'PLTR', changeAmount: -5.8, changePct: -1.5 }
+  { symbol: 'PLTR', changeAmount: -5.8, changePct: -1.5 },
 ];
 
 // --- Allocation by Asset Type -------------------------------------------
@@ -120,15 +127,7 @@ export const MOCK_ALLOCATION_BY_ASSET: Record<string, MockAllocationSlice[]> = {
 
 // --- Performance Graph -------------------------------------------------
 
-export type PerformanceInterval =
-  '1D'
-  | '1W'
-  | '1M'
-  | 'YTD'
-  | '1Y'
-  | '5Y'
-  | '10Y'
-  | 'ALL';
+export type PerformanceInterval = '1D' | '1W' | '1M' | 'YTD' | '1Y' | '5Y' | '10Y' | 'ALL';
 
 export interface PerformancePoint {
   label: string;
@@ -148,7 +147,10 @@ export const PERFORMANCE_INTERVALS: { id: PerformanceInterval; label: string }[]
 
 // Point count + axis label formatting per interval, used only to shape the
 // mock series below.
-const INTERVAL_CONFIG: Record<PerformanceInterval, { points: number; labelEvery: number; unit: string }> = {
+const INTERVAL_CONFIG: Record<
+  PerformanceInterval,
+  { points: number; labelEvery: number; unit: string }
+> = {
   '1D': { points: 24, labelEvery: 4, unit: 'h' },
   '1W': { points: 7, labelEvery: 1, unit: 'd' },
   '1M': { points: 30, labelEvery: 5, unit: 'd' },

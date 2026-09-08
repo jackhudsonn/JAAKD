@@ -9,7 +9,7 @@ import { NavbarComponent } from '../../shared/components/navbar/navbar.component
   standalone: true,
   imports: [RouterOutlet, NavbarComponent],
   templateUrl: './shell.component.html',
-  styleUrl: './shell.component.css'
+  styleUrl: './shell.component.css',
 })
 export class ShellComponent implements OnInit {
   user = signal<User | null>(null);
@@ -17,7 +17,7 @@ export class ShellComponent implements OnInit {
 
   constructor(
     private supabaseService: SupabaseService,
-    private router: Router
+    private router: Router,
   ) {}
 
   async ngOnInit() {
@@ -40,22 +40,18 @@ export class ShellComponent implements OnInit {
     const { data } = await this.supabaseService.getProfile(user.id);
     const metadataFirstName = user.user_metadata?.['first_name'];
     const metadataLastName = user.user_metadata?.['last_name'];
-    const metadataName = [metadataFirstName, metadataLastName]
-      .filter(Boolean)
-      .join(' ')
-      .trim();
+    const metadataName = [metadataFirstName, metadataLastName].filter(Boolean).join(' ').trim();
 
     // Build display name from DB profile or auth metadata
-    const profileName = [data?.firstName, data?.lastName]
-      .filter(Boolean)
-      .join(' ')
-      .trim();
+    const profileName = [data?.firstName, data?.lastName].filter(Boolean).join(' ').trim();
     this.displayName.set(profileName || metadataName || null);
   }
 
   async logout() {
     const { error } = await this.supabaseService.signOut();
-    if (error) { return; }
+    if (error) {
+      return;
+    }
     await this.router.navigate(['/auth/login']);
   }
 }

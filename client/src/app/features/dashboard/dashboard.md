@@ -88,28 +88,33 @@ All placeholder data lives in `mock-data.ts`. Each export is annotated with a `T
 ## TODOs
 
 ### Persistence
+
 Widget selection and order currently reset on every page load. The `selectedWidgets` signal should be persisted — either to `localStorage` for a quick win, or to a user-preferences endpoint so the layout roams across devices and sessions.
 
 ### Real Data
+
 Each widget in `mock-data.ts` is tagged with which service should back it:
 
-| Widget | Needed service/feed |
-|---|---|
-| Portfolio Value & Returns | Account balance + real-time position valuation |
-| Open Orders | Orders service (REST polling or WebSocket) |
-| Watchlist | Market data service / Kafka feed |
-| Top Movers | Market data service / Kafka feed |
-| Allocation by Asset | Portfolio positions endpoint |
-| Performance Graph | Performance / analytics endpoint (P&L over time) |
+| Widget                    | Needed service/feed                              |
+| ------------------------- | ------------------------------------------------ |
+| Portfolio Value & Returns | Account balance + real-time position valuation   |
+| Open Orders               | Orders service (REST polling or WebSocket)       |
+| Watchlist                 | Market data service / Kafka feed                 |
+| Top Movers                | Market data service / Kafka feed                 |
+| Allocation by Asset       | Portfolio positions endpoint                     |
+| Performance Graph         | Performance / analytics endpoint (P&L over time) |
 
 ### Responsive Grid
+
 The grid layout is CSS-driven. Consider defining breakpoint-aware column counts so the layout degrades gracefully on tablet and mobile viewports.
 
 ### Testing
+
 - **Unit tests** for `DashboardComponent`: cover `onToggleWidget` (add, remove, min/max guard), `isEntering`/`isLeaving` state, and the exit-animation delay.
 - **Unit tests** for `WidgetSelectorComponent`: cover `isDisabled` at the min and max boundaries.
 - **Component tests** for each widget: verify it renders without errors when given mock input and that `WidgetCardComponent` receives the correct `title`/`subtitle` values.
 - **E2E tests**: open the selector, toggle a widget off and on, and assert the grid updates correctly.
 
 ### Widget Configuration
+
 Future widgets (e.g. a chart with a configurable time range) may need per-widget settings. The `WidgetDefinition` interface in the model file can be extended with an optional `config` field; the persistence layer would store config alongside selection state.

@@ -9,4 +9,6 @@ import java.util.UUID;
 public interface WatchlistRepository extends JpaRepository<Watchlist, UUID> {
 
     List<Watchlist> findByPortfolioId(UUID portfolioId);
+
+    List<Watchlist> findByPortfolioIdOrderByPriorityAsc(UUID portfolioId);
 }

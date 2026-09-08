@@ -35,7 +35,7 @@ Angular client --HTTPS + Supabase JWT--> this backend --JDBC (privileged role)--
 | `holdings` | `holdingID`(PK), `portfolioID`(FK), `instrumentID`(FK), `quantity`, `cost` | The positions table. Entity: `Holding` |
 | `orders` | `orderID`(PK), `portfolioID`(FK), `instrumentID`(FK, nullable), `quantity`, `initTime`, `side`(**text**, nullable — was boolean before this schema update; buy/sell convention needs reconfirming), `initPrice` | Entity: `TradeOrder` |
 | `logs` | `logID`(PK), `orderID`(FK), `logTime`, `status`, `executePrice` | Order status/execution trail. Entity: `OrderLog` |
-| `watchlists` | `watchListID`(PK), `portfolioID`(FK), `name` | Entity: `Watchlist` |
+| `watchlists` | `watchListID`(PK), `portfolioID`(FK), `name`, `priority` | Ordered by `priority` ascending (lower = closer to top). Run `tools/supabase-sql/02-add-watchlist-priority.sql` to add this column. Entity: `Watchlist` |
 | `watchlist_items` | `listItemID`(PK), `watchListID`(FK), `instrumentID`(FK), `priority` | Entity: `WatchlistItem` |
 
 RLS is enabled on every table but has **no policies defined** (default-deny for the anon/PostgREST API — irrelevant to this backend, since its DB role bypasses RLS).

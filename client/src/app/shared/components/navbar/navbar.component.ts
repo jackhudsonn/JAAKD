@@ -1,4 +1,12 @@
-import { Component, ElementRef, HostListener, Input, Output, EventEmitter, signal } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  HostListener,
+  Input,
+  Output,
+  EventEmitter,
+  signal,
+} from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { User } from '@supabase/supabase-js';
 
@@ -7,7 +15,7 @@ import { User } from '@supabase/supabase-js';
   standalone: true,
   imports: [RouterLink, RouterLinkActive],
   templateUrl: './navbar.component.html',
-  styleUrl: './navbar.component.css'
+  styleUrl: './navbar.component.css',
 })
 export class NavbarComponent {
   @Input() user: User | null = null;
@@ -23,10 +31,7 @@ export class NavbarComponent {
   get displayName() {
     const metadataFirstName = this.user?.user_metadata?.['first_name'];
     const metadataLastName = this.user?.user_metadata?.['last_name'];
-    const metadataName = [metadataFirstName, metadataLastName]
-      .filter(Boolean)
-      .join(' ')
-      .trim();
+    const metadataName = [metadataFirstName, metadataLastName].filter(Boolean).join(' ').trim();
 
     return this.profileName?.trim() || metadataName || 'User';
   }
@@ -43,7 +48,6 @@ export class NavbarComponent {
   closeMenu() {
     this.menuOpen.set(false);
   }
-
 
   toggleAvatarMenu() {
     this.menuOpen.set(false);
@@ -65,51 +69,40 @@ export class NavbarComponent {
   }
 
   closeMenus() {
-  this.closeMenu();
-  this.closeAvatarMenu();
-  this.closeMobileMenu();
-}
-
-@HostListener('document:click', ['$event'])
-onDocumentClick(event: MouseEvent) {
-  const target = event.target as Node;
-
-  const menuWrapper =
-    this.elementRef.nativeElement.querySelector('.menu-wrapper');
-
-  const avatarWrapper =
-    this.elementRef.nativeElement.querySelector('.avatar-menu-wrapper');
-
-  const profileEnd =
-    this.elementRef.nativeElement.querySelector('.profile-end');
-
-  if (
-    this.menuOpen() &&
-    menuWrapper &&
-    !menuWrapper.contains(target)
-  ) {
     this.closeMenu();
-  }
-
-  if (
-    this.avatarOpen() &&
-    avatarWrapper &&
-    !avatarWrapper.contains(target)
-  ) {
     this.closeAvatarMenu();
-  }
-
-  if (
-    this.mobileMenuOpen() &&
-    profileEnd &&
-    !profileEnd.contains(target) &&
-    !this.elementRef.nativeElement.querySelector('.mobile-nav-dropdown')?.contains(target)
-  ) {
     this.closeMobileMenu();
   }
-}
-@HostListener('document:keydown.escape')
-onEscape() {
-  this.closeMenus();
-}
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent) {
+    const target = event.target as Node;
+
+    const menuWrapper = this.elementRef.nativeElement.querySelector('.menu-wrapper');
+
+    const avatarWrapper = this.elementRef.nativeElement.querySelector('.avatar-menu-wrapper');
+
+    const profileEnd = this.elementRef.nativeElement.querySelector('.profile-end');
+
+    if (this.menuOpen() && menuWrapper && !menuWrapper.contains(target)) {
+      this.closeMenu();
+    }
+
+    if (this.avatarOpen() && avatarWrapper && !avatarWrapper.contains(target)) {
+      this.closeAvatarMenu();
+    }
+
+    if (
+      this.mobileMenuOpen() &&
+      profileEnd &&
+      !profileEnd.contains(target) &&
+      !this.elementRef.nativeElement.querySelector('.mobile-nav-dropdown')?.contains(target)
+    ) {
+      this.closeMobileMenu();
+    }
+  }
+  @HostListener('document:keydown.escape')
+  onEscape() {
+    this.closeMenus();
+  }
 }

@@ -1,6 +1,9 @@
 import { Component, computed, signal } from '@angular/core';
 import { WidgetCardComponent } from '../../../../shared/components/widget-card/widget-card.component';
-import { PieChartComponent, PieChartSlice } from '../../../../shared/components/pie-chart/pie-chart.component';
+import {
+  PieChartComponent,
+  PieChartSlice,
+} from '../../../../shared/components/pie-chart/pie-chart.component';
 import { MOCK_ALLOCATION_BY_ASSET, MOCK_ALLOCATION_BY_TYPE } from '../../mock-data';
 
 @Component({
@@ -44,4 +47,3 @@ export class AllocationByAssetWidgetComponent {
     this.selectedCategory.set(null);
   }
 }
-

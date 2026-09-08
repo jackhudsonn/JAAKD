@@ -3,7 +3,6 @@
   Nav, avatar, and dropdown styles live in shared/components/navbar/navbar.component.css.
 */
 
-
 /* HEADER SHELL — used by login page and authenticated shell */
 
 .app-header {
@@ -18,45 +17,32 @@
 
   align-items: center;
 
-  gap:
-    var(--space-xl);
+  gap: var(--space-xl);
 
-  padding:
-    var(--space-lg)
-    var(--space-xl);
+  padding: var(--space-lg) var(--space-xl);
 
-  background:
-    rgba(51, 51, 51, 0.96);
+  background: rgba(51, 51, 51, 0.96);
 
-  border-bottom:
-    1px solid
-    var(--surface-divider);
+  border-bottom: 1px solid var(--surface-divider);
 
-  backdrop-filter:
-    blur(8px);
+  backdrop-filter: blur(8px);
 }
-
 
 .app-brand {
   display: inline-flex;
   align-items: center;
 
-  gap:
-    0.1em;
+  gap: 0.1em;
 
-  color:
-    var(--secondary-light);
+  color: var(--secondary-light);
 
   font-size: 2rem;
   font-weight: 600;
 
-  line-height:
-    1;
+  line-height: 1;
 
-  letter-spacing:
-    -0.01em;
+  letter-spacing: -0.01em;
 }
-
 
 .app-brand span {
   display: inline-flex;
@@ -65,93 +51,63 @@
 
   font-size: 2rem;
 
-  line-height:
-    1;
+  line-height: 1;
 
-  color:
-    var(--primary);
+  color: var(--primary);
 
-  transform:
-    translateY(-0.04em);
+  transform: translateY(-0.04em);
 
   font-weight: 600;
 }
 
-
 /* SHARED SURFACES */
 
 .panel {
-  padding:
-    var(--space-lg);
+  padding: var(--space-lg);
 
-  background:
-    var(--tertiary-bg);
+  background: var(--tertiary-bg);
 
-  border:
-    1px solid
-    var(--tertiary-bg-border);
+  border: 1px solid var(--tertiary-bg-border);
 
-  border-radius:
-    var(--radius-md);
+  border-radius: var(--radius-md);
 }
-
 
 .card {
-  padding:
-    var(--space-lg);
+  padding: var(--space-lg);
 
-  background:
-    var(--secondary-bg);
+  background: var(--secondary-bg);
 
-  border:
-    1px solid
-    var(--secondary-bg-border);
+  border: 1px solid var(--secondary-bg-border);
 
-  border-radius:
-    var(--radius-lg);
+  border-radius: var(--radius-lg);
 }
-
 
 .eyebrow {
-  margin:
-    0
-    0
-    var(--space-xs);
+  margin: 0 0 var(--space-xs);
 
-  color:
-    var(--primary);
+  color: var(--primary);
 
-  font-size:
-    0.7rem;
+  font-size: 0.7rem;
 
-  font-weight:
-    800;
+  font-weight: 800;
 
-  letter-spacing:
-    0.12em;
+  letter-spacing: 0.12em;
 
-  text-transform:
-    uppercase;
+  text-transform: uppercase;
 }
 
-
 @media (max-width: 900px) {
-
   .app-header {
     grid-template-columns:
       auto
       minmax(0, 1fr)
       auto;
 
-    gap:
-      var(--space-md);
+    gap: var(--space-md);
 
-    justify-items:
-      stretch;
+    justify-items: stretch;
   }
-
 }
-
 
 /* PAGE LAYOUT */
 
@@ -160,26 +116,19 @@
 
   margin: 0 auto;
 
-  padding:
-    var(--space-xl)
-    var(--space-xl);
+  padding: var(--space-xl) var(--space-xl);
 }
 
 .page-content h1 {
   margin: 0;
 
-  color:
-    var(--secondary-light);
+  color: var(--secondary-light);
 }
 
 .page-description {
-  color:
-    var(--secondary-dark);
+  color: var(--secondary-dark);
 
-  margin:
-    var(--space-xxs)
-    0
-    var(--space-lg);
+  margin: var(--space-xxs) 0 var(--space-lg);
 }
 
 .empty-page {
@@ -194,6 +143,5 @@
 }
 
 .empty-page p {
-  color:
-    var(--secondary-dark);
+  color: var(--secondary-dark);
 }

@@ -47,8 +47,8 @@ Angular loads `client/src/styles.css` globally, so every component under `src/ap
 
 Use `src/styles/` for styles that should apply across the entire application, such as colors, buttons, forms, and shared layouts. Use component CSS such as `dashboard.css`, `transactions.css`, or `analytics.css` only for styling specific to that page.
 
-
 **`tokens.css`**
+
 - Colors
 - Fonts
 - Spacing
@@ -56,17 +56,20 @@ Use `src/styles/` for styles that should apply across the entire application, su
 - Success/error colors
 
 **`buttons.css`**
+
 - Buttons
 - Hover states
 - Click/active states
 
 **`forms.css`**
+
 - Inputs
 - Labels
 - Selects
 - Form controls
 
 **`layout.css`**
+
 - Header
 - Navigation
 - Cards

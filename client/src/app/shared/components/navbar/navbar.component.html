@@ -7,141 +7,134 @@
     <div class="app-tagline">Secure Trading Platform</div>
   </header>
 } @else {
-<header class="app-header authenticated-header">
-  <div class="app-brand">JAAKD<span>+</span></div>
+  <header class="app-header authenticated-header">
+    <div class="app-brand">JAAKD<span>+</span></div>
 
-  <nav class="app-nav" aria-label="Main navigation">
-    <a routerLink="/dashboard" routerLinkActive="active" (click)="closeMenus()"> Dashboard </a>
+    <nav class="app-nav" aria-label="Main navigation">
+      <a routerLink="/dashboard" routerLinkActive="active" (click)="closeMenus()"> Dashboard </a>
 
-    <a routerLink="/transact" routerLinkActive="active" (click)="closeMenus()">
-      Transact
-    </a>
+      <a routerLink="/transact" routerLinkActive="active" (click)="closeMenus()"> Transact </a>
 
-    <a routerLink="/trade" routerLinkActive="active" (click)="closeMenus()"> Trade </a>
+      <a routerLink="/trade" routerLinkActive="active" (click)="closeMenus()"> Trade </a>
 
-    <div class="menu-wrapper">
-      <button
-        type="button"
-        class="nav-more-button"
-        (click)="toggleMenu()"
-        [attr.aria-expanded]="menuOpen()"
-        aria-haspopup="menu"
-        aria-label="More navigation"
-      >
-        <span>More</span>
-        <span class="chevron" [class.open]="menuOpen()"></span>
-      </button>
+      <div class="menu-wrapper">
+        <button
+          type="button"
+          class="nav-more-button"
+          (click)="toggleMenu()"
+          [attr.aria-expanded]="menuOpen()"
+          aria-haspopup="menu"
+          aria-label="More navigation"
+        >
+          <span>More</span>
+          <span class="chevron" [class.open]="menuOpen()"></span>
+        </button>
 
-      @if (menuOpen()) {
-        <div class="nav-dropdown" role="menu" aria-label="More navigation links">
-          <a
-            routerLink="/dashboard"
-            routerLinkActive="active"
-            role="menuitem"
-            (click)="closeMenu()"
-          >
-            Dashboard
-          </a>
-
-          <a
-            routerLink="/transact"
-            routerLinkActive="active"
-            role="menuitem"
-            (click)="closeMenu()"
-          >
-            Transact
-          </a>
-
-          <a
-            routerLink="/trade"
-            routerLinkActive="active"
-            role="menuitem"
-            (click)="closeMenu()"
-          >
-            Trade
-          </a>
-        </div>
-      }
-    </div>
-  </nav>
-
-  <div class="profile-end">
-    <button
-      type="button"
-      class="hamburger-button"
-      (click)="toggleMobileMenu()"
-      [attr.aria-expanded]="mobileMenuOpen()"
-      aria-haspopup="menu"
-      aria-label="Open navigation menu"
-    >
-      <span class="hamburger-bar"></span>
-      <span class="hamburger-bar"></span>
-      <span class="hamburger-bar"></span>
-    </button>
-
-    <div class="avatar-menu-wrapper">
-      <button
-        type="button"
-        class="avatar-button"
-        (click)="toggleAvatarMenu()"
-        [attr.aria-expanded]="avatarOpen()"
-        aria-haspopup="menu"
-        aria-label="Account menu"
-      >
-        <div class="account-avatar" aria-hidden="true">
-          {{ displayInitial }}
-        </div>
-      </button>
-
-      @if (avatarOpen()) {
-        <div class="avatar-dropdown" role="menu" aria-label="Account menu">
-          <div class="avatar-dropdown-ident">
-            <div class="avatar-dropdown-name">
-              {{ displayName }}
-            </div>
-
-            <div class="avatar-dropdown-email">
-              {{ user?.email }}
-            </div>
-          </div>
-
-          <div class="avatar-dropdown-actions">
+        @if (menuOpen()) {
+          <div class="nav-dropdown" role="menu" aria-label="More navigation links">
             <a
-              routerLink="/profile"
-              class="account-menu-link"
+              routerLink="/dashboard"
+              routerLinkActive="active"
               role="menuitem"
-              (click)="closeAvatarMenu()"
+              (click)="closeMenu()"
             >
-              Account
+              Dashboard
             </a>
 
-            <button
-              type="button"
-              class="dropdown-signout"
-              (click)="logoutClicked.emit(); closeAvatarMenu()"
+            <a
+              routerLink="/transact"
+              routerLinkActive="active"
+              role="menuitem"
+              (click)="closeMenu()"
             >
-              Sign Out
-            </button>
+              Transact
+            </a>
+
+            <a routerLink="/trade" routerLinkActive="active" role="menuitem" (click)="closeMenu()">
+              Trade
+            </a>
           </div>
-        </div>
-      }
+        }
+      </div>
+    </nav>
+
+    <div class="profile-end">
+      <button
+        type="button"
+        class="hamburger-button"
+        (click)="toggleMobileMenu()"
+        [attr.aria-expanded]="mobileMenuOpen()"
+        aria-haspopup="menu"
+        aria-label="Open navigation menu"
+      >
+        <span class="hamburger-bar"></span>
+        <span class="hamburger-bar"></span>
+        <span class="hamburger-bar"></span>
+      </button>
+
+      <div class="avatar-menu-wrapper">
+        <button
+          type="button"
+          class="avatar-button"
+          (click)="toggleAvatarMenu()"
+          [attr.aria-expanded]="avatarOpen()"
+          aria-haspopup="menu"
+          aria-label="Account menu"
+        >
+          <div class="account-avatar" aria-hidden="true">
+            {{ displayInitial }}
+          </div>
+        </button>
+
+        @if (avatarOpen()) {
+          <div class="avatar-dropdown" role="menu" aria-label="Account menu">
+            <div class="avatar-dropdown-ident">
+              <div class="avatar-dropdown-name">
+                {{ displayName }}
+              </div>
+
+              <div class="avatar-dropdown-email">
+                {{ user?.email }}
+              </div>
+            </div>
+
+            <div class="avatar-dropdown-actions">
+              <a
+                routerLink="/profile"
+                class="account-menu-link"
+                role="menuitem"
+                (click)="closeAvatarMenu()"
+              >
+                Account
+              </a>
+
+              <button
+                type="button"
+                class="dropdown-signout"
+                (click)="logoutClicked.emit(); closeAvatarMenu()"
+              >
+                Sign Out
+              </button>
+            </div>
+          </div>
+        }
+      </div>
     </div>
-  </div>
 
-  @if (mobileMenuOpen()) {
-    <div class="mobile-nav-dropdown" role="menu" aria-label="Mobile navigation links">
-      <a routerLink="/dashboard" routerLinkActive="active" role="menuitem" (click)="closeMenus()">
-        Dashboard
-      </a>
+    @if (mobileMenuOpen()) {
+      <div class="mobile-nav-dropdown" role="menu" aria-label="Mobile navigation links">
+        <a routerLink="/dashboard" routerLinkActive="active" role="menuitem" (click)="closeMenus()">
+          Dashboard
+        </a>
 
-      <a routerLink="/transact" routerLinkActive="active" role="menuitem" (click)="closeMenus()">
-        Transact
-      </a>
+        <a routerLink="/transact" routerLinkActive="active" role="menuitem" (click)="closeMenus()">
+          Transact
+        </a>
 
-      <a routerLink="/trade" routerLinkActive="active" role="menuitem" (click)="closeMenus()">
-        Trade
-      </a>
-    </div>
-  }
-</header>
+        <a routerLink="/trade" routerLinkActive="active" role="menuitem" (click)="closeMenus()">
+          Trade
+        </a>
+      </div>
+    }
+  </header>
 }

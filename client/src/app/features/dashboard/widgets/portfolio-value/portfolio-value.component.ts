@@ -83,4 +83,3 @@ export class PortfolioValueWidgetComponent implements OnInit, OnDestroy {
     this.stopReturnsCycle?.();
   }
 }
-

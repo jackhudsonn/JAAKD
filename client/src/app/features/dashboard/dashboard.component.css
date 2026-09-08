@@ -52,8 +52,8 @@
   transform: scale(1);
 
   transition:
-    opacity 260ms cubic-bezier(.2, .8, .2, 1),
-    transform 260ms cubic-bezier(.2, .8, .2, 1);
+    opacity 260ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 /* ENTER: starts slightly shrunk + faded, the .widget-enter class is removed
