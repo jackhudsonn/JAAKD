@@ -2,6 +2,8 @@ package com.example.backend.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -31,7 +33,8 @@ public class TradeOrder {
     private Instant initTime;
 
     @Column(name = "side")
-    private String side;
+    @Enumerated(EnumType.STRING)
+    private OrderSide side;
 
     @Column(name = "`initPrice`", nullable = false)
     private Double initPrice;
@@ -64,11 +67,11 @@ public class TradeOrder {
         return initTime;
     }
 
-    public String getSide() {
+    public OrderSide getSide() {
         return side;
     }
 
-    public void setSide(String side) {
+    public void setSide(OrderSide side) {
         this.side = side;
     }
 
