@@ -4,6 +4,7 @@ import org.springframework.stereotype.Service;
 import com.example.backend.dto.PlaceOrderRequest;
 import com.example.backend.model.TradeOrder;
 import com.example.backend.model.OrderLog;
+import com.example.backend.model.OrderSide;
 import com.example.backend.model.Portfolio;
 import com.example.backend.model.Instrument;
 import com.example.backend.repository.TradeOrderRepository;
@@ -13,8 +14,6 @@ import com.example.backend.repository.InstrumentRepository;
 import com.example.backend.repository.HoldingRepository;
 import com.example.backend.security.CurrentUserService;
 import com.example.backend.model.Holding;
-
-import java.time.Instant;
 import java.util.UUID;
 
 @Service
@@ -63,17 +62,14 @@ public class OrdersService {
         // 4. Parse order details (type/format already validated by PlaceOrderRequest)
         Long quantity = order.quantity();
         Double initPrice = order.initPrice();
-        String side = order.side();
+        OrderSide side = order.side();
         
         // 5. Validate business rules (defense in depth alongside PlaceOrderRequest's bean validation)
         if (quantity <= 0) throw new IllegalArgumentException("Quantity must be positive");
         if (initPrice <= 0) throw new IllegalArgumentException("Price must be positive");
-        if (!side.equalsIgnoreCase("buy") && !side.equalsIgnoreCase("sell")) {
-            throw new IllegalArgumentException("Side must be 'buy' or 'sell'");
-        }
         
         // 6. For BUY: check sufficient cash available
-        if (side.equalsIgnoreCase("buy")) {
+        if (side == OrderSide.BUY) {
             Double totalCost = quantity * initPrice;
             if (portfolio.getCashHoldings() < totalCost) {
                 throw new IllegalArgumentException("Insufficient cash");
@@ -81,7 +77,7 @@ public class OrdersService {
         }
         
         // 6. For SELL: check sufficient stock quantity
-        if (side.equalsIgnoreCase("sell")) {
+        if (side == OrderSide.SELL) {
             Holding holding = holdingRepository.findByPortfolioIdAndInstrumentId(portfolioId, instrumentId)
                     .orElseThrow(() -> new IllegalArgumentException("No holding for this instrument"));
             if (holding.getQuantity() < quantity) {
@@ -121,7 +117,7 @@ public class OrdersService {
         }
         
         // 3. For BUY orders
-        if (order.getSide().equalsIgnoreCase("buy")) {
+        if (order.getSide() == OrderSide.BUY) {
             // Recheck current cash holdings
             Double totalCost = order.getQuantity() * order.getInitPrice();
             if (portfolio.getCashHoldings() < totalCost) {
@@ -138,7 +134,7 @@ public class OrdersService {
         }
         
         // 4. For SELL orders
-        if (order.getSide().equalsIgnoreCase("sell")) {
+        if (order.getSide() == OrderSide.SELL) {
             // Recheck stock quantity
             Holding holding = holdingRepository.findByPortfolioIdAndInstrumentId(
                     order.getPortfolioId(), order.getInstrumentId())
@@ -167,7 +163,7 @@ public class OrdersService {
                 .orElseThrow(() -> new IllegalArgumentException("Portfolio not found"));
         
         // 2. For BUY orders
-        if (order.getSide().equalsIgnoreCase("buy")) {
+        if (order.getSide() == OrderSide.BUY) {
             Double totalExecutionCost = order.getQuantity() * executionPrice;
             Double maxLimit = order.getQuantity() * order.getInitPrice() * 1.10;
             
@@ -198,7 +194,7 @@ public class OrdersService {
         }
         
         // 3. For SELL orders
-        if (order.getSide().equalsIgnoreCase("sell")) {
+        if (order.getSide() == OrderSide.SELL) {
             Holding holding = holdingRepository.findByPortfolioIdAndInstrumentId(
                     order.getPortfolioId(), order.getInstrumentId())
                     .orElseThrow(() -> new IllegalArgumentException("No holding to sell"));

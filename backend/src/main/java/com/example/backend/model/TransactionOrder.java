@@ -2,6 +2,8 @@ package com.example.backend.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -34,12 +36,13 @@ public class TransactionOrder {
     private Instant initTime;
 
     @Column(name = "side", nullable = false)
-    private String side;
+    @Enumerated(EnumType.STRING)
+    private TransactionSide side;
 
     protected TransactionOrder() {
     }
 
-    public TransactionOrder(UUID portfolioId, Long amount, String currency, String side) {
+    public TransactionOrder(UUID portfolioId, Long amount, String currency, TransactionSide side) {
         this.portfolioId = portfolioId;
         this.amount = amount;
         this.currency = currency;
@@ -62,7 +65,7 @@ public class TransactionOrder {
         return initTime;
     }
 
-    public String getSide() {
+    public TransactionSide getSide() {
         return side;
     }
 
