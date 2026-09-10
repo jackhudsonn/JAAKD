@@ -4,6 +4,7 @@ import com.example.backend.dto.TransactionDtos;
 import com.example.backend.model.Portfolio;
 import com.example.backend.model.TransactionOrder;
 import com.example.backend.model.TransactionLog;
+import com.example.backend.model.TransactionSide;
 import com.example.backend.repository.TransactionOrderRepository;
 import com.example.backend.repository.TransactionLogRepository;
 import com.example.backend.repository.PortfolioRepository;
@@ -69,11 +70,11 @@ class TransactionServiceTest {
         TransactionDtos depositTransaction = new TransactionDtos(
                 portfolioId,
                 1000L,
-                "deposite",
+                TransactionSide.DEPOSIT,
                 "USD"
         );
 
-        TransactionOrder savedOrder = new TransactionOrder(portfolioId, 1000L, "USD", "deposite");
+        TransactionOrder savedOrder = new TransactionOrder(portfolioId, 1000L, "USD", TransactionSide.DEPOSIT);
 
         when(currentUserService.getUserId()).thenReturn(userId);
         when(portfolioRepository.findById(portfolioId)).thenReturn(Optional.of(portfolio));
@@ -94,7 +95,7 @@ class TransactionServiceTest {
         TransactionDtos depositTransaction = new TransactionDtos(
                 portfolioId,
                 -1000L,
-                "deposite",
+                TransactionSide.DEPOSIT,
                 "USD"
         );
 
@@ -116,11 +117,11 @@ class TransactionServiceTest {
         TransactionDtos withdrawTransaction = new TransactionDtos(
                 portfolioId,
                 2000L,
-                "withdraw",
+                TransactionSide.WITHDRAW,
                 "USD"
         );
 
-        TransactionOrder savedOrder = new TransactionOrder(portfolioId, 2000L, "USD", "withdraw");
+        TransactionOrder savedOrder = new TransactionOrder(portfolioId, 2000L, "USD", TransactionSide.WITHDRAW);
 
         when(currentUserService.getUserId()).thenReturn(userId);
         when(portfolioRepository.findById(portfolioId)).thenReturn(Optional.of(portfolio));
@@ -141,7 +142,7 @@ class TransactionServiceTest {
         TransactionDtos withdrawTransaction = new TransactionDtos(
                 portfolioId,
                 2000L,
-                "withdraw",
+                TransactionSide.WITHDRAW,
                 "USD"
         );
 
@@ -161,7 +162,7 @@ class TransactionServiceTest {
         TransactionDtos withdrawTransaction = new TransactionDtos(
                 portfolioId,
                 0L,
-                "withdraw",
+                TransactionSide.WITHDRAW,
                 "USD"
         );
 
@@ -178,7 +179,7 @@ class TransactionServiceTest {
         TransactionDtos transaction = new TransactionDtos(
                 portfolioId,
                 1000L,
-                "deposite",
+                TransactionSide.DEPOSIT,
                 "USD"
         );
 
@@ -198,7 +199,7 @@ class TransactionServiceTest {
         TransactionDtos transaction = new TransactionDtos(
                 portfolioId,
                 1000L,
-                "deposite",
+                TransactionSide.DEPOSIT,
                 "USD"
         );
 
@@ -210,31 +211,11 @@ class TransactionServiceTest {
                 .hasMessageContaining("Portfolio does not belong to current user");
     }
 
-    @Test
-    void placeTransaction_invalidSide_throws() {
-        Portfolio portfolio = new Portfolio(userId);
-        portfolio.setCashHoldings(5000.0);
-
-        TransactionDtos transaction = new TransactionDtos(
-                portfolioId,
-                1000L,
-                "transfer",
-                "USD"
-        );
-
-        when(currentUserService.getUserId()).thenReturn(userId);
-        when(portfolioRepository.findById(portfolioId)).thenReturn(Optional.of(portfolio));
-
-        assertThatThrownBy(() -> transactionService.placeTransaction(transaction))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Side must be");
-    }
-
     // ==================== acceptTransaction ====================
 
     @Test
     void acceptTransaction_withValidTransaction_logsAccepted() {
-        TransactionOrder transaction = new TransactionOrder(portfolioId, 1000L, "USD", "deposite");
+        TransactionOrder transaction = new TransactionOrder(portfolioId, 1000L, "USD", TransactionSide.DEPOSIT);
         Portfolio portfolio = new Portfolio(userId);
 
         when(transactionOrderRepository.findById(transactionId)).thenReturn(Optional.of(transaction));
@@ -259,7 +240,7 @@ class TransactionServiceTest {
 
     @Test
     void executeTransaction_deposit_addsAmountToPortfolio() {
-        TransactionOrder transaction = new TransactionOrder(portfolioId, 1000L, "USD", "deposite");
+        TransactionOrder transaction = new TransactionOrder(portfolioId, 1000L, "USD", TransactionSide.DEPOSIT);
         Portfolio portfolio = new Portfolio(userId);
         portfolio.setCashHoldings(5000.0);
 
@@ -284,7 +265,7 @@ class TransactionServiceTest {
 
     @Test
     void executeTransaction_withdraw_deductsAmountFromPortfolio() {
-        TransactionOrder transaction = new TransactionOrder(portfolioId, 2000L, "USD", "withdraw");
+        TransactionOrder transaction = new TransactionOrder(portfolioId, 2000L, "USD", TransactionSide.WITHDRAW);
         Portfolio portfolio = new Portfolio(userId);
         portfolio.setCashHoldings(5000.0);
 
@@ -307,7 +288,7 @@ class TransactionServiceTest {
 
     @Test
     void executeTransaction_withdraw_withInsufficientFunds_throws() {
-        TransactionOrder transaction = new TransactionOrder(portfolioId, 6000L, "USD", "withdraw");
+        TransactionOrder transaction = new TransactionOrder(portfolioId, 6000L, "USD", TransactionSide.WITHDRAW);
         Portfolio portfolio = new Portfolio(userId);
         portfolio.setCashHoldings(5000.0);
 

@@ -3,6 +3,7 @@ package com.example.backend.service;
 import com.example.backend.dto.PlaceOrderRequest;
 import com.example.backend.model.Holding;
 import com.example.backend.model.Instrument;
+import com.example.backend.model.OrderSide;
 import com.example.backend.model.Portfolio;
 import com.example.backend.model.TradeOrder;
 import com.example.backend.repository.HoldingRepository;
@@ -61,7 +62,7 @@ class OrdersServiceTest {
         orderId = UUID.randomUUID();
     }
 
-    private PlaceOrderRequest buildOrderRequest(UUID portfolioId, UUID instrumentId, long quantity, double price, String side) {
+    private PlaceOrderRequest buildOrderRequest(UUID portfolioId, UUID instrumentId, long quantity, double price, OrderSide side) {
         return new PlaceOrderRequest(portfolioId, instrumentId, quantity, price, side);
     }
 
@@ -84,7 +85,7 @@ class OrdersServiceTest {
         when(instrumentRepository.findById(instrumentId)).thenReturn(Optional.of(new Instrument("stock")));
         when(tradeOrderRepository.save(any(TradeOrder.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        String result = ordersService.placeOrder(buildOrderRequest(portfolioId, instrumentId, 10, 5.0, "buy"));
+        String result = ordersService.placeOrder(buildOrderRequest(portfolioId, instrumentId, 10, 5.0, OrderSide.BUY));
 
         assertThat(result).startsWith("Order placed:");
         verify(orderLogRepository).save(any());
@@ -98,7 +99,7 @@ class OrdersServiceTest {
         when(currentUserService.getUserId()).thenReturn(userId);
         when(portfolioRepository.findById(portfolioId)).thenReturn(Optional.of(portfolio));
 
-        assertThatThrownBy(() -> ordersService.placeOrder(buildOrderRequest(portfolioId, instrumentId, 10, 5.0, "buy")))
+        assertThatThrownBy(() -> ordersService.placeOrder(buildOrderRequest(portfolioId, instrumentId, 10, 5.0, OrderSide.BUY)))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("does not belong");
     }
@@ -112,7 +113,7 @@ class OrdersServiceTest {
         when(portfolioRepository.findById(portfolioId)).thenReturn(Optional.of(portfolio));
         when(instrumentRepository.findById(instrumentId)).thenReturn(Optional.of(new Instrument("stock")));
 
-        assertThatThrownBy(() -> ordersService.placeOrder(buildOrderRequest(portfolioId, instrumentId, 10, 5.0, "buy")))
+        assertThatThrownBy(() -> ordersService.placeOrder(buildOrderRequest(portfolioId, instrumentId, 10, 5.0, OrderSide.BUY)))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Insufficient cash");
     }
@@ -130,23 +131,9 @@ class OrdersServiceTest {
         when(holdingRepository.findByPortfolioIdAndInstrumentId(portfolioId, instrumentId))
                 .thenReturn(Optional.of(holding));
 
-        assertThatThrownBy(() -> ordersService.placeOrder(buildOrderRequest(portfolioId, instrumentId, 10, 5.0, "sell")))
+        assertThatThrownBy(() -> ordersService.placeOrder(buildOrderRequest(portfolioId, instrumentId, 10, 5.0, OrderSide.SELL)))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Insufficient stock quantity");
-    }
-
-    @Test
-    void placeOrder_invalidSide_throws() {
-        Portfolio portfolio = new Portfolio(userId);
-        portfolio.setCashHoldings(1000.0);
-
-        when(currentUserService.getUserId()).thenReturn(userId);
-        when(portfolioRepository.findById(portfolioId)).thenReturn(Optional.of(portfolio));
-        when(instrumentRepository.findById(instrumentId)).thenReturn(Optional.of(new Instrument("stock")));
-
-        assertThatThrownBy(() -> ordersService.placeOrder(buildOrderRequest(portfolioId, instrumentId, 10, 5.0, "hold")))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Side must be");
     }
 
     // ==================== acceptOrder ====================
@@ -154,7 +141,7 @@ class OrdersServiceTest {
     @Test
     void acceptOrder_buyWithSufficientCash_reservesUpTo110Percent() {
         TradeOrder order = new TradeOrder(portfolioId, 10L, 5.0);
-        order.setSide("buy");
+        order.setSide(OrderSide.BUY);
         order.setInstrumentId(instrumentId);
         Portfolio portfolio = new Portfolio(userId);
         portfolio.setCashHoldings(1000.0);
@@ -174,7 +161,7 @@ class OrdersServiceTest {
     @Test
     void acceptOrder_buyWithInsufficientCashAtAcceptance_throws() {
         TradeOrder order = new TradeOrder(portfolioId, 10L, 5.0);
-        order.setSide("buy");
+        order.setSide(OrderSide.BUY);
         order.setInstrumentId(instrumentId);
         Portfolio portfolio = new Portfolio(userId);
         portfolio.setCashHoldings(1.0);
@@ -191,7 +178,7 @@ class OrdersServiceTest {
     @Test
     void acceptOrder_sellWithNoHolding_throws() {
         TradeOrder order = new TradeOrder(portfolioId, 10L, 5.0);
-        order.setSide("sell");
+        order.setSide(OrderSide.SELL);
         order.setInstrumentId(instrumentId);
         Portfolio portfolio = new Portfolio(userId);
 
@@ -211,7 +198,7 @@ class OrdersServiceTest {
     @Test
     void executeOrder_buyWithinLimitAndCash_updatesPortfolioAndHolding() {
         TradeOrder order = new TradeOrder(portfolioId, 10L, 5.0);
-        order.setSide("buy");
+        order.setSide(OrderSide.BUY);
         order.setInstrumentId(instrumentId);
         Portfolio portfolio = new Portfolio(userId);
         portfolio.setCashHoldings(1000.0);
@@ -232,7 +219,7 @@ class OrdersServiceTest {
     @Test
     void executeOrder_buyExceeding110PercentLimit_throws() {
         TradeOrder order = new TradeOrder(portfolioId, 10L, 5.0);
-        order.setSide("buy");
+        order.setSide(OrderSide.BUY);
         order.setInstrumentId(instrumentId);
         Portfolio portfolio = new Portfolio(userId);
         portfolio.setCashHoldings(1000.0);
@@ -249,7 +236,7 @@ class OrdersServiceTest {
     @Test
     void executeOrder_sellUpdatesHoldingAndCash() {
         TradeOrder order = new TradeOrder(portfolioId, 10L, 5.0);
-        order.setSide("sell");
+        order.setSide(OrderSide.SELL);
         order.setInstrumentId(instrumentId);
         Portfolio portfolio = new Portfolio(userId);
         portfolio.setCashHoldings(0.0);

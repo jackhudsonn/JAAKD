@@ -5,13 +5,12 @@ import org.springframework.stereotype.Service;
 import com.example.backend.dto.TransactionDtos;
 import com.example.backend.model.TransactionOrder;
 import com.example.backend.model.TransactionLog;
+import com.example.backend.model.TransactionSide;
 import com.example.backend.model.Portfolio;
 import com.example.backend.repository.TransactionOrderRepository;
 import com.example.backend.repository.TransactionLogRepository;
 import com.example.backend.repository.PortfolioRepository;
 import com.example.backend.security.CurrentUserService;
-
-import java.time.Instant;
 import java.util.UUID;
 
 @Service
@@ -47,28 +46,25 @@ public class TransactionService {
         }
         
     
-        // 4. Parse order details (type/format already validated by PlaceOrderRequest)
+        // 4. Parse order details (type/format already validated by TransactionDtos)
         Long amount = transaction.amount();
-        String side = transaction.side();
+        TransactionSide side = transaction.side();
         String currency = transaction.currency();
         
-        // 5. Validate business rules (defense in depth alongside PlaceOrderRequest's bean validation)
+        // 5. Validate business rules (defense in depth alongside TransactionDtos's bean validation)
         if (amount <= 0) throw new IllegalArgumentException("Amount must be positive");
-        if (!side.equalsIgnoreCase("deposite") && !side.equalsIgnoreCase("withdraw")) {
-            throw new IllegalArgumentException("Side must be 'deposite' or 'withdraw'");
-        }
         
-        // 6. For BUY: check sufficient cash available
-        if (side.equalsIgnoreCase("withdraw")) {
+        // 6. For WITHDRAW: check sufficient cash available
+        if (side == TransactionSide.WITHDRAW) {
             if (portfolio.getCashHoldings() < amount) {
                 throw new IllegalArgumentException("Insufficient cash");
             }
         }
         
-        // 6. For SELL: check sufficient stock quantity
-        if (side.equalsIgnoreCase("deposite")) {
+        // 6. For DEPOSIT: validate amount
+        if (side == TransactionSide.DEPOSIT) {
             if (1 > amount) {
-                throw new IllegalArgumentException("Insufficient deposite amount");
+                throw new IllegalArgumentException("Insufficient deposit amount");
             }
         }
         
@@ -113,10 +109,10 @@ public class TransactionService {
                 .orElseThrow(() -> new IllegalArgumentException("Portfolio not found"));
         
         Long amount = transaction.getAmount();
-        String side = transaction.getSide();
+        TransactionSide side = transaction.getSide();
         
         // 2. Validate sufficient balance based on transaction side
-        if (side.equalsIgnoreCase("withdraw")) {
+        if (side == TransactionSide.WITHDRAW) {
             // Recheck current cash holdings
             if (portfolio.getCashHoldings() < amount) {
                 throw new IllegalArgumentException("Insufficient cash at execution time");
@@ -128,7 +124,7 @@ public class TransactionService {
         }
         
         // 3. For deposit transactions
-        if (side.equalsIgnoreCase("deposite")) {
+        if (side == TransactionSide.DEPOSIT) {
             // Add transaction amount
             portfolio.setCashHoldings(portfolio.getCashHoldings() + amount);
             portfolioRepository.save(portfolio);
