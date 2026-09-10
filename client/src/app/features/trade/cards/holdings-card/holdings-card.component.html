@@ -2,27 +2,26 @@
   <app-scrollable-list [items]="rows()" [trackBy]="trackByRow" emptyMessage="No holdings yet.">
     <ng-template let-row>
       @if (row.kind === 'cash') {
-        <div class="holding-row cash-row">
-          <div class="holding-info">
+        <button type="button" class="listing-row selectable" (click)="goToTransact()">
+          <div class="listing-info">
             <span class="symbol">USD</span>
             <span class="name">Cash</span>
           </div>
 
           <div class="price-stack">
             <span class="price">{{ row.amount | number: '1.2-2' }}</span>
+            <span class="change">0.00%</span>
           </div>
-        </div>
+        </button>
       } @else {
         <button
           type="button"
-          class="holding-row selectable"
+          class="listing-row selectable"
           (click)="selectSymbol.emit(row.holding.symbol)"
         >
-          <div class="holding-info">
+          <div class="listing-info">
             <span class="symbol">{{ row.holding.symbol }}</span>
-            <span class="name"
-              >{{ row.holding.quantity }} sh @ {{ row.price | number: '1.2-2' }}</span
-            >
+            <span class="name">{{ row.name }}</span>
           </div>
 
           <div class="price-stack">

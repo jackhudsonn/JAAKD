@@ -5,14 +5,14 @@
   gap: var(--space-md);
 }
 
-.side-tabs,
+.type-tabs,
 .kind-tabs {
   display: flex;
 
   gap: var(--space-sm);
 }
 
-.side-tab,
+.type-tab,
 .kind-tab {
   flex: 1;
 
@@ -31,19 +31,19 @@
   cursor: pointer;
 }
 
-.side-tab.buy.active {
+.type-tab.buy.active {
   color: #1f1f1f;
   background: var(--success);
   border-color: var(--success);
 }
 
-.side-tab.sell.active {
+.type-tab.sell.active {
   color: #1f1f1f;
   background: var(--fail);
   border-color: var(--fail);
 }
 
-.side-tab:disabled {
+.type-tab:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }

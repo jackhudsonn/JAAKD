@@ -1,8 +1,6 @@
 <main class="page-content">
   <h1>Transact</h1>
 
-  <h1>Transact</h1>
-
   <p class="page-description">Deposit or withdraw funds and review your transaction history.</p>
 
   <div class="transact-tabs" role="tablist">
@@ -37,7 +35,9 @@
     <div class="form-slot" [class.active]="activeTab() === 'withdrawal'">
       <app-withdrawal-form (submitted)="onWithdrawal($event)" />
     </div>
-  </section>
 
-  <app-transaction-history [transactions]="transactions()" />
+    <div class="history-slot">
+      <app-transaction-history [transactions]="transactions()" />
+    </div>
+  </section>
 </main>

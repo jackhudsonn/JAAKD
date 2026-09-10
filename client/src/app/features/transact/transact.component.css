@@ -43,12 +43,23 @@
   margin-bottom: var(--space-xl);
 }
 
+app-deposit-form,
+app-withdrawal-form,
+app-transaction-history {
+  display: block;
+  height: 100%;
+}
+
 /* Mobile-first: only the active form is shown, toggled via the tabs above. */
 .form-slot {
   display: none;
 }
 
 .form-slot.active {
+  display: block;
+}
+
+.history-slot {
   display: block;
 }
 
@@ -59,12 +70,21 @@
 
   .transact-forms {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
 
     margin-bottom: var(--space-xxl);
   }
 
   .form-slot {
     display: block;
+  }
+
+  .history-slot {
+    grid-column: 1 / -1;
+
+    width: calc(50% - (var(--space-lg) / 2));
+
+    justify-self: center;
   }
 }
 

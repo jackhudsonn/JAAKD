@@ -1,15 +1,20 @@
 import { Component, OnDestroy, OnInit, computed, input, output, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
-import { WidgetCardComponent } from '../../../shared/components/widget-card/widget-card.component';
-import { ScrollableListComponent } from '../../../shared/components/scrollable-list/scrollable-list.component';
-import { startCycleTimer } from '../../../shared/utils/cycle-timer';
-import { getAsset, getMockPrice } from '../mock-data';
+import { WidgetCardComponent } from '../../../../shared/components/widget-card/widget-card.component';
+import { ScrollableListComponent } from '../../../../shared/components/scrollable-list/scrollable-list.component';
+import { startCycleTimer } from '../../../../shared/utils/cycle-timer';
+import { getAsset, getMockPrice } from '../../mock-data';
 
 interface WatchlistRow {
   symbol: string;
   name: string;
   price: number;
   changePct: number;
+}
+
+interface WatchlistOption {
+  id: string;
+  name: string;
 }
 
 @Component({
@@ -21,8 +26,14 @@ interface WatchlistRow {
 })
 export class WatchlistCardComponent implements OnInit, OnDestroy {
   symbols = input.required<readonly string[]>();
+  watchlists = input.required<readonly WatchlistOption[]>();
+  activeWatchlistId = input.required<string>();
+  canDeleteActive = input(true);
 
   selectSymbol = output<string>();
+  activeWatchlistChange = output<string>();
+  createWatchlist = output<void>();
+  deleteActiveWatchlist = output<void>();
 
   private priceTick = signal(0);
   private stopTicking?: () => void;
@@ -51,6 +62,11 @@ export class WatchlistCardComponent implements OnInit, OnDestroy {
   });
 
   trackBySymbol = (row: WatchlistRow) => row.symbol;
+
+  onWatchlistChange(event: Event) {
+    const target = event.target as HTMLSelectElement;
+    this.activeWatchlistChange.emit(target.value);
+  }
 
   ngOnInit() {
     this.stopTicking = startCycleTimer(1, 1000, () => this.priceTick.update((tick) => tick + 1));

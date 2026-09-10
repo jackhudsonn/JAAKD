@@ -1,4 +1,4 @@
-.holding-row {
+.listing-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -15,11 +15,11 @@
   text-align: left;
 }
 
-button.holding-row {
+button.listing-row {
   cursor: pointer;
 }
 
-.holding-info {
+.listing-info {
   display: flex;
   flex-direction: column;
   gap: var(--space-xxs);
@@ -62,6 +62,7 @@ button.holding-row {
 }
 
 .change {
+  color: var(--text-muted);
   font-size: var(--font-size-sm);
   font-weight: 600;
 }

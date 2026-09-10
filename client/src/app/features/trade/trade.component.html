@@ -25,8 +25,71 @@
       (selectOrder)="openOrderDetails($event)"
     />
 
-    <app-watchlist-card [symbols]="watchlistSymbols()" (selectSymbol)="openAsset($event, true)" />
+    <app-watchlist-card
+      [symbols]="watchlistSymbols()"
+      [watchlists]="watchlistOptions()"
+      [activeWatchlistId]="activeWatchlistId()"
+      [canDeleteActive]="watchlists().length > 1"
+      (activeWatchlistChange)="setActiveWatchlist($event)"
+      (createWatchlist)="createWatchlist()"
+      (deleteActiveWatchlist)="deleteActiveWatchlist()"
+      (selectSymbol)="openAsset($event, true)"
+    />
   </section>
+
+  @if (watchlistDialogMode() === 'create') {
+    <app-modal title="Create Watchlist" (closed)="closeWatchlistDialog()">
+      <div class="watchlist-dialog">
+        <div class="form-field">
+          <label for="watchlist-name-input">Watchlist name</label>
+          <input
+            id="watchlist-name-input"
+            type="text"
+            [value]="watchlistNameDraft()"
+            (input)="onWatchlistNameInput($event)"
+            maxlength="40"
+            placeholder="e.g. Recommendations"
+          />
+        </div>
+
+        @if (watchlistDialogError()) {
+          <p class="form-error">{{ watchlistDialogError() }}</p>
+        }
+
+        <div class="watchlist-dialog-actions">
+          <button type="button" class="btn btn-secondary" (click)="closeWatchlistDialog()">
+            Cancel
+          </button>
+          <button type="button" class="btn btn-primary" (click)="saveWatchlistName()">Save</button>
+        </div>
+      </div>
+    </app-modal>
+  }
+
+  @if (watchlistDialogMode() === 'delete') {
+    @if (activeWatchlist(); as watchlist) {
+      <app-modal title="Delete Watchlist" (closed)="closeWatchlistDialog()">
+        <div class="watchlist-dialog">
+          <p class="watchlist-delete-copy">
+            Delete watchlist "{{ watchlist.name }}"? This cannot be undone.
+          </p>
+
+          <div class="watchlist-dialog-actions">
+            <button type="button" class="btn btn-secondary" (click)="closeWatchlistDialog()">
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary watchlist-delete-btn"
+              (click)="confirmDeleteWatchlist()"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      </app-modal>
+    }
+  }
 
   @if (activeAssetSymbol(); as symbol) {
     <app-asset-popup

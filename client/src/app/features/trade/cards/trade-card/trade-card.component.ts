@@ -1,11 +1,11 @@
 import { Component, OnDestroy, OnInit, computed, output, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { WidgetCardComponent } from '../../../shared/components/widget-card/widget-card.component';
-import { ScrollableListComponent } from '../../../shared/components/scrollable-list/scrollable-list.component';
-import { startCycleTimer } from '../../../shared/utils/cycle-timer';
-import { InstrumentType } from '../../../core/models';
-import { MOCK_ASSETS, MockAsset, getMockPrice } from '../mock-data';
+import { WidgetCardComponent } from '../../../../shared/components/widget-card/widget-card.component';
+import { ScrollableListComponent } from '../../../../shared/components/scrollable-list/scrollable-list.component';
+import { startCycleTimer } from '../../../../shared/utils/cycle-timer';
+import { InstrumentType } from '../../../../core/models';
+import { MOCK_ASSETS, MockAsset, getMockPrice } from '../../mock-data';
 
 interface TickerRow {
   asset: MockAsset;
@@ -13,7 +13,10 @@ interface TickerRow {
   changePct: number;
 }
 
-const INSTRUMENT_TABS: { id: InstrumentType; label: string }[] = [
+type InstrumentFilter = InstrumentType | 'all';
+
+const INSTRUMENT_OPTIONS: { id: InstrumentFilter; label: string }[] = [
+  { id: 'all', label: 'All' },
   { id: 'crypto', label: 'Crypto' },
   { id: 'stock', label: 'Stocks' },
   { id: 'bond', label: 'Bonds' },
@@ -29,8 +32,8 @@ const INSTRUMENT_TABS: { id: InstrumentType; label: string }[] = [
 export class TradeCardComponent implements OnInit, OnDestroy {
   selectSymbol = output<string>();
 
-  instrumentTabs = INSTRUMENT_TABS;
-  instrument = signal<InstrumentType>('crypto');
+  instrumentOptions = INSTRUMENT_OPTIONS;
+  instrument = signal<InstrumentFilter>('all');
   search = signal('');
 
   private priceTick = signal(0);
@@ -40,7 +43,9 @@ export class TradeCardComponent implements OnInit, OnDestroy {
     this.priceTick();
     const query = this.search().trim().toLowerCase();
 
-    return MOCK_ASSETS.filter((asset) => asset.instrumentType === this.instrument())
+    return MOCK_ASSETS.filter(
+      (asset) => this.instrument() === 'all' || asset.instrumentType === this.instrument(),
+    )
       .filter(
         (asset) =>
           !query ||
@@ -63,7 +68,7 @@ export class TradeCardComponent implements OnInit, OnDestroy {
     this.stopTicking?.();
   }
 
-  setInstrument(type: InstrumentType) {
+  setInstrument(type: InstrumentFilter) {
     this.instrument.set(type);
   }
 

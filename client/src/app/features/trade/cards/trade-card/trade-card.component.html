@@ -1,0 +1,55 @@
+<app-widget-card title="Trade">
+  <label class="sr-only" for="ticker-search">Search tickers</label>
+  <input
+    widget-actions
+    id="ticker-search"
+    type="text"
+    class="ticker-search-header"
+    placeholder="Search tickers…"
+    aria-label="Search tickers"
+    [ngModel]="search()"
+    (ngModelChange)="onSearchChange($event)"
+  />
+
+  <label class="sr-only" for="instrument-filter">Filter by asset class</label>
+  <select
+    widget-actions
+    id="instrument-filter"
+    class="instrument-select"
+    [ngModel]="instrument()"
+    (ngModelChange)="setInstrument($event)"
+  >
+    @for (option of instrumentOptions; track option.id) {
+      <option [ngValue]="option.id">{{ option.label }}</option>
+    }
+  </select>
+
+  <div class="trade-card-body">
+    <div class="ticker-section">
+      <app-scrollable-list
+        [items]="filteredTickers()"
+        [trackBy]="trackByTicker"
+        emptyMessage="No tickers match your search."
+      >
+        <ng-template let-row>
+          <button type="button" class="listing-row" (click)="selectSymbol.emit(row.asset.symbol)">
+            <div class="listing-info">
+              <span class="symbol">{{ row.asset.symbol }}</span>
+              <span class="name">{{ row.asset.name }}</span>
+            </div>
+            <div class="price-stack">
+              <span class="price">{{ row.price | number: '1.2-2' }}</span>
+              <span
+                class="change"
+                [class.positive]="row.changePct >= 0"
+                [class.negative]="row.changePct < 0"
+              >
+                {{ row.changePct >= 0 ? '+' : '' }}{{ row.changePct | number: '1.2-2' }}%
+              </span>
+            </div>
+          </button>
+        </ng-template>
+      </app-scrollable-list>
+    </div>
+  </div>
+</app-widget-card>

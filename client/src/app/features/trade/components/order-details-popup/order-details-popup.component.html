@@ -6,13 +6,13 @@
     </div>
 
     <div class="detail-row">
-      <span class="detail-label">Side</span>
+      <span class="detail-label">Type</span>
       <span
         class="detail-value"
-        [class.buy]="order().side === 'buy'"
-        [class.sell]="order().side === 'sell'"
+        [class.buy]="order().type === 'buy'"
+        [class.sell]="order().type === 'sell'"
       >
-        {{ order().side | titlecase }}
+        {{ order().type | titlecase }}
       </span>
     </div>
 

@@ -1,12 +1,12 @@
 import { Component, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { FormCardComponent } from '../../../shared/components/form-card/form-card.component';
+import { WidgetCardComponent } from '../../../shared/components/widget-card/widget-card.component';
 import { PaymentMethod, Withdrawal } from '../../../core/models';
 
 @Component({
   selector: 'app-withdrawal-form',
   standalone: true,
-  imports: [FormsModule, FormCardComponent],
+  imports: [FormsModule, WidgetCardComponent],
   templateUrl: './withdrawal-form.component.html',
   styleUrl: './withdrawal-form.component.css',
 })

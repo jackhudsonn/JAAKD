@@ -15,7 +15,7 @@
     @if (confirmation(); as order) {
       <div class="order-confirmation">
         <p>
-          Order placed: {{ order.side === 'buy' ? 'Buy' : 'Sell' }} {{ order.quantity }}
+          Order placed: {{ order.type === 'buy' ? 'Buy' : 'Sell' }} {{ order.quantity }}
           {{ symbol() }}
           {{
             order.kind === 'market'

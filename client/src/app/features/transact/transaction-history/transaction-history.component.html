@@ -1,33 +1,29 @@
-<section class="transaction-history card">
-  <header class="transaction-history-header">
-    <h2>Transaction History</h2>
+<app-widget-card class="transaction-history-card" title="Transaction History">
+  <div widget-actions class="transaction-filters">
+    <select
+      class="filter-select"
+      aria-label="Filter by type"
+      [value]="typeFilter()"
+      (change)="onTypeFilterChange($event)"
+    >
+      <option value="all">All Types</option>
+      <option value="deposit">Deposit</option>
+      <option value="withdrawal">Withdrawal</option>
+    </select>
 
-    <div class="transaction-filters">
-      <select
-        class="filter-select"
-        aria-label="Filter by type"
-        [value]="typeFilter()"
-        (change)="onTypeFilterChange($event)"
-      >
-        <option value="all">All Types</option>
-        <option value="deposit">Deposit</option>
-        <option value="withdrawal">Withdrawal</option>
-      </select>
-
-      <select
-        class="filter-select"
-        aria-label="Filter by status"
-        [value]="statusFilter()"
-        (change)="onStatusFilterChange($event)"
-      >
-        <option value="all">All Statuses</option>
-        <option value="pending">Pending</option>
-        <option value="completed">Completed</option>
-        <option value="failed">Failed</option>
-        <option value="cancelled">Cancelled</option>
-      </select>
-    </div>
-  </header>
+    <select
+      class="filter-select"
+      aria-label="Filter by status"
+      [value]="statusFilter()"
+      (change)="onStatusFilterChange($event)"
+    >
+      <option value="all">All Statuses</option>
+      <option value="pending">Pending</option>
+      <option value="completed">Completed</option>
+      <option value="failed">Failed</option>
+      <option value="cancelled">Cancelled</option>
+    </select>
+  </div>
 
   <div class="transaction-columns" role="row">
     <button type="button" class="sort-btn" (click)="setSort('createdAt')">
@@ -72,4 +68,4 @@
       </div>
     </ng-template>
   </app-scrollable-list>
-</section>
+</app-widget-card>
