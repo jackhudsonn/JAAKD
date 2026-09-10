@@ -1,0 +1,41 @@
+.order-details {
+  display: flex;
+  flex-direction: column;
+
+  gap: var(--space-sm);
+}
+
+.detail-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: var(--space-md);
+
+  padding: var(--space-xs) 0;
+
+  border-bottom: 1px solid var(--quaternary-bg-border);
+}
+
+.detail-label {
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.detail-value {
+  color: var(--secondary-light);
+  font-weight: 700;
+}
+
+.detail-value.buy {
+  color: var(--success);
+}
+
+.detail-value.sell {
+  color: var(--fail);
+}
+
+.cancel-btn {
+  margin-top: var(--space-sm);
+  width: 100%;
+}

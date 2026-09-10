@@ -1,11 +1,43 @@
 <main class="page-content">
   <h1>Transact</h1>
 
-  <p class="page-description">View your trading history.</p>
+  <p class="page-description">Deposit or withdraw funds and review your transaction history.</p>
 
-  <section class="panel empty-page">
-    <strong> Transacting coming soon </strong>
+  <div class="transact-tabs" role="tablist">
+    <button
+      type="button"
+      class="tab-btn"
+      role="tab"
+      [class.active]="activeTab() === 'deposit'"
+      [attr.aria-selected]="activeTab() === 'deposit'"
+      (click)="setTab('deposit')"
+    >
+      Deposit
+    </button>
 
-    <p>Deposit and withdrawal functionality will appear here.</p>
+    <button
+      type="button"
+      class="tab-btn"
+      role="tab"
+      [class.active]="activeTab() === 'withdrawal'"
+      [attr.aria-selected]="activeTab() === 'withdrawal'"
+      (click)="setTab('withdrawal')"
+    >
+      Withdrawal
+    </button>
+  </div>
+
+  <section class="transact-forms">
+    <div class="form-slot" [class.active]="activeTab() === 'deposit'">
+      <app-deposit-form (submitted)="onDeposit($event)" />
+    </div>
+
+    <div class="form-slot" [class.active]="activeTab() === 'withdrawal'">
+      <app-withdrawal-form (submitted)="onWithdrawal($event)" />
+    </div>
+
+    <div class="history-slot">
+      <app-transaction-history [transactions]="transactions()" />
+    </div>
   </section>
 </main>

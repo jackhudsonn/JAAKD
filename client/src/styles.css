@@ -19,6 +19,9 @@ body {
   min-height: 100%;
 
   background: var(--primary-bg);
+
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
 }
 
 body {
@@ -81,4 +84,38 @@ textarea {
 button,
 a {
   -webkit-tap-highlight-color: transparent;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 140, 0, 0.28);
+  background-clip: padding-box;
+}
+
+/* 600px and fewer should have smaller headings */
+@media (max-width: 600px) {
+  h1 {
+    font-size: var(--font-size-lg);
+  }
+
+  h2 {
+    font-size: var(--font-size-md);
+  }
+
+  h3 {
+    font-size: var(--font-size-sm);
+  }
 }

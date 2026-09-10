@@ -3,8 +3,6 @@
   usage so Open Orders, Watchlist, and any future scrollable widget/list all
   share the same "vibe" instead of each picking their own max-height.
 
-  No custom scrollbar styling per the design decision — relies on the
-  browser/OS default scrollbar.
 */
 .scrollable-list {
   display: flex;

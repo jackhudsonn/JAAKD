@@ -1,0 +1,76 @@
+.listing-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  width: 100%;
+
+  gap: var(--space-sm);
+
+  font-family: var(--font-base);
+  color: inherit;
+  background: none;
+  border: none;
+
+  text-align: left;
+}
+
+button.listing-row {
+  cursor: pointer;
+}
+
+.listing-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xxs);
+
+  min-width: 0;
+}
+
+.symbol {
+  color: var(--secondary-light);
+  font-weight: 700;
+}
+
+.cash-row .symbol {
+  color: var(--primary-light);
+}
+
+.name {
+  overflow: hidden;
+
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.price-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+
+  gap: var(--space-xxs);
+
+  flex-shrink: 0;
+}
+
+.price {
+  color: var(--secondary-light);
+  font-weight: 700;
+}
+
+.change {
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.change.positive {
+  color: var(--success);
+}
+
+.change.negative {
+  color: var(--fail);
+}

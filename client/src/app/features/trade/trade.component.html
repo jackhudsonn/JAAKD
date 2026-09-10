@@ -3,13 +3,110 @@
 
   <p class="page-description">Perform a trade.</p>
 
-  <section class="panel empty-page">
-    <strong> Trading coming soon </strong>
-
-    <p>Trading functionality will appear here.</p>
-    <div style="margin-top: 16px">
-      <button (click)="ping()">Ping orders API</button>
-      <span *ngIf="status()" style="margin-left: 12px">{{ status() }}</span>
+  @if (loadError()) {
+    <div class="error-banner">
+      <span>{{ loadError() }}</span>
+      <button type="button" class="btn btn-secondary" (click)="dismissError()">Dismiss</button>
     </div>
+  }
+
+  <section class="trade-grid">
+    <app-trade-card (selectSymbol)="openAsset($event, false)" />
+
+    <app-holdings-card
+      [holdings]="holdings()"
+      [accountCash]="accountCash()"
+      (selectSymbol)="openAsset($event, false)"
+    />
+
+    <app-orders-card
+      [openOrders]="openOrders()"
+      [historyOrders]="historyOrders()"
+      (selectOrder)="openOrderDetails($event)"
+    />
+
+    <app-watchlist-card
+      [symbols]="watchlistSymbols()"
+      [watchlists]="watchlistOptions()"
+      [activeWatchlistId]="activeWatchlistId()"
+      [canDeleteActive]="watchlists().length > 1"
+      (activeWatchlistChange)="setActiveWatchlist($event)"
+      (createWatchlist)="createWatchlist()"
+      (deleteActiveWatchlist)="deleteActiveWatchlist()"
+      (selectSymbol)="openAsset($event, true)"
+    />
   </section>
+
+  @if (watchlistDialogMode() === 'create') {
+    <app-modal title="Create Watchlist" (closed)="closeWatchlistDialog()">
+      <div class="watchlist-dialog">
+        <div class="form-field">
+          <label for="watchlist-name-input">Watchlist name</label>
+          <input
+            id="watchlist-name-input"
+            type="text"
+            [value]="watchlistNameDraft()"
+            (input)="onWatchlistNameInput($event)"
+            maxlength="40"
+            placeholder="e.g. Recommendations"
+          />
+        </div>
+
+        @if (watchlistDialogError()) {
+          <p class="form-error">{{ watchlistDialogError() }}</p>
+        }
+
+        <div class="watchlist-dialog-actions">
+          <button type="button" class="btn btn-secondary" (click)="closeWatchlistDialog()">
+            Cancel
+          </button>
+          <button type="button" class="btn btn-primary" (click)="saveWatchlistName()">Save</button>
+        </div>
+      </div>
+    </app-modal>
+  }
+
+  @if (watchlistDialogMode() === 'delete') {
+    @if (activeWatchlist(); as watchlist) {
+      <app-modal title="Delete Watchlist" (closed)="closeWatchlistDialog()">
+        <div class="watchlist-dialog">
+          <p class="watchlist-delete-copy">
+            Delete watchlist "{{ watchlist.name }}"? This cannot be undone.
+          </p>
+
+          <div class="watchlist-dialog-actions">
+            <button type="button" class="btn btn-secondary" (click)="closeWatchlistDialog()">
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary watchlist-delete-btn"
+              (click)="confirmDeleteWatchlist()"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      </app-modal>
+    }
+  }
+
+  @if (activeAssetSymbol(); as symbol) {
+    <app-asset-popup
+      [symbol]="symbol"
+      [showChart]="activeAssetShowChart()"
+      [ownedQuantity]="activeAssetOwnedQuantity()"
+      [accountCash]="accountCash()"
+      (closed)="closeAssetPopup()"
+      (orderPlaced)="placeOrder($event)"
+    />
+  }
+
+  @if (activeOrder(); as order) {
+    <app-order-details-popup
+      [order]="order"
+      (closed)="closeOrderPopup()"
+      (cancel)="cancelOrder($event)"
+    />
+  }
 </main>

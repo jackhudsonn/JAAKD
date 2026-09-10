@@ -16,9 +16,11 @@
 
 - Create client/src/app/features/transact/mock-data.ts
 - Pre-populate with sample transactions
-- Shared Components to Create
+
+## Shared Components to Create
+
 - StatusBadge (reusable status indicator: pending → filled → cancelled, etc.)
-- FormCard or keep forms simple and unstyled (your call)
+- FormCard
 
 ## Data Flow
 

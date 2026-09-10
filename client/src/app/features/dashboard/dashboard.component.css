@@ -97,4 +97,8 @@
 
     justify-self: stretch;
   }
+
+  .page-description {
+    font-size: var(--font-size-sm);
+  }
 }
