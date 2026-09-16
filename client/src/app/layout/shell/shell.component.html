@@ -1,5 +1,58 @@
 <div class="authenticated-shell">
   <app-navbar [user]="user()" [profileName]="displayName()" (logoutClicked)="logout()" />
+  <div class="market-ticker">
+  <div class="ticker-track">
+
+    <div class="ticker-group">
+      @for (item of tickerLoopItems; track $index) {
+        <div class="ticker-item">
+          <span class="ticker-symbol">
+            {{ item.symbol }}
+          </span>
+
+          <span class="ticker-value">
+            {{ item.value }}
+          </span>
+
+          <span
+            class="ticker-change"
+            [class.positive]="item.changePct >= 0"
+            [class.negative]="item.changePct < 0"
+          >
+            {{ item.changePct >= 0 ? '+' : '' }}
+            {{ item.changePct }}%
+            {{ item.changePct >= 0 ? '↑' : '↓' }}
+          </span>
+        </div>
+      }
+    </div>
+
+    <div class="ticker-group" aria-hidden="true">
+      @for (item of tickerLoopItems; track $index) {
+        <div class="ticker-item">
+          <span class="ticker-symbol">
+            {{ item.symbol }}
+          </span>
+
+          <span class="ticker-value">
+            {{ item.value }}
+          </span>
+
+          <span
+            class="ticker-change"
+            [class.positive]="item.changePct >= 0"
+            [class.negative]="item.changePct < 0"
+          >
+            {{ item.changePct >= 0 ? '+' : '' }}
+            {{ item.changePct }}%
+            {{ item.changePct >= 0 ? '↑' : '↓' }}
+          </span>
+        </div>
+      }
+    </div>
+
+  </div>
+</div>
 
   <router-outlet />
 </div>
