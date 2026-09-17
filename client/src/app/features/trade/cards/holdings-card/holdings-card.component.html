@@ -1,4 +1,17 @@
-<app-widget-card title="Holdings">
+<app-widget-card title="Your Holdings">
+  <label class="sr-only" for="holdings-filter">Filter holdings by asset class</label>
+  <select
+    widget-actions
+    id="holdings-filter"
+    class="instrument-select"
+    [ngModel]="instrument()"
+    (ngModelChange)="setInstrument($event)"
+  >
+    @for (option of filterOptions; track option.id) {
+      <option [ngValue]="option.id">{{ option.label }}</option>
+    }
+  </select>
+
   <app-scrollable-list [items]="rows()" [trackBy]="trackByRow" emptyMessage="No holdings yet.">
     <ng-template let-row>
       @if (row.kind === 'cash') {

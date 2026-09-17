@@ -6,7 +6,7 @@ import {
   PERFORMANCE_INTERVALS,
   PerformanceInterval,
   getMockPerformanceSeries,
-} from '../../mock-data';
+} from '../../../../core/mocks/mock-data';
 
 @Component({
   selector: 'app-performance-graph-widget',

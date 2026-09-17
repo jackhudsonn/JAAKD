@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, ElementRef, signal, viewChildren } from '@angular/core';
 import { WidgetSelectorComponent } from './widget-selector/widget-selector.component';
 import { PortfolioValueWidgetComponent } from './widgets/portfolio-value/portfolio-value.component';
 import { OpenOrdersWidgetComponent } from './widgets/open-orders/open-orders.component';
@@ -49,7 +49,11 @@ export class DashboardComponent {
   private enteringIds = signal<ReadonlySet<WidgetId>>(new Set());
   private leavingIds = signal<ReadonlySet<WidgetId>>(new Set());
 
+  private readonly widgetSlots = viewChildren<ElementRef<HTMLElement>>('widgetSlot');
+
   private static readonly EXIT_DURATION_MS = 260;
+  private static readonly REFLOW_DURATION_MS = 320;
+  private static readonly REFLOW_EASING = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
 
   isEntering(id: WidgetId) {
     return this.enteringIds().has(id);
@@ -72,7 +76,10 @@ export class DashboardComponent {
       this.leavingIds.update((current) => new Set(current).add(id));
 
       setTimeout(() => {
-        this.displayWidgets.update((current) => current.filter((widgetId) => widgetId !== id));
+        this.animateWidgetReflow(() => {
+          this.displayWidgets.update((current) => current.filter((widgetId) => widgetId !== id));
+        });
+
         this.leavingIds.update((current) => {
           const next = new Set(current);
           next.delete(id);
@@ -87,7 +94,10 @@ export class DashboardComponent {
     // "entering" for one frame so the CSS transition has a starting state
     // to animate from (scaled/faded in) before settling.
     this.selectedWidgets.update((current) => [...current, id]);
-    this.displayWidgets.update((current) => [...current, id]);
+    this.animateWidgetReflow(() => {
+      this.displayWidgets.update((current) => [...current, id]);
+    });
+
     this.enteringIds.update((current) => new Set(current).add(id));
 
     requestAnimationFrame(() => {
@@ -98,6 +108,68 @@ export class DashboardComponent {
           return next;
         });
       });
+    });
+  }
+
+  private captureSlotPositions() {
+    const positions = new Map<WidgetId, DOMRect>();
+
+    for (const slotRef of this.widgetSlots()) {
+      const slotEl = slotRef.nativeElement;
+      const widgetId = slotEl.dataset['widgetId'] as WidgetId | undefined;
+
+      if (!widgetId) {
+        continue;
+      }
+
+      positions.set(widgetId, slotEl.getBoundingClientRect());
+    }
+
+    return positions;
+  }
+
+  private animateWidgetReflow(mutate: () => void) {
+    const before = this.captureSlotPositions();
+
+    mutate();
+
+    requestAnimationFrame(() => {
+      const entering = this.enteringIds();
+      const leaving = this.leavingIds();
+
+      for (const slotRef of this.widgetSlots()) {
+        const slotEl = slotRef.nativeElement;
+        const widgetId = slotEl.dataset['widgetId'] as WidgetId | undefined;
+
+        if (!widgetId || !before.has(widgetId) || entering.has(widgetId) || leaving.has(widgetId)) {
+          continue;
+        }
+
+        const from = before.get(widgetId);
+
+        if (!from) {
+          continue;
+        }
+
+        const to = slotEl.getBoundingClientRect();
+        const deltaX = from.left - to.left;
+        const deltaY = from.top - to.top;
+
+        if (Math.abs(deltaX) < 0.5 && Math.abs(deltaY) < 0.5) {
+          continue;
+        }
+
+        slotEl.animate(
+          [
+            { transform: `translate(${deltaX}px, ${deltaY}px)` },
+            { transform: 'translate(0, 0)' },
+          ],
+          {
+            duration: DashboardComponent.REFLOW_DURATION_MS,
+            easing: DashboardComponent.REFLOW_EASING,
+          },
+        );
+      }
     });
   }
 }

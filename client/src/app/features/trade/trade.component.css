@@ -26,38 +26,17 @@
   gap: var(--space-lg);
 }
 
-.watchlist-dialog {
-  display: flex;
-  flex-direction: column;
-}
-
-.watchlist-dialog-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--space-sm);
-}
-
-.watchlist-delete-copy {
-  margin: 0 0 var(--space-lg);
-  color: var(--text-secondary);
-}
-
-.watchlist-delete-btn {
-  background: rgba(228, 91, 101, 0.18);
-  border-color: var(--fail);
-  color: #7a151f;
-}
-
-.watchlist-delete-btn:hover,
-.watchlist-delete-btn:focus-visible {
-  background: rgba(228, 91, 101, 0.28);
-  border-color: #cc3945;
-  color: #6a1019;
+.orders-card-slot {
+  grid-column: 1 / -1;
 }
 
 @media (max-width: 900px) {
   .trade-grid {
     grid-template-columns: 1fr;
+  }
+
+  .orders-card-slot {
+    grid-column: auto;
   }
 
   .page-description {

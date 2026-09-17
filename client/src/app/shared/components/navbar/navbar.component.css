@@ -47,7 +47,7 @@
 }
 
 .app-nav a.active {
-  color: var(--secondary-light);
+  color: var(--primary-light);
 }
 
 .menu-wrapper {

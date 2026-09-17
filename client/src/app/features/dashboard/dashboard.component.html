@@ -14,7 +14,9 @@
   <section class="widget-grid">
     @for (widgetId of displayWidgets(); track widgetId; let last = $last, count = $count) {
       <div
+        #widgetSlot
         class="widget-slot"
+        [attr.data-widget-id]="widgetId"
         [class.slot-centered]="last && count % 2 !== 0"
         [class.widget-enter]="isEntering(widgetId)"
         [class.widget-leave]="isLeaving(widgetId)"

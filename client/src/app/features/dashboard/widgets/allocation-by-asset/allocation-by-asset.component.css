@@ -13,3 +13,31 @@
   font-size: var(--font-size-xs);
   text-align: center;
 }
+
+.allocation-details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.allocation-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+
+  margin: 0;
+
+  color: var(--text-secondary);
+}
+
+.allocation-line strong {
+  color: var(--secondary-light);
+}
+
+.allocation-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+
+  margin-top: var(--space-sm);
+}

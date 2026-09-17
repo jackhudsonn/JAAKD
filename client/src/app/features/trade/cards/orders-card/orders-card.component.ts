@@ -5,7 +5,7 @@ import { ScrollableListComponent } from '../../../../shared/components/scrollabl
 import { StatusBadgeComponent } from '../../../../shared/components/status-badge/status-badge.component';
 import { startCycleTimer } from '../../../../shared/utils/cycle-timer';
 import { Order } from '../../../../core/models';
-import { MARKET_ORDER_PENDING_MS } from '../../mock-data';
+import { MARKET_ORDER_PENDING_MS } from '../../../../core/mocks/mock-data';
 
 type SortKey = 'createdAt' | 'symbol' | 'status';
 type SortDirection = 'asc' | 'desc';

@@ -59,6 +59,21 @@ export class PieChartComponent implements AfterViewInit, OnChanges, OnDestroy {
         maintainAspectRatio: false,
         onClick: (_event, elements) => this.handleClick(elements),
         plugins: {
+          tooltip: {
+            callbacks: {
+              label: (context) => {
+                const value = Number(context.raw ?? 0);
+                const values = context.dataset.data.map((point) => Number(point ?? 0));
+                const total = values.reduce((sum, point) => sum + point, 0);
+                const percent = total > 0 ? (value / total) * 100 : 0;
+
+                return `${context.label}: ${value.toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })} (${percent.toFixed(1)}%)`;
+              },
+            },
+          },
           legend: {
             position: 'bottom',
             labels: { color: '#d6d8d7', boxWidth: 12, padding: 12 },

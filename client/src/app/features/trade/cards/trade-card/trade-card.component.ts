@@ -5,7 +5,7 @@ import { WidgetCardComponent } from '../../../../shared/components/widget-card/w
 import { ScrollableListComponent } from '../../../../shared/components/scrollable-list/scrollable-list.component';
 import { startCycleTimer } from '../../../../shared/utils/cycle-timer';
 import { InstrumentType } from '../../../../core/models';
-import { MOCK_ASSETS, MockAsset, getMockPrice } from '../../mock-data';
+import { MOCK_ASSETS, MockAsset, getMockPrice } from '../../../../core/mocks/mock-data';
 
 interface TickerRow {
   asset: MockAsset;

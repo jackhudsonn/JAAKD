@@ -1,7 +1,7 @@
 import { Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { WidgetCardComponent } from '../../../../shared/components/widget-card/widget-card.component';
-import { MOCK_PORTFOLIO_VALUE, MOCK_RETURNS } from '../../mock-data';
+import { MOCK_RETURNS, MOCK_STATE, getMockPrice } from '../../../../core/mocks/mock-data';
 import { startCycleTimer } from '../../../../shared/utils/cycle-timer';
 
 type ValueMode = 'cash' | 'assets' | 'total';
@@ -28,14 +28,15 @@ const RETURNS_MODES: { mode: ReturnsMode; label: string }[] = [
 export class PortfolioValueWidgetComponent implements OnInit, OnDestroy {
   private stopValueCycle?: () => void;
   private stopReturnsCycle?: () => void;
+  private stopPriceCycle?: () => void;
 
-  // TODO: replace with a live account balance + position valuation stream.
-  private readonly values = MOCK_PORTFOLIO_VALUE;
   // TODO: replace with a live performance/analytics endpoint (all-time + daily P&L).
   private readonly returns = MOCK_RETURNS;
 
   valueIndex = signal(0);
   valueFading = signal(false);
+
+  private priceTick = signal(0);
 
   returnsIndex = signal(0);
   returnsFading = signal(false);
@@ -45,7 +46,23 @@ export class PortfolioValueWidgetComponent implements OnInit, OnDestroy {
   }
 
   get activeValueAmount() {
-    return this.values[VALUE_MODES[this.valueIndex()].mode];
+    const mode = VALUE_MODES[this.valueIndex()].mode;
+    const cash = MOCK_STATE.accountCash();
+    this.priceTick();
+    const assets = MOCK_STATE.holdings().reduce(
+      (total, holding) => total + holding.quantity * getMockPrice(holding.symbol),
+      0,
+    );
+
+    if (mode === 'cash') {
+      return cash;
+    }
+
+    if (mode === 'assets') {
+      return assets;
+    }
+
+    return cash + assets;
   }
 
   get activeReturnsLabel() {
@@ -76,10 +93,15 @@ export class PortfolioValueWidgetComponent implements OnInit, OnDestroy {
         this.returnsFading.set(false);
       }, 250);
     });
+
+    this.stopPriceCycle = startCycleTimer(1, 1000, () =>
+      this.priceTick.update((tick) => tick + 1),
+    );
   }
 
   ngOnDestroy() {
     this.stopValueCycle?.();
     this.stopReturnsCycle?.();
+    this.stopPriceCycle?.();
   }
 }

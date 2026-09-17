@@ -1,32 +1,33 @@
-<app-widget-card title="Open Orders" [subtitle]="orders().length + ' pending'">
-  <app-scrollable-list [items]="orders()" [trackBy]="trackById" emptyMessage="No open orders.">
-    <ng-template let-order>
-      <div class="order-row">
-        <div class="order-info">
-          <span class="order-symbol">{{ order.symbol }}</span>
+<app-widget-card title="Open Orders">
+  <app-scrollable-list [items]="items()" [trackBy]="trackById" emptyMessage="No pending activity.">
+    <ng-template let-item>
+      @if (item.kind === 'transaction') {
+        <div class="activity-row transaction-row">
+          <span class="activity-date">{{ item.createdAt | date: 'MMM d, y' }}</span>
           <span
-            class="order-side"
-            [class.buy]="order.side === 'buy'"
-            [class.sell]="order.side === 'sell'"
+            class="activity-type"
+            [class.deposit]="item.typeLabel === 'Deposit'"
+            [class.withdrawal]="item.typeLabel === 'Withdrawal'"
           >
-            {{ order.side | titlecase }}
+            {{ item.typeLabel }}
           </span>
+          <span class="activity-amount">${{ item.amount | number: '1.2-2' }}</span>
+          <span class="activity-meta">{{ item.methodLabel }}</span>
         </div>
-
-        <div class="order-meta">
-          <span>{{ order.quantity }} @ {{ order.price | number: '1.2-2' }}</span>
-          <span class="order-status">{{ order.status | titlecase }}</span>
+      } @else {
+        <div class="activity-row trade-row">
+          <span class="activity-date">{{ item.createdAt | date: 'MMM d, y' }}</span>
+          <span
+            class="activity-type"
+            [class.buy]="item.typeLabel === 'Buy'"
+            [class.sell]="item.typeLabel === 'Sell'"
+          >
+            {{ item.typeLabel }}
+          </span>
+          <span class="activity-symbol">{{ item.symbol }}</span>
+          <span class="activity-meta">Qty {{ item.quantity }}</span>
         </div>
-
-        <button
-          type="button"
-          class="remove-btn"
-          aria-label="Cancel order"
-          (click)="cancelOrder(order.id)"
-        >
-          ×
-        </button>
-      </div>
+      }
     </ng-template>
   </app-scrollable-list>
 </app-widget-card>
