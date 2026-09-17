@@ -18,9 +18,7 @@
         [class.negative]="item.changePct < 0"
         [class.neutral]="item.changePct === 0"
       >
-        {{ item.changePct > 0 ? '+' : '' }}
-        {{ item.changePct }}%
-        {{ item.changePct > 0 ? '↑' : item.changePct < 0 ? '↓' : '' }}
+        {{ formatChange(item.changePct) }}
       </span>
     </div>
   }

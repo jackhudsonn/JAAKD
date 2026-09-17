@@ -19,6 +19,7 @@ export class MarketTickerService {
       { symbol: 'ETH', value: '2,980.00', changePct: -1.13 },
       { symbol: 'NVDA', value: '118.60', changePct: 1.84 },
       { symbol: 'AMZN', value: '186.30', changePct: -0.76 },
+      { symbol: 'JAAKD', value: '17.48', changePct: 0 },
     ];
   }
 }

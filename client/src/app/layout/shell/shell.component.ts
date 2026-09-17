@@ -70,4 +70,16 @@ export class ShellComponent implements OnInit {
     }
     await this.router.navigate(['/auth/login']);
   }
+
+  formatChange(changePct: number): string {
+    if (changePct > 0) {
+      return `+${changePct}% ↑`;
+    }
+
+    if (changePct < 0) {
+      return `${changePct}% ↓`;
+    }
+    
+    return `${changePct}%`;
+  }
 }
