@@ -1,5 +1,39 @@
 <div class="authenticated-shell">
   <app-navbar [user]="user()" [profileName]="displayName()" (logoutClicked)="logout()" />
+  <div class="market-ticker">
+<ng-template #tickerItems>
+  @for (item of tickerLoopItems; track $index) {
+    <div class="ticker-item">
+      <span class="ticker-symbol">
+        {{ item.symbol }}
+      </span>
+
+      <span class="ticker-value">
+        {{ item.value }}
+      </span>
+
+      <span
+        class="ticker-change"
+        [class.positive]="item.changePct > 0"
+        [class.negative]="item.changePct < 0"
+        [class.neutral]="item.changePct === 0"
+      >
+        {{ formatChange(item.changePct) }}
+      </span>
+    </div>
+  }
+</ng-template>
+
+<div class="ticker-track">
+  <div class="ticker-group">
+    <ng-container [ngTemplateOutlet]="tickerItems" />
+  </div>
+
+  <div class="ticker-group" aria-hidden="true">
+    <ng-container [ngTemplateOutlet]="tickerItems" />
+  </div>
+</div>
+  </div>
 
   <router-outlet />
 </div>
