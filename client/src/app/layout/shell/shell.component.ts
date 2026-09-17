@@ -4,10 +4,11 @@ import { User } from '@supabase/supabase-js';
 import { SupabaseService } from '../../core/services/supabase.service';
 import { NavbarComponent } from '../../shared/components/navbar/navbar.component';
 import { MarketTickerItem, MarketTickerService } from '../../core/services/market-ticker.service';
+import { NgTemplateOutlet } from '@angular/common';
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [RouterOutlet, NavbarComponent],
+  imports: [RouterOutlet, NavbarComponent, NgTemplateOutlet],
   templateUrl: './shell.component.html',
   styleUrl: './shell.component.css',
 })
