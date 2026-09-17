@@ -21,7 +21,7 @@
   top: var(--header-height);
   left: 0;
   right: 0;
-
+  z-index: 10;
   height: var(--market-ticker-height);
   overflow: hidden;
 

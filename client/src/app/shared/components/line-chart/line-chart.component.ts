@@ -22,20 +22,8 @@ export interface LineChartPoint {
 @Component({
   selector: 'app-line-chart',
   standalone: true,
-  template: `<canvas #canvas></canvas>`,
-  styles: [
-    `
-      :host {
-        display: block;
-        height: 220px;
-      }
-
-      canvas {
-        width: 100% !important;
-        height: 100% !important;
-      }
-    `,
-  ],
+  templateUrl: './line-chart.component.html',
+  styleUrl: './line-chart.component.css',
 })
 export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
   points = input.required<LineChartPoint[]>();
@@ -64,6 +52,14 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
         },
         plugins: {
           legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (context: any) => {
+                const val = context.parsed?.y ?? context.parsed ?? context.raw;
+                return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
+              },
+            },
+          },
         },
       },
     });

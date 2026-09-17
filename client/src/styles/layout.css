@@ -116,7 +116,7 @@
 
   margin: 0 auto;
 
-  padding: var(--space-xl) var(--space-xl);
+  padding: 0 var(--space-lg);
 }
 
 .page-content h1 {

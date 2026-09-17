@@ -1,32 +1,22 @@
 import { Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { TradeCardComponent } from './cards/trade-card/trade-card.component';
 import { HoldingsCardComponent } from './cards/holdings-card/holdings-card.component';
 import { OrdersCardComponent } from './cards/orders-card/orders-card.component';
-import { WatchlistCardComponent } from './cards/watchlist-card/watchlist-card.component';
 import {
   AssetPopupComponent,
   AssetOrderPlaced,
 } from './components/asset-popup/asset-popup.component';
 import { OrderDetailsPopupComponent } from './components/order-details-popup/order-details-popup.component';
-import { ModalComponent } from '../../shared/components/modal/modal.component';
 import { startCycleTimer } from '../../shared/utils/cycle-timer';
-import { Holding, Order } from '../../core/models';
+import { Order } from '../../core/models';
 import {
   MARKET_ORDER_PENDING_MS,
-  MOCK_ACCOUNT_CASH,
+  MOCK_STATE,
   MOCK_ASSETS,
-  MOCK_HOLDINGS,
-  MOCK_OPEN_ORDERS,
-  MOCK_ORDER_HISTORY,
-  MOCK_WATCHLIST_SYMBOLS,
   getMockPrice,
-} from './mock-data';
-
-interface TradeWatchlist {
-  id: string;
-  name: string;
-  symbols: string[];
-}
+} from '../../core/mocks/mock-data';
 
 @Component({
   selector: 'app-trade',
@@ -35,38 +25,18 @@ interface TradeWatchlist {
     TradeCardComponent,
     HoldingsCardComponent,
     OrdersCardComponent,
-    WatchlistCardComponent,
     AssetPopupComponent,
     OrderDetailsPopupComponent,
-    ModalComponent,
   ],
   templateUrl: './trade.component.html',
   styleUrl: './trade.component.css',
 })
 export class TradeComponent implements OnInit, OnDestroy {
   // TODO: replace with AccountService.getCash() / PortfolioService.getHoldings() /
-  // OrdersService.getOpenOrders()+getHistory() / a saved watchlist endpoint.
-  accountCash = signal(MOCK_ACCOUNT_CASH);
-  holdings = signal<Holding[]>([...MOCK_HOLDINGS]);
-  orders = signal<Order[]>([...MOCK_OPEN_ORDERS, ...MOCK_ORDER_HISTORY]);
-  watchlists = signal<TradeWatchlist[]>([
-    { id: 'recommendations', name: 'Recommendations', symbols: [...MOCK_WATCHLIST_SYMBOLS] },
-    { id: 'save-for-later', name: 'Save for Later', symbols: ['IONQ', 'IBM', 'BTC'] },
-  ]);
-  activeWatchlistId = signal('recommendations');
-  watchlistSymbols = computed(() => {
-    const active = this.watchlists().find((watchlist) => watchlist.id === this.activeWatchlistId());
-    return active?.symbols ?? [];
-  });
-  watchlistOptions = computed(() =>
-    this.watchlists().map((watchlist) => ({ id: watchlist.id, name: watchlist.name })),
-  );
-  activeWatchlist = computed(
-    () => this.watchlists().find((watchlist) => watchlist.id === this.activeWatchlistId()) ?? null,
-  );
-  watchlistDialogMode = signal<'create' | 'delete' | null>(null);
-  watchlistNameDraft = signal('');
-  watchlistDialogError = signal<string | null>(null);
+  // OrdersService.getOpenOrders()+getHistory().
+  accountCash = MOCK_STATE.accountCash;
+  holdings = MOCK_STATE.holdings;
+  orders = MOCK_STATE.orders;
 
   // Non-blocking banner for failed data loads. Currently unused since mock
   // data can't fail to load — wire this up once the signals above are
@@ -94,111 +64,46 @@ export class TradeComponent implements OnInit, OnDestroy {
   );
 
   private stopTicking?: () => void;
+  private routeQuerySubscription?: Subscription;
+
+  constructor(
+    private readonly route: ActivatedRoute,
+    private readonly router: Router,
+  ) {}
 
   ngOnInit() {
     this.stopTicking = startCycleTimer(1, 1000, () => this.processOrders());
+
+    this.routeQuerySubscription = this.route.queryParamMap.subscribe((queryParams) => {
+      const rawSymbol = queryParams.get('symbol');
+      if (!rawSymbol) {
+        return;
+      }
+
+      const symbol = rawSymbol.trim().toUpperCase();
+      if (!MOCK_ASSETS.some((asset) => asset.symbol === symbol)) {
+        return;
+      }
+
+      this.openAsset(symbol, false);
+
+      // Consume the deep-link param so refresh/back doesn't reopen unexpectedly.
+      void this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { symbol: null },
+        queryParamsHandling: 'merge',
+        replaceUrl: true,
+      });
+    });
   }
 
   ngOnDestroy() {
     this.stopTicking?.();
+    this.routeQuerySubscription?.unsubscribe();
   }
 
   dismissError() {
     this.loadError.set(null);
-  }
-
-  setActiveWatchlist(watchlistId: string) {
-    if (!this.watchlists().some((watchlist) => watchlist.id === watchlistId)) {
-      return;
-    }
-    this.activeWatchlistId.set(watchlistId);
-  }
-
-  createWatchlist() {
-    this.watchlistNameDraft.set('');
-    this.watchlistDialogError.set(null);
-    this.watchlistDialogMode.set('create');
-  }
-
-  deleteActiveWatchlist() {
-    if (this.watchlists().length <= 1) {
-      return;
-    }
-
-    this.watchlistDialogError.set(null);
-    this.watchlistDialogMode.set('delete');
-  }
-
-  closeWatchlistDialog() {
-    this.watchlistDialogMode.set(null);
-    this.watchlistNameDraft.set('');
-    this.watchlistDialogError.set(null);
-  }
-
-  onWatchlistNameInput(event: Event) {
-    const target = event.target as HTMLInputElement;
-    this.watchlistNameDraft.set(target.value);
-    if (this.watchlistDialogError()) {
-      this.watchlistDialogError.set(null);
-    }
-  }
-
-  saveWatchlistName() {
-    const mode = this.watchlistDialogMode();
-    if (mode !== 'create') {
-      return;
-    }
-
-    const trimmedName = this.watchlistNameDraft().trim();
-    if (!trimmedName) {
-      this.watchlistDialogError.set('Watchlist name is required.');
-      return;
-    }
-
-    if (this.isWatchlistNameTaken(trimmedName)) {
-      this.watchlistDialogError.set('A watchlist with that name already exists.');
-      return;
-    }
-
-    const baseId = trimmedName
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
-    const idSeed = baseId || 'watchlist';
-    const id = `${idSeed}-${Date.now()}`;
-
-    this.watchlists.update((current) => [...current, { id, name: trimmedName, symbols: [] }]);
-    this.activeWatchlistId.set(id);
-    this.closeWatchlistDialog();
-  }
-
-  confirmDeleteWatchlist() {
-    const currentWatchlists = this.watchlists();
-    if (currentWatchlists.length <= 1) {
-      return;
-    }
-
-    const activeId = this.activeWatchlistId();
-    const activeIndex = currentWatchlists.findIndex((watchlist) => watchlist.id === activeId);
-    if (activeIndex < 0) {
-      return;
-    }
-
-    const nextActive =
-      currentWatchlists[activeIndex + 1] ??
-      currentWatchlists[activeIndex - 1] ??
-      currentWatchlists[0];
-
-    this.watchlists.set(currentWatchlists.filter((watchlist) => watchlist.id !== activeId));
-    this.activeWatchlistId.set(nextActive.id);
-    this.closeWatchlistDialog();
-  }
-
-  private isWatchlistNameTaken(name: string) {
-    const normalizedName = name.trim().toLowerCase();
-    return this.watchlists().some(
-      (watchlist) => watchlist.name.trim().toLowerCase() === normalizedName,
-    );
   }
 
   openAsset(symbol: string, showChart = false) {

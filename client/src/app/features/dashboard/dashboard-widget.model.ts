@@ -20,8 +20,8 @@ export interface WidgetDefinition {
 
 export const WIDGET_CATALOGUE: WidgetDefinition[] = [
   { id: 'performance-graph', label: 'Performance Graph', defaultEnabled: true },
-  { id: 'portfolio-value', label: 'Portfolio Value & Returns', defaultEnabled: true },
   { id: 'watchlist', label: 'Watchlist', defaultEnabled: true },
+  { id: 'portfolio-value', label: 'Portfolio Value & Returns', defaultEnabled: true },
   { id: 'allocation-by-asset', label: 'Allocation by Asset', defaultEnabled: true },
   { id: 'open-orders', label: 'Open Orders', defaultEnabled: false },
   { id: 'top-movers', label: 'Top Movers', defaultEnabled: false },

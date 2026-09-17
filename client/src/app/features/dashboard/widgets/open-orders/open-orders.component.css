@@ -1,61 +1,45 @@
-.order-row {
-  display: flex;
+.activity-row {
+  display: grid;
+  grid-template-columns: 1.1fr 0.8fr 0.9fr 1.2fr;
   align-items: center;
-  justify-content: space-between;
 
+  width: 100%;
   gap: var(--space-sm);
+
+  font-family: var(--font-base);
 }
 
-.order-info {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xxs);
-}
-
-.order-symbol {
-  color: var(--secondary-light);
-  font-weight: 700;
-}
-
-.order-side {
-  font-size: var(--font-size-xs);
-  text-transform: uppercase;
-}
-
-.order-side.buy {
-  color: var(--success);
-}
-
-.order-side.sell {
-  color: var(--fail);
-}
-
-.order-meta {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-
-  gap: var(--space-xxs);
-
+.activity-date,
+.activity-meta {
   color: var(--text-secondary);
   font-size: var(--font-size-sm);
 }
 
-.order-status {
-  color: var(--text-muted);
-  font-size: var(--font-size-xs);
+.activity-type {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
-.remove-btn {
-  background: none;
-  border: none;
-
-  color: var(--text-muted);
-  font-size: var(--font-size-md);
-  line-height: 1;
-  cursor: pointer;
+.activity-type.deposit,
+.activity-type.buy {
+  color: var(--success);
 }
 
-.remove-btn:hover {
+.activity-type.withdrawal,
+.activity-type.sell {
   color: var(--fail);
+}
+
+.activity-amount,
+.activity-symbol {
+  color: var(--secondary-light);
+  font-weight: 700;
+}
+
+@media (max-width: 500px) {
+  .activity-row {
+    grid-template-columns: 1fr 1fr;
+    row-gap: var(--space-xxs);
+  }
 }

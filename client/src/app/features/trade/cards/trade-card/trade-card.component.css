@@ -79,7 +79,7 @@ button.listing-row {
 }
 
 .instrument-select {
-  width: 150px;
+  width: 90px;
 
   padding: var(--space-xs) var(--space-sm);
 
@@ -103,8 +103,7 @@ button.listing-row {
 
 .ticker-search-header {
   flex: 1;
-  min-width: 200px;
-  max-width: 300px;
+  width: 110px;
 
   padding: var(--space-xs) var(--space-sm);
 
