@@ -1,9 +1,9 @@
 import { Component, computed, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { Router } from '@angular/router';
-import { ModalComponent } from '../../../../shared/components/modal/modal.component';
-import { MOCK_STATE, getAsset, getMockPrice } from '../../../../core/mocks/mock-data';
-import { AllocationAssetSelection } from '../../widgets/allocation-by-asset/allocation-by-asset.component';
+import { ModalComponent } from '@shared/components/modal/modal.component';
+import { MOCK_STATE, getAsset, getMockPrice } from '@core/mocks/mock-data';
+import { AllocationAssetSelection } from '@features/dashboard/widgets/allocation-by-asset/allocation-by-asset.component';
 
 interface WatchlistAssetSummary {
   symbol: string;

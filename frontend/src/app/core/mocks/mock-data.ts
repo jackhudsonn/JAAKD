@@ -7,8 +7,8 @@ import {
   PaymentMethod,
   TransactionStatus,
   TransactionType,
-} from '../models';
-import { LineChartPoint } from '../../shared/components/line-chart/line-chart.component';
+} from '@core/models';
+import { LineChartPoint } from '@shared/components/line-chart/line-chart.component';
 
 // Unified source of mock fixtures for Dashboard, Trade, and Transact.
 // TODO: Replace this module with real services once backend endpoints exist.

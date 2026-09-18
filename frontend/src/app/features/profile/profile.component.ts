@@ -8,7 +8,7 @@ import {
   getLatestEligibleDob,
   isAtLeast18,
   isValidPostalCode,
-} from '../../shared/utils/profile-validation';
+} from '@shared/utils/profile-validation';
 @Component({
   selector: 'app-profile',
   standalone: true,
