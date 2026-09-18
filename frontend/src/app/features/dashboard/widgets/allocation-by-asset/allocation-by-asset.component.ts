@@ -1,14 +1,13 @@
-import { Component, computed, signal } from '@angular/core';
-import { DecimalPipe } from '@angular/common';
+import { Component, computed, output, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { WidgetCardComponent } from '../../../../shared/components/widget-card/widget-card.component';
+import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
 import {
   PieChartComponent,
   PieChartSlice,
-} from '../../../../shared/components/pie-chart/pie-chart.component';
-import { ModalComponent } from '../../../../shared/components/modal/modal.component';
-import { MOCK_STATE, getMockPrice } from '../../../../core/mocks/mock-data';
+} from '@shared/components/pie-chart/pie-chart.component';
+import { MOCK_STATE, getMockPrice } from '@core/mocks/mock-data';
 
+// TODO: confirm that these are the correct categories
 type AllocationCategory = 'Cash' | 'Stocks' | 'Crypto' | 'Bonds';
 
 const CATEGORY_COLORS: Record<AllocationCategory, string> = {
@@ -26,10 +25,17 @@ const CATEGORY_BY_INSTRUMENT = {
 
 const ASSET_COLOR_PALETTE = ['#ff8c00', '#ffa31a', '#d97700', '#4fc46a', '#7fd68f', '#2f8f45'];
 
+export interface AllocationAssetSelection {
+  symbol: string;
+  price: number;
+  estimatedUnits: number;
+  value: number;
+}
+
 @Component({
   selector: 'app-allocation-by-asset-widget',
   standalone: true,
-  imports: [WidgetCardComponent, PieChartComponent, ModalComponent, DecimalPipe],
+  imports: [WidgetCardComponent, PieChartComponent],
   templateUrl: './allocation-by-asset.component.html',
   styleUrl: './allocation-by-asset.component.css',
 })
@@ -37,9 +43,10 @@ export class AllocationByAssetWidgetComponent {
   private readonly accountCash = MOCK_STATE.accountCash;
   private readonly holdings = MOCK_STATE.holdings;
 
+  assetSelected = output<AllocationAssetSelection>();
+
   // null == showing the top-level "by type" view.
   selectedCategory = signal<AllocationCategory | null>(null);
-  selectedAssetSlice = signal<PieChartSlice | null>(null);
 
   constructor(private readonly router: Router) {}
 
@@ -108,21 +115,6 @@ export class AllocationByAssetWidgetComponent {
     return this.breakdowns()[category].filter((slice) => slice.value > 0);
   });
 
-  selectedAssetSummary = computed(() => {
-    const slice = this.selectedAssetSlice();
-    if (!slice) {
-      return null;
-    }
-
-    const price = getMockPrice(slice.label);
-    return {
-      symbol: slice.label,
-      price,
-      estimatedUnits: price > 0 ? slice.value / price : 0,
-      value: slice.value,
-    };
-  });
-
   onSliceClick(slice: PieChartSlice) {
     // Only drill down from top-level, and only when a category exists.
     const category = this.selectedCategory();
@@ -144,25 +136,16 @@ export class AllocationByAssetWidgetComponent {
       return;
     }
 
-    this.selectedAssetSlice.set(slice);
+    const price = getMockPrice(slice.label);
+    this.assetSelected.emit({
+      symbol: slice.label,
+      price,
+      estimatedUnits: price > 0 ? slice.value / price : 0,
+      value: slice.value,
+    });
   }
 
   goBack() {
     this.selectedCategory.set(null);
-    this.selectedAssetSlice.set(null);
-  }
-
-  closeAssetPopup() {
-    this.selectedAssetSlice.set(null);
-  }
-
-  openTradeForSelectedAsset() {
-    const selected = this.selectedAssetSummary();
-    if (!selected) {
-      return;
-    }
-
-    this.closeAssetPopup();
-    void this.router.navigate(['/trade'], { queryParams: { symbol: selected.symbol } });
   }
 }

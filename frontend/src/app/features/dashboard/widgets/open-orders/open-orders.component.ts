@@ -1,8 +1,8 @@
 import { Component, computed } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
-import { WidgetCardComponent } from '../../../../shared/components/widget-card/widget-card.component';
-import { ScrollableListComponent } from '../../../../shared/components/scrollable-list/scrollable-list.component';
-import { MOCK_STATE } from '../../../../core/mocks/mock-data';
+import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
+import { ScrollableListComponent } from '@shared/components/scrollable-list/scrollable-list.component';
+import { MOCK_STATE } from '@core/mocks/mock-data';
 
 type OpenItem =
   | {

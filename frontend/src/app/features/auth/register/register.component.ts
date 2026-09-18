@@ -1,14 +1,14 @@
 import { Component, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { SupabaseService } from '../../../core/services/supabase.service';
-import { LocationDataService, CountryOption } from '../../../core/services/location-data.service';
+import { SupabaseService } from '@core/services/supabase.service';
+import { LocationDataService, CountryOption } from '@core/services/location-data.service';
 
 import {
   getLatestEligibleDob,
   isAtLeast18,
   isValidPostalCode,
-} from '../../../shared/utils/profile-validation';
+} from '@shared/utils/profile-validation';
 @Component({
   selector: 'app-register',
   standalone: true,

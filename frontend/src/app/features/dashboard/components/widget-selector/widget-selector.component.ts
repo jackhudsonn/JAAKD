@@ -7,12 +7,36 @@ import {
   output,
   input,
 } from '@angular/core';
-import {
-  MAX_SELECTED_WIDGETS,
-  MIN_SELECTED_WIDGETS,
-  WIDGET_CATALOGUE,
-  WidgetId,
-} from '../dashboard-widget.model';
+
+
+export type WidgetId =
+  | 'portfolio-value'
+  | 'open-orders'
+  | 'watchlist'
+  | 'top-movers'
+  | 'allocation-by-asset'
+  | 'performance-graph'
+  | 'to-be-deleted';
+
+interface WidgetDefinition {
+  id: WidgetId;
+  label: string;
+  /** Widgets enabled by default on first load. */
+  defaultEnabled: boolean;
+}
+
+export const WIDGET_CATALOGUE: WidgetDefinition[] = [
+  { id: 'performance-graph', label: 'Performance Graph', defaultEnabled: true },
+  { id: 'watchlist', label: 'Watchlist', defaultEnabled: true },
+  { id: 'portfolio-value', label: 'Portfolio Value & Returns', defaultEnabled: true },
+  { id: 'allocation-by-asset', label: 'Allocation by Asset', defaultEnabled: true },
+  { id: 'open-orders', label: 'Open Orders', defaultEnabled: false },
+  { id: 'top-movers', label: 'Top Movers', defaultEnabled: false },
+  { id: 'to-be-deleted', label: 'To Be Deleted', defaultEnabled: false },
+];
+
+const MIN_SELECTED_WIDGETS = 2;
+const MAX_SELECTED_WIDGETS = WIDGET_CATALOGUE.length;
 
 @Component({
   selector: 'app-widget-selector',

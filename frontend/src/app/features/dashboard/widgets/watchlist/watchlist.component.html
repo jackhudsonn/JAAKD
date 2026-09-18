@@ -16,7 +16,7 @@
     <button
       type="button"
       class="watchlist-action-btn"
-      (click)="createWatchlist()"
+      (click)="requestCreateWatchlist()"
       aria-label="Create watchlist"
       title="Create watchlist"
     >
@@ -27,7 +27,7 @@
       type="button"
       class="watchlist-action-btn danger"
       [disabled]="!canDeleteActive()"
-      (click)="deleteActiveWatchlist()"
+      (click)="requestDeleteWatchlist()"
       aria-label="Delete watchlist"
       title="Delete watchlist"
     >
@@ -41,7 +41,7 @@
     emptyMessage="Your watchlist is empty."
   >
     <ng-template let-row>
-      <button type="button" class="listing-row" (click)="openAssetInfo(row.symbol)">
+      <button type="button" class="listing-row" (click)="requestAssetDetails(row.symbol)">
         <div class="watchlist-info">
           <span class="symbol">{{ row.symbol }}</span>
           <span class="name">{{ row.name }}</span>
@@ -60,75 +60,3 @@
     </ng-template>
   </app-scrollable-list>
 </app-widget-card>
-
-@if (watchlistDialogMode() === 'create') {
-  <app-modal title="Create Watchlist" (closed)="closeWatchlistDialog()">
-    <div class="watchlist-dialog">
-      <div class="form-field">
-        <label for="dashboard-watchlist-name-input">Watchlist name</label>
-        <input
-          id="dashboard-watchlist-name-input"
-          type="text"
-          [value]="watchlistNameDraft()"
-          (input)="onWatchlistNameInput($event)"
-          maxlength="40"
-          placeholder="e.g. Recommendations"
-        />
-      </div>
-
-      @if (watchlistDialogError()) {
-        <p class="form-error">{{ watchlistDialogError() }}</p>
-      }
-
-      <div class="watchlist-dialog-actions">
-        <button type="button" class="btn btn-secondary" (click)="closeWatchlistDialog()">Cancel</button>
-        <button type="button" class="btn btn-primary" (click)="saveWatchlistName()">Save</button>
-      </div>
-    </div>
-  </app-modal>
-}
-
-@if (watchlistDialogMode() === 'delete') {
-  @if (activeWatchlist(); as watchlist) {
-    <app-modal title="Delete Watchlist" (closed)="closeWatchlistDialog()">
-      <div class="watchlist-dialog">
-        <p class="watchlist-delete-copy">Delete watchlist "{{ watchlist.name }}"? This cannot be undone.</p>
-
-        <div class="watchlist-dialog-actions">
-          <button type="button" class="btn btn-secondary" (click)="closeWatchlistDialog()">Cancel</button>
-          <button
-            type="button"
-            class="btn btn-primary watchlist-delete-btn"
-            (click)="confirmDeleteWatchlist()"
-          >
-            Delete
-          </button>
-        </div>
-      </div>
-    </app-modal>
-  }
-}
-
-@if (selectedRow(); as row) {
-  <app-modal [title]="row.name" (closed)="closeAssetInfo()">
-    <div class="watchlist-details">
-      <div class="watchlist-details-header">
-        <span class="symbol">{{ row.symbol }}</span>
-        <span
-          class="change"
-          [class.positive]="row.changePct >= 0"
-          [class.negative]="row.changePct < 0"
-        >
-          {{ row.changePct >= 0 ? '+' : '' }}{{ row.changePct | number: '1.2-2' }}%
-        </span>
-      </div>
-
-      <p class="watchlist-details-price">Current Price: {{ row.price | number: '1.2-2' }}</p>
-
-      <div class="watchlist-details-actions">
-        <button type="button" class="btn btn-secondary" (click)="closeAssetInfo()">Close</button>
-        <button type="button" class="btn btn-primary" (click)="openTradeForSelectedSymbol()">Trade</button>
-      </div>
-    </div>
-  </app-modal>
-}

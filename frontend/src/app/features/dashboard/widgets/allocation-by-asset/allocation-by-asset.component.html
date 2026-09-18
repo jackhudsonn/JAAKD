@@ -13,27 +13,3 @@
     <p class="drilldown-hint">Click an asset slice for details, or cash to open Transact.</p>
   }
 </app-widget-card>
-
-@if (selectedAssetSummary(); as asset) {
-  <app-modal [title]="asset.symbol" (closed)="closeAssetPopup()">
-    <div class="allocation-details">
-      <p class="allocation-line">
-        <span>Current Price</span>
-        <strong>{{ asset.price | number: '1.2-2' }}</strong>
-      </p>
-      <p class="allocation-line">
-        <span>Holding Value</span>
-        <strong>{{ asset.value | number: '1.2-2' }}</strong>
-      </p>
-      <p class="allocation-line">
-        <span>Estimated Units</span>
-        <strong>{{ asset.estimatedUnits | number: '1.2-4' }}</strong>
-      </p>
-
-      <div class="allocation-actions">
-        <button type="button" class="btn btn-secondary" (click)="closeAssetPopup()">Close</button>
-        <button type="button" class="btn btn-primary" (click)="openTradeForSelectedAsset()">Trade</button>
-      </div>
-    </div>
-  </app-modal>
-}

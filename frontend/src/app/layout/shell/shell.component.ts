@@ -1,9 +1,9 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { Router, RouterOutlet } from '@angular/router';
 import { User } from '@supabase/supabase-js';
-import { SupabaseService } from '../../core/services/supabase.service';
-import { NavbarComponent } from '../../shared/components/navbar/navbar.component';
-import { MarketTickerItem, MarketTickerService } from '../../core/services/market-ticker.service';
+import { SupabaseService } from '@core/services/supabase.service';
+import { NavbarComponent } from '@shared/components/navbar/navbar.component';
+import { MarketTickerItem, MarketTickerService } from '@core/services/market-ticker.service';
 import { NgTemplateOutlet } from '@angular/common';
 @Component({
   selector: 'app-shell',

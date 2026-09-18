@@ -2,7 +2,7 @@ import { Component, OnDestroy, OnInit, signal } from '@angular/core';
 import {
   WidgetCardComponent,
   WidgetStatus,
-} from '../../../../shared/components/widget-card/widget-card.component';
+} from '@shared/components/widget-card/widget-card.component';
 
 @Component({
   selector: 'app-to-be-deleted-widget',

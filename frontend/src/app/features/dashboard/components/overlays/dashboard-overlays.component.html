@@ -1,0 +1,91 @@
+@if (watchlistDialogMode() === 'create') {
+  <app-modal title="Create Watchlist" (closed)="closeWatchlistDialog()">
+    <div class="watchlist-dialog">
+      <div class="form-field">
+        <label for="dashboard-watchlist-name-input">Watchlist name</label>
+        <input
+          id="dashboard-watchlist-name-input"
+          type="text"
+          [value]="watchlistNameDraft()"
+          (input)="onWatchlistNameInput($event)"
+          maxlength="40"
+          placeholder="e.g. Recommendations"
+        />
+      </div>
+
+      @if (watchlistDialogError()) {
+        <p class="form-error">{{ watchlistDialogError() }}</p>
+      }
+
+      <div class="watchlist-dialog-actions">
+        <button type="button" class="btn btn-secondary" (click)="closeWatchlistDialog()">Cancel</button>
+        <button type="button" class="btn btn-primary" (click)="saveWatchlistName()">Save</button>
+      </div>
+    </div>
+  </app-modal>
+}
+
+@if (watchlistDialogMode() === 'delete') {
+  @if (activeWatchlist(); as watchlist) {
+    <app-modal title="Delete Watchlist" (closed)="closeWatchlistDialog()">
+      <div class="watchlist-dialog">
+        <p class="watchlist-delete-copy">Delete watchlist "{{ watchlist.name }}"? This cannot be undone.</p>
+
+        <div class="watchlist-dialog-actions">
+          <button type="button" class="btn btn-secondary" (click)="closeWatchlistDialog()">Cancel</button>
+          <button
+            type="button"
+            class="btn btn-primary watchlist-delete-btn"
+            (click)="confirmDeleteWatchlist()"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </app-modal>
+  }
+}
+
+@if (selectedWatchlistAsset(); as asset) {
+  <app-modal [title]="asset.name" (closed)="closeWatchlistAssetPopup()">
+    <div class="watchlist-details">
+      <div class="watchlist-details-header">
+        <span class="symbol">{{ asset.symbol }}</span>
+        <span class="change" [class.positive]="asset.changePct >= 0" [class.negative]="asset.changePct < 0">
+          {{ asset.changePct >= 0 ? '+' : '' }}{{ asset.changePct | number: '1.2-2' }}%
+        </span>
+      </div>
+
+      <p class="watchlist-details-price">Current Price: {{ asset.price | number: '1.2-2' }}</p>
+
+      <div class="watchlist-details-actions">
+        <button type="button" class="btn btn-secondary" (click)="closeWatchlistAssetPopup()">Close</button>
+        <button type="button" class="btn btn-primary" (click)="openTradeForWatchlistSelectedAsset()">Trade</button>
+      </div>
+    </div>
+  </app-modal>
+}
+
+@if (selectedAllocationAsset(); as asset) {
+  <app-modal [title]="asset.symbol" (closed)="closeAllocationAssetPopup()">
+    <div class="allocation-details">
+      <p class="allocation-line">
+        <span>Current Price</span>
+        <strong>{{ asset.price | number: '1.2-2' }}</strong>
+      </p>
+      <p class="allocation-line">
+        <span>Holding Value</span>
+        <strong>{{ asset.value | number: '1.2-2' }}</strong>
+      </p>
+      <p class="allocation-line">
+        <span>Estimated Units</span>
+        <strong>{{ asset.estimatedUnits | number: '1.2-4' }}</strong>
+      </p>
+
+      <div class="allocation-actions">
+        <button type="button" class="btn btn-secondary" (click)="closeAllocationAssetPopup()">Close</button>
+        <button type="button" class="btn btn-primary" (click)="openTradeForAllocationAsset()">Trade</button>
+      </div>
+    </div>
+  </app-modal>
+}

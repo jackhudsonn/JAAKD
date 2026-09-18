@@ -1,9 +1,9 @@
 import { Component, input, output } from '@angular/core';
 import { DatePipe, DecimalPipe, TitleCasePipe } from '@angular/common';
-import { ModalComponent } from '../../../../shared/components/modal/modal.component';
-import { StatusBadgeComponent } from '../../../../shared/components/status-badge/status-badge.component';
-import { formatLabel } from '../../../../shared/utils/format-label';
-import { Order } from '../../../../core/models';
+import { ModalComponent } from '@shared/components/modal/modal.component';
+import { StatusBadgeComponent } from '@shared/components/status-badge/status-badge.component';
+import { formatLabel } from '@shared/utils/format-label';
+import { Order } from '@core/models';
 
 @Component({
   selector: 'app-order-details-popup',

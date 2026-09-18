@@ -1,12 +1,12 @@
 import { Component, computed, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
-import { WidgetCardComponent } from '../../../../shared/components/widget-card/widget-card.component';
-import { LineChartComponent } from '../../../../shared/components/line-chart/line-chart.component';
+import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
+import { LineChartComponent } from '@shared/components/line-chart/line-chart.component';
 import {
   PERFORMANCE_INTERVALS,
   PerformanceInterval,
   getMockPerformanceSeries,
-} from '../../../../core/mocks/mock-data';
+} from '@core/mocks/mock-data';
 
 @Component({
   selector: 'app-performance-graph-widget',

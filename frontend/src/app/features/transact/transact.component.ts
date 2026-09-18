@@ -2,8 +2,8 @@ import { Component, signal } from '@angular/core';
 import { DepositFormComponent } from './deposit-form/deposit-form.component';
 import { WithdrawalFormComponent } from './withdrawal-form/withdrawal-form.component';
 import { TransactionHistoryComponent } from './transaction-history/transaction-history.component';
-import { addMockTransaction, MOCK_STATE } from '../../core/mocks/mock-data';
-import { Deposit, PaymentMethod, Withdrawal } from '../../core/models';
+import { addMockTransaction, MOCK_STATE } from '@core/mocks/mock-data';
+import { Deposit, PaymentMethod, Withdrawal } from '@core/models';
 
 type TransactTab = 'deposit' | 'withdrawal';
 

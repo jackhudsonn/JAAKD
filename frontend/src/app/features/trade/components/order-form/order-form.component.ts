@@ -1,6 +1,6 @@
 import { Component, computed, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { OrderKind, OrderType } from '../../../../core/models';
+import { OrderKind, OrderType } from '@core/models';
 
 export interface OrderFormSubmit {
   kind: OrderKind;

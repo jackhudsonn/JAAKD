@@ -1,8 +1,8 @@
 import { Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
-import { WidgetCardComponent } from '../../../../shared/components/widget-card/widget-card.component';
-import { MOCK_RETURNS, MOCK_STATE, getMockPrice } from '../../../../core/mocks/mock-data';
-import { startCycleTimer } from '../../../../shared/utils/cycle-timer';
+import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
+import { MOCK_RETURNS, MOCK_STATE, getMockPrice } from '@core/mocks/mock-data';
+import { startCycleTimer } from '@shared/utils/cycle-timer';
 
 type ValueMode = 'cash' | 'assets' | 'total';
 type ReturnsMode = 'allTime' | 'daily';

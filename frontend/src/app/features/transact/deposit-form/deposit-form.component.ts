@@ -1,7 +1,7 @@
 import { Component, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { WidgetCardComponent } from '../../../shared/components/widget-card/widget-card.component';
-import { Deposit, PaymentMethod } from '../../../core/models';
+import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
+import { Deposit, PaymentMethod } from '@core/models';
 
 @Component({
   selector: 'app-deposit-form',

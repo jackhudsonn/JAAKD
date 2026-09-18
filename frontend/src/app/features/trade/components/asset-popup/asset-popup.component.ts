@@ -1,10 +1,10 @@
 import { Component, OnDestroy, OnInit, computed, input, output, signal } from '@angular/core';
 import { DecimalPipe, TitleCasePipe } from '@angular/common';
-import { ModalComponent } from '../../../../shared/components/modal/modal.component';
-import { LineChartComponent } from '../../../../shared/components/line-chart/line-chart.component';
-import { OrderFormComponent, OrderFormSubmit } from '../order-form/order-form.component';
-import { getAsset, getMockPrice, getMockPriceHistory } from '../../../../core/mocks/mock-data';
-import { startCycleTimer } from '../../../../shared/utils/cycle-timer';
+import { ModalComponent } from '@shared/components/modal/modal.component';
+import { LineChartComponent } from '@shared/components/line-chart/line-chart.component';
+import { OrderFormComponent, OrderFormSubmit } from '@features/trade/components/order-form/order-form.component';
+import { getAsset, getMockPrice, getMockPriceHistory } from '@core/mocks/mock-data';
+import { startCycleTimer } from '@shared/utils/cycle-timer';
 
 export type AssetOrderPlaced = OrderFormSubmit & { symbol: string };
 
