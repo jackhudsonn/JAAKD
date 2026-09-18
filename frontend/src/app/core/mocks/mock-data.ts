@@ -116,7 +116,10 @@ export const MOCK_ACCOUNT_CASH = 25_000;
 export const MOCK_HOLDINGS: Holding[] = [
   { symbol: 'BTC', instrumentType: 'crypto', quantity: 1 },
   { symbol: 'NVDA', instrumentType: 'stock', quantity: 12 },
-  { symbol: 'GOVT', instrumentType: 'bond', quantity: 40 },
+  { symbol: 'AMZN', instrumentType: 'stock', quantity: 40 },
+  { symbol: 'IBM', instrumentType: 'stock', quantity: 240 },
+  { symbol: 'GOVT', instrumentType: 'bond', quantity: 90 },
+  { symbol: 'BND', instrumentType: 'bond', quantity: 100 },
 ];
 
 export const MOCK_WATCHLIST_SYMBOLS: string[] = ['ETH', 'AMZN', 'BND', 'ADA'];

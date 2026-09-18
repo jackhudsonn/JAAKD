@@ -9,14 +9,14 @@ import {
   AssetOrderPlaced,
 } from './components/asset-popup/asset-popup.component';
 import { OrderDetailsPopupComponent } from './components/order-details-popup/order-details-popup.component';
-import { startCycleTimer } from '../../shared/utils/cycle-timer';
-import { Order } from '../../core/models';
+import { startCycleTimer } from '@shared/utils/cycle-timer';
+import { Order } from '@core/models';
 import {
   MARKET_ORDER_PENDING_MS,
   MOCK_STATE,
   MOCK_ASSETS,
   getMockPrice,
-} from '../../core/mocks/mock-data';
+} from '@core/mocks/mock-data';
 
 @Component({
   selector: 'app-trade',

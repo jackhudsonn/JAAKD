@@ -1,9 +1,9 @@
 import { Component, OnDestroy, OnInit, computed, input, output, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
-import { WidgetCardComponent } from '../../../../shared/components/widget-card/widget-card.component';
-import { ScrollableListComponent } from '../../../../shared/components/scrollable-list/scrollable-list.component';
-import { startCycleTimer } from '../../../../shared/utils/cycle-timer';
-import { getAsset, getMockPrice } from '../../../../core/mocks/mock-data';
+import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
+import { ScrollableListComponent } from '@shared/components/scrollable-list/scrollable-list.component';
+import { startCycleTimer } from '@shared/utils/cycle-timer';
+import { getAsset, getMockPrice } from '@core/mocks/mock-data';
 
 interface WatchlistRow {
   symbol: string;

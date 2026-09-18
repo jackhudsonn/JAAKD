@@ -29,13 +29,17 @@
             <app-open-orders-widget />
           }
           @case ('watchlist') {
-            <app-watchlist-widget />
+            <app-watchlist-widget
+              (createWatchlistRequested)="overlays()?.requestCreateWatchlist()"
+              (deleteWatchlistRequested)="overlays()?.requestDeleteWatchlist()"
+              (assetSelected)="overlays()?.requestWatchlistAsset($event)"
+            />
           }
           @case ('top-movers') {
             <app-top-movers-widget />
           }
           @case ('allocation-by-asset') {
-            <app-allocation-by-asset-widget />
+            <app-allocation-by-asset-widget (assetSelected)="overlays()?.requestAllocationAsset($event)" />
           }
           @case ('performance-graph') {
             <app-performance-graph-widget />
@@ -47,4 +51,6 @@
       </div>
     }
   </section>
+
+  <app-dashboard-overlays />
 </main>

@@ -1,8 +1,8 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { User } from '@supabase/supabase-js';
-import { SupabaseService } from '../../core/services/supabase.service';
-import { CountryOption, LocationDataService } from '../../core/services/location-data.service';
+import { SupabaseService } from '@core/services/supabase.service';
+import { CountryOption, LocationDataService } from '@core/services/location-data.service';
 
 import {
   getLatestEligibleDob,

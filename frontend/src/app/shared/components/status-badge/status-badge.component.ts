@@ -1,5 +1,5 @@
 import { Component, computed, input } from '@angular/core';
-import { formatLabel } from '../../utils/format-label';
+import { formatLabel } from '@shared/utils/format-label';
 
 // Covers both transaction and order lifecycle states so the badge can be
 // reused across the transact and trade pages.

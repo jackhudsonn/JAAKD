@@ -1,10 +1,10 @@
 import { Component, computed, input, signal } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
-import { WidgetCardComponent } from '../../../shared/components/widget-card/widget-card.component';
-import { ScrollableListComponent } from '../../../shared/components/scrollable-list/scrollable-list.component';
-import { StatusBadgeComponent } from '../../../shared/components/status-badge/status-badge.component';
-import { formatLabel } from '../../../shared/utils/format-label';
-import { Transaction, TransactionStatus, TransactionType } from '../../../core/models';
+import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
+import { ScrollableListComponent } from '@shared/components/scrollable-list/scrollable-list.component';
+import { StatusBadgeComponent } from '@shared/components/status-badge/status-badge.component';
+import { formatLabel } from '@shared/utils/format-label';
+import { Transaction, TransactionStatus, TransactionType } from '@core/models';
 
 type SortKey = 'createdAt' | 'type' | 'amount' | 'status';
 type SortDirection = 'asc' | 'desc';

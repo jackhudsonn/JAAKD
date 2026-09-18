@@ -1,7 +1,7 @@
 import { Component, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { SupabaseService } from '../../../core/services/supabase.service';
+import { SupabaseService } from '@core/services/supabase.service';
 
 @Component({
   selector: 'app-login',
