@@ -114,7 +114,7 @@ export function getMockPriceHistory(symbol: string, points = 30): LineChartPoint
 export const MOCK_ACCOUNT_CASH = 25_000;
 
 export const MOCK_HOLDINGS: Holding[] = [
-  { symbol: 'BTC', instrumentType: 'crypto', quantity: 2 },
+  { symbol: 'BTC', instrumentType: 'crypto', quantity: 1 },
   { symbol: 'NVDA', instrumentType: 'stock', quantity: 12 },
   { symbol: 'GOVT', instrumentType: 'bond', quantity: 40 },
 ];
