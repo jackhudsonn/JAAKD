@@ -2,12 +2,13 @@ package com.example.backend.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
-import java.time.Instant;
 import java.util.UUID;
 
 // Maps to public.instruments — centralized reference data for tickers, replacing raw ticker text on child tables.
@@ -20,69 +21,48 @@ public class Instrument {
     @Column(name = "`instrumentID`")
     private UUID instrumentId;
 
-    @Column(name = "last_update", nullable = false)
-    private Instant lastUpdate;
-
-    @Column(name = "ticker")
+    @Column(name = "ticker", nullable = false)
     private String ticker;
 
-    @Column(name = "type", nullable = false)
-    private String type;
-
-    @Column(name = "market")
+    @Column(name = "market", nullable = false)
     private String market;
 
-    @Column(name = "price")
-    private Double price;
+    @Column(name = "name", nullable = false)
+    private String name;
+
+    @Column(name = "instrumentClass", nullable = false)
+    @Enumerated(EnumType.STRING)
+    private InstrumentClass instrumentClass;
 
     protected Instrument() {
     }
 
-    public Instrument(String type) {
-        this.type = type;
+    public void Intrument(String ticker, String market, String name, InstrumentClass instrumentClass) {
+        this.ticker = ticker;
+        this.market = market;
+        this.name = name;
+        this.instrumentClass = instrumentClass;
     }
+
 
     public UUID getInstrumentId() {
         return instrumentId;
-    }
-
-    public Instant getLastUpdate() {
-        return lastUpdate;
-    }
-
-    public void setLastUpdate(Instant lastUpdate) {
-        this.lastUpdate = lastUpdate;
     }
 
     public String getTicker() {
         return ticker;
     }
 
-    public void setTicker(String ticker) {
-        this.ticker = ticker;
-    }
-
-    public String getType() {
-        return type;
-    }
-
-    public void setType(String type) {
-        this.type = type;
-    }
-
     public String getMarket() {
         return market;
     }
 
-    public void setMarket(String market) {
-        this.market = market;
+    public String getName() {
+        return name;
     }
 
-    public Double getPrice() {
-        return price;
+    public InstrumentClass getInstrumentClass() {
+        return instrumentClass;
     }
 
-    public void setPrice(Double price) {
-        this.price = price;
-    }
 }

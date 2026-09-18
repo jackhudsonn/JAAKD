@@ -19,41 +19,36 @@ public class WatchlistItem {
     @Column(name = "`listItemID`")
     private UUID listItemId;
 
-    @Column(name = "`watchListID`", nullable = false)
-    private UUID watchListId;
+     @Column(name = "`portfolioID`", nullable = false)
+    private UUID portfolioId;
 
     @Column(name = "`instrumentID`", nullable = false)
     private UUID instrumentId;
 
-    @Column(name = "priority", nullable = false)
-    private Long priority;
+    @Column(name = "name")
+    private String name;
 
     protected WatchlistItem() {
     }
 
-    public WatchlistItem(UUID watchListId, UUID instrumentId, Long priority) {
-        this.watchListId = watchListId;
+    public WatchlistItem(UUID portfolioId, UUID instrumentId) {
+        this.portfolioId = portfolioId;
         this.instrumentId = instrumentId;
-        this.priority = priority;
     }
 
-    public UUID getListItemId() {
-        return listItemId;
-    }
-
-    public UUID getWatchListId() {
-        return watchListId;
+    public UUID getPortfolioId() {
+        return portfolioId;
     }
 
     public UUID getInstrumentId() {
         return instrumentId;
     }
 
-    public Long getPriority() {
-        return priority;
+    public String getWatchListName() {
+        return name;
     }
 
-    public void setPriority(Long priority) {
-        this.priority = priority;
+    public void setWatchListName( String name ) {
+        this.name = name;
     }
 }

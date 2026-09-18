@@ -2,6 +2,8 @@ package com.example.backend.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
@@ -17,10 +19,11 @@ import java.util.UUID;
 public class Profile {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "`userID`")
     private UUID userId;
 
-    @Column(name = "email", nullable = false, unique = true)
+    @Column(name = "email", nullable = false)
     private String email;
 
     @Column(name = "`userType`", nullable = false)
@@ -48,21 +51,21 @@ public class Profile {
     private LocalDate dob;
 
     @Column(name = "avatar")
+    private String username;
+
+    @Column(name = "avatar")
     private String avatar;
 
     protected Profile() {
     }
 
-    public Profile(String email) {
+    public Profile(String email, BigDecimal userType) {
         this.email = email;
+        this.userType = userType;
     }
 
     public UUID getUserId() {
         return userId;
-    }
-
-    public void setUserId(UUID userId) {
-        this.userId = userId;
     }
 
     public String getEmail() {
@@ -75,10 +78,6 @@ public class Profile {
 
     public BigDecimal getUserType() {
         return userType;
-    }
-
-    public void setUserType(BigDecimal userType) {
-        this.userType = userType;
     }
 
     public String getFirstName() {
@@ -143,5 +142,13 @@ public class Profile {
 
     public void setAvatar(String avatar) {
         this.avatar = avatar;
+    }
+
+    public String getUserName() {
+        return username;
+    }
+
+    public void setUserName(String username) {
+        this.username = username;
     }
 }

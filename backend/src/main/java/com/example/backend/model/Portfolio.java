@@ -19,11 +19,11 @@ public class Portfolio {
     @Column(name = "`portfolioID`")
     private UUID portfolioId;
 
-    @Column(name = "`cashHoldings`", nullable = false)
-    private Double cashHoldings = 0.0;
-
-    @Column(name = "`userID`")
+    @Column(name = "`userID`", nullable = false)
     private UUID userId;
+
+    @Column(name = "portfolioName")
+    private String portfolioName;
 
     protected Portfolio() {
     }
@@ -36,19 +36,11 @@ public class Portfolio {
         return portfolioId;
     }
 
-    public Double getCashHoldings() {
-        return cashHoldings;
-    }
-
-    public void setCashHoldings(Double cashHoldings) {
-        this.cashHoldings = cashHoldings;
-    }
-
     public UUID getUserId() {
         return userId;
     }
 
-    public void setUserId(UUID userId) {
-        this.userId = userId;
+    public void setPortfolioName(String portfolioName) {
+        this.portfolioName = portfolioName;
     }
 }

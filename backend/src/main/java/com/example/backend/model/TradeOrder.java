@@ -9,7 +9,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
-import java.time.Instant;
 import java.util.UUID;
 
 // Maps to public.orders (named TradeOrder to avoid confusion with the SQL keyword / java.util types).
@@ -26,29 +25,23 @@ public class TradeOrder {
     @Column(name = "`portfolioID`", nullable = false)
     private UUID portfolioId;
 
-    @Column(name = "quantity", nullable = false)
-    private Long quantity;
+    @Column(name = "`instrumentID`", nullable = false)
+    private UUID instrumentId;
 
-    @Column(name = "`initTime`", nullable = false)
-    private Instant initTime;
-
-    @Column(name = "side")
+    @Column(name = "side", nullable = false)
     @Enumerated(EnumType.STRING)
     private OrderSide side;
 
-    @Column(name = "`initPrice`", nullable = false)
-    private Double initPrice;
-
-    @Column(name = "`instrumentID`")
-    private UUID instrumentId;
+    @Column(name = "quantity")
+    private double quantity;
 
     protected TradeOrder() {
     }
 
-    public TradeOrder(UUID portfolioId, Long quantity, Double initPrice) {
+    public TradeOrder(UUID portfolioId, UUID instrumentId, OrderSide side) {
         this.portfolioId = portfolioId;
-        this.quantity = quantity;
-        this.initPrice = initPrice;
+        this.instrumentId = instrumentId;
+        this.side = side;
     }
 
     public UUID getOrderId() {
@@ -59,31 +52,20 @@ public class TradeOrder {
         return portfolioId;
     }
 
-    public Long getQuantity() {
+    public double getQuantity() {
         return quantity;
     }
 
-    public Instant getInitTime() {
-        return initTime;
+    public void setQuantity(double quantity) {
+        this.quantity = quantity;
     }
 
     public OrderSide getSide() {
         return side;
     }
 
-    public void setSide(OrderSide side) {
-        this.side = side;
-    }
-
-    public Double getInitPrice() {
-        return initPrice;
-    }
-
     public UUID getInstrumentId() {
         return instrumentId;
     }
 
-    public void setInstrumentId(UUID instrumentId) {
-        this.instrumentId = instrumentId;
-    }
 }

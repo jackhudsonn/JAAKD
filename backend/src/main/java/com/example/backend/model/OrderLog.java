@@ -27,16 +27,18 @@ public class OrderLog {
     private Instant logTime;
 
     @Column(name = "status", nullable = false)
-    private String status = "Placed";
+    private Status status;
 
-    @Column(name = "`executePrice`")
-    private Double executePrice;
+    @Column(name = "`price`")
+    private Double price;
 
     protected OrderLog() {
     }
 
-    public OrderLog(UUID orderId) {
+    public OrderLog(UUID orderId, Instant logTime, Status status) {
         this.orderId = orderId;
+        this.logTime = logTime;
+        this.status = status;
     }
 
     public UUID getLogId() {
@@ -51,19 +53,15 @@ public class OrderLog {
         return logTime;
     }
 
-    public String getStatus() {
+    public Status getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
-        this.status = status;
+    public double getPrice() {
+        return price;
     }
 
-    public Double getExecutePrice() {
-        return executePrice;
-    }
-
-    public void setExecutePrice(Double executePrice) {
-        this.executePrice = executePrice;
+    public void setPrice(Double price) {
+        this.price = price;
     }
 }
