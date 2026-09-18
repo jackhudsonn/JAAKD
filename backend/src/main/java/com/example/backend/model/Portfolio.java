@@ -7,6 +7,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
+import java.util.List;
 import java.util.UUID;
 
 // Maps to public.portfolios. No unique constraint on userID — multiple portfolios per user are already possible.
@@ -25,6 +26,8 @@ public class Portfolio {
     @Column(name = "portfolioName")
     private String portfolioName;
 
+    private List<Holding> holdings;
+
     protected Portfolio() {
     }
 
@@ -38,6 +41,10 @@ public class Portfolio {
 
     public UUID getUserId() {
         return userId;
+    }
+    
+    public List<Holding> getHoldings() {
+        return holdings;
     }
 
     public void setPortfolioName(String portfolioName) {
