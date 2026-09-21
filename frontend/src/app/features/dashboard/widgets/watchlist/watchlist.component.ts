@@ -43,9 +43,7 @@ export class WatchlistWidgetComponent implements OnInit, OnDestroy {
   rows = computed<WatchlistRow[]>(() => {
     this.priceTick();
 
-    const active = this.watchlists().find(
-      (watchlist) => watchlist.id === this.activeWatchlistId(),
-    );
+    const active = this.watchlists().find((watchlist) => watchlist.id === this.activeWatchlistId());
     const symbols = active?.symbols ?? [];
 
     return symbols.flatMap((symbol) => {
@@ -75,7 +73,6 @@ export class WatchlistWidgetComponent implements OnInit, OnDestroy {
     }
     this.activeWatchlistId.set(target.value);
   }
-
 
   requestCreateWatchlist() {
     this.createWatchlistRequested.emit();

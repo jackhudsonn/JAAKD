@@ -8,7 +8,6 @@ import {
   input,
 } from '@angular/core';
 
-
 export type WidgetId =
   | 'portfolio-value'
   | 'open-orders'

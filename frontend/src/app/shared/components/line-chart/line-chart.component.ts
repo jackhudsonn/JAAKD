@@ -56,7 +56,10 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
             callbacks: {
               label: (context: any) => {
                 const val = context.parsed?.y ?? context.parsed ?? context.raw;
-                return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
+                return new Intl.NumberFormat('en-US', {
+                  style: 'currency',
+                  currency: 'USD',
+                }).format(val);
               },
             },
           },

@@ -164,10 +164,7 @@ export class DashboardComponent {
         }
 
         slotEl.animate(
-          [
-            { transform: `translate(${deltaX}px, ${deltaY}px)` },
-            { transform: 'translate(0, 0)' },
-          ],
+          [{ transform: `translate(${deltaX}px, ${deltaY}px)` }, { transform: 'translate(0, 0)' }],
           {
             duration: DashboardComponent.REFLOW_DURATION_MS,
             easing: DashboardComponent.REFLOW_EASING,

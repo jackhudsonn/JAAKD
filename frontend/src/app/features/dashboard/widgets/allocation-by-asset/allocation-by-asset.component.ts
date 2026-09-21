@@ -1,10 +1,7 @@
 import { Component, computed, output, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
-import {
-  PieChartComponent,
-  PieChartSlice,
-} from '@shared/components/pie-chart/pie-chart.component';
+import { PieChartComponent, PieChartSlice } from '@shared/components/pie-chart/pie-chart.component';
 import { MOCK_STATE, getMockPrice } from '@core/mocks/mock-data';
 
 // TODO: confirm that these are the correct categories
