@@ -1,6 +1,6 @@
 package com.example.backend.model;
 
-public enum Status {
+public enum OrderStatus {
     SUBMITTED,
     PENDING, CANCELLED,
     ACCEPTED, REJECTED,

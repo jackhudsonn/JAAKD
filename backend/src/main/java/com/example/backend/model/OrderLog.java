@@ -7,6 +7,9 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
 import java.time.ZonedDateTime;
@@ -26,11 +29,13 @@ public class OrderLog {
     @Column(name = "orderID", nullable = false)
     private UUID orderID;
 
-    @Column(name = "`portfolioID`", nullable = false)
-    private UUID portfolioID;
+    @ManyToOne
+    @JoinColumn(name = "`portfolioID`", nullable = false)
+    private Portfolio portfolio;
 
-    @Column(name = "`instrumentID`", nullable = false)
-    private UUID instrumentID;
+    @ManyToOne
+    @JoinColumn(name = "`instrumentID`", nullable = false)
+    private Instrument instrument;
 
     @Column(name = "side", nullable = false)
     @Enumerated(EnumType.STRING)
@@ -45,13 +50,20 @@ public class OrderLog {
     @Column(name = "metadata")
     private String metadata;
 
+    @Column(name = "status", nullable = false)
+    @Enumerated(EnumType.STRING)
+    private OrderStatus status;
+
+    @Column(name = "executionPrice")
+    private double executionPrice;
+
     protected OrderLog() {
     }
 
-    public OrderLog(UUID orderId, UUID portfolioId, UUID instrumentId, OrderSide side, double quantity) {
-        this.portfolioID = portfolioId;
+    public OrderLog(UUID orderId, Portfolio portfolio, Instrument instrument, OrderSide side, double quantity) {
         this.orderID = orderId;
-        this.instrumentID = instrumentId;
+        this.portfolio = portfolio;
+        this.instrument = instrument;
         this.side = side;
         this.quantity = quantity;
         this.timestamp = ZonedDateTime.now();
@@ -61,8 +73,8 @@ public class OrderLog {
         return orderID;
     }
 
-    public UUID getPortfolioId() {
-        return portfolioID;
+    public Portfolio getPortfolio() {
+        return portfolio;
     }
 
     public double getQuantity() {
@@ -85,8 +97,28 @@ public class OrderLog {
         return side;
     }
 
-    public UUID getInstrumentId() {
-        return instrumentID;
+    public Instrument getInstrument() {
+        return instrument;
+    }
+
+    public OrderStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(OrderStatus status) {
+        this.status = status;
+    }
+
+    public double getExecutionPrice() {
+        return executionPrice;
+    }
+
+    public void setExecutionPrice(double executionPrice) {
+        this.executionPrice = executionPrice;
+    }
+
+    public UUID getLogOrderID() {
+        return logOrderID;
     }
 
 }

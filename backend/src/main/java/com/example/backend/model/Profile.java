@@ -5,10 +5,13 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Table;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 // Maps to public.profiles — merged app-user + profile data. Linked to auth.users via Supabase trigger:
@@ -50,11 +53,14 @@ public class Profile {
     @Column(name = "dob")
     private LocalDate dob;
 
-    @Column(name = "avatar")
+    @Column(name = "username")
     private String username;
 
     @Column(name = "avatar")
     private String avatar;
+
+    @OneToMany(mappedBy = "profile", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    private List<Portfolio> portfolios;
 
     protected Profile() {
     }
@@ -150,5 +156,9 @@ public class Profile {
 
     public void setUserName(String username) {
         this.username = username;
+    }
+
+    public List<Portfolio> getPortfolios() {
+        return portfolios;
     }
 }

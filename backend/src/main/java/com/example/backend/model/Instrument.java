@@ -7,8 +7,10 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
+import java.util.List;
 import java.util.UUID;
 
 // Maps to public.instruments — centralized reference data for tickers, replacing raw ticker text on child tables.
@@ -34,10 +36,19 @@ public class Instrument {
     @Enumerated(EnumType.STRING)
     private InstrumentClass instrumentClass;
 
+    @OneToMany(mappedBy = "instrument")
+    private List<Holding> holdings;
+
+    @OneToMany(mappedBy = "instrument")
+    private List<OrderLog> orderLogs;
+
+    @OneToMany(mappedBy = "instrument")
+    private List<WatchlistItem> watchlistItems;
+
     protected Instrument() {
     }
 
-    public void Intrument(String ticker, String market, String name, InstrumentClass instrumentClass) {
+    public Instrument(String ticker, String market, String name, InstrumentClass instrumentClass) {
         this.ticker = ticker;
         this.market = market;
         this.name = name;
@@ -64,5 +75,19 @@ public class Instrument {
     public InstrumentClass getInstrumentClass() {
         return instrumentClass;
     }
+
+    public List<Holding> getHoldings() {
+        return holdings;
+    }
+
+    public List<OrderLog> getOrderLogs() {
+        return orderLogs;
+    }
+
+    public List<WatchlistItem> getWatchlistItems() {
+        return watchlistItems;
+    }
+
+
 
 }

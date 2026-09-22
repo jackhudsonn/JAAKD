@@ -5,6 +5,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 import java.util.UUID;
@@ -19,11 +21,13 @@ public class WatchlistItem {
     @Column(name = "`listItemID`")
     private UUID listItemId;
 
-     @Column(name = "`portfolioID`", nullable = false)
-    private UUID portfolioId;
+    @ManyToOne
+    @JoinColumn(name = "`portfolioID`", nullable = false)
+    private Portfolio portfolio;
 
-    @Column(name = "`instrumentID`", nullable = false)
-    private UUID instrumentId;
+    @ManyToOne
+    @JoinColumn(name = "`instrumentID`", nullable = false)
+    private Instrument instrument;
 
     @Column(name = "name")
     private String name;
@@ -31,17 +35,17 @@ public class WatchlistItem {
     protected WatchlistItem() {
     }
 
-    public WatchlistItem(UUID portfolioId, UUID instrumentId) {
-        this.portfolioId = portfolioId;
-        this.instrumentId = instrumentId;
+    public WatchlistItem(Portfolio portfolio, Instrument instrument) {
+        this.portfolio = portfolio;
+        this.instrument = instrument;
     }
 
-    public UUID getPortfolioId() {
-        return portfolioId;
+    public Portfolio getPortfolio() {
+        return portfolio;
     }
 
-    public UUID getInstrumentId() {
-        return instrumentId;
+    public Instrument getInstrument() {
+        return instrument;
     }
 
     public String getWatchListName() {

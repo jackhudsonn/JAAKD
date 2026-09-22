@@ -5,6 +5,9 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 
 import java.util.UUID;
@@ -17,25 +20,27 @@ public class Trade {
     @Column(name = "`tradeID`")
     private UUID tradeID;
 
-    @Column(name = "porfolioID", nullable = false)
-    private UUID portfolioID;
+    @ManyToOne
+    @JoinColumn(name = "`holdingID`", nullable = false)
+    private Holding holding;
 
-    @Column(name = "orderLogID", nullable = false)
-    private UUID orderLogID;
+    @OneToOne
+    @JoinColumn(name = "orderLogID", nullable = false)
+    private OrderLog orderLog;
 
     protected Trade() {
     }
 
-    public Trade(UUID orderLogId, UUID portfolioId) {
-        this.portfolioID = portfolioId;
-        this.orderLogID = orderLogId;
+    public Trade(Holding holding, OrderLog orderLog) {
+        this.holding = holding;
+        this.orderLog = orderLog;
     }
 
-    public UUID getOrderLogID() {
-        return orderLogID;
+    public Holding getHolding() {
+        return holding;
     }
 
-    public UUID getPortfolioID() {
-        return portfolioID;
+    public OrderLog getOrderLog() {
+        return orderLog;
     }
 }
