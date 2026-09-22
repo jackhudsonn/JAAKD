@@ -46,7 +46,16 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
             grid: { display: false },
           },
           y: {
-            ticks: { color: '#aeb2b0' },
+            ticks: {
+              color: '#aeb2b0',
+              callback: (value) =>
+                new Intl.NumberFormat('en-US', {
+                  style: 'currency',
+                  currency: 'USD',
+                  notation: 'compact',
+                  maximumFractionDigits: 1,
+                }).format(Number(value)),
+            },
             grid: { color: 'rgba(255,255,255,0.06)' },
           },
         },
@@ -90,8 +99,8 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
           data: points.map((point) => point.value),
           borderColor: color,
           backgroundColor: `${color}22`,
-          pointRadius: 0,
-          pointHoverRadius: 4,
+          pointRadius: (context) => (context.dataIndex === context.dataset.data.length - 1 ? 4 : 0),
+          pointHoverRadius: 6,
           borderWidth: 2,
           fill: true,
           tension: 0.35,
