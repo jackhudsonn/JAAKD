@@ -79,7 +79,7 @@ export class ShellComponent implements OnInit {
     if (changePct < 0) {
       return `${changePct}% ↓`;
     }
-    
+
     return `${changePct}%`;
   }
 }

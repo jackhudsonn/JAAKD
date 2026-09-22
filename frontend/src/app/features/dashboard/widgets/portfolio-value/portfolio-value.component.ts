@@ -94,9 +94,7 @@ export class PortfolioValueWidgetComponent implements OnInit, OnDestroy {
       }, 250);
     });
 
-    this.stopPriceCycle = startCycleTimer(1, 1000, () =>
-      this.priceTick.update((tick) => tick + 1),
-    );
+    this.stopPriceCycle = startCycleTimer(1, 1000, () => this.priceTick.update((tick) => tick + 1));
   }
 
   ngOnDestroy() {

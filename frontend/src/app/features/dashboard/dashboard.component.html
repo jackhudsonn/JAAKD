@@ -39,7 +39,9 @@
             <app-top-movers-widget />
           }
           @case ('allocation-by-asset') {
-            <app-allocation-by-asset-widget (assetSelected)="overlays()?.requestAllocationAsset($event)" />
+            <app-allocation-by-asset-widget
+              (assetSelected)="overlays()?.requestAllocationAsset($event)"
+            />
           }
           @case ('performance-graph') {
             <app-performance-graph-widget />
