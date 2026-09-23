@@ -8,5 +8,9 @@ import java.util.UUID;
 
 public interface InstrumentRepository extends JpaRepository<Instrument, UUID> {
 
-    Optional<Instrument> findByTicker(String ticker);
+    
+
+    Optional<Instrument> findByTickerIgnoreCase(String ticker);
+
+    boolean existsByTickerIgnoreCase(String ticker);
 }

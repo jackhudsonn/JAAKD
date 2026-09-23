@@ -8,9 +8,9 @@ erDiagram
     PORTFOLIO ||--o{ HOLDING : contains
     PORTFOLIO ||--o{ ORDER_LOG : logs
     PORTFOLIO ||--o{ WATCHLIST_ITEM : contains
-    INSTRUMENT ||--o{ HOLDING : "referenced by"
-    INSTRUMENT ||--o{ ORDER_LOG : "referenced by"
-    INSTRUMENT ||--o{ WATCHLIST_ITEM : "referenced by"
+    HOLDING }o--|| INSTRUMENT : "references"
+    ORDER_LOG }o--|| INSTRUMENT : "references"
+    WATCHLIST_ITEM }o--|| INSTRUMENT : "references"
     HOLDING ||--o{ TRADE : "creates"
     TRADE ||--o| ORDER_LOG : "executes"
 
@@ -48,6 +48,8 @@ erDiagram
         string market
         string name
         enum instrumentClass
+        string logoUrl
+        string description
     }
 
     ORDER_LOG {
@@ -85,9 +87,9 @@ erDiagram
 - **Portfolio** → **WatchlistItem** (1:N) - Portfolios contain multiple watchlist items with cascade delete
 
 ### Reference Data
-- **Instrument** → **Holding** (1:N) - Reference data, no cascade
-- **Instrument** → **OrderLog** (1:N) - Reference data, no cascade
-- **Instrument** → **WatchlistItem** (1:N) - Reference data, no cascade
+- **Holding** → **Instrument** (N:1) - One-way reference to master data, no cascade
+- **OrderLog** → **Instrument** (N:1) - One-way reference to master data, no cascade
+- **WatchlistItem** → **Instrument** (N:1) - One-way reference to master data, no cascade
 
 ### Order & Trade Tracking
 - **Portfolio** → **OrderLog** (1:N) - Historical order records grouped by orderId, no cascade
@@ -107,3 +109,20 @@ erDiagram
 
 - **OrderLog.orderID**: Shared UUID across multiple OrderLog records for the same logical order through its lifecycle (PENDING → EXECUTED/CANCELLED)
 - **OrderLog.logOrderID**: Unique identifier for each individual state record
+
+## Relationship Patterns
+
+### Bidirectional Relationships
+- **Composition** (Ownership): Profile ↔ Portfolio, Portfolio ↔ Holding, Portfolio ↔ WatchlistItem, Holding ↔ Trade
+  - These represent ownership hierarchies with cascade delete and orphan removal
+  - Navigable from parent to child collections in code
+- **Audit Trail**: Portfolio ↔ OrderLog
+  - Bidirectional for historical querying and compliance auditing
+
+### Unidirectional Relationships
+- **Reference Data**: Holding → Instrument, OrderLog → Instrument, WatchlistItem → Instrument
+  - One-way FKs to master data
+  - No reverse navigation in entities (query via repositories if needed)
+- **Execution Link**: Trade → OrderLog
+  - One-way reference to audit record
+  - OrderLog is immutable historical record

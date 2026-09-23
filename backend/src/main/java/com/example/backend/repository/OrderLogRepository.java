@@ -5,15 +5,20 @@ import com.example.backend.model.OrderStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface OrderLogRepository extends JpaRepository<OrderLog, UUID> {
 
-    List<OrderLog> findByOrderIdOrderByTimestampAsc(UUID orderId);
+    List<OrderLog> findByOrderIDOrderByTimestampAsc(UUID orderId);
 
-    List<OrderLog> findByPortfolioId(UUID portfolioId);
+    List<OrderLog> findByPortfolioPortfolioId(UUID portfolioId);
 
-    List<OrderLog> findByPortfolioIdAndStatus(UUID portfolioId, OrderStatus status);
+    List<OrderLog> findByPortfolioPortfolioIdAndStatus(UUID portfolioId, OrderStatus status);
 
-    List<OrderLog> findByInstrumentId(UUID instrumentId);
+    List<OrderLog> findByInstrumentInstrumentId(UUID instrumentId);
+
+    Optional<OrderLog> findByLogOrderIDAndPortfolioProfileUserId(UUID logOrderId, UUID userId);
+
+    List<OrderLog> findByPortfolioPortfolioIdAndPortfolioProfileUserIdOrderByTimestampDesc(UUID portfolioId, UUID userId);
 }

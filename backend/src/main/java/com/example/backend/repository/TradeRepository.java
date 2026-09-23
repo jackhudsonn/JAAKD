@@ -9,7 +9,11 @@ import java.util.UUID;
 
 public interface TradeRepository extends JpaRepository<Trade, UUID> {
 
-    List<Trade> findByHoldingId(UUID holdingId);
+    List<Trade> findByHoldingHoldingId(UUID holdingId);
 
-    Optional<Trade> findByOrderLogId(UUID orderLogId);
+    Optional<Trade> findByOrderLogLogOrderID(UUID orderLogId);
+
+    Optional<Trade> findByTradeIDAndHoldingPortfolioProfileUserId(UUID tradeId, UUID userId);
+
+    List<Trade> findByHoldingHoldingIdAndHoldingPortfolioProfileUserId(UUID holdingId, UUID userId);
 }

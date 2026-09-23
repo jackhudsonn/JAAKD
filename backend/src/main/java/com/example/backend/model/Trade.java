@@ -36,6 +36,10 @@ public class Trade {
         this.orderLog = orderLog;
     }
 
+    public UUID getTradeID() {
+        return tradeID;
+    }
+
     public Holding getHolding() {
         return holding;
     }

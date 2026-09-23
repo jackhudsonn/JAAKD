@@ -40,6 +40,10 @@ public class WatchlistItem {
         this.instrument = instrument;
     }
 
+    public UUID getListItemId() {
+        return listItemId;
+    }
+
     public Portfolio getPortfolio() {
         return portfolio;
     }

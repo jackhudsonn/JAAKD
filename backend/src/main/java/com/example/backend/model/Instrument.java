@@ -7,10 +7,8 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
-import java.util.List;
 import java.util.UUID;
 
 // Maps to public.instruments — centralized reference data for tickers, replacing raw ticker text on child tables.
@@ -36,14 +34,11 @@ public class Instrument {
     @Enumerated(EnumType.STRING)
     private InstrumentClass instrumentClass;
 
-    @OneToMany(mappedBy = "instrument")
-    private List<Holding> holdings;
+    @Column(name = "logoUrl")
+    private String logoUrl;
 
-    @OneToMany(mappedBy = "instrument")
-    private List<OrderLog> orderLogs;
-
-    @OneToMany(mappedBy = "instrument")
-    private List<WatchlistItem> watchlistItems;
+    @Column(name = "description")
+    private String description;
 
     protected Instrument() {
     }
@@ -53,6 +48,15 @@ public class Instrument {
         this.market = market;
         this.name = name;
         this.instrumentClass = instrumentClass;
+    }
+
+    public Instrument(String ticker, String market, String name, InstrumentClass instrumentClass, String logoUrl, String description) {
+        this.ticker = ticker;
+        this.market = market;
+        this.name = name;
+        this.instrumentClass = instrumentClass;
+        this.logoUrl = logoUrl;
+        this.description = description;
     }
 
 
@@ -76,18 +80,23 @@ public class Instrument {
         return instrumentClass;
     }
 
-    public List<Holding> getHoldings() {
-        return holdings;
+    public String getLogoUrl() {
+        return logoUrl;
     }
 
-    public List<OrderLog> getOrderLogs() {
-        return orderLogs;
+    public String getDescription() {
+        return description;
     }
 
-    public List<WatchlistItem> getWatchlistItems() {
-        return watchlistItems;
+    public void setName(String name) {
+        this.name = name;
     }
 
+    public void setLogoUrl(String logoUrl) {
+        this.logoUrl = logoUrl;
+    }
 
-
+    public void setDescription(String description) {
+        this.description = description;
+    }
 }

@@ -31,7 +31,7 @@ Angular client --HTTPS + Supabase JWT--> this backend --JDBC (privileged role)--
 |---|---|---|
 | `profiles` | `userID`(PK), `email`(unique), `userType`, `firstName`, `lastName`, `city`, `state`, `country`, `zipCode`, `dob`, `avatar` | Merged from the old separate `users` + `profiles` tables. Linked to `auth.users` via Supabase trigger: when an `auth.users` row is created, the trigger creates a matching `profiles` row with `userID = auth.users.id`. Entity: `Profile` |
 | `portfolios` | `portfolioID`(PK), `cashHoldings`, `userID`(FK→`profiles`, nullable) | No unique constraint on `userID` — a user can have multiple portfolios. Entity: `Portfolio` |
-| `instruments` | `instrumentID`(PK), `ticker`, `type`, `market`, `price`, `last_update` | New: centralized reference data for tradable instruments. Entity: `Instrument` |
+| `instruments` | `instrumentID`(PK), `ticker`, `type`, `market`, `price`, `last_update`, `logoUrl`, `description` | Centralized reference data for tradable instruments. `logoUrl` and `description` are synced from external API. Entity: `Instrument` |
 | `holdings` | `holdingID`(PK), `portfolioID`(FK), `instrumentID`(FK), `quantity`, `cost` | The positions table. Entity: `Holding` |
 | `orders` | `orderID`(PK), `portfolioID`(FK), `instrumentID`(FK, nullable), `quantity`, `initTime`, `side`(**text**, nullable — was boolean before this schema update; buy/sell convention needs reconfirming), `initPrice` | Entity: `TradeOrder` |
 | `logs` | `logID`(PK), `orderID`(FK), `logTime`, `status`, `executePrice` | Order status/execution trail. Entity: `OrderLog` |
