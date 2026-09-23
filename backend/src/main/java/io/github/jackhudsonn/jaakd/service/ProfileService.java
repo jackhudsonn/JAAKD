@@ -4,6 +4,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import io.github.jackhudsonn.jaakd.dto.UpdateProfileRequest;
+import io.github.jackhudsonn.jaakd.exception.ProfileNotFoundException;
 import io.github.jackhudsonn.jaakd.model.Profile;
 import io.github.jackhudsonn.jaakd.repository.ProfileRepository;
 import io.github.jackhudsonn.jaakd.security.CurrentUserService;
@@ -28,7 +29,7 @@ public class ProfileService {
         UUID userId = currentUserService.getUserId();
 
         Profile profile = profileRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("Profile not found for user: " + userId));
+            .orElseThrow(() -> new ProfileNotFoundException(userId));
 
         return profile;
     }
@@ -48,7 +49,7 @@ public class ProfileService {
 
         // 2. Fetch profile
         Profile profile = profileRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("Profile not found for user: " + userId));
+            .orElseThrow(() -> new ProfileNotFoundException(userId));
 
         // 3. Update fields if they are provided
         if (request.firstName() != null) {

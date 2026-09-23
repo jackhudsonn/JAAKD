@@ -5,6 +5,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import io.github.jackhudsonn.jaakd.dto.CreateHoldingRequest;
 import io.github.jackhudsonn.jaakd.dto.UpdateHoldingRequest;
+import io.github.jackhudsonn.jaakd.exception.HoldingConflictException;
+import io.github.jackhudsonn.jaakd.exception.HoldingNotFoundException;
+import io.github.jackhudsonn.jaakd.exception.InstrumentNotFoundException;
+import io.github.jackhudsonn.jaakd.exception.PortfolioNotFoundException;
 import io.github.jackhudsonn.jaakd.model.Holding;
 import io.github.jackhudsonn.jaakd.model.Instrument;
 import io.github.jackhudsonn.jaakd.model.Portfolio;
@@ -47,7 +51,7 @@ public class HoldingService {
 
         Optional<Holding> maybeHolding = holdingRepository.findByHoldingIdAndPortfolioProfileUserId(holdingId, userId);
         if (maybeHolding.isEmpty()) {
-            throw new IllegalArgumentException("Holding not found for id: " + holdingId);
+            throw new HoldingNotFoundException(holdingId);
         }
 
         return maybeHolding.get();
@@ -61,14 +65,14 @@ public class HoldingService {
         // 2. Ensure portfolio exists and belongs to user
         Optional<Portfolio> maybePortfolio = portfolioRepository.findByPortfolioIdAndProfileUserId(request.portfolioId(), userId);
         if (maybePortfolio.isEmpty()) {
-            throw new IllegalArgumentException("Portfolio not found for id: " + request.portfolioId());
+            throw new PortfolioNotFoundException(request.portfolioId());
         }
         Portfolio portfolio = maybePortfolio.get();
 
         // 3. Ensure instrument exists
         Optional<Instrument> maybeInstrument = instrumentRepository.findById(request.instrumentId());
         if (maybeInstrument.isEmpty()) {
-            throw new IllegalArgumentException("Instrument not found for id: " + request.instrumentId());
+            throw new InstrumentNotFoundException(request.instrumentId());
         }
         Instrument instrument = maybeInstrument.get();
 
@@ -80,7 +84,7 @@ public class HoldingService {
                         userId
                 );
         if (maybeExisting.isPresent()) {
-            throw new IllegalArgumentException("Holding already exists for this portfolio and instrument");
+            throw new HoldingConflictException();
         }
 
         // 5. Build and persist holding
@@ -95,7 +99,7 @@ public class HoldingService {
         Optional<Holding> maybeHolding = holdingRepository.findByHoldingIdAndPortfolioProfileUserId(holdingId, userId);
 
         if (maybeHolding.isEmpty()) {
-            throw new IllegalArgumentException("Holding not found for id: " + holdingId);
+            throw new HoldingNotFoundException(holdingId);
         }
 
         Holding holding = maybeHolding.get();
@@ -116,7 +120,7 @@ public class HoldingService {
         Optional<Holding> maybeHolding = holdingRepository.findByHoldingIdAndPortfolioProfileUserId(holdingId, userId);
 
         if (maybeHolding.isEmpty()) {
-            throw new IllegalArgumentException("Holding not found for id: " + holdingId);
+            throw new HoldingNotFoundException(holdingId);
         }
 
         // 2. Delete

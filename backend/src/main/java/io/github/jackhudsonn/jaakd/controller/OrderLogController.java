@@ -2,12 +2,12 @@ package io.github.jackhudsonn.jaakd.controller;
 
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import io.github.jackhudsonn.jaakd.dto.CreateOrderLogRequest;
@@ -30,7 +30,8 @@ public class OrderLogController {
 	}
 
 	@GetMapping("/portfolio/{portfolioId}")
-	public ResponseEntity<List<OrderLogResponse>> getOrderLogsByPortfolio(@PathVariable UUID portfolioId) {
+	@ResponseStatus(HttpStatus.OK)
+	public List<OrderLogResponse> getOrderLogsByPortfolio(@PathVariable UUID portfolioId) {
 		List<OrderLog> orderLogs = orderLogService.getOrderLogsForPortfolio(portfolioId);
 		List<OrderLogResponse> responses = new ArrayList<>();
 
@@ -38,19 +39,21 @@ public class OrderLogController {
 			responses.add(toResponse(orderLogs.get(i)));
 		}
 
-		return ResponseEntity.ok(responses);
+		return responses;
 	}
 
 	@GetMapping("/{logOrderId}")
-	public ResponseEntity<OrderLogResponse> getOrderLogById(@PathVariable UUID logOrderId) {
+	@ResponseStatus(HttpStatus.OK)
+	public OrderLogResponse getOrderLogById(@PathVariable UUID logOrderId) {
 		OrderLog orderLog = orderLogService.getOrderLogById(logOrderId);
-		return ResponseEntity.ok(toResponse(orderLog));
+		return toResponse(orderLog);
 	}
 
 	@PostMapping
-	public ResponseEntity<OrderLogResponse> createOrderLog(@Valid @RequestBody CreateOrderLogRequest request) {
+	@ResponseStatus(HttpStatus.CREATED)
+	public OrderLogResponse createOrderLog(@Valid @RequestBody CreateOrderLogRequest request) {
 		OrderLog created = orderLogService.createOrderLog(request);
-		return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(created));
+		return toResponse(created);
 	}
 
 	private OrderLogResponse toResponse(OrderLog orderLog) {

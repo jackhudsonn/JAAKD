@@ -4,6 +4,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import io.github.jackhudsonn.jaakd.dto.CreateOrderLogRequest;
+import io.github.jackhudsonn.jaakd.exception.InstrumentNotFoundException;
+import io.github.jackhudsonn.jaakd.exception.OrderLogNotFoundException;
+import io.github.jackhudsonn.jaakd.exception.PortfolioNotFoundException;
 import io.github.jackhudsonn.jaakd.model.Instrument;
 import io.github.jackhudsonn.jaakd.model.OrderLog;
 import io.github.jackhudsonn.jaakd.model.OrderStatus;
@@ -47,7 +50,7 @@ public class OrderLogService {
 
         Optional<OrderLog> maybeOrderLog = orderLogRepository.findByLogOrderIDAndPortfolioProfileUserId(logOrderId, userId);
         if (maybeOrderLog.isEmpty()) {
-            throw new IllegalArgumentException("Order log not found for id: " + logOrderId);
+            throw new OrderLogNotFoundException(logOrderId);
         }
 
         return maybeOrderLog.get();
@@ -61,14 +64,14 @@ public class OrderLogService {
         // 2. Ensure portfolio exists and belongs to user
         Optional<Portfolio> maybePortfolio = portfolioRepository.findByPortfolioIdAndProfileUserId(request.portfolioId(), userId);
         if (maybePortfolio.isEmpty()) {
-            throw new IllegalArgumentException("Portfolio not found for id: " + request.portfolioId());
+            throw new PortfolioNotFoundException(request.portfolioId());
         }
         Portfolio portfolio = maybePortfolio.get();
 
         // 3. Ensure instrument exists
         Optional<Instrument> maybeInstrument = instrumentRepository.findById(request.instrumentId());
         if (maybeInstrument.isEmpty()) {
-            throw new IllegalArgumentException("Instrument not found for id: " + request.instrumentId());
+            throw new InstrumentNotFoundException(request.instrumentId());
         }
         Instrument instrument = maybeInstrument.get();
 

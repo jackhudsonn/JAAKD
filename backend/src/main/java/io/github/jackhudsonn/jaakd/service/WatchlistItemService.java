@@ -5,6 +5,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import io.github.jackhudsonn.jaakd.dto.CreateWatchlistItemRequest;
 import io.github.jackhudsonn.jaakd.dto.UpdateWatchlistItemRequest;
+import io.github.jackhudsonn.jaakd.exception.InstrumentNotFoundException;
+import io.github.jackhudsonn.jaakd.exception.PortfolioNotFoundException;
+import io.github.jackhudsonn.jaakd.exception.WatchlistItemConflictException;
+import io.github.jackhudsonn.jaakd.exception.WatchlistItemNotFoundException;
 import io.github.jackhudsonn.jaakd.model.Instrument;
 import io.github.jackhudsonn.jaakd.model.Portfolio;
 import io.github.jackhudsonn.jaakd.model.WatchlistItem;
@@ -47,7 +51,7 @@ public class WatchlistItemService {
         Optional<WatchlistItem> maybeItem = watchlistItemRepository.findByListItemIdAndPortfolioProfileUserId(listItemId, userId);
 
         if (maybeItem.isEmpty()) {
-            throw new IllegalArgumentException("Watchlist item not found for id: " + listItemId);
+            throw new WatchlistItemNotFoundException(listItemId);
         }
 
         return maybeItem.get();
@@ -61,14 +65,14 @@ public class WatchlistItemService {
         // 2. Ensure portfolio exists and belongs to user
         Optional<Portfolio> maybePortfolio = portfolioRepository.findByPortfolioIdAndProfileUserId(request.portfolioId(), userId);
         if (maybePortfolio.isEmpty()) {
-            throw new IllegalArgumentException("Portfolio not found for id: " + request.portfolioId());
+            throw new PortfolioNotFoundException(request.portfolioId());
         }
         Portfolio portfolio = maybePortfolio.get();
 
         // 3. Ensure instrument exists
         Optional<Instrument> maybeInstrument = instrumentRepository.findById(request.instrumentId());
         if (maybeInstrument.isEmpty()) {
-            throw new IllegalArgumentException("Instrument not found for id: " + request.instrumentId());
+            throw new InstrumentNotFoundException(request.instrumentId());
         }
         Instrument instrument = maybeInstrument.get();
 
@@ -80,7 +84,7 @@ public class WatchlistItemService {
                         userId
                 );
         if (maybeExisting.isPresent()) {
-            throw new IllegalArgumentException("Watchlist item already exists for this portfolio and instrument");
+            throw new WatchlistItemConflictException();
         }
 
         // 5. Build and persist
@@ -99,7 +103,7 @@ public class WatchlistItemService {
         Optional<WatchlistItem> maybeItem = watchlistItemRepository.findByListItemIdAndPortfolioProfileUserId(listItemId, userId);
 
         if (maybeItem.isEmpty()) {
-            throw new IllegalArgumentException("Watchlist item not found for id: " + listItemId);
+            throw new WatchlistItemNotFoundException(listItemId);
         }
 
         WatchlistItem item = maybeItem.get();
@@ -120,7 +124,7 @@ public class WatchlistItemService {
         Optional<WatchlistItem> maybeItem = watchlistItemRepository.findByListItemIdAndPortfolioProfileUserId(listItemId, userId);
 
         if (maybeItem.isEmpty()) {
-            throw new IllegalArgumentException("Watchlist item not found for id: " + listItemId);
+            throw new WatchlistItemNotFoundException(listItemId);
         }
 
         // 2. Delete

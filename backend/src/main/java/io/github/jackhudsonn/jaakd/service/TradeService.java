@@ -4,6 +4,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import io.github.jackhudsonn.jaakd.dto.CreateTradeRequest;
+import io.github.jackhudsonn.jaakd.exception.HoldingNotFoundException;
+import io.github.jackhudsonn.jaakd.exception.InvalidTradeException;
+import io.github.jackhudsonn.jaakd.exception.OrderLogNotFoundException;
+import io.github.jackhudsonn.jaakd.exception.TradeConflictException;
+import io.github.jackhudsonn.jaakd.exception.TradeNotFoundException;
 import io.github.jackhudsonn.jaakd.model.Holding;
 import io.github.jackhudsonn.jaakd.model.OrderLog;
 import io.github.jackhudsonn.jaakd.model.Trade;
@@ -46,7 +51,7 @@ public class TradeService {
 
         Optional<Trade> maybeTrade = tradeRepository.findByTradeIDAndHoldingPortfolioProfileUserId(tradeId, userId);
         if (maybeTrade.isEmpty()) {
-            throw new IllegalArgumentException("Trade not found for id: " + tradeId);
+            throw new TradeNotFoundException(tradeId);
         }
 
         return maybeTrade.get();
@@ -60,7 +65,7 @@ public class TradeService {
         // 2. Ensure order log exists and belongs to user
         Optional<OrderLog> maybeOrderLog = orderLogRepository.findByLogOrderIDAndPortfolioProfileUserId(request.orderLogId(), userId);
         if (maybeOrderLog.isEmpty()) {
-            throw new IllegalArgumentException("Order log not found for id: " + request.orderLogId());
+            throw new OrderLogNotFoundException(request.orderLogId());
         }
         OrderLog orderLog = maybeOrderLog.get();
 
@@ -70,7 +75,7 @@ public class TradeService {
         if (request.holdingId() != null) {
             Optional<Holding> maybeHolding = holdingRepository.findByHoldingIdAndPortfolioProfileUserId(request.holdingId(), userId);
             if (maybeHolding.isEmpty()) {
-                throw new IllegalArgumentException("Holding not found for id: " + request.holdingId());
+                throw new HoldingNotFoundException(request.holdingId());
             }
             holding = maybeHolding.get();
         } else {
@@ -101,19 +106,19 @@ public class TradeService {
         UUID holdingPortfolioId = holding.getPortfolio().getPortfolioId();
         UUID orderLogPortfolioId = orderLog.getPortfolio().getPortfolioId();
         if (!holdingPortfolioId.equals(orderLogPortfolioId)) {
-            throw new IllegalArgumentException("Holding and order log must belong to the same portfolio");
+            throw new InvalidTradeException("Holding and order log must belong to the same portfolio");
         }
 
         UUID holdingInstrumentId = holding.getInstrument().getInstrumentId();
         UUID orderLogInstrumentId = orderLog.getInstrument().getInstrumentId();
         if (!holdingInstrumentId.equals(orderLogInstrumentId)) {
-            throw new IllegalArgumentException("Holding and order log must use the same instrument");
+            throw new InvalidTradeException("Holding and order log must use the same instrument");
         }
 
         // 5. Prevent duplicate trade for same order log
         Optional<Trade> maybeExistingTrade = tradeRepository.findByOrderLogLogOrderID(orderLog.getLogOrderID());
         if (maybeExistingTrade.isPresent()) {
-            throw new IllegalArgumentException("Trade already exists for order log: " + orderLog.getLogOrderID());
+            throw new TradeConflictException(orderLog.getLogOrderID());
         }
 
         // 6. Build and persist trade

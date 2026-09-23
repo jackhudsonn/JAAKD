@@ -2,7 +2,6 @@ package io.github.jackhudsonn.jaakd.controller;
 
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -10,6 +9,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import io.github.jackhudsonn.jaakd.dto.CreatePortfolioRequest;
@@ -33,7 +33,8 @@ public class PortfolioController {
 	}
 
 	@GetMapping
-	public ResponseEntity<List<PortfolioResponse>> getCurrentUserPortfolios() {
+	@ResponseStatus(HttpStatus.OK)
+	public List<PortfolioResponse> getCurrentUserPortfolios() {
 		List<Portfolio> portfolios = portfolioService.getCurrentUserPortfolios();
 		List<PortfolioResponse> responses = new ArrayList<>();
 
@@ -42,34 +43,37 @@ public class PortfolioController {
 			responses.add(toResponse(portfolio));
 		}
 
-		return ResponseEntity.ok(responses);
+		return responses;
 	}
 
 	@GetMapping("/{portfolioId}")
-	public ResponseEntity<PortfolioResponse> getPortfolioById(@PathVariable UUID portfolioId) {
+	@ResponseStatus(HttpStatus.OK)
+	public PortfolioResponse getPortfolioById(@PathVariable UUID portfolioId) {
 		Portfolio portfolio = portfolioService.getCurrentUserPortfolioById(portfolioId);
-		return ResponseEntity.ok(toResponse(portfolio));
+		return toResponse(portfolio);
 	}
 
 	@PostMapping
-	public ResponseEntity<PortfolioResponse> createPortfolio(@Valid @RequestBody CreatePortfolioRequest request) {
+	@ResponseStatus(HttpStatus.CREATED)
+	public PortfolioResponse createPortfolio(@Valid @RequestBody CreatePortfolioRequest request) {
 		Portfolio created = portfolioService.createPortfolio(request);
-		return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(created));
+		return toResponse(created);
 	}
 
 	@PutMapping("/{portfolioId}")
-	public ResponseEntity<PortfolioResponse> updatePortfolio(
+	@ResponseStatus(HttpStatus.OK)
+	public PortfolioResponse updatePortfolio(
 			@PathVariable UUID portfolioId,
 			@Valid @RequestBody UpdatePortfolioRequest request
 	) {
 		Portfolio updated = portfolioService.updatePortfolio(portfolioId, request);
-		return ResponseEntity.ok(toResponse(updated));
+		return toResponse(updated);
 	}
 
 	@DeleteMapping("/{portfolioId}")
-	public ResponseEntity<Void> deletePortfolio(@PathVariable UUID portfolioId) {
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	public void deletePortfolio(@PathVariable UUID portfolioId) {
 		portfolioService.deletePortfolio(portfolioId);
-		return ResponseEntity.noContent().build();
 	}
 
 	private PortfolioResponse toResponse(Portfolio portfolio) {

@@ -1,11 +1,12 @@
 package io.github.jackhudsonn.jaakd.controller;
 
 import jakarta.validation.Valid;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import io.github.jackhudsonn.jaakd.dto.ProfileResponse;
@@ -28,10 +29,10 @@ public class ProfileController {
     // Requires: Valid JWT token in Authorization header.
     // Returns: 200 OK with ProfileResponse containing user's profile information.
     @GetMapping
-    public ResponseEntity<ProfileResponse> getCurrentProfile() {
+    @ResponseStatus(HttpStatus.OK)
+    public ProfileResponse getCurrentProfile() {
         Profile profile = profileService.getCurrentUserProfile();
-        ProfileResponse response = mapProfileToResponse(profile);
-        return ResponseEntity.ok(response);
+        return mapProfileToResponse(profile);
     }
 
     // PUT /api/profile
@@ -41,10 +42,10 @@ public class ProfileController {
     // Returns: 200 OK with updated ProfileResponse on success.
     // Returns: 400 Bad Request if validation fails.
     @PutMapping
-    public ResponseEntity<ProfileResponse> updateProfile(@Valid @RequestBody UpdateProfileRequest request) {
+    @ResponseStatus(HttpStatus.OK)
+    public ProfileResponse updateProfile(@Valid @RequestBody UpdateProfileRequest request) {
         Profile updatedProfile = profileService.updateCurrentUserProfile(request);
-        ProfileResponse response = mapProfileToResponse(updatedProfile);
-        return ResponseEntity.ok(response);
+        return mapProfileToResponse(updatedProfile);
     }
 
     // Helper method to convert Profile entity to ProfileResponse DTO.

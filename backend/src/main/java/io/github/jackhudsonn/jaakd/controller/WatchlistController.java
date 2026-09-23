@@ -2,7 +2,6 @@ package io.github.jackhudsonn.jaakd.controller;
 
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -10,6 +9,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import io.github.jackhudsonn.jaakd.dto.CreateWatchlistItemRequest;
@@ -33,7 +33,8 @@ public class WatchlistController {
     }
 
     @GetMapping("/portfolio/{portfolioId}")
-    public ResponseEntity<List<WatchlistItemResponse>> getWatchlistItemsByPortfolio(@PathVariable UUID portfolioId) {
+    @ResponseStatus(HttpStatus.OK)
+    public List<WatchlistItemResponse> getWatchlistItemsByPortfolio(@PathVariable UUID portfolioId) {
         List<WatchlistItem> items = watchlistItemService.getWatchlistItemsForPortfolio(portfolioId);
         List<WatchlistItemResponse> responses = new ArrayList<>();
 
@@ -41,34 +42,37 @@ public class WatchlistController {
             responses.add(toResponse(items.get(i)));
         }
 
-        return ResponseEntity.ok(responses);
+        return responses;
     }
 
     @GetMapping("/{listItemId}")
-    public ResponseEntity<WatchlistItemResponse> getWatchlistItemById(@PathVariable UUID listItemId) {
+    @ResponseStatus(HttpStatus.OK)
+    public WatchlistItemResponse getWatchlistItemById(@PathVariable UUID listItemId) {
         WatchlistItem item = watchlistItemService.getWatchlistItemById(listItemId);
-        return ResponseEntity.ok(toResponse(item));
+        return toResponse(item);
     }
 
     @PostMapping
-    public ResponseEntity<WatchlistItemResponse> createWatchlistItem(@Valid @RequestBody CreateWatchlistItemRequest request) {
+    @ResponseStatus(HttpStatus.CREATED)
+    public WatchlistItemResponse createWatchlistItem(@Valid @RequestBody CreateWatchlistItemRequest request) {
         WatchlistItem created = watchlistItemService.createWatchlistItem(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(created));
+        return toResponse(created);
     }
 
     @PutMapping("/{listItemId}")
-    public ResponseEntity<WatchlistItemResponse> updateWatchlistItem(
+    @ResponseStatus(HttpStatus.OK)
+    public WatchlistItemResponse updateWatchlistItem(
             @PathVariable UUID listItemId,
             @Valid @RequestBody UpdateWatchlistItemRequest request
     ) {
         WatchlistItem updated = watchlistItemService.updateWatchlistItem(listItemId, request);
-        return ResponseEntity.ok(toResponse(updated));
+        return toResponse(updated);
     }
 
     @DeleteMapping("/{listItemId}")
-    public ResponseEntity<Void> deleteWatchlistItem(@PathVariable UUID listItemId) {
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteWatchlistItem(@PathVariable UUID listItemId) {
         watchlistItemService.deleteWatchlistItem(listItemId);
-        return ResponseEntity.noContent().build();
     }
 
     private WatchlistItemResponse toResponse(WatchlistItem item) {

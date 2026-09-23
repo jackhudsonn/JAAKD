@@ -2,12 +2,12 @@ package io.github.jackhudsonn.jaakd.controller;
 
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import io.github.jackhudsonn.jaakd.dto.CreateTradeRequest;
@@ -30,7 +30,8 @@ public class TradeController {
 	}
 
 	@GetMapping("/holding/{holdingId}")
-	public ResponseEntity<List<TradeResponse>> getTradesByHolding(@PathVariable UUID holdingId) {
+	@ResponseStatus(HttpStatus.OK)
+	public List<TradeResponse> getTradesByHolding(@PathVariable UUID holdingId) {
 		List<Trade> trades = tradeService.getTradesForHolding(holdingId);
 		List<TradeResponse> responses = new ArrayList<>();
 
@@ -38,19 +39,21 @@ public class TradeController {
 			responses.add(toResponse(trades.get(i)));
 		}
 
-		return ResponseEntity.ok(responses);
+		return responses;
 	}
 
 	@GetMapping("/{tradeId}")
-	public ResponseEntity<TradeResponse> getTradeById(@PathVariable UUID tradeId) {
+	@ResponseStatus(HttpStatus.OK)
+	public TradeResponse getTradeById(@PathVariable UUID tradeId) {
 		Trade trade = tradeService.getTradeById(tradeId);
-		return ResponseEntity.ok(toResponse(trade));
+		return toResponse(trade);
 	}
 
 	@PostMapping
-	public ResponseEntity<TradeResponse> createTrade(@Valid @RequestBody CreateTradeRequest request) {
+	@ResponseStatus(HttpStatus.CREATED)
+	public TradeResponse createTrade(@Valid @RequestBody CreateTradeRequest request) {
 		Trade created = tradeService.createTrade(request);
-		return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(created));
+		return toResponse(created);
 	}
 
 	private TradeResponse toResponse(Trade trade) {

@@ -5,6 +5,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import io.github.jackhudsonn.jaakd.dto.CreateInstrumentRequest;
 import io.github.jackhudsonn.jaakd.dto.UpdateInstrumentRequest;
+import io.github.jackhudsonn.jaakd.exception.InstrumentConflictException;
+import io.github.jackhudsonn.jaakd.exception.InstrumentNotFoundException;
+import io.github.jackhudsonn.jaakd.exception.InvalidInstrumentException;
 import io.github.jackhudsonn.jaakd.model.Instrument;
 import io.github.jackhudsonn.jaakd.repository.InstrumentRepository;
 
@@ -26,19 +29,19 @@ public class InstrumentService {
 
     public Instrument getInstrumentById(UUID instrumentId) {
         return instrumentRepository.findById(instrumentId)
-                .orElseThrow(() -> new IllegalArgumentException("Instrument not found for id: " + instrumentId));
+                .orElseThrow(() -> new InstrumentNotFoundException(instrumentId));
     }
 
     public Instrument getInstrumentByTicker(String ticker) {
         return instrumentRepository.findByTickerIgnoreCase(ticker)
-                .orElseThrow(() -> new IllegalArgumentException("Instrument not found for ticker: " + ticker));
+                .orElseThrow(() -> new InstrumentNotFoundException(ticker));
     }
 
     @Transactional
     public Instrument createInstrument(CreateInstrumentRequest request) {
         // 1. Prevent duplicate tickers
         if (instrumentRepository.existsByTickerIgnoreCase(request.ticker())) {
-            throw new IllegalArgumentException("Instrument already exists for ticker: " + request.ticker());
+            throw new InstrumentConflictException(request.ticker());
         }
 
         // 2. Build entity
@@ -59,12 +62,12 @@ public class InstrumentService {
     public Instrument updateInstrument(UUID instrumentId, UpdateInstrumentRequest request) {
         // 1. Fetch existing entity
         Instrument instrument = instrumentRepository.findById(instrumentId)
-                .orElseThrow(() -> new IllegalArgumentException("Instrument not found for id: " + instrumentId));
+            .orElseThrow(() -> new InstrumentNotFoundException(instrumentId));
 
         // 2. Update allowed fields only: name, logoUrl, description
         if (request.name() != null) {
             if (request.name().isBlank()) {
-                throw new IllegalArgumentException("Instrument name cannot be blank");
+                throw new InvalidInstrumentException("Instrument name cannot be blank");
             }
             instrument.setName(request.name().trim());
         }
@@ -84,7 +87,7 @@ public class InstrumentService {
     @Transactional
     public void deleteInstrument(UUID instrumentId) {
         Instrument instrument = instrumentRepository.findById(instrumentId)
-                .orElseThrow(() -> new IllegalArgumentException("Instrument not found for id: " + instrumentId));
+            .orElseThrow(() -> new InstrumentNotFoundException(instrumentId));
 
         instrumentRepository.delete(instrument);
     }

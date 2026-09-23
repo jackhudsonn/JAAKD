@@ -5,6 +5,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import io.github.jackhudsonn.jaakd.dto.CreatePortfolioRequest;
 import io.github.jackhudsonn.jaakd.dto.UpdatePortfolioRequest;
+import io.github.jackhudsonn.jaakd.exception.PortfolioNotFoundException;
+import io.github.jackhudsonn.jaakd.exception.ProfileNotFoundException;
 import io.github.jackhudsonn.jaakd.model.Portfolio;
 import io.github.jackhudsonn.jaakd.model.Profile;
 import io.github.jackhudsonn.jaakd.repository.PortfolioRepository;
@@ -40,7 +42,7 @@ public class PortfolioService {
 		UUID userId = currentUserService.getUserId();
 
 		return portfolioRepository.findByPortfolioIdAndProfileUserId(portfolioId, userId)
-				.orElseThrow(() -> new IllegalArgumentException("Portfolio not found for id: " + portfolioId));
+				.orElseThrow(() -> new PortfolioNotFoundException(portfolioId));
 	}
 
 	@Transactional
@@ -50,7 +52,7 @@ public class PortfolioService {
 
 		// 2. Fetch profile owner
 		Profile profile = profileRepository.findById(userId)
-				.orElseThrow(() -> new IllegalArgumentException("Profile not found for user: " + userId));
+				.orElseThrow(() -> new ProfileNotFoundException(userId));
 
 		// 3. Build and save portfolio
 		Portfolio portfolio = new Portfolio(profile);
@@ -66,7 +68,7 @@ public class PortfolioService {
 
 		// 2. Fetch user-owned portfolio
 		Portfolio portfolio = portfolioRepository.findByPortfolioIdAndProfileUserId(portfolioId, userId)
-				.orElseThrow(() -> new IllegalArgumentException("Portfolio not found for id: " + portfolioId));
+				.orElseThrow(() -> new PortfolioNotFoundException(portfolioId));
 
 		// 3. Apply updates
 		portfolio.setPortfolioName(request.portfolioName());
@@ -82,7 +84,7 @@ public class PortfolioService {
 
 		// 2. Fetch user-owned portfolio
 		Portfolio portfolio = portfolioRepository.findByPortfolioIdAndProfileUserId(portfolioId, userId)
-				.orElseThrow(() -> new IllegalArgumentException("Portfolio not found for id: " + portfolioId));
+				.orElseThrow(() -> new PortfolioNotFoundException(portfolioId));
 
 		// 3. Delete portfolio
 		portfolioRepository.delete(portfolio);
