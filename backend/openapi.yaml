@@ -1,0 +1,1224 @@
+openapi: 3.1.0
+info:
+  title: JAAKD Trading API
+  version: 1.0.0
+  description: |
+    REST API for the JAAKD direct trading platform (Spring Boot service in `backend/`).
+
+    - Every endpoint requires a Supabase-issued JWT in the `Authorization: Bearer <token>` header.
+    - A user can only see and change their own data (BR-02): every query is filtered by the
+      user ID taken from the JWT's `sub` claim.
+    - All errors share one shape, `ErrorResponse` (see `GlobalExceptionHandler`).
+    - Endpoints tagged **Orders** and the **instrument prices** endpoint are planned (contract first)
+      and not implemented yet.
+  license:
+    name: Internal use only
+servers:
+  - url: http://localhost:8081
+    description: Local development server
+security:
+  - bearerAuth: []
+tags:
+  - name: Holdings
+    description: A user's current position in an instrument, within one portfolio
+  - name: Instruments
+    description: Tradable assets (reference data shared by all users)
+  - name: Portfolios
+    description: Portfolios owned by the signed-in user
+  - name: OrderLogs
+    description: Audit trail - one row per status change of an order (BR-14, BR-15)
+  - name: Trades
+    description: Executed trades, linking an order log entry to the holding it changed
+  - name: Watchlists
+    description: Instruments a user is watching, per portfolio
+  - name: Profile
+    description: The signed-in user's profile
+  - name: Orders
+    description: Order placement - PLANNED, not implemented yet (BR-04, BR-05, BR-08, BR-09)
+
+paths:
+  # ---------------------------------------------------------------- Holdings
+  /api/holdings/portfolio/{portfolioId}:
+    get:
+      tags: [Holdings]
+      summary: List the holdings in one of the user's portfolios
+      description: Returns an empty list if the portfolio does not exist or is not owned by the user.
+      operationId: getHoldingsByPortfolio
+      parameters:
+        - $ref: "#/components/parameters/PortfolioId"
+      responses:
+        "200":
+          description: Holdings in the portfolio
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/HoldingResponse"
+              example:
+                - holdingId: 3f6c1a2e-8b4d-4c1a-9e2f-1a2b3c4d5e6f
+                  portfolioId: 9a8b7c6d-5e4f-4a3b-2c1d-0e9f8a7b6c5d
+                  instrumentId: 1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d5e
+                  currentQuantity: 10
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/holdings/{holdingId}:
+    get:
+      tags: [Holdings]
+      summary: Get one holding
+      operationId: getHoldingById
+      parameters:
+        - $ref: "#/components/parameters/HoldingId"
+      responses:
+        "200":
+          description: The holding
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HoldingResponse"
+              example:
+                holdingId: 3f6c1a2e-8b4d-4c1a-9e2f-1a2b3c4d5e6f
+                portfolioId: 9a8b7c6d-5e4f-4a3b-2c1d-0e9f8a7b6c5d
+                instrumentId: 1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d5e
+                currentQuantity: 10
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    put:
+      tags: [Holdings]
+      summary: Update a holding's quantity
+      description: Only fields that are present are changed (a null field is left as it is).
+      operationId: updateHolding
+      parameters:
+        - $ref: "#/components/parameters/HoldingId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateHoldingRequest"
+            example:
+              currentQuantity: 15
+      responses:
+        "200":
+          description: Holding updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HoldingResponse"
+              example:
+                holdingId: 3f6c1a2e-8b4d-4c1a-9e2f-1a2b3c4d5e6f
+                portfolioId: 9a8b7c6d-5e4f-4a3b-2c1d-0e9f8a7b6c5d
+                instrumentId: 1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d5e
+                currentQuantity: 15
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    delete:
+      tags: [Holdings]
+      summary: Delete a holding
+      operationId: deleteHolding
+      parameters:
+        - $ref: "#/components/parameters/HoldingId"
+      responses:
+        "204":
+          description: Holding deleted
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/holdings:
+    post:
+      tags: [Holdings]
+      summary: Create a holding in one of the user's portfolios
+      operationId: createHolding
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateHoldingRequest"
+            example:
+              portfolioId: 9a8b7c6d-5e4f-4a3b-2c1d-0e9f8a7b6c5d
+              instrumentId: 1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d5e
+              currentQuantity: 10
+      responses:
+        "201":
+          description: Holding created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HoldingResponse"
+              example:
+                holdingId: 3f6c1a2e-8b4d-4c1a-9e2f-1a2b3c4d5e6f
+                portfolioId: 9a8b7c6d-5e4f-4a3b-2c1d-0e9f8a7b6c5d
+                instrumentId: 1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d5e
+                currentQuantity: 10
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  # ------------------------------------------------------------- Instruments
+  /api/instruments:
+    get:
+      tags: [Instruments]
+      summary: List all instruments
+      operationId: getAllInstruments
+      responses:
+        "200":
+          description: All instruments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/InstrumentResponse"
+              example:
+                - instrumentId: 1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d5e
+                  ticker: AAPL
+                  market: NASDAQ
+                  name: Apple Inc.
+                  instrumentClass: EQUITY
+                  logoUrl: https://example.com/logos/aapl.png
+                  description: Consumer electronics and software
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    post:
+      tags: [Instruments]
+      summary: Create an instrument
+      operationId: createInstrument
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateInstrumentRequest"
+            example:
+              ticker: AAPL
+              market: NASDAQ
+              name: Apple Inc.
+              instrumentClass: EQUITY
+              logoUrl: https://example.com/logos/aapl.png
+              description: Consumer electronics and software
+      responses:
+        "201":
+          description: Instrument created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstrumentResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/instruments/{instrumentId}:
+    get:
+      tags: [Instruments]
+      summary: Get one instrument by ID
+      operationId: getInstrumentById
+      parameters:
+        - $ref: "#/components/parameters/InstrumentId"
+      responses:
+        "200":
+          description: The instrument
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstrumentResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    put:
+      tags: [Instruments]
+      summary: Update an instrument's name, logo or description
+      description: Ticker, market and class cannot be changed. Null fields are left as they are.
+      operationId: updateInstrument
+      parameters:
+        - $ref: "#/components/parameters/InstrumentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateInstrumentRequest"
+            example:
+              description: Maker of the iPhone
+      responses:
+        "200":
+          description: Instrument updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstrumentResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    delete:
+      tags: [Instruments]
+      summary: Delete an instrument
+      operationId: deleteInstrument
+      parameters:
+        - $ref: "#/components/parameters/InstrumentId"
+      responses:
+        "204":
+          description: Instrument deleted
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/instruments/ticker/{ticker}:
+    get:
+      tags: [Instruments]
+      summary: Get one instrument by ticker (case-insensitive)
+      operationId: getInstrumentByTicker
+      parameters:
+        - $ref: "#/components/parameters/Ticker"
+      responses:
+        "200":
+          description: The instrument
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstrumentResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/instruments/sync/{ticker}:
+    post:
+      tags: [Instruments]
+      summary: Refresh an instrument from an external market-data provider
+      description: >
+        NOT IMPLEMENTED YET - the service currently throws, so this returns 500.
+        Kept so the frontend can wire it up; will fetch and upsert instrument data
+        once a market-data provider is chosen.
+      operationId: syncInstrumentFromExternalApi
+      parameters:
+        - $ref: "#/components/parameters/Ticker"
+      responses:
+        "200":
+          description: Instrument created or updated from external data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstrumentResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/instruments/prices:
+    get:
+      tags: [Instruments]
+      summary: Find an instrument's price at a point in time (PLANNED)
+      description: >
+        PLANNED - not implemented yet, and needs a new `instrumentPrices` table.
+        Backs the `findInstrumentByNameAndTime` query. Returns the most recent
+        quote at or before `at`. Supports BR-08 (price at execution) and BR-13
+        (indicative price before submitting).
+      operationId: findInstrumentByNameAndTime
+      parameters:
+        - name: name
+          in: query
+          required: true
+          description: Instrument name or ticker (case-insensitive)
+          schema:
+            type: string
+          example: AAPL
+        - name: at
+          in: query
+          required: true
+          description: Point in time to price at (ISO-8601)
+          schema:
+            type: string
+            format: date-time
+          example: "2026-09-23T14:30:00Z"
+      responses:
+        "200":
+          description: The instrument and its price at that time
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstrumentPriceResponse"
+              example:
+                instrumentId: 1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d5e
+                ticker: AAPL
+                name: Apple Inc.
+                price: 227.52
+                quotedAt: "2026-09-23T14:29:58Z"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  # -------------------------------------------------------------- Portfolios
+  /api/portfolios:
+    get:
+      tags: [Portfolios]
+      summary: List the signed-in user's portfolios
+      operationId: getCurrentUserPortfolios
+      responses:
+        "200":
+          description: The user's portfolios
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PortfolioResponse"
+              example:
+                - portfolioId: 9a8b7c6d-5e4f-4a3b-2c1d-0e9f8a7b6c5d
+                  portfolioName: Long-term
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    post:
+      tags: [Portfolios]
+      summary: Create a portfolio for the signed-in user
+      operationId: createPortfolio
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePortfolioRequest"
+            example:
+              portfolioName: Long-term
+      responses:
+        "201":
+          description: Portfolio created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PortfolioResponse"
+              example:
+                portfolioId: 9a8b7c6d-5e4f-4a3b-2c1d-0e9f8a7b6c5d
+                portfolioName: Long-term
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/portfolios/{portfolioId}:
+    get:
+      tags: [Portfolios]
+      summary: Get one of the user's portfolios
+      operationId: getPortfolioById
+      parameters:
+        - $ref: "#/components/parameters/PortfolioId"
+      responses:
+        "200":
+          description: The portfolio
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PortfolioResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    put:
+      tags: [Portfolios]
+      summary: Rename a portfolio
+      operationId: updatePortfolio
+      parameters:
+        - $ref: "#/components/parameters/PortfolioId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePortfolioRequest"
+            example:
+              portfolioName: Retirement
+      responses:
+        "200":
+          description: Portfolio updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PortfolioResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    delete:
+      tags: [Portfolios]
+      summary: Delete a portfolio (and its holdings and watchlist items)
+      operationId: deletePortfolio
+      parameters:
+        - $ref: "#/components/parameters/PortfolioId"
+      responses:
+        "204":
+          description: Portfolio deleted
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  # ------------------------------------------------------------------ Orders
+  /api/portfolios/{portfolioId}/orders:
+    post:
+      tags: [Orders]
+      summary: Place a buy or sell order (PLANNED)
+      description: >
+        PLANNED - not implemented yet (OrderService is empty). The order is validated
+        against trading rules (BR-05), recorded in orderLogs before execution (BR-06),
+        priced against the current quote (BR-08), and on fill the holding, cash balance
+        and trade record are updated in one transaction (BR-09).
+      operationId: placeOrder
+      parameters:
+        - $ref: "#/components/parameters/PortfolioId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrderRequest"
+            example:
+              instrumentId: 1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d5e
+              side: BUY
+              quantity: 5
+      responses:
+        "201":
+          description: Order accepted and recorded
+          headers:
+            Location:
+              description: URL of the new order's audit trail
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderResponse"
+              example:
+                orderId: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+                status: EXECUTED
+                executionPrice: 227.52
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          description: >
+            Well-formed order rejected by a business rule
+            (e.g. insufficient cash, selling more than held, instrument not tradable)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderResponse"
+              example:
+                orderId: 8d0f7780-8536-41ef-a55c-f18ad2a01bf8
+                status: REJECTED
+                reason: cannot sell more than the current holding
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  # --------------------------------------------------------------- OrderLogs
+  /api/order-logs/portfolio/{portfolioId}:
+    get:
+      tags: [OrderLogs]
+      summary: List a portfolio's order history, newest first (the blotter, BR-11)
+      operationId: getOrderLogsByPortfolio
+      parameters:
+        - $ref: "#/components/parameters/PortfolioId"
+      responses:
+        "200":
+          description: Order log entries, newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OrderLogResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/order-logs/{logOrderId}:
+    get:
+      tags: [OrderLogs]
+      summary: Get one order log entry
+      operationId: getOrderLogById
+      parameters:
+        - $ref: "#/components/parameters/LogOrderId"
+      responses:
+        "200":
+          description: The order log entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderLogResponse"
+              example:
+                logOrderId: 5d2a1f0e-3c4b-4a59-8e7d-6f5a4b3c2d1e
+                orderId: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+                portfolioId: 9a8b7c6d-5e4f-4a3b-2c1d-0e9f8a7b6c5d
+                instrumentId: 1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d5e
+                side: BUY
+                quantity: 5
+                timestamp: "2026-09-23T14:30:00Z"
+                metadata: null
+                status: SUBMITTED
+                executionPrice: 0
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/order-logs:
+    post:
+      tags: [OrderLogs]
+      summary: Record an order log entry (status starts as SUBMITTED)
+      operationId: createOrderLog
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrderLogRequest"
+            example:
+              orderId: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+              portfolioId: 9a8b7c6d-5e4f-4a3b-2c1d-0e9f8a7b6c5d
+              instrumentId: 1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d5e
+              side: BUY
+              quantity: 5
+      responses:
+        "201":
+          description: Order log entry created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderLogResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  # ------------------------------------------------------------------ Trades
+  /api/trades/holding/{holdingId}:
+    get:
+      tags: [Trades]
+      summary: List the trades that changed a holding
+      operationId: getTradesByHolding
+      parameters:
+        - $ref: "#/components/parameters/HoldingId"
+      responses:
+        "200":
+          description: Trades for the holding
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TradeResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/trades/{tradeId}:
+    get:
+      tags: [Trades]
+      summary: Get one trade
+      operationId: getTradeById
+      parameters:
+        - $ref: "#/components/parameters/TradeId"
+      responses:
+        "200":
+          description: The trade
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TradeResponse"
+              example:
+                tradeId: 2e3f4a5b-6c7d-4e8f-9a0b-1c2d3e4f5a6b
+                holdingId: 3f6c1a2e-8b4d-4c1a-9e2f-1a2b3c4d5e6f
+                orderLogId: 5d2a1f0e-3c4b-4a59-8e7d-6f5a4b3c2d1e
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/trades:
+    post:
+      tags: [Trades]
+      summary: Record a trade for an order log entry
+      description: >
+        If `holdingId` is omitted, the holding for the order's portfolio + instrument is
+        found, or created if it does not exist. Only one trade may exist per order log entry.
+      operationId: createTrade
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTradeRequest"
+            example:
+              orderLogId: 5d2a1f0e-3c4b-4a59-8e7d-6f5a4b3c2d1e
+      responses:
+        "201":
+          description: Trade created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TradeResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  # -------------------------------------------------------------- Watchlists
+  /api/watchlists/portfolio/{portfolioId}:
+    get:
+      tags: [Watchlists]
+      summary: List the watchlist items in a portfolio
+      operationId: getWatchlistItemsByPortfolio
+      parameters:
+        - $ref: "#/components/parameters/PortfolioId"
+      responses:
+        "200":
+          description: Watchlist items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WatchlistItemResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/watchlists/{listItemId}:
+    get:
+      tags: [Watchlists]
+      summary: Get one watchlist item
+      operationId: getWatchlistItemById
+      parameters:
+        - $ref: "#/components/parameters/ListItemId"
+      responses:
+        "200":
+          description: The watchlist item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WatchlistItemResponse"
+              example:
+                listItemId: 4a5b6c7d-8e9f-4a0b-1c2d-3e4f5a6b7c8d
+                portfolioId: 9a8b7c6d-5e4f-4a3b-2c1d-0e9f8a7b6c5d
+                instrumentId: 1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d5e
+                name: Tech picks
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    put:
+      tags: [Watchlists]
+      summary: Rename a watchlist item
+      operationId: updateWatchlistItem
+      parameters:
+        - $ref: "#/components/parameters/ListItemId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateWatchlistItemRequest"
+            example:
+              name: Dividend picks
+      responses:
+        "200":
+          description: Watchlist item updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WatchlistItemResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    delete:
+      tags: [Watchlists]
+      summary: Remove an instrument from the watchlist
+      operationId: deleteWatchlistItem
+      parameters:
+        - $ref: "#/components/parameters/ListItemId"
+      responses:
+        "204":
+          description: Watchlist item deleted
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/watchlists:
+    post:
+      tags: [Watchlists]
+      summary: Add an instrument to a portfolio's watchlist
+      operationId: createWatchlistItem
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateWatchlistItemRequest"
+            example:
+              portfolioId: 9a8b7c6d-5e4f-4a3b-2c1d-0e9f8a7b6c5d
+              instrumentId: 1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d5e
+              name: Tech picks
+      responses:
+        "201":
+          description: Watchlist item created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WatchlistItemResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  # ----------------------------------------------------------------- Profile
+  /api/profile:
+    get:
+      tags: [Profile]
+      summary: Get the signed-in user's profile
+      operationId: getCurrentProfile
+      responses:
+        "200":
+          description: The user's profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfileResponse"
+              example:
+                userId: 0f1e2d3c-4b5a-4968-8776-655443322110
+                email: joanna@example.com
+                userType: 0
+                firstName: Joanna
+                lastName: Smith
+                username: joanna
+                city: Boston
+                state: MA
+                country: USA
+                zipCode: "02110"
+                dob: "1990-04-12"
+                avatar: null
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    put:
+      tags: [Profile]
+      summary: Update the signed-in user's profile
+      description: Only fields that are present are changed. Email is managed by Supabase and cannot be changed here.
+      operationId: updateProfile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileRequest"
+            example:
+              city: Chicago
+              state: IL
+      responses:
+        "200":
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfileResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Supabase access token (ES256), validated against the project's JWKS
+
+  parameters:
+    HoldingId:
+      name: holdingId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    PortfolioId:
+      name: portfolioId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    InstrumentId:
+      name: instrumentId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    LogOrderId:
+      name: logOrderId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    TradeId:
+      name: tradeId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    ListItemId:
+      name: listItemId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    Ticker:
+      name: ticker
+      in: path
+      required: true
+      schema: { type: string, maxLength: 20 }
+      example: AAPL
+
+  responses:
+    BadRequest:
+      description: Malformed request - failed validation (details lists each bad field)
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+          example:
+            timestamp: "2026-09-23T14:30:00Z"
+            message: Validation failed
+            details:
+              currentQuantity: Current quantity must be greater than 0
+    Unauthorized:
+      description: Missing, expired or invalid JWT
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    NotFound:
+      description: Resource does not exist, or is not owned by the signed-in user
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+          example:
+            timestamp: "2026-09-23T14:30:00Z"
+            message: Holding not found
+            details: {}
+    Conflict:
+      description: Resource already exists (duplicate)
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    ServerError:
+      description: Unexpected error - generic message only, no stack trace
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        timestamp: { type: string, format: date-time }
+        message: { type: string }
+        details:
+          type: object
+          additionalProperties: { type: string }
+
+    # ---- enums
+    InstrumentClass:
+      type: string
+      enum: [ETF, EQUITY, STOCK, BOND, USD, GBP, CRYPTO]
+    OrderSide:
+      type: string
+      enum: [BUY, SELL, DEPOSIT, WITHDRAW]
+    OrderStatus:
+      type: string
+      enum: [SUBMITTED, PENDING, CANCELLED, ACCEPTED, REJECTED, EXECUTED, FAILED]
+
+    # ---- holdings
+    CreateHoldingRequest:
+      type: object
+      required: [portfolioId, instrumentId, currentQuantity]
+      properties:
+        portfolioId: { type: string, format: uuid }
+        instrumentId: { type: string, format: uuid }
+        currentQuantity: { type: number, format: double, exclusiveMinimum: 0 }
+    UpdateHoldingRequest:
+      type: object
+      properties:
+        currentQuantity: { type: [number, "null"], format: double, minimum: 0 }
+    HoldingResponse:
+      type: object
+      properties:
+        holdingId: { type: string, format: uuid }
+        portfolioId: { type: string, format: uuid }
+        instrumentId: { type: string, format: uuid }
+        currentQuantity: { type: number, format: double }
+
+    # ---- instruments
+    CreateInstrumentRequest:
+      type: object
+      required: [ticker, market, name, instrumentClass]
+      properties:
+        ticker: { type: string, minLength: 1, maxLength: 20 }
+        market: { type: string, minLength: 1, maxLength: 50 }
+        name: { type: string, minLength: 1, maxLength: 255 }
+        instrumentClass: { $ref: "#/components/schemas/InstrumentClass" }
+        logoUrl: { type: [string, "null"], maxLength: 1000 }
+        description: { type: [string, "null"], maxLength: 4000 }
+    UpdateInstrumentRequest:
+      type: object
+      properties:
+        name: { type: [string, "null"], minLength: 1, maxLength: 255 }
+        logoUrl: { type: [string, "null"], maxLength: 1000 }
+        description: { type: [string, "null"], maxLength: 4000 }
+    InstrumentResponse:
+      type: object
+      properties:
+        instrumentId: { type: string, format: uuid }
+        ticker: { type: string }
+        market: { type: string }
+        name: { type: string }
+        instrumentClass: { $ref: "#/components/schemas/InstrumentClass" }
+        logoUrl: { type: [string, "null"] }
+        description: { type: [string, "null"] }
+    InstrumentPriceResponse:
+      type: object
+      properties:
+        instrumentId: { type: string, format: uuid }
+        ticker: { type: string }
+        name: { type: string }
+        price: { type: number, format: double }
+        quotedAt: { type: string, format: date-time }
+
+    # ---- portfolios
+    CreatePortfolioRequest:
+      type: object
+      required: [portfolioName]
+      properties:
+        portfolioName: { type: string, minLength: 1, maxLength: 100 }
+    UpdatePortfolioRequest:
+      type: object
+      required: [portfolioName]
+      properties:
+        portfolioName: { type: string, minLength: 1, maxLength: 100 }
+    PortfolioResponse:
+      type: object
+      properties:
+        portfolioId: { type: string, format: uuid }
+        portfolioName: { type: string }
+
+    # ---- orders (planned)
+    OrderRequest:
+      type: object
+      required: [instrumentId, side, quantity]
+      properties:
+        instrumentId: { type: string, format: uuid }
+        side: { type: string, enum: [BUY, SELL] }
+        quantity: { type: number, format: double, exclusiveMinimum: 0 }
+    OrderResponse:
+      type: object
+      required: [orderId, status]
+      properties:
+        orderId: { type: string, format: uuid }
+        status: { $ref: "#/components/schemas/OrderStatus" }
+        executionPrice:
+          type: [number, "null"]
+          format: double
+          description: Present only when the order was filled
+        reason:
+          type: [string, "null"]
+          description: Present only when the order was rejected
+
+    # ---- order logs
+    CreateOrderLogRequest:
+      type: object
+      required: [orderId, portfolioId, instrumentId, side, quantity]
+      properties:
+        orderId:
+          type: string
+          format: uuid
+          description: Shared by every log entry of the same order
+        portfolioId: { type: string, format: uuid }
+        instrumentId: { type: string, format: uuid }
+        side: { $ref: "#/components/schemas/OrderSide" }
+        quantity: { type: number, format: double, minimum: 0.000001 }
+        metadata: { type: [string, "null"], maxLength: 4000 }
+        executionPrice: { type: [number, "null"], format: double }
+    OrderLogResponse:
+      type: object
+      properties:
+        logOrderId: { type: string, format: uuid }
+        orderId: { type: string, format: uuid }
+        portfolioId: { type: string, format: uuid }
+        instrumentId: { type: string, format: uuid }
+        side: { $ref: "#/components/schemas/OrderSide" }
+        quantity: { type: number, format: double }
+        timestamp: { type: string, format: date-time }
+        metadata: { type: [string, "null"] }
+        status: { $ref: "#/components/schemas/OrderStatus" }
+        executionPrice: { type: number, format: double }
+
+    # ---- trades
+    CreateTradeRequest:
+      type: object
+      required: [orderLogId]
+      properties:
+        holdingId:
+          type: [string, "null"]
+          format: uuid
+          description: Optional - if omitted, the holding is found or created from the order log
+        orderLogId: { type: string, format: uuid }
+    TradeResponse:
+      type: object
+      properties:
+        tradeId: { type: string, format: uuid }
+        holdingId: { type: string, format: uuid }
+        orderLogId: { type: string, format: uuid }
+
+    # ---- watchlists
+    CreateWatchlistItemRequest:
+      type: object
+      required: [portfolioId, instrumentId]
+      properties:
+        portfolioId: { type: string, format: uuid }
+        instrumentId: { type: string, format: uuid }
+        name: { type: [string, "null"], maxLength: 255 }
+    UpdateWatchlistItemRequest:
+      type: object
+      properties:
+        name: { type: [string, "null"], maxLength: 255 }
+    WatchlistItemResponse:
+      type: object
+      properties:
+        listItemId: { type: string, format: uuid }
+        portfolioId: { type: string, format: uuid }
+        instrumentId: { type: string, format: uuid }
+        name: { type: [string, "null"] }
+
+    # ---- profile
+    UpdateProfileRequest:
+      type: object
+      properties:
+        firstName: { type: [string, "null"], minLength: 1, maxLength: 100 }
+        lastName: { type: [string, "null"], minLength: 1, maxLength: 100 }
+        username: { type: [string, "null"], maxLength: 50 }
+        city: { type: [string, "null"], maxLength: 100 }
+        state: { type: [string, "null"], maxLength: 2 }
+        country: { type: [string, "null"], maxLength: 100 }
+        zipCode: { type: [string, "null"], maxLength: 10 }
+        dob: { type: [string, "null"], format: date }
+        avatar: { type: [string, "null"], maxLength: 255 }
+    ProfileResponse:
+      type: object
+      properties:
+        userId: { type: string, format: uuid }
+        email: { type: string, format: email }
+        userType: { type: number }
+        firstName: { type: [string, "null"] }
+        lastName: { type: [string, "null"] }
+        username: { type: [string, "null"] }
+        city: { type: [string, "null"] }
+        state: { type: [string, "null"] }
+        country: { type: [string, "null"] }
+        zipCode: { type: [string, "null"] }
+        dob: { type: [string, "null"], format: date }
+        avatar: { type: [string, "null"] }
