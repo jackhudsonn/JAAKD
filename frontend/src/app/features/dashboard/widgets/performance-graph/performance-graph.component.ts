@@ -25,7 +25,17 @@ export class PerformanceGraphWidgetComponent {
 
   startValue = computed(() => this.series()[0]?.value ?? 0);
   endValue = computed(() => this.series().at(-1)?.value ?? 0);
+  highValue = computed(() => {
+    const values = this.series().map((point) => point.value);
 
+    return values.length > 0 ? Math.max(...values) : 0;
+  });
+
+  lowValue = computed(() => {
+    const values = this.series().map((point) => point.value);
+
+    return values.length > 0 ? Math.min(...values) : 0;
+  });
   changeAmount = computed(() => this.endValue() - this.startValue());
   changePct = computed(() => {
     const start = this.startValue();
