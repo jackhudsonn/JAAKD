@@ -1,5 +1,5 @@
 {
-  "library": "native",
+  "library": "resttemplate",
   "packageName": "io.github.jackhudsonn.jaakd.client.scrumtuous",
   "apiPackage": "io.github.jackhudsonn.jaakd.client.scrumtuous.api",
   "modelPackage": "io.github.jackhudsonn.jaakd.client.scrumtuous.model",
