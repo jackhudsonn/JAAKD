@@ -68,3 +68,30 @@ Runs on `http://localhost:8081`. Check `http://localhost:8081/actuator/health` â
 ./mvnw test                        # run tests
 java -jar target\backend-0.0.1-SNAPSHOT.jar   # run the packaged jar directly
 ```
+
+## External API client generation
+
+The backend includes build-time OpenAPI client generation for the Scrumtuous market-data spec:
+
+- Input spec: `https://www.scrumtuous.com/api.json`
+- Generator: OpenAPI Generator Maven plugin (`generatorName=java`, `library=native`)
+- Config file: `backend/openapi-generator-config.json`
+- Generated sources output: `backend/target/generated-sources/openapi-generator/src/main/java`
+
+Generated classes are placed under:
+
+- `io.github.jackhudsonn.jaakd.client.scrumtuous.api`
+- `io.github.jackhudsonn.jaakd.client.scrumtuous.model`
+- `io.github.jackhudsonn.jaakd.client.scrumtuous.invoker`
+
+Regenerate the client:
+
+```powershell
+./mvnw generate-sources
+```
+
+Or regenerate as part of a full build:
+
+```powershell
+./mvnw clean package
+```

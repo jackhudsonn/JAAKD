@@ -30,3 +30,4 @@ Tooling and access needed to build and run the `backend/` module locally.
 
 - `me.paulschwarz:spring-dotenv` does **not** work with this project's Spring Boot version (4.1.1) — do not re-add it. `.env` loading is handled natively via `spring.config.import: optional:file:.env[.properties]` in `application.yaml`.
 - `.env` is git-ignored via the root `.gitignore` (`.env`, `.env.*`, with `!.env.example` explicitly un-ignored) — never put real secrets in `.env.example`.
+- OpenAPI client generation downloads the external spec from `https://www.scrumtuous.com/api.json` during `generate-sources`. If network access to that host is unavailable, generation fails. For deterministic/offline builds, switch `inputSpec` in `backend/pom.xml` to a local pinned copy.
