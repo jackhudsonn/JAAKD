@@ -16,14 +16,27 @@ public interface HoldingRepository extends JpaRepository<Holding, UUID> {
 
     Optional<Holding> findByPortfolioPortfolioIdAndInstrumentInstrumentId(UUID portfolioId, UUID instrumentId);
 
-    Optional<Holding> findByHoldingIdAndPortfolioProfileUserId(UUID holdingId, UUID userId);
+    @Query("SELECT h FROM Holding h WHERE h.holdingId = :holdingId AND h.portfolio.profile.userId = :userId")
+    Optional<Holding> findOwnedByHoldingId(
+        @Param("holdingId") UUID holdingId,
+        @Param("userId") UUID userId
+    );
 
-        @Query("SELECT h FROM Holding h WHERE h.portfolio.portfolioId = :portfolioId AND h.instrument.instrumentId = :instrumentId AND h.portfolio.profile.userId = :userId")
-        Optional<Holding> findOwnedByPortfolioAndInstrument(
-            @Param("portfolioId") UUID portfolioId,
-            @Param("instrumentId") UUID instrumentId,
-            @Param("userId") UUID userId
-        );
+    @Query("""
+        SELECT h FROM Holding h
+        WHERE h.portfolio.portfolioId = :portfolioId
+            AND h.instrument.instrumentId = :instrumentId
+            AND h.portfolio.profile.userId = :userId
+        """)
+    Optional<Holding> findOwnedByPortfolioAndInstrument(
+        @Param("portfolioId") UUID portfolioId,
+        @Param("instrumentId") UUID instrumentId,
+        @Param("userId") UUID userId
+    );
 
-    List<Holding> findByPortfolioPortfolioIdAndPortfolioProfileUserId(UUID portfolioId, UUID userId);
+      @Query("SELECT h FROM Holding h WHERE h.portfolio.portfolioId = :portfolioId AND h.portfolio.profile.userId = :userId")
+      List<Holding> findOwnedByPortfolioId(
+        @Param("portfolioId") UUID portfolioId,
+        @Param("userId") UUID userId
+      );
 }

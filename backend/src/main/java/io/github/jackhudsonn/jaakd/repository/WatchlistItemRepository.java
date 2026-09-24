@@ -1,6 +1,8 @@
 package io.github.jackhudsonn.jaakd.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import io.github.jackhudsonn.jaakd.model.WatchlistItem;
 
@@ -14,13 +16,31 @@ public interface WatchlistItemRepository extends JpaRepository<WatchlistItem, UU
 
     Optional<WatchlistItem> findByPortfolioPortfolioIdAndInstrumentInstrumentId(UUID portfolioId, UUID instrumentId);
 
-    Optional<WatchlistItem> findByListItemIdAndPortfolioProfileUserId(UUID listItemId, UUID userId);
+    @Query("SELECT w FROM WatchlistItem w WHERE w.listItemId = :listItemId AND w.portfolio.profile.userId = :userId")
+    Optional<WatchlistItem> findOwnedByListItemId(
+        @Param("listItemId") UUID listItemId,
+        @Param("userId") UUID userId
+    );
 
-    List<WatchlistItem> findByPortfolioPortfolioIdAndPortfolioProfileUserId(UUID portfolioId, UUID userId);
+    @Query("""
+        SELECT w FROM WatchlistItem w
+        WHERE w.portfolio.portfolioId = :portfolioId
+            AND w.portfolio.profile.userId = :userId
+        """)
+    List<WatchlistItem> findOwnedByPortfolioId(
+        @Param("portfolioId") UUID portfolioId,
+        @Param("userId") UUID userId
+    );
 
-    Optional<WatchlistItem> findByPortfolioPortfolioIdAndInstrumentInstrumentIdAndPortfolioProfileUserId(
-            UUID portfolioId,
-            UUID instrumentId,
-            UUID userId
+    @Query("""
+        SELECT w FROM WatchlistItem w
+        WHERE w.portfolio.portfolioId = :portfolioId
+            AND w.instrument.instrumentId = :instrumentId
+            AND w.portfolio.profile.userId = :userId
+        """)
+    Optional<WatchlistItem> findOwnedByPortfolioAndInstrument(
+        @Param("portfolioId") UUID portfolioId,
+        @Param("instrumentId") UUID instrumentId,
+        @Param("userId") UUID userId
     );
 }

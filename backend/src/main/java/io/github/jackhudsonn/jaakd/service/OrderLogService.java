@@ -22,17 +22,16 @@ import java.util.UUID;
 
 @Service
 public class OrderLogService {
-
     private final OrderLogRepository orderLogRepository;
     private final PortfolioRepository portfolioRepository;
     private final InstrumentRepository instrumentRepository;
     private final CurrentUserService currentUserService;
 
     public OrderLogService(
-            OrderLogRepository orderLogRepository,
-            PortfolioRepository portfolioRepository,
-            InstrumentRepository instrumentRepository,
-            CurrentUserService currentUserService
+        OrderLogRepository orderLogRepository,
+        PortfolioRepository portfolioRepository,
+        InstrumentRepository instrumentRepository,
+        CurrentUserService currentUserService
     ) {
         this.orderLogRepository = orderLogRepository;
         this.portfolioRepository = portfolioRepository;
@@ -42,13 +41,15 @@ public class OrderLogService {
 
     public List<OrderLog> getOrderLogsForPortfolio(UUID portfolioId) {
         UUID userId = currentUserService.getUserId();
-        return orderLogRepository.findByPortfolioPortfolioIdAndPortfolioProfileUserIdOrderByTimestampDesc(portfolioId, userId);
+        
+        return orderLogRepository.findOwnedByPortfolioNewestFirst(portfolioId, userId);
     }
 
     public OrderLog getOrderLogById(UUID logOrderId) {
         UUID userId = currentUserService.getUserId();
 
-        Optional<OrderLog> maybeOrderLog = orderLogRepository.findByLogOrderIDAndPortfolioProfileUserId(logOrderId, userId);
+        Optional<OrderLog> maybeOrderLog = orderLogRepository.findOwnedByLogOrderId(logOrderId, userId);
+        
         if (maybeOrderLog.isEmpty()) {
             throw new OrderLogNotFoundException(logOrderId);
         }
@@ -62,17 +63,21 @@ public class OrderLogService {
         UUID userId = currentUserService.getUserId();
 
         // 2. Ensure portfolio exists and belongs to user
-        Optional<Portfolio> maybePortfolio = portfolioRepository.findByPortfolioIdAndProfileUserId(request.portfolioId(), userId);
+        Optional<Portfolio> maybePortfolio = portfolioRepository.findOwnedByPortfolioId(request.portfolioId(), userId);
+        
         if (maybePortfolio.isEmpty()) {
             throw new PortfolioNotFoundException(request.portfolioId());
         }
+
         Portfolio portfolio = maybePortfolio.get();
 
         // 3. Ensure instrument exists
         Optional<Instrument> maybeInstrument = instrumentRepository.findById(request.instrumentId());
+        
         if (maybeInstrument.isEmpty()) {
             throw new InstrumentNotFoundException(request.instrumentId());
         }
+        
         Instrument instrument = maybeInstrument.get();
 
         // 4. Build order log and defaults

@@ -23,17 +23,16 @@ import java.util.UUID;
 
 @Service
 public class HoldingService {
-
     private final HoldingRepository holdingRepository;
     private final PortfolioRepository portfolioRepository;
     private final InstrumentRepository instrumentRepository;
     private final CurrentUserService currentUserService;
 
     public HoldingService(
-            HoldingRepository holdingRepository,
-            PortfolioRepository portfolioRepository,
-            InstrumentRepository instrumentRepository,
-            CurrentUserService currentUserService
+        HoldingRepository holdingRepository,
+        PortfolioRepository portfolioRepository,
+        InstrumentRepository instrumentRepository,
+        CurrentUserService currentUserService
     ) {
         this.holdingRepository = holdingRepository;
         this.portfolioRepository = portfolioRepository;
@@ -43,13 +42,14 @@ public class HoldingService {
 
     public List<Holding> getHoldingsForPortfolio(UUID portfolioId) {
         UUID userId = currentUserService.getUserId();
-        return holdingRepository.findByPortfolioPortfolioIdAndPortfolioProfileUserId(portfolioId, userId);
+
+        return holdingRepository.findOwnedByPortfolioId(portfolioId, userId);
     }
 
     public Holding getHoldingById(UUID holdingId) {
         UUID userId = currentUserService.getUserId();
-
-        Optional<Holding> maybeHolding = holdingRepository.findByHoldingIdAndPortfolioProfileUserId(holdingId, userId);
+        Optional<Holding> maybeHolding = holdingRepository.findOwnedByHoldingId(holdingId, userId);
+        
         if (maybeHolding.isEmpty()) {
             throw new HoldingNotFoundException(holdingId);
         }
@@ -63,32 +63,37 @@ public class HoldingService {
         UUID userId = currentUserService.getUserId();
 
         // 2. Ensure portfolio exists and belongs to user
-        Optional<Portfolio> maybePortfolio = portfolioRepository.findByPortfolioIdAndProfileUserId(request.portfolioId(), userId);
+        Optional<Portfolio> maybePortfolio = portfolioRepository.findOwnedByPortfolioId(request.portfolioId(), userId);
+        
         if (maybePortfolio.isEmpty()) {
             throw new PortfolioNotFoundException(request.portfolioId());
         }
+        
         Portfolio portfolio = maybePortfolio.get();
 
         // 3. Ensure instrument exists
         Optional<Instrument> maybeInstrument = instrumentRepository.findById(request.instrumentId());
+        
         if (maybeInstrument.isEmpty()) {
             throw new InstrumentNotFoundException(request.instrumentId());
         }
+        
         Instrument instrument = maybeInstrument.get();
 
         // 4. Prevent duplicate holding for same portfolio + instrument
-        Optional<Holding> maybeExisting = holdingRepository
-            .findOwnedByPortfolioAndInstrument(
-                        request.portfolioId(),
-                        request.instrumentId(),
-                        userId
-                );
+        Optional<Holding> maybeExisting = holdingRepository.findOwnedByPortfolioAndInstrument(
+            request.portfolioId(),
+            request.instrumentId(),
+            userId
+        );
+
         if (maybeExisting.isPresent()) {
             throw new HoldingConflictException();
         }
 
         // 5. Build and persist holding
         Holding holding = new Holding(portfolio, instrument, request.currentQuantity());
+        
         return holdingRepository.save(holding);
     }
 
@@ -96,7 +101,7 @@ public class HoldingService {
     public Holding updateHolding(UUID holdingId, UpdateHoldingRequest request) {
         // 1. Load owned holding
         UUID userId = currentUserService.getUserId();
-        Optional<Holding> maybeHolding = holdingRepository.findByHoldingIdAndPortfolioProfileUserId(holdingId, userId);
+        Optional<Holding> maybeHolding = holdingRepository.findOwnedByHoldingId(holdingId, userId);
 
         if (maybeHolding.isEmpty()) {
             throw new HoldingNotFoundException(holdingId);
@@ -117,7 +122,7 @@ public class HoldingService {
     public void deleteHolding(UUID holdingId) {
         // 1. Load owned holding
         UUID userId = currentUserService.getUserId();
-        Optional<Holding> maybeHolding = holdingRepository.findByHoldingIdAndPortfolioProfileUserId(holdingId, userId);
+        Optional<Holding> maybeHolding = holdingRepository.findOwnedByHoldingId(holdingId, userId);
 
         if (maybeHolding.isEmpty()) {
             throw new HoldingNotFoundException(holdingId);

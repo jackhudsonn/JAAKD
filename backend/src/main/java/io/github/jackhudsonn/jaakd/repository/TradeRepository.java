@@ -1,6 +1,8 @@
 package io.github.jackhudsonn.jaakd.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import io.github.jackhudsonn.jaakd.model.Trade;
 
@@ -14,7 +16,23 @@ public interface TradeRepository extends JpaRepository<Trade, UUID> {
 
     Optional<Trade> findByOrderLogLogOrderID(UUID orderLogId);
 
-    Optional<Trade> findByTradeIDAndHoldingPortfolioProfileUserId(UUID tradeId, UUID userId);
+    @Query("""
+            SELECT t FROM Trade t
+            WHERE t.tradeID = :tradeId
+              AND t.holding.portfolio.profile.userId = :userId
+            """)
+    Optional<Trade> findOwnedByTradeId(
+            @Param("tradeId") UUID tradeId,
+            @Param("userId") UUID userId
+    );
 
-    List<Trade> findByHoldingHoldingIdAndHoldingPortfolioProfileUserId(UUID holdingId, UUID userId);
+    @Query("""
+            SELECT t FROM Trade t
+            WHERE t.holding.holdingId = :holdingId
+              AND t.holding.portfolio.profile.userId = :userId
+            """)
+    List<Trade> findOwnedByHoldingId(
+            @Param("holdingId") UUID holdingId,
+            @Param("userId") UUID userId
+    );
 }
