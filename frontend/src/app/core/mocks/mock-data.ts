@@ -130,6 +130,14 @@ export interface SharedWatchlist {
   symbols: string[];
 }
 
+// TODO: Replace these client-side watchlist min/max boundaries with server-provided limits.
+export const WATCHLIST_CONSTRAINTS = {
+  minWatchlists: 1,
+  maxWatchlists: 15,
+  minHoldingsPerWatchlist: 0,
+  maxHoldingsPerWatchlist: 40,
+} as const;
+
 export const MOCK_WATCHLISTS: SharedWatchlist[] = [
   { id: 'recommendations', name: 'Recommendations', symbols: [...MOCK_WATCHLIST_SYMBOLS] },
   { id: 'save-for-later', name: 'Save for Later', symbols: ['IONQ', 'IBM', 'BTC'] },

@@ -17,35 +17,62 @@
         <p class="form-error">{{ watchlistDialogError() }}</p>
       }
 
+      <p class="watchlist-limit-copy">Max watchlists: {{ maxWatchlists }}</p>
+
       <div class="watchlist-dialog-actions">
         <button type="button" class="btn btn-secondary" (click)="closeWatchlistDialog()">
           Cancel
         </button>
-        <button type="button" class="btn btn-primary" (click)="saveWatchlistName()">Save</button>
+        <button
+          type="button"
+          class="btn btn-primary"
+          [disabled]="!canCreateWatchlist()"
+          (click)="saveWatchlistName()"
+        >
+          Save
+        </button>
       </div>
     </div>
   </app-modal>
 }
 
-@if (watchlistDialogMode() === 'delete') {
+@if (watchlistDialogMode() === 'edit') {
   @if (activeWatchlist(); as watchlist) {
-    <app-modal title="Delete Watchlist" (closed)="closeWatchlistDialog()">
+    <app-modal title="Edit Watchlist" (closed)="closeWatchlistDialog()">
       <div class="watchlist-dialog">
-        <p class="watchlist-delete-copy">
-          Delete watchlist "{{ watchlist.name }}"? This cannot be undone.
+        <div class="form-field">
+          <label for="dashboard-watchlist-edit-name-input">Watchlist name</label>
+          <input
+            id="dashboard-watchlist-edit-name-input"
+            type="text"
+            [value]="watchlistNameDraft()"
+            (input)="onWatchlistNameInput($event)"
+            maxlength="40"
+            placeholder="e.g. Recommendations"
+          />
+        </div>
+
+        @if (watchlistDialogError()) {
+          <p class="form-error">{{ watchlistDialogError() }}</p>
+        }
+
+        <p class="watchlist-limit-copy">
+          {{ activeWatchlistSymbolCount() }}/{{ maxHoldingsPerWatchlist }} items in "{{ watchlist.name }}"
         </p>
 
         <div class="watchlist-dialog-actions">
-          <button type="button" class="btn btn-secondary" (click)="closeWatchlistDialog()">
-            Cancel
-          </button>
           <button
             type="button"
-            class="btn btn-primary watchlist-delete-btn"
+            class="btn btn-secondary watchlist-delete-btn"
+            [disabled]="!canDeleteActive()"
             (click)="confirmDeleteWatchlist()"
           >
             Delete
           </button>
+          <button type="button" class="btn btn-secondary" (click)="closeWatchlistDialog()">
+            Cancel
+          </button>
+          <button type="button" class="btn btn-primary" (click)="saveWatchlistName()">Save</button>
         </div>
       </div>
     </app-modal>
@@ -69,6 +96,13 @@
       <p class="watchlist-details-price">Current Price: {{ asset.price | number: '1.2-2' }}</p>
 
       <div class="watchlist-details-actions">
+        <button
+          type="button"
+          class="btn btn-secondary watchlist-delete-btn"
+          (click)="removeSelectedWatchlistAsset()"
+        >
+          Delete
+        </button>
         <button type="button" class="btn btn-secondary" (click)="closeWatchlistAssetPopup()">
           Close
         </button>
@@ -78,6 +112,81 @@
           (click)="openTradeForWatchlistSelectedAsset()"
         >
           Trade
+        </button>
+      </div>
+    </div>
+  </app-modal>
+}
+
+@if (watchlistSearchOpen()) {
+  <app-modal title="Search" (closed)="closeWatchlistSearchPopup()">
+    <div class="watchlist-search">
+      <div class="watchlist-search-toolbar">
+        <label class="sr-only" for="watchlist-search-input">Search tickers</label>
+        <input
+          id="watchlist-search-input"
+          type="text"
+          class="ticker-search-header"
+          placeholder="Search tickers..."
+          aria-label="Search tickers"
+          [ngModel]="watchlistSearch()"
+          (ngModelChange)="onWatchlistSearchChange($event)"
+        />
+
+        <label class="sr-only" for="watchlist-instrument-filter">Filter by asset class</label>
+        <select
+          id="watchlist-instrument-filter"
+          class="instrument-select"
+          [ngModel]="watchlistSearchInstrument()"
+          (ngModelChange)="setWatchlistInstrumentFilter($event)"
+        >
+          @for (option of instrumentOptions; track option.id) {
+            <option [ngValue]="option.id">{{ option.label }}</option>
+          }
+        </select>
+      </div>
+
+      <p class="watchlist-search-capacity">
+        {{ activeWatchlistSymbolCount() }}/{{ maxHoldingsPerWatchlist }} items
+      </p>
+
+      @if (watchlistSearchError()) {
+        <p class="form-error">{{ watchlistSearchError() }}</p>
+      }
+
+      <app-scrollable-list
+        [items]="watchlistSearchRows()"
+        [trackBy]="trackByWatchlistSearchSymbol"
+        [emptyMessage]="watchlistSearchEmptyMessage()"
+      >
+        <ng-template let-row>
+          <button
+            type="button"
+            class="listing-row"
+            [disabled]="!activeWatchlistHasCapacity()"
+            (click)="addSymbolToActiveWatchlist(row.asset.symbol)"
+          >
+            <div class="listing-info">
+              <span class="symbol">{{ row.asset.symbol }}</span>
+              <span class="name">{{ row.asset.name }}</span>
+            </div>
+            <div class="price-stack">
+              <span class="price">{{ row.price | number: '1.2-2' }}</span>
+              <span
+                class="change"
+                [class.positive]="row.changePct >= 0"
+                [class.negative]="row.changePct < 0"
+              >
+                {{ row.changePct >= 0 ? '+' : '' }}{{ row.changePct | number: '1.2-2' }}%
+              </span>
+            </div>
+          </button>
+        </ng-template>
+      </app-scrollable-list>
+
+      <div class="watchlist-search-actions">
+        <button type="button" class="btn btn-secondary" (click)="closeWatchlistSearchPopup()">
+          Close
         </button>
       </div>
     </div>
