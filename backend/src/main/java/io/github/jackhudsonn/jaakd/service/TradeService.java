@@ -23,17 +23,16 @@ import java.util.UUID;
 
 @Service
 public class TradeService {
-
     private final TradeRepository tradeRepository;
     private final HoldingRepository holdingRepository;
     private final OrderLogRepository orderLogRepository;
     private final CurrentUserService currentUserService;
 
     public TradeService(
-            TradeRepository tradeRepository,
-            HoldingRepository holdingRepository,
-            OrderLogRepository orderLogRepository,
-            CurrentUserService currentUserService
+        TradeRepository tradeRepository,
+        HoldingRepository holdingRepository,
+        OrderLogRepository orderLogRepository,
+        CurrentUserService currentUserService
     ) {
         this.tradeRepository = tradeRepository;
         this.holdingRepository = holdingRepository;
@@ -43,13 +42,15 @@ public class TradeService {
 
     public List<Trade> getTradesForHolding(UUID holdingId) {
         UUID userId = currentUserService.getUserId();
-        return tradeRepository.findByHoldingHoldingIdAndHoldingPortfolioProfileUserId(holdingId, userId);
+        
+        return tradeRepository.findOwnedByHoldingId(holdingId, userId);
     }
 
     public Trade getTradeById(UUID tradeId) {
         UUID userId = currentUserService.getUserId();
 
-        Optional<Trade> maybeTrade = tradeRepository.findByTradeIDAndHoldingPortfolioProfileUserId(tradeId, userId);
+        Optional<Trade> maybeTrade = tradeRepository.findOwnedByTradeId(tradeId, userId);
+        
         if (maybeTrade.isEmpty()) {
             throw new TradeNotFoundException(tradeId);
         }
@@ -63,41 +64,46 @@ public class TradeService {
         UUID userId = currentUserService.getUserId();
 
         // 2. Ensure order log exists and belongs to user
-        Optional<OrderLog> maybeOrderLog = orderLogRepository.findByLogOrderIDAndPortfolioProfileUserId(request.orderLogId(), userId);
+        Optional<OrderLog> maybeOrderLog = orderLogRepository
+            .findOwnedByLogOrderId(request.orderLogId(), userId);
+        
         if (maybeOrderLog.isEmpty()) {
             throw new OrderLogNotFoundException(request.orderLogId());
         }
+
         OrderLog orderLog = maybeOrderLog.get();
 
         // 3. Resolve holding: use request.holdingId when provided; otherwise find/create by portfolio+instrument
         Holding holding;
 
         if (request.holdingId() != null) {
-            Optional<Holding> maybeHolding = holdingRepository.findByHoldingIdAndPortfolioProfileUserId(request.holdingId(), userId);
+            Optional<Holding> maybeHolding = holdingRepository.findOwnedByHoldingId(request.holdingId(), userId);
+            
             if (maybeHolding.isEmpty()) {
                 throw new HoldingNotFoundException(request.holdingId());
             }
+
             holding = maybeHolding.get();
         } else {
             UUID portfolioId = orderLog.getPortfolio().getPortfolioId();
             UUID instrumentId = orderLog.getInstrument().getInstrumentId();
 
-            Optional<Holding> maybeHolding = holdingRepository
-                    .findOwnedByPortfolioAndInstrument(
-                            portfolioId,
-                            instrumentId,
-                            userId
-                    );
+            Optional<Holding> maybeHolding = holdingRepository.findOwnedByPortfolioAndInstrument(
+                portfolioId,
+                instrumentId,
+                userId
+            );
 
             if (maybeHolding.isPresent()) {
                 holding = maybeHolding.get();
             } else {
                 // Create a new holding when this portfolio+instrument does not exist yet.
                 Holding newHolding = new Holding(
-                        orderLog.getPortfolio(),
-                        orderLog.getInstrument(),
-                        orderLog.getQuantity()
+                    orderLog.getPortfolio(),
+                    orderLog.getInstrument(),
+                    orderLog.getQuantity()
                 );
+
                 holding = holdingRepository.save(newHolding);
             }
         }
@@ -105,24 +111,28 @@ public class TradeService {
         // 4. Ensure holding and order log are from same portfolio and instrument
         UUID holdingPortfolioId = holding.getPortfolio().getPortfolioId();
         UUID orderLogPortfolioId = orderLog.getPortfolio().getPortfolioId();
+        
         if (!holdingPortfolioId.equals(orderLogPortfolioId)) {
             throw new InvalidTradeException("Holding and order log must belong to the same portfolio");
         }
 
         UUID holdingInstrumentId = holding.getInstrument().getInstrumentId();
         UUID orderLogInstrumentId = orderLog.getInstrument().getInstrumentId();
+        
         if (!holdingInstrumentId.equals(orderLogInstrumentId)) {
             throw new InvalidTradeException("Holding and order log must use the same instrument");
         }
 
         // 5. Prevent duplicate trade for same order log
         Optional<Trade> maybeExistingTrade = tradeRepository.findByOrderLogLogOrderID(orderLog.getLogOrderID());
+        
         if (maybeExistingTrade.isPresent()) {
             throw new TradeConflictException(orderLog.getLogOrderID());
         }
 
         // 6. Build and persist trade
         Trade trade = new Trade(holding, orderLog);
+        
         return tradeRepository.save(trade);
     }
 }

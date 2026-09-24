@@ -18,7 +18,6 @@ import java.util.UUID;
 
 @Service
 public class PortfolioService {
-
 	private final PortfolioRepository portfolioRepository;
 	private final ProfileRepository profileRepository;
 	private final CurrentUserService currentUserService;
@@ -41,8 +40,8 @@ public class PortfolioService {
 	public Portfolio getCurrentUserPortfolioById(UUID portfolioId) {
 		UUID userId = currentUserService.getUserId();
 
-		return portfolioRepository.findByPortfolioIdAndProfileUserId(portfolioId, userId)
-				.orElseThrow(() -> new PortfolioNotFoundException(portfolioId));
+		return portfolioRepository.findOwnedByPortfolioId(portfolioId, userId)
+			.orElseThrow(() -> new PortfolioNotFoundException(portfolioId));
 	}
 
 	@Transactional
@@ -52,7 +51,7 @@ public class PortfolioService {
 
 		// 2. Fetch profile owner
 		Profile profile = profileRepository.findById(userId)
-				.orElseThrow(() -> new ProfileNotFoundException(userId));
+			.orElseThrow(() -> new ProfileNotFoundException(userId));
 
 		// 3. Build and save portfolio
 		Portfolio portfolio = new Portfolio(profile);
@@ -67,8 +66,8 @@ public class PortfolioService {
 		UUID userId = currentUserService.getUserId();
 
 		// 2. Fetch user-owned portfolio
-		Portfolio portfolio = portfolioRepository.findByPortfolioIdAndProfileUserId(portfolioId, userId)
-				.orElseThrow(() -> new PortfolioNotFoundException(portfolioId));
+		Portfolio portfolio = portfolioRepository.findOwnedByPortfolioId(portfolioId, userId)
+			.orElseThrow(() -> new PortfolioNotFoundException(portfolioId));
 
 		// 3. Apply updates
 		portfolio.setPortfolioName(request.portfolioName());
@@ -83,8 +82,8 @@ public class PortfolioService {
 		UUID userId = currentUserService.getUserId();
 
 		// 2. Fetch user-owned portfolio
-		Portfolio portfolio = portfolioRepository.findByPortfolioIdAndProfileUserId(portfolioId, userId)
-				.orElseThrow(() -> new PortfolioNotFoundException(portfolioId));
+		Portfolio portfolio = portfolioRepository.findOwnedByPortfolioId(portfolioId, userId)
+			.orElseThrow(() -> new PortfolioNotFoundException(portfolioId));
 
 		// 3. Delete portfolio
 		portfolioRepository.delete(portfolio);
