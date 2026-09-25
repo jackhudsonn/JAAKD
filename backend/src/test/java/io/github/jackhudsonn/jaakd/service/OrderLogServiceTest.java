@@ -1,5 +1,6 @@
 package io.github.jackhudsonn.jaakd.service;
 
+import io.github.jackhudsonn.jaakd.exception.OrderCancellationConflictException;
 import io.github.jackhudsonn.jaakd.exception.OrderLogNotFoundException;
 import io.github.jackhudsonn.jaakd.exception.PortfolioNotFoundException;
 import io.github.jackhudsonn.jaakd.model.Instrument;
@@ -22,12 +23,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertIterableEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -231,6 +234,112 @@ class OrderLogServiceTest {
 
         verify(privilegedAccessService, times(1)).ensureAdminOrAuditor();
         verify(orderLogRepository, never()).findByPortfolioPortfolioIdOrderByTimestampDesc(portfolioId);
+    }
+
+    @Test
+    void cancelOrder_submittedLatest_appendsCancelledLog() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID orderId = UUID.randomUUID();
+        UUID portfolioId = UUID.randomUUID();
+        UUID instrumentId = UUID.randomUUID();
+
+        OrderLog submitted = buildOrderLog(UUID.randomUUID(), portfolioId, instrumentId, OrderSide.BUY, 4, 99.0);
+        setField(submitted, "orderID", orderId);
+        submitted.setStatus(OrderStatus.SUBMITTED);
+
+        when(currentUserService.getUserId()).thenReturn(userId);
+        when(orderLogRepository.findOwnedByOrderIdNewestFirstForUpdate(orderId, userId))
+            .thenReturn(List.of(submitted));
+        when(orderLogRepository.save(any(OrderLog.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
+
+        OrderLog result = orderLogService.cancelOrder(orderId);
+
+        assertEquals(OrderStatus.CANCELLED, result.getStatus());
+        assertEquals(orderId, result.getOrderId());
+        assertEquals(submitted.getPortfolio(), result.getPortfolio());
+        assertEquals(submitted.getInstrument(), result.getInstrument());
+
+        ArgumentCaptor<OrderLog> saveCaptor = ArgumentCaptor.forClass(OrderLog.class);
+        verify(orderLogRepository, times(1)).save(saveCaptor.capture());
+        assertEquals(OrderStatus.CANCELLED, saveCaptor.getValue().getStatus());
+    }
+
+    @Test
+    void cancelOrder_cancelledLatest_returnsExistingWithoutAppending() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID orderId = UUID.randomUUID();
+        UUID portfolioId = UUID.randomUUID();
+        UUID instrumentId = UUID.randomUUID();
+
+        OrderLog cancelled = buildOrderLog(UUID.randomUUID(), portfolioId, instrumentId, OrderSide.BUY, 4, 99.0);
+        setField(cancelled, "orderID", orderId);
+        cancelled.setStatus(OrderStatus.CANCELLED);
+
+        when(currentUserService.getUserId()).thenReturn(userId);
+        when(orderLogRepository.findOwnedByOrderIdNewestFirstForUpdate(orderId, userId))
+            .thenReturn(List.of(cancelled));
+
+        OrderLog result = orderLogService.cancelOrder(orderId);
+
+        assertEquals(cancelled, result);
+        verify(orderLogRepository, never()).save(any(OrderLog.class));
+    }
+
+    @Test
+    void cancelOrder_executedLatest_throwsConflict() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID orderId = UUID.randomUUID();
+        UUID portfolioId = UUID.randomUUID();
+        UUID instrumentId = UUID.randomUUID();
+
+        OrderLog executed = buildOrderLog(UUID.randomUUID(), portfolioId, instrumentId, OrderSide.BUY, 4, 99.0);
+        setField(executed, "orderID", orderId);
+        executed.setStatus(OrderStatus.EXECUTED);
+
+        when(currentUserService.getUserId()).thenReturn(userId);
+        when(orderLogRepository.findOwnedByOrderIdNewestFirstForUpdate(orderId, userId))
+            .thenReturn(List.of(executed));
+
+        assertThrows(OrderCancellationConflictException.class, () -> orderLogService.cancelOrder(orderId));
+        verify(orderLogRepository, never()).save(any(OrderLog.class));
+    }
+
+    @Test
+    void cancelOrder_notFound_throwsNotFound() {
+        UUID userId = UUID.randomUUID();
+        UUID orderId = UUID.randomUUID();
+
+        when(currentUserService.getUserId()).thenReturn(userId);
+        when(orderLogRepository.findOwnedByOrderIdNewestFirstForUpdate(orderId, userId))
+            .thenReturn(List.of());
+
+        assertThrows(OrderLogNotFoundException.class, () -> orderLogService.cancelOrder(orderId));
+        verify(orderLogRepository, never()).save(any(OrderLog.class));
+    }
+
+    @Test
+    void cancelOrder_pendingLatest_appendsCancelledLog() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID orderId = UUID.randomUUID();
+        UUID portfolioId = UUID.randomUUID();
+        UUID instrumentId = UUID.randomUUID();
+
+        OrderLog pending = buildOrderLog(UUID.randomUUID(), portfolioId, instrumentId, OrderSide.SELL, 2, 101.0);
+        setField(pending, "orderID", orderId);
+        pending.setStatus(OrderStatus.PENDING);
+
+        when(currentUserService.getUserId()).thenReturn(userId);
+        when(orderLogRepository.findOwnedByOrderIdNewestFirstForUpdate(orderId, userId))
+            .thenReturn(List.of(pending));
+        when(orderLogRepository.save(any(OrderLog.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
+
+        OrderLog result = orderLogService.cancelOrder(orderId);
+
+        assertEquals(OrderStatus.CANCELLED, result.getStatus());
+        assertTrue(result.getQuantity() > 0);
+        verify(orderLogRepository, times(1)).save(any(OrderLog.class));
     }
 
     private OrderLog buildOrderLog(

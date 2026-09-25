@@ -35,7 +35,11 @@ Angular client --HTTPS + Supabase JWT--> this backend --JDBC (privileged role)--
 	- DEPOSIT increments `holdings.currentQuantity`.
 	- WITHDRAW decrements `holdings.currentQuantity` and rejects if balance would go negative.
 - Execution projection is idempotent: re-calling execute for an already `EXECUTED` log does not re-apply accounting side effects.
-- `position_lots` and `lot_matches` are internal projection tables in this phase and do not have public REST endpoints.
+- Holding-scoped lot visibility endpoints are available:
+	- `GET /api/holdings/{holdingId}/position-lots` returns FIFO BUY lots for an owned holding.
+	- `GET /api/holdings/{holdingId}/lot-matches` returns FIFO SELL-to-BUY match slices for an owned holding.
+	- Both return `200` with an empty list when the holding is owned but no rows exist.
+	- Both return `404` when the holding is missing or not owned by the signed-in user.
 
 ## Reconciliation diagnostics
 
@@ -48,6 +52,15 @@ Angular client --HTTPS + Supabase JWT--> this backend --JDBC (privileged role)--
 
 - `GET /api/order-logs/diagnostics/portfolio/{portfolioId}` returns order logs newest first for diagnostics workflows.
 - This endpoint is intended for privileged diagnostics access (`ADMIN` or `AUDITOR`) and is not exposed for retail client workflows.
+
+## Portfolio deletion policy
+
+- `DELETE /api/portfolios/{portfolioId}` is permitted only when the portfolio is truly empty.
+- A portfolio is considered non-empty, and deletion must be blocked, if either of these is true:
+	- It has at least one active order log in status `SUBMITTED`, `PENDING`, or `ACCEPTED`.
+	- It has at least one holding with `currentQuantity > 0`.
+- Cash is included in the holdings rule because cash is represented as a dedicated instrument row in `holdings`.
+- Zero-quantity residual holdings do not block deletion.
 
 ## Privileged endpoints
 

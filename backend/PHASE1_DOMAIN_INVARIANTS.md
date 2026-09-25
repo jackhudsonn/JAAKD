@@ -27,3 +27,20 @@ These invariants are asserted in unit tests in:
 ## Cash invariant status
 
 Cash-specific invariant (`cash holding quantity never negative`) is defined but deferred to Phase 3 Pt 2, when DEPOSIT/WITHDRAW routing is implemented.
+
+## Portfolio deletion invariants (Phase 1)
+
+1. True-empty deletion invariant
+- A portfolio can be deleted only if it has no active order logs and no holdings with positive quantity.
+
+2. Active-order guard invariant
+- Any owned order log with status `SUBMITTED`, `PENDING`, or `ACCEPTED` blocks portfolio deletion.
+
+3. Positive-holding guard invariant
+- Any owned holding with `currentQuantity > 0` blocks portfolio deletion.
+
+4. Cash-included emptiness invariant
+- Cash is represented in `holdings`, so positive cash quantity also blocks deletion.
+
+5. Zero-residual tolerance invariant
+- Zero-quantity residual holdings do not block portfolio deletion.

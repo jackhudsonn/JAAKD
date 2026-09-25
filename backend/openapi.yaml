@@ -46,7 +46,7 @@ paths:
         Execution projection behavior:
         - BUY and SELL executions update non-cash holdings via FIFO lot accounting.
         - DEPOSIT and WITHDRAW executions update only the cash holding quantity.
-        - Position-lot and lot-match rows are internal projection tables and do not have public API endpoints in this phase.
+        - Position-lot and lot-match rows are exposed via holding sub-resources for owned holdings.
       operationId: getHoldingsByPortfolio
       parameters:
         - $ref: "#/components/parameters/PortfolioId"
@@ -134,6 +134,75 @@ paths:
       responses:
         "204":
           description: Holding deleted
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/holdings/{holdingId}/position-lots:
+    get:
+      tags: [Holdings]
+      summary: List FIFO position lots for one holding
+      description: |
+        Returns FIFO BUY lots for one owned holding.
+        If the holding is owned and has no position lots, returns an empty list.
+      operationId: getPositionLotsByHoldingId
+      parameters:
+        - $ref: "#/components/parameters/HoldingId"
+      responses:
+        "200":
+          description: Position lots for the holding (possibly empty)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PositionLotResponse"
+              example:
+                - positionLotID: 31f46f28-0d42-4c19-95de-77561f6fc2c4
+                  holdingID: 3f6c1a2e-8b4d-4c1a-9e2f-1a2b3c4d5e6f
+                  sourceBuyLogOrderID: 6e8b3bca-9d8a-4028-9d5f-136dca4deec5
+                  openedAt: "2026-09-25T09:30:00Z"
+                  originalQuantity: 100.00
+                  remainingQuantity: 40.00
+                  unitCost: 10.50
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/holdings/{holdingId}/lot-matches:
+    get:
+      tags: [Holdings]
+      summary: List FIFO lot matches for one holding
+      description: |
+        Returns SELL-to-BUY FIFO match slices for one owned holding.
+        If the holding is owned and has no lot matches, returns an empty list.
+      operationId: getLotMatchesByHoldingId
+      parameters:
+        - $ref: "#/components/parameters/HoldingId"
+      responses:
+        "200":
+          description: Lot matches for the holding (possibly empty)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LotMatchResponse"
+              example:
+                - lotMatchID: 0f0d4025-f962-4faf-988a-ec6f71f698c2
+                  sellLogOrderID: 4e261f03-c0dc-4653-ae7b-ece8f26d0a9e
+                  positionLotID: 31f46f28-0d42-4c19-95de-77561f6fc2c4
+                  holdingID: 3f6c1a2e-8b4d-4c1a-9e2f-1a2b3c4d5e6f
+                  matchedQuantity: 60.00
+                  sellUnitPrice: 11.20
+                  realizedPnlAmount: 42.00
+                  matchedAt: "2026-09-25T11:15:00Z"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
@@ -464,12 +533,27 @@ paths:
     delete:
       tags: [Portfolios]
       summary: Delete a portfolio (and its holdings and watchlist items)
+      description: >
+        Deletion is allowed only when the portfolio is truly empty.
+        Returns 409 when active order logs exist (SUBMITTED, PENDING, ACCEPTED)
+        or when any holding (including cash) has currentQuantity greater than zero.
       operationId: deletePortfolio
       parameters:
         - $ref: "#/components/parameters/PortfolioId"
       responses:
         "204":
           description: Portfolio deleted
+        "409":
+          description: Portfolio is not empty and cannot be deleted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+              example:
+                timestamp: "2026-09-23T14:30:00Z"
+                message: Cannot delete portfolio with active orders and non-zero holdings
+                details:
+                  hasActiveOrders: "true"
+                  hasNonZeroHoldings: "true"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
@@ -684,6 +768,34 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "404":
           $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/order-logs/{orderId}/cancel:
+    post:
+      tags: [OrderLogs]
+      summary: Cancel a logical order by appending a CANCELLED order-log entry
+      description: |
+        Append-only cancel behavior:
+        - If latest owned status is SUBMITTED or PENDING, append a new CANCELLED order-log row.
+        - If latest owned status is already CANCELLED, return that row (idempotent 200).
+        - If latest owned status is ACCEPTED, EXECUTED, REJECTED, or FAILED, return 409.
+      operationId: cancelOrderByOrderId
+      parameters:
+        - $ref: "#/components/parameters/OrderId"
+      responses:
+        "200":
+          description: Existing or newly appended CANCELLED order-log entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderLogResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
         "500":
           $ref: "#/components/responses/ServerError"
 
@@ -903,6 +1015,11 @@ components:
       in: path
       required: true
       schema: { type: string, format: uuid }
+    OrderId:
+      name: orderId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
     ListItemId:
       name: listItemId
       in: path
@@ -950,7 +1067,7 @@ components:
             message: Holding not found
             details: {}
     Conflict:
-      description: Resource already exists (duplicate)
+      description: Request conflicts with current resource state (duplicate or guarded operation)
       content:
         application/json:
           schema: { $ref: "#/components/schemas/ErrorResponse" }
@@ -1001,6 +1118,43 @@ components:
           type: string
           format: date-time
           description: Last projection update timestamp.
+
+    PositionLotResponse:
+      type: object
+      description: One FIFO BUY lot attached to a holding.
+      properties:
+        positionLotID: { type: string, format: uuid }
+        holdingID: { type: string, format: uuid }
+        sourceBuyLogOrderID: { type: string, format: uuid }
+        openedAt: { type: string, format: date-time }
+        originalQuantity:
+          type: number
+          description: Original BUY quantity for this lot.
+        remainingQuantity:
+          type: number
+          description: Remaining open quantity after SELL matches.
+        unitCost:
+          type: number
+          description: Executed BUY unit price used as cost basis.
+
+    LotMatchResponse:
+      type: object
+      description: One FIFO SELL-to-BUY match slice for a holding.
+      properties:
+        lotMatchID: { type: string, format: uuid }
+        sellLogOrderID: { type: string, format: uuid }
+        positionLotID: { type: string, format: uuid }
+        holdingID: { type: string, format: uuid }
+        matchedQuantity:
+          type: number
+          description: Quantity consumed from the matched BUY lot.
+        sellUnitPrice:
+          type: number
+          description: Executed SELL unit price.
+        realizedPnlAmount:
+          type: number
+          description: Realized PnL for this match slice.
+        matchedAt: { type: string, format: date-time }
 
     PortfolioReconciliationResponse:
       type: object

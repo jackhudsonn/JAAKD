@@ -70,6 +70,8 @@ public class OrderLogController {
 		return toResponse(created);
 	}
 
+	// TODO: Need to add perimission check for executing order logs (ONLY ADMIN)
+	// should we pass orderID instead of logOrderId for consistency with cancel endpoint?
 	@PostMapping("/{logOrderId}/execute")
 	@ResponseStatus(HttpStatus.OK)
 	public OrderLogResponse markOrderLogExecuted(
@@ -79,6 +81,15 @@ public class OrderLogController {
 		OrderLog updated = orderLogService.markExecuted(logOrderId, executionPrice);
 		return toResponse(updated);
 	}
+
+	@PostMapping("/{orderId}/cancel")
+	@ResponseStatus(HttpStatus.OK)
+	public OrderLogResponse cancelOrder(@PathVariable UUID orderId) {
+		OrderLog cancelled = orderLogService.cancelOrder(orderId);
+		return toResponse(cancelled);
+	}
+
+	
 
 	private OrderLogResponse toResponse(OrderLog orderLog) {
 		return new OrderLogResponse(

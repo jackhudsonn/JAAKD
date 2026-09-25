@@ -22,6 +22,16 @@ public class GlobalExceptionHandler {
         return new ErrorResponse(Instant.now(), ex.getMessage(), null);
     }
 
+    @ExceptionHandler(PortfolioNotEmptyException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ErrorResponse handlePortfolioNotEmpty(PortfolioNotEmptyException ex) {
+        Map<String, String> details = new LinkedHashMap<>();
+        details.put("hasActiveOrders", Boolean.toString(ex.hasActiveOrders()));
+        details.put("hasNonZeroHoldings", Boolean.toString(ex.hasNonZeroHoldings()));
+
+        return new ErrorResponse(Instant.now(), ex.getMessage(), details);
+    }
+
     @ExceptionHandler(ConflictException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
     public ErrorResponse handleConflict(ConflictException ex) {

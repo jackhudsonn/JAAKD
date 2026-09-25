@@ -11,6 +11,7 @@ import io.github.jackhudsonn.jaakd.model.OrderStatus;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Collection;
 import java.util.UUID;
 
 public interface OrderLogRepository extends JpaRepository<OrderLog, UUID> {
@@ -63,5 +64,43 @@ public interface OrderLogRepository extends JpaRepository<OrderLog, UUID> {
             @Param("portfolioId") UUID portfolioId,
             @Param("userId") UUID userId,
             @Param("status") OrderStatus status
+        );
+
+        @Query("""
+            SELECT (COUNT(o) > 0)
+            FROM OrderLog o
+            WHERE o.portfolio.portfolioId = :portfolioId
+                AND o.portfolio.profile.userId = :userId
+                AND o.status IN :statuses
+            """)
+        boolean existsOwnedActiveOrders(
+            @Param("portfolioId") UUID portfolioId,
+            @Param("userId") UUID userId,
+            @Param("statuses") Collection<OrderStatus> statuses
+        );
+
+        @Query("""
+            SELECT o
+            FROM OrderLog o
+            WHERE o.orderID = :orderId
+                AND o.portfolio.profile.userId = :userId
+            ORDER BY o.timestamp DESC, o.logOrderID DESC
+            """)
+        List<OrderLog> findOwnedByOrderIdNewestFirst(
+            @Param("orderId") UUID orderId,
+            @Param("userId") UUID userId
+        );
+
+        @Lock(LockModeType.PESSIMISTIC_WRITE)
+        @Query("""
+            SELECT o
+            FROM OrderLog o
+            WHERE o.orderID = :orderId
+                AND o.portfolio.profile.userId = :userId
+            ORDER BY o.timestamp DESC, o.logOrderID DESC
+            """)
+        List<OrderLog> findOwnedByOrderIdNewestFirstForUpdate(
+            @Param("orderId") UUID orderId,
+            @Param("userId") UUID userId
         );
 }

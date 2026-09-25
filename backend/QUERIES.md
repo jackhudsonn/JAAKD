@@ -154,7 +154,13 @@ UPDATE portfolios SET "portfolioName" = :portfolioName
 WHERE "portfolioID" = :portfolioId AND "userID" = :userId;
 ```
 
-**deletePortfolio** (`DELETE /api/portfolios/{portfolioId}`): deletes a portfolio (its holdings and watchlist items cascade).
+**deletePortfolio** (`DELETE /api/portfolios/{portfolioId}`): deletes a portfolio (its holdings and watchlist items cascade) only when it is truly empty.
+
+Delete guard conditions:
+- Block deletion if any owned order log is active (`SUBMITTED`, `PENDING`, `ACCEPTED`).
+- Block deletion if any owned holding has `currentQuantity > 0` (cash included, because cash is a holding row).
+- Return `409 Conflict` with details flags when blocked.
+
 ```sql
 DELETE FROM portfolios WHERE "portfolioID" = :portfolioId AND "userID" = :userId;
 ```
@@ -200,6 +206,24 @@ FROM portfolios p
 WHERE o."logOrderID" = :logOrderId
   AND p."portfolioID" = o."portfolioID"
   AND p."userID" = :userId;
+```
+
+**cancelOrderByOrderId** (`POST /api/order-logs/{orderId}/cancel`): append-only cancel action over the logical order stream.
+
+Behavior:
+- If latest owned status is `SUBMITTED` or `PENDING`, append a new row with status `CANCELLED`.
+- If latest owned status is already `CANCELLED`, return that row (`200` idempotent).
+- If latest owned status is `ACCEPTED`, `EXECUTED`, `REJECTED`, or `FAILED`, return `409 Conflict`.
+
+```sql
+INSERT INTO "orderLogs" ("logOrderID", "orderID", "portfolioID", "instrumentID", side, quantity, "timestamp", metadata, status, "executionPrice")
+SELECT gen_random_uuid(), o."orderID", o."portfolioID", o."instrumentID", o.side, o.quantity, now(), o.metadata, 'CANCELLED', o."executionPrice"
+FROM "orderLogs" o
+JOIN portfolios p ON p."portfolioID" = o."portfolioID"
+WHERE o."orderID" = :orderId
+  AND p."userID" = :userId
+ORDER BY o."timestamp" DESC
+LIMIT 1;
 ```
 
 ## Watchlists

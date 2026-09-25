@@ -1,6 +1,8 @@
 package io.github.jackhudsonn.jaakd.service;
 
 import io.github.jackhudsonn.jaakd.BackendApplication;
+import io.github.jackhudsonn.jaakd.dto.LotMatchResponse;
+import io.github.jackhudsonn.jaakd.dto.PositionLotResponse;
 import io.github.jackhudsonn.jaakd.model.Holding;
 import io.github.jackhudsonn.jaakd.model.Instrument;
 import io.github.jackhudsonn.jaakd.model.InstrumentClass;
@@ -40,6 +42,9 @@ class OrderLogExecutionIntegrationTest {
 
     @Autowired
     private OrderLogService orderLogService;
+
+    @Autowired
+    private HoldingService holdingService;
 
     @Autowired
     private OrderLogRepository orderLogRepository;
@@ -143,6 +148,42 @@ class OrderLogExecutionIntegrationTest {
         assertEquals(OrderStatus.EXECUTED, orderLogRepository.findById(buyTwo.getLogOrderID()).orElseThrow().getStatus());
         assertEquals(OrderStatus.EXECUTED, orderLogRepository.findById(sell.getLogOrderID()).orElseThrow().getStatus());
         assertEquals(OrderStatus.EXECUTED, orderLogRepository.findById(withdraw.getLogOrderID()).orElseThrow().getStatus());
+
+        List<PositionLotResponse> lotResponses = holdingService.getPositionLotsForHolding(equityHolding.getHoldingID());
+        List<LotMatchResponse> lotMatchResponses = holdingService.getLotMatchesForHolding(equityHolding.getHoldingID());
+
+        assertEquals(2, lotResponses.size());
+        assertEquals(1, lotMatchResponses.size());
+        assertEquals(new BigDecimal("8.0"), lotMatchResponses.get(0).matchedQuantity());
+        assertEquals(new BigDecimal("400.00"), lotMatchResponses.get(0).realizedPnlAmount().setScale(2));
+    }
+
+    @Test
+    void cancelOrder_appendOnlyAndIdempotent_withoutProjectionSideEffects() {
+        Portfolio portfolio = createOwnedPortfolio();
+        setAuthenticatedUser(portfolio.getProfile().getUserId());
+        Instrument equityInstrument = createEquityInstrument();
+
+        OrderLog submitted = createSubmittedOrderLog(portfolio, equityInstrument, OrderSide.BUY, 3.0);
+        UUID orderId = submitted.getOrderId();
+
+        OrderLog firstCancel = orderLogService.cancelOrder(orderId);
+        assertEquals(OrderStatus.CANCELLED, firstCancel.getStatus());
+
+        List<OrderLog> logsAfterFirstCancel = orderLogRepository.findByOrderIDOrderByTimestampAsc(orderId);
+        assertEquals(2, logsAfterFirstCancel.size());
+        assertEquals(OrderStatus.SUBMITTED, logsAfterFirstCancel.get(0).getStatus());
+        assertEquals(OrderStatus.CANCELLED, logsAfterFirstCancel.get(1).getStatus());
+
+        OrderLog secondCancel = orderLogService.cancelOrder(orderId);
+        assertEquals(firstCancel.getLogOrderID(), secondCancel.getLogOrderID());
+
+        List<OrderLog> logsAfterSecondCancel = orderLogRepository.findByOrderIDOrderByTimestampAsc(orderId);
+        assertEquals(2, logsAfterSecondCancel.size());
+
+        assertEquals(0, positionLotRepository.count());
+        assertEquals(0, lotMatchRepository.count());
+        assertTrue(holdingRepository.findByPortfolioID(portfolio.getPortfolioId()).isEmpty());
     }
 
     private Portfolio createOwnedPortfolio() {

@@ -85,14 +85,6 @@ public class InstrumentService {
     }
 
     @Transactional
-    public void deleteInstrument(UUID instrumentId) {
-        Instrument instrument = instrumentRepository.findById(instrumentId)
-            .orElseThrow(() -> new InstrumentNotFoundException(instrumentId));
-
-        instrumentRepository.delete(instrument);
-    }
-
-    @Transactional
     public Instrument createOrUpdateFromExternalData(String ticker) {
         // TODO: Integrate market-data provider API once available.
         // TODO: Fetch instrument metadata by ticker and map fields.

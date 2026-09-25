@@ -63,4 +63,21 @@ public interface HoldingRepository extends JpaRepository<Holding, UUID> {
         @Param("holdingId") UUID holdingId,
         @Param("userId") UUID userId
     );
+
+    @Query("""
+      SELECT (COUNT(h) > 0)
+      FROM Holding h
+      WHERE h.portfolioID = :portfolioId
+        AND h.currentQuantity > 0
+        AND EXISTS (
+          SELECT 1
+          FROM Portfolio p
+          WHERE p.portfolioId = h.portfolioID
+          AND p.profile.userId = :userId
+        )
+      """)
+    boolean existsOwnedPositiveQuantityHolding(
+      @Param("portfolioId") UUID portfolioId,
+      @Param("userId") UUID userId
+    );
 }

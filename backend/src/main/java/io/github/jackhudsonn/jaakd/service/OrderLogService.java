@@ -5,6 +5,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import io.github.jackhudsonn.jaakd.dto.CreateOrderLogRequest;
 import io.github.jackhudsonn.jaakd.exception.InstrumentNotFoundException;
+import io.github.jackhudsonn.jaakd.exception.OrderCancellationConflictException;
 import io.github.jackhudsonn.jaakd.exception.OrderLogNotFoundException;
 import io.github.jackhudsonn.jaakd.exception.PortfolioNotFoundException;
 import io.github.jackhudsonn.jaakd.model.Instrument;
@@ -151,5 +152,39 @@ public class OrderLogService {
         fifoAccountingService.applyExecution(saved);
 
         return saved;
+    }
+
+    @Transactional
+    public OrderLog cancelOrder(UUID orderId) {
+        UUID userId = currentUserService.getUserId();
+
+        List<OrderLog> orderLogs = orderLogRepository.findOwnedByOrderIdNewestFirstForUpdate(orderId, userId);
+        if (orderLogs.isEmpty()) {
+            throw new OrderLogNotFoundException(orderId);
+        }
+
+        OrderLog latestOrderLog = orderLogs.get(0);
+        OrderStatus latestStatus = latestOrderLog.getStatus();
+
+        if (latestStatus == OrderStatus.CANCELLED) {
+            return latestOrderLog;
+        }
+
+        if (latestStatus != OrderStatus.SUBMITTED && latestStatus != OrderStatus.PENDING) {
+            throw new OrderCancellationConflictException(orderId, latestStatus);
+        }
+
+        OrderLog cancelledOrderLog = new OrderLog(
+            latestOrderLog.getOrderId(),
+            latestOrderLog.getPortfolio(),
+            latestOrderLog.getInstrument(),
+            latestOrderLog.getSide(),
+            latestOrderLog.getQuantity()
+        );
+        cancelledOrderLog.setStatus(OrderStatus.CANCELLED);
+        cancelledOrderLog.setMetadata(latestOrderLog.getMetadata());
+        cancelledOrderLog.setExecutionPrice(latestOrderLog.getExecutionPrice());
+
+        return orderLogRepository.save(cancelledOrderLog);
     }
 }

@@ -5,10 +5,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import io.github.jackhudsonn.jaakd.dto.CreatePortfolioRequest;
 import io.github.jackhudsonn.jaakd.dto.UpdatePortfolioRequest;
+import io.github.jackhudsonn.jaakd.exception.PortfolioNotEmptyException;
 import io.github.jackhudsonn.jaakd.exception.PortfolioNotFoundException;
 import io.github.jackhudsonn.jaakd.exception.ProfileNotFoundException;
+import io.github.jackhudsonn.jaakd.model.OrderStatus;
 import io.github.jackhudsonn.jaakd.model.Portfolio;
 import io.github.jackhudsonn.jaakd.model.Profile;
+import io.github.jackhudsonn.jaakd.repository.HoldingRepository;
+import io.github.jackhudsonn.jaakd.repository.OrderLogRepository;
 import io.github.jackhudsonn.jaakd.repository.PortfolioRepository;
 import io.github.jackhudsonn.jaakd.repository.ProfileRepository;
 import io.github.jackhudsonn.jaakd.security.CurrentUserService;
@@ -20,15 +24,21 @@ import java.util.UUID;
 public class PortfolioService {
 	private final PortfolioRepository portfolioRepository;
 	private final ProfileRepository profileRepository;
+	private final OrderLogRepository orderLogRepository;
+	private final HoldingRepository holdingRepository;
 	private final CurrentUserService currentUserService;
 
 	public PortfolioService(
 			PortfolioRepository portfolioRepository,
 			ProfileRepository profileRepository,
+			OrderLogRepository orderLogRepository,
+			HoldingRepository holdingRepository,
 			CurrentUserService currentUserService
 	) {
 		this.portfolioRepository = portfolioRepository;
 		this.profileRepository = profileRepository;
+		this.orderLogRepository = orderLogRepository;
+		this.holdingRepository = holdingRepository;
 		this.currentUserService = currentUserService;
 	}
 
@@ -85,7 +95,19 @@ public class PortfolioService {
 		Portfolio portfolio = portfolioRepository.findOwnedByPortfolioId(portfolioId, userId)
 			.orElseThrow(() -> new PortfolioNotFoundException(portfolioId));
 
-		// 3. Delete portfolio
+		// 3. Block delete when portfolio is not truly empty.
+		boolean hasActiveOrders = orderLogRepository.existsOwnedActiveOrders(
+			portfolioId,
+			userId,
+			List.of(OrderStatus.SUBMITTED, OrderStatus.PENDING, OrderStatus.ACCEPTED)
+		);
+		boolean hasNonZeroHoldings = holdingRepository.existsOwnedPositiveQuantityHolding(portfolioId, userId);
+
+		if (hasActiveOrders || hasNonZeroHoldings) {
+			throw new PortfolioNotEmptyException(hasActiveOrders, hasNonZeroHoldings);
+		}
+
+		// 4. Delete portfolio
 		portfolioRepository.delete(portfolio);
 	}
 }
