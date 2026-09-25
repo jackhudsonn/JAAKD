@@ -31,8 +31,9 @@
           @case ('watchlist') {
             <app-watchlist-widget
               (createWatchlistRequested)="overlays()?.requestCreateWatchlist()"
-              (deleteWatchlistRequested)="overlays()?.requestDeleteWatchlist()"
+              (editWatchlistRequested)="overlays()?.requestEditWatchlist()"
               (assetSelected)="overlays()?.requestWatchlistAsset($event)"
+              (addAssetRequested)="overlays()?.requestAddWatchlistAsset()"
             />
           }
           @case ('top-movers') {

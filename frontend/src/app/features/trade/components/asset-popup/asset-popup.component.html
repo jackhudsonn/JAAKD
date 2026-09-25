@@ -12,6 +12,52 @@
       <app-line-chart [points]="priceHistory()" />
     }
 
+    @if (watchlists().length > 0) {
+      <div class="watchlist-selector">
+        <button
+          type="button"
+          class="btn btn-secondary watchlist-selector-trigger"
+          (click)="toggleWatchlistDropdown()"
+          [attr.aria-expanded]="watchlistDropdownOpen()"
+          aria-label="Toggle watchlist selector"
+        >
+          <span>Item is in {{ watchlistMembershipCount() }} watchlist(s)</span>
+          <span class="watchlist-selector-chevron" [class.open]="watchlistDropdownOpen()">▾</span>
+        </button>
+
+        <div
+          class="watchlist-selector-panel"
+          [class.open]="watchlistDropdownOpen()"
+          [attr.aria-hidden]="!watchlistDropdownOpen()"
+        >
+          @for (watchlist of watchlists(); track watchlist.id) {
+            <label
+              class="watchlist-selector-option"
+              [class.disabled]="isOptionDisabled(watchlist)"
+              [attr.title]="isOptionDisabled(watchlist) ? watchlist.disabledReason : null"
+            >
+              <input
+                type="checkbox"
+                [checked]="watchlist.containsSymbol"
+                [disabled]="isOptionDisabled(watchlist)"
+                (change)="onWatchlistOptionChange(watchlist, $event)"
+              />
+              <span class="watchlist-selector-name">{{ watchlist.name }}</span>
+              <span class="watchlist-selector-count"
+                >{{ watchlist.symbolCount }}/{{ maxWatchlistHoldings() }}</span
+              >
+            </label>
+          }
+        </div>
+
+        @if (watchlistFeedback()) {
+          <p class="watchlist-feedback" [class.error]="watchlistFeedbackTone() === 'error'">
+            {{ watchlistFeedback() }}
+          </p>
+        }
+      </div>
+    }
+
     @if (confirmation(); as order) {
       <div class="order-confirmation">
         <p>
@@ -23,7 +69,6 @@
               : 'at limit ' + (order.limitPrice | number: '1.2-2')
           }}.
         </p>
-        <button type="button" class="btn btn-secondary" (click)="closed.emit()">Close</button>
       </div>
     } @else {
       <app-order-form
