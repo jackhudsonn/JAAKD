@@ -1,0 +1,19 @@
+services:
+  jaakd-postgres:
+    image: postgres:16
+    container_name: jaakd-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: jaakd
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      JAAKD_APP_DB_PASSWORD: ${JAAKD_APP_DB_PASSWORD}
+    ports:
+      - "5433:5432"
+    volumes:
+      - jaakd-postgres-data:/var/lib/postgresql/data
+      - ./backend/db/init:/docker-entrypoint-initdb.d:ro
+
+volumes:
+  jaakd-postgres-data:
+    name: jaakd-postgres-data
