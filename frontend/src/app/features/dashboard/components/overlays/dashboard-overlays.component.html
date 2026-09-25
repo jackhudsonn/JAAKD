@@ -20,9 +20,6 @@
       <p class="watchlist-limit-copy">Max watchlists: {{ maxWatchlists }}</p>
 
       <div class="watchlist-dialog-actions">
-        <button type="button" class="btn btn-secondary" (click)="closeWatchlistDialog()">
-          Cancel
-        </button>
         <button
           type="button"
           class="btn btn-primary"
@@ -69,9 +66,6 @@
           >
             Delete
           </button>
-          <button type="button" class="btn btn-secondary" (click)="closeWatchlistDialog()">
-            Cancel
-          </button>
           <button type="button" class="btn btn-primary" (click)="saveWatchlistName()">Save</button>
         </div>
       </div>
@@ -101,10 +95,7 @@
           class="btn btn-secondary watchlist-delete-btn"
           (click)="removeSelectedWatchlistAsset()"
         >
-          Delete
-        </button>
-        <button type="button" class="btn btn-secondary" (click)="closeWatchlistAssetPopup()">
-          Close
+          Remove
         </button>
         <button
           type="button"
@@ -184,11 +175,6 @@
         </ng-template>
       </app-scrollable-list>
 
-      <div class="watchlist-search-actions">
-        <button type="button" class="btn btn-secondary" (click)="closeWatchlistSearchPopup()">
-          Close
-        </button>
-      </div>
     </div>
   </app-modal>
 }
@@ -210,9 +196,6 @@
       </p>
 
       <div class="allocation-actions">
-        <button type="button" class="btn btn-secondary" (click)="closeAllocationAssetPopup()">
-          Close
-        </button>
         <button type="button" class="btn btn-primary" (click)="openTradeForAllocationAsset()">
           Trade
         </button>
