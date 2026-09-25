@@ -73,10 +73,12 @@ java -jar target\backend-0.0.1-SNAPSHOT.jar   # run the packaged jar directly
 
 The backend includes build-time OpenAPI client generation for the Scrumtuous market-data spec:
 
-- Input spec: `https://www.scrumtuous.com/api.json`
+- Input spec: `backend/openapi/scrumtuous-api.json` (pinned local copy)
 - Generator: OpenAPI Generator Maven plugin (`generatorName=java`, `library=resttemplate`)
 - Config file: `backend/openapi-generator-config.json`
 - Generated sources output: `backend/target/generated-sources/openapi-generator/src/main/java`
+
+The pinned spec is updated manually when intentionally refreshing against the provider schema.
 
 Generated classes are placed under:
 

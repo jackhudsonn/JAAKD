@@ -121,7 +121,7 @@
 							<goal>generate</goal>
 						</goals>
 						<configuration>
-							<inputSpec>https://www.scrumtuous.com/api.json</inputSpec>
+							<inputSpec>${project.basedir}/openapi/scrumtuous-api.json</inputSpec>
 							<generatorName>java</generatorName>
 							<configurationFile>${project.basedir}/openapi-generator-config.json</configurationFile>
 							<output>${project.build.directory}/generated-sources/openapi-generator</output>
