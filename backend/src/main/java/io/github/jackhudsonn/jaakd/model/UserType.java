@@ -6,7 +6,9 @@ import java.math.BigDecimal;
 // Only one case exists today; add more constants + codes here as new user types are introduced.
 public enum UserType {
 
-    RETAIL_CLIENT(BigDecimal.ZERO);
+    RETAIL_CLIENT(BigDecimal.ZERO),
+    ADMIN(BigDecimal.ONE),
+    AUDITOR(new BigDecimal("2"));
 
     private final BigDecimal code;
 

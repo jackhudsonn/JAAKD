@@ -20,15 +20,13 @@ security:
   - bearerAuth: []
 tags:
   - name: Holdings
-    description: A user's current position in an instrument, within one portfolio
+    description: A user's current position projection in one instrument, within one portfolio (including the dedicated cash instrument holding)
   - name: Instruments
     description: Tradable assets (reference data shared by all users)
   - name: Portfolios
     description: Portfolios owned by the signed-in user
   - name: OrderLogs
-    description: Audit trail - one row per status change of an order (BR-14, BR-15)
-  - name: Trades
-    description: Executed trades, linking an order log entry to the holding it changed
+    description: Audit trail - one row per status change of an order (BR-14, BR-15), including privileged diagnostics endpoints
   - name: Watchlists
     description: Instruments a user is watching, per portfolio
   - name: Profile
@@ -42,7 +40,13 @@ paths:
     get:
       tags: [Holdings]
       summary: List the holdings in one of the user's portfolios
-      description: Returns an empty list if the portfolio does not exist or is not owned by the user.
+      description: |
+        Returns an empty list if the portfolio does not exist or is not owned by the user.
+
+        Execution projection behavior:
+        - BUY and SELL executions update non-cash holdings via FIFO lot accounting.
+        - DEPOSIT and WITHDRAW executions update only the cash holding quantity.
+        - Position-lot and lot-match rows are internal projection tables and do not have public API endpoints in this phase.
       operationId: getHoldingsByPortfolio
       parameters:
         - $ref: "#/components/parameters/PortfolioId"
@@ -56,12 +60,41 @@ paths:
                 items:
                   $ref: "#/components/schemas/HoldingResponse"
               example:
-                - holdingId: 3f6c1a2e-8b4d-4c1a-9e2f-1a2b3c4d5e6f
-                  portfolioId: 9a8b7c6d-5e4f-4a3b-2c1d-0e9f8a7b6c5d
-                  instrumentId: 1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d5e
-                  currentQuantity: 10
+                - holdingID: 3f6c1a2e-8b4d-4c1a-9e2f-1a2b3c4d5e6f
+                  portfolioID: 9a8b7c6d-5e4f-4a3b-2c1d-0e9f8a7b6c5d
+                  instrumentID: 1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d5e
+                  currentQuantity: 50
+                  cumulativeRealizedPnl: 1150
+                  updatedAt: "2026-09-25T12:00:00Z"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/holdings/portfolio/{portfolioId}/reconcile:
+    get:
+      tags: [Holdings]
+      summary: Reconcile holdings projection against executed order logs
+      description: |
+        Replays EXECUTED order logs for the portfolio and compares expected values to persisted holdings.
+        Includes cash instrument holdings and returns a mismatch summary for diagnostics.
+        This diagnostics endpoint is restricted to ADMIN or AUDITOR user types.
+      operationId: reconcilePortfolioHoldings
+      parameters:
+        - $ref: "#/components/parameters/PortfolioId"
+      responses:
+        "200":
+          description: Reconciliation summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PortfolioReconciliationResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "500":
           $ref: "#/components/responses/ServerError"
 
@@ -80,45 +113,12 @@ paths:
               schema:
                 $ref: "#/components/schemas/HoldingResponse"
               example:
-                holdingId: 3f6c1a2e-8b4d-4c1a-9e2f-1a2b3c4d5e6f
-                portfolioId: 9a8b7c6d-5e4f-4a3b-2c1d-0e9f8a7b6c5d
-                instrumentId: 1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d5e
-                currentQuantity: 10
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/ServerError"
-    put:
-      tags: [Holdings]
-      summary: Update a holding's quantity
-      description: Only fields that are present are changed (a null field is left as it is).
-      operationId: updateHolding
-      parameters:
-        - $ref: "#/components/parameters/HoldingId"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UpdateHoldingRequest"
-            example:
-              currentQuantity: 15
-      responses:
-        "200":
-          description: Holding updated
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HoldingResponse"
-              example:
-                holdingId: 3f6c1a2e-8b4d-4c1a-9e2f-1a2b3c4d5e6f
-                portfolioId: 9a8b7c6d-5e4f-4a3b-2c1d-0e9f8a7b6c5d
-                instrumentId: 1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d5e
-                currentQuantity: 15
-        "400":
-          $ref: "#/components/responses/BadRequest"
+                holdingID: 3f6c1a2e-8b4d-4c1a-9e2f-1a2b3c4d5e6f
+                portfolioID: 9a8b7c6d-5e4f-4a3b-2c1d-0e9f8a7b6c5d
+                instrumentID: 1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d5e
+                currentQuantity: 50
+                cumulativeRealizedPnl: 1150
+                updatedAt: "2026-09-25T12:00:00Z"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
@@ -138,44 +138,6 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "404":
           $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/ServerError"
-
-  /api/holdings:
-    post:
-      tags: [Holdings]
-      summary: Create a holding in one of the user's portfolios
-      operationId: createHolding
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CreateHoldingRequest"
-            example:
-              portfolioId: 9a8b7c6d-5e4f-4a3b-2c1d-0e9f8a7b6c5d
-              instrumentId: 1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d5e
-              currentQuantity: 10
-      responses:
-        "201":
-          description: Holding created
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HoldingResponse"
-              example:
-                holdingId: 3f6c1a2e-8b4d-4c1a-9e2f-1a2b3c4d5e6f
-                portfolioId: 9a8b7c6d-5e4f-4a3b-2c1d-0e9f8a7b6c5d
-                instrumentId: 1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d5e
-                currentQuantity: 10
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "409":
-          $ref: "#/components/responses/Conflict"
         "500":
           $ref: "#/components/responses/ServerError"
 
@@ -597,6 +559,34 @@ paths:
         "500":
           $ref: "#/components/responses/ServerError"
 
+  /api/order-logs/diagnostics/portfolio/{portfolioId}:
+    get:
+      tags: [OrderLogs]
+      summary: List a portfolio's order history for diagnostics (privileged)
+      description: |
+        Returns order logs newest first for diagnostics workflows.
+        This endpoint is restricted to ADMIN or AUDITOR user types and is not intended for retail client use.
+      operationId: getOrderLogsByPortfolioForDiagnostics
+      parameters:
+        - $ref: "#/components/parameters/PortfolioId"
+      responses:
+        "200":
+          description: Order log entries, newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OrderLogResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
   /api/order-logs/{logOrderId}:
     get:
       tags: [OrderLogs]
@@ -662,84 +652,38 @@ paths:
         "500":
           $ref: "#/components/responses/ServerError"
 
-  # ------------------------------------------------------------------ Trades
-  /api/trades/holding/{holdingId}:
-    get:
-      tags: [Trades]
-      summary: List the trades that changed a holding
-      operationId: getTradesByHolding
-      parameters:
-        - $ref: "#/components/parameters/HoldingId"
-      responses:
-        "200":
-          description: Trades for the holding
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/TradeResponse"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/ServerError"
-
-  /api/trades/{tradeId}:
-    get:
-      tags: [Trades]
-      summary: Get one trade
-      operationId: getTradeById
-      parameters:
-        - $ref: "#/components/parameters/TradeId"
-      responses:
-        "200":
-          description: The trade
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/TradeResponse"
-              example:
-                tradeId: 2e3f4a5b-6c7d-4e8f-9a0b-1c2d3e4f5a6b
-                holdingId: 3f6c1a2e-8b4d-4c1a-9e2f-1a2b3c4d5e6f
-                orderLogId: 5d2a1f0e-3c4b-4a59-8e7d-6f5a4b3c2d1e
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/ServerError"
-
-  /api/trades:
+  /api/order-logs/{logOrderId}/execute:
     post:
-      tags: [Trades]
-      summary: Record a trade for an order log entry
-      description: >
-        If `holdingId` is omitted, the holding for the order's portfolio + instrument is
-        found, or created if it does not exist. Only one trade may exist per order log entry.
-      operationId: createTrade
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CreateTradeRequest"
-            example:
-              orderLogId: 5d2a1f0e-3c4b-4a59-8e7d-6f5a4b3c2d1e
+      tags: [OrderLogs]
+      summary: Mark an order log as EXECUTED and apply accounting projections
+      description: |
+        Applies side-effects transactionally and idempotently for the order log:
+        - BUY: creates one FIFO lot and increments holding currentQuantity.
+        - SELL: consumes FIFO lots, writes lot matches, decrements holding currentQuantity, and updates cumulativeRealizedPnl.
+        - DEPOSIT: increments cash holding currentQuantity.
+        - WITHDRAW: decrements cash holding currentQuantity and rejects if insufficient cash.
+
+        Repeating execution for an already EXECUTED log does not re-apply accounting side effects.
+      operationId: markOrderLogExecuted
+      parameters:
+        - $ref: "#/components/parameters/LogOrderId"
+        - name: executionPrice
+          in: query
+          required: false
+          schema:
+            type: number
+            format: double
       responses:
-        "201":
-          description: Trade created
+        "200":
+          description: Order log updated to EXECUTED
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/TradeResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
+                $ref: "#/components/schemas/OrderLogResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
           $ref: "#/components/responses/NotFound"
-        "409":
-          $ref: "#/components/responses/Conflict"
         "500":
           $ref: "#/components/responses/ServerError"
 
@@ -959,11 +903,6 @@ components:
       in: path
       required: true
       schema: { type: string, format: uuid }
-    TradeId:
-      name: tradeId
-      in: path
-      required: true
-      schema: { type: string, format: uuid }
     ListItemId:
       name: listItemId
       in: path
@@ -992,6 +931,15 @@ components:
       content:
         application/json:
           schema: { $ref: "#/components/schemas/ErrorResponse" }
+    Forbidden:
+      description: Authenticated but not authorized for this operation
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+          example:
+            timestamp: "2026-09-23T14:30:00Z"
+            message: Admin or auditor user type is required
+            details: {}
     NotFound:
       description: Resource does not exist, or is not owned by the signed-in user
       content:
@@ -1034,24 +982,48 @@ components:
       enum: [SUBMITTED, PENDING, CANCELLED, ACCEPTED, REJECTED, EXECUTED, FAILED]
 
     # ---- holdings
-    CreateHoldingRequest:
-      type: object
-      required: [portfolioId, instrumentId, currentQuantity]
-      properties:
-        portfolioId: { type: string, format: uuid }
-        instrumentId: { type: string, format: uuid }
-        currentQuantity: { type: number, format: double, exclusiveMinimum: 0 }
-    UpdateHoldingRequest:
-      type: object
-      properties:
-        currentQuantity: { type: [number, "null"], format: double, minimum: 0 }
     HoldingResponse:
       type: object
+      description: Projection row for one portfolio + instrument pair. For the dedicated cash instrument, currentQuantity represents cash balance.
       properties:
-        holdingId: { type: string, format: uuid }
+        holdingID: { type: string, format: uuid }
+        portfolioID: { type: string, format: uuid }
+        instrumentID: { type: string, format: uuid }
+        currentQuantity:
+          type: number
+          format: double
+          description: Current projected quantity. For cash instrument holdings, this is cash balance.
+        cumulativeRealizedPnl:
+          type: number
+          format: double
+          description: Cumulative realized PnL from SELL executions matched against FIFO lots. Typically unchanged for cash holdings.
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last projection update timestamp.
+
+    PortfolioReconciliationResponse:
+      type: object
+      properties:
         portfolioId: { type: string, format: uuid }
-        instrumentId: { type: string, format: uuid }
-        currentQuantity: { type: number, format: double }
+        executedLogCount: { type: integer }
+        holdingCount: { type: integer }
+        mismatchCount: { type: integer }
+        hasMismatches: { type: boolean }
+        mismatches:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReconciliationMismatchResponse"
+
+    ReconciliationMismatchResponse:
+      type: object
+      properties:
+        instrumentId: { type: string, format: uuid, nullable: true }
+        expectedQuantity: { type: number, format: double, nullable: true }
+        actualQuantity: { type: number, format: double, nullable: true }
+        expectedCumulativeRealizedPnl: { type: number, format: double, nullable: true }
+        actualCumulativeRealizedPnl: { type: number, format: double, nullable: true }
+        reason: { type: string }
 
     # ---- instruments
     CreateInstrumentRequest:
@@ -1156,23 +1128,6 @@ components:
         metadata: { type: [string, "null"] }
         status: { $ref: "#/components/schemas/OrderStatus" }
         executionPrice: { type: number, format: double }
-
-    # ---- trades
-    CreateTradeRequest:
-      type: object
-      required: [orderLogId]
-      properties:
-        holdingId:
-          type: [string, "null"]
-          format: uuid
-          description: Optional - if omitted, the holding is found or created from the order log
-        orderLogId: { type: string, format: uuid }
-    TradeResponse:
-      type: object
-      properties:
-        tradeId: { type: string, format: uuid }
-        holdingId: { type: string, format: uuid }
-        orderLogId: { type: string, format: uuid }
 
     # ---- watchlists
     CreateWatchlistItemRequest:

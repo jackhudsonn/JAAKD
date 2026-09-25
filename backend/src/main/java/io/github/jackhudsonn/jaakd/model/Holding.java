@@ -1,17 +1,14 @@
 package io.github.jackhudsonn.jaakd.model;
 
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
-import java.util.List;
+import java.math.BigDecimal;
+import java.time.ZonedDateTime;
 import java.util.UUID;
 
 @Entity
@@ -21,64 +18,76 @@ public class Holding {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "`holdingID`")
-    private UUID holdingId;
+    private UUID holdingID;
 
-    @ManyToOne
-    @JoinColumn(name = "`portfolioID`", nullable = false)
-    private Portfolio portfolio;
+    @Column(name = "`portfolioID`", nullable = false)
+    private UUID portfolioID;
 
-    @ManyToOne
-    @JoinColumn(name = "`instrumentID`", nullable = false)
-    private Instrument instrument;
+    @Column(name = "`instrumentID`", nullable = false)
+    private UUID instrumentID;
 
-    @Column(name = "`currentQuantity`", nullable = false)
-    private double currentQuantity;
+    @Column(name = "currentQuantity")
+    private BigDecimal currentQuantity;
 
-    @OneToMany(mappedBy = "holding", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Trade> trades;
+    @Column(name = "cumulativeRealizedPnl")
+    private BigDecimal cumulativeRealizedPnl;
+
+    @Column(name = "updatedAt")
+    private ZonedDateTime updatedAt;
 
     protected Holding() {
     }
 
-    public Holding(Portfolio portfolio, Instrument instrument, double currentQuantity) {
-        this.portfolio = portfolio;
-        this.instrument = instrument;
-        this.currentQuantity = currentQuantity;
+    public Holding(UUID holdingID, UUID portfolioID, UUID instrumentID) {
+        this.holdingID = holdingID;
+        this.portfolioID = portfolioID;
+        this.instrumentID = instrumentID;
+        this.currentQuantity = BigDecimal.ZERO;
+        this.cumulativeRealizedPnl = BigDecimal.ZERO;
+        this.updatedAt = ZonedDateTime.now();
     }
 
-    public UUID getHoldingId() {
-        return holdingId;
+    public Holding(UUID portfolioID, UUID instrumentID) {
+        this.portfolioID = portfolioID;
+        this.instrumentID = instrumentID;
+        this.currentQuantity = BigDecimal.ZERO;
+        this.cumulativeRealizedPnl = BigDecimal.ZERO;
+        this.updatedAt = ZonedDateTime.now();
     }
 
-    public Portfolio getPortfolio() {
-        return portfolio;
+    public UUID getHoldingID() {
+        return holdingID;
     }
 
-    public Instrument getInstrument() {
-        return instrument;
+    public UUID getPortfolioID() {
+        return portfolioID;
     }
 
-    public double getCurrentQuantity() {
+    public UUID getInstrumentID() {
+        return instrumentID;
+    }
+
+    public BigDecimal getCurrentQuantity() {
         return currentQuantity;
     }
 
-    public void setCurrentQuantity(double currentQuantity) {
+    public void setCurrentQuantity(BigDecimal currentQuantity) {
         this.currentQuantity = currentQuantity;
     }
 
-    public List<Trade> getTrades() {
-        return trades;
+    public BigDecimal getCumulativeRealizedPnl() {
+        return cumulativeRealizedPnl;
     }
 
-    public void addTrade(Trade trade) {
-        if (trades != null) {
-            trades.add(trade);
-        }
+    public void setCumulativeRealizedPnl(BigDecimal cumulativeRealizedPnl) {
+        this.cumulativeRealizedPnl = cumulativeRealizedPnl;
     }
 
-    public void removeTrade(Trade trade) {
-        if (trades != null) {
-            trades.remove(trade);
-        }
+    public ZonedDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(ZonedDateTime updatedAt) {
+        this.updatedAt = updatedAt;
     }
 }

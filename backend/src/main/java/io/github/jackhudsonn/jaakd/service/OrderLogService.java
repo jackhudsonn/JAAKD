@@ -26,23 +26,38 @@ public class OrderLogService {
     private final PortfolioRepository portfolioRepository;
     private final InstrumentRepository instrumentRepository;
     private final CurrentUserService currentUserService;
+    private final FifoAccountingService fifoAccountingService;
+    private final PrivilegedAccessService privilegedAccessService;
 
     public OrderLogService(
         OrderLogRepository orderLogRepository,
         PortfolioRepository portfolioRepository,
         InstrumentRepository instrumentRepository,
-        CurrentUserService currentUserService
+        CurrentUserService currentUserService,
+        FifoAccountingService fifoAccountingService,
+        PrivilegedAccessService privilegedAccessService
     ) {
         this.orderLogRepository = orderLogRepository;
         this.portfolioRepository = portfolioRepository;
         this.instrumentRepository = instrumentRepository;
         this.currentUserService = currentUserService;
+        this.fifoAccountingService = fifoAccountingService;
+        this.privilegedAccessService = privilegedAccessService;
     }
 
     public List<OrderLog> getOrderLogsForPortfolio(UUID portfolioId) {
         UUID userId = currentUserService.getUserId();
         
         return orderLogRepository.findOwnedByPortfolioNewestFirst(portfolioId, userId);
+    }
+
+    public List<OrderLog> getOrderLogsForPortfolioDiagnostics(UUID portfolioId) {
+        privilegedAccessService.ensureAdminOrAuditor();
+
+        portfolioRepository.findById(portfolioId)
+            .orElseThrow(() -> new PortfolioNotFoundException(portfolioId));
+
+        return orderLogRepository.findByPortfolioPortfolioIdOrderByTimestampDesc(portfolioId);
     }
 
     public OrderLog getOrderLogById(UUID logOrderId) {
@@ -101,5 +116,40 @@ public class OrderLogService {
 
         // 5. Persist order log
         return orderLogRepository.save(orderLog);
+    }
+
+    @Transactional
+    public OrderLog markExecuted(UUID logOrderId, Double executionPrice) {
+        // 1. Load and authorize order log ownership
+        UUID userId = currentUserService.getUserId();
+        Optional<OrderLog> maybeOrderLog = orderLogRepository.findOwnedByLogOrderIdForUpdate(logOrderId, userId);
+        if (maybeOrderLog.isEmpty()) {
+            throw new OrderLogNotFoundException(logOrderId);
+        }
+
+        OrderLog orderLog = maybeOrderLog.get();
+
+        // Idempotency guard: do not re-apply projections for an already executed log.
+        if (orderLog.getStatus() == OrderStatus.EXECUTED) {
+            if (executionPrice != null) {
+                orderLog.setExecutionPrice(executionPrice);
+                return orderLogRepository.save(orderLog);
+            }
+            return orderLog;
+        }
+
+        // 2. Apply execution state
+        orderLog.setStatus(OrderStatus.EXECUTED);
+        if (executionPrice != null) {
+            orderLog.setExecutionPrice(executionPrice);
+        }
+
+        // 3. Persist transition first so downstream accounting can use the executed row
+        OrderLog saved = orderLogRepository.save(orderLog);
+
+        // 4. Apply FIFO accounting projections
+        fifoAccountingService.applyExecution(saved);
+
+        return saved;
     }
 }
