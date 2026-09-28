@@ -25,13 +25,12 @@
 
     <button
       type="button"
-      class="watchlist-action-btn danger"
-      [disabled]="!canDeleteActive()"
-      (click)="requestDeleteWatchlist()"
-      aria-label="Delete watchlist"
-      title="Delete watchlist"
+      class="watchlist-action-btn"
+      (click)="requestEditWatchlist()"
+      aria-label="Edit watchlist"
+      title="Edit watchlist"
     >
-      x
+      &#9998;
     </button>
   </div>
 
@@ -59,4 +58,15 @@
       </button>
     </ng-template>
   </app-scrollable-list>
+
+  <button
+    type="button"
+    class="watchlist-add-row"
+    [disabled]="!canAddSymbolToActive()"
+    (click)="requestAddAsset()"
+  >
+    Add +
+  </button>
+
+  <p class="watchlist-capacity">{{ activeWatchlistSymbolCount() }}/{{ maxWatchlistHoldings }} items</p>
 </app-widget-card>

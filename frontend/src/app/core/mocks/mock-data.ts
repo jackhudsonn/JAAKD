@@ -109,6 +109,58 @@ export function getMockPriceHistory(symbol: string, points = 30): LineChartPoint
   return history;
 }
 
+export type AssetPerformanceInterval = '1D' | '1W' | '1M' | '3M' | '1Y' | 'MAX';
+
+export const ASSET_PERFORMANCE_INTERVALS: { id: AssetPerformanceInterval; label: string }[] = [
+  { id: '1D', label: '1D' },
+  { id: '1W', label: '1W' },
+  { id: '1M', label: '1M' },
+  { id: '3M', label: '3M' },
+  { id: '1Y', label: '1Y' },
+  { id: 'MAX', label: 'MAX' },
+];
+
+const ASSET_INTERVAL_CONFIG: Record<
+  AssetPerformanceInterval,
+  { points: number; stepSeconds: number; labelEvery: number; labelUnit: string }
+> = {
+  '1D': { points: 24, stepSeconds: 60 * 60, labelEvery: 4, labelUnit: 'h' },
+  '1W': { points: 7, stepSeconds: 24 * 60 * 60, labelEvery: 1, labelUnit: 'd' },
+  '1M': { points: 30, stepSeconds: 24 * 60 * 60, labelEvery: 5, labelUnit: 'd' },
+  '3M': { points: 12, stepSeconds: 7 * 24 * 60 * 60, labelEvery: 2, labelUnit: 'w' },
+  '1Y': { points: 12, stepSeconds: 30 * 24 * 60 * 60, labelEvery: 2, labelUnit: 'mo' },
+  MAX: { points: 24, stepSeconds: 30 * 24 * 60 * 60, labelEvery: 4, labelUnit: 'mo' },
+};
+
+export function getMockAssetPerformanceSeries(
+  symbol: string,
+  interval: AssetPerformanceInterval,
+): LineChartPoint[] {
+  const asset = getAsset(symbol);
+  if (!asset) {
+    return [];
+  }
+
+  const { points, stepSeconds, labelEvery, labelUnit } = ASSET_INTERVAL_CONFIG[interval];
+  const seed = symbol.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  const now = Date.now() / 1000;
+
+  const history: LineChartPoint[] = [];
+  for (let i = points - 1; i >= 0; i--) {
+    const t = now - i * stepSeconds;
+    const wave = Math.sin(t / 20 + seed) * 0.5 + Math.sin(t / 47 + seed * 1.7) * 0.5;
+    const trend = Math.sin(t / 500 + seed * 0.2) * asset.volatility * 0.8;
+    const value = Math.max(0.01, asset.basePrice * (1 + wave * asset.volatility + trend));
+
+    history.push({
+      label: i === 0 ? 'now' : i % labelEvery === 0 ? `-${i}${labelUnit}` : '',
+      value: Math.round(value * 100) / 100,
+    });
+  }
+
+  return history;
+}
+
 // --- Trade fixtures --------------------------------------------------------
 
 export const MOCK_ACCOUNT_CASH = 25_000;
@@ -129,6 +181,14 @@ export interface SharedWatchlist {
   name: string;
   symbols: string[];
 }
+
+// TODO: Replace these client-side watchlist min/max boundaries with server-provided limits.
+export const WATCHLIST_CONSTRAINTS = {
+  minWatchlists: 1,
+  maxWatchlists: 15,
+  minHoldingsPerWatchlist: 0,
+  maxHoldingsPerWatchlist: 40,
+} as const;
 
 export const MOCK_WATCHLISTS: SharedWatchlist[] = [
   { id: 'recommendations', name: 'Recommendations', symbols: [...MOCK_WATCHLIST_SYMBOLS] },

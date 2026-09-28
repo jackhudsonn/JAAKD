@@ -1,0 +1,23 @@
+{
+  "library": "resttemplate",
+  "packageName": "io.github.jackhudsonn.jaakd.client.scrumtuous",
+  "apiPackage": "io.github.jackhudsonn.jaakd.client.scrumtuous.api",
+  "modelPackage": "io.github.jackhudsonn.jaakd.client.scrumtuous.model",
+  "invokerPackage": "io.github.jackhudsonn.jaakd.client.scrumtuous.invoker",
+  "additionalProperties": {
+    "useJakartaEe": true,
+    "dateLibrary": "java8",
+    "serializationLibrary": "jackson",
+    "hideGenerationTimestamp": true
+  },
+  "globalProperties": {
+    "apis": "",
+    "models": "",
+    "supportingFiles": "",
+    "modelTests": "false",
+    "apiTests": "false",
+    "modelDocs": "false",
+    "apiDocs": "false",
+    "skipFormModel": "true"
+  }
+}

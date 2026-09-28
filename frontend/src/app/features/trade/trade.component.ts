@@ -7,6 +7,8 @@ import { OrdersCardComponent } from './cards/orders-card/orders-card.component';
 import {
   AssetPopupComponent,
   AssetOrderPlaced,
+  AssetPopupWatchlistOption,
+  AssetSetWatchlistMembershipRequest,
 } from './components/asset-popup/asset-popup.component';
 import { OrderDetailsPopupComponent } from './components/order-details-popup/order-details-popup.component';
 import { startCycleTimer } from '@shared/utils/cycle-timer';
@@ -15,6 +17,7 @@ import {
   MARKET_ORDER_PENDING_MS,
   MOCK_STATE,
   MOCK_ASSETS,
+  WATCHLIST_CONSTRAINTS,
   getMockPrice,
 } from '@core/mocks/mock-data';
 
@@ -37,6 +40,9 @@ export class TradeComponent implements OnInit, OnDestroy {
   accountCash = MOCK_STATE.accountCash;
   holdings = MOCK_STATE.holdings;
   orders = MOCK_STATE.orders;
+  watchlists = MOCK_STATE.watchlists;
+  activeWatchlistId = MOCK_STATE.activeWatchlistId;
+  readonly maxWatchlistHoldings = WATCHLIST_CONSTRAINTS.maxHoldingsPerWatchlist;
 
   // Non-blocking banner for failed data loads. Currently unused since mock
   // data can't fail to load — wire this up once the signals above are
@@ -62,6 +68,30 @@ export class TradeComponent implements OnInit, OnDestroy {
     () =>
       this.holdings().find((holding) => holding.symbol === this.activeAssetSymbol())?.quantity ?? 0,
   );
+  watchlistOptionsForActiveAsset = computed<AssetPopupWatchlistOption[]>(() => {
+    const symbol = this.activeAssetSymbol();
+    if (!symbol) {
+      return [];
+    }
+
+    return this.watchlists().map((watchlist) => {
+      const containsSymbol = watchlist.symbols.includes(symbol);
+      const isFull = watchlist.symbols.length >= this.maxWatchlistHoldings;
+
+      return {
+        id: watchlist.id,
+        name: watchlist.name,
+        symbolCount: watchlist.symbols.length,
+        containsSymbol,
+        canAdd: !containsSymbol && !isFull,
+        disabledReason: containsSymbol
+          ? 'Already in this watchlist.'
+          : isFull
+            ? `Watchlist full (${this.maxWatchlistHoldings}/${this.maxWatchlistHoldings}).`
+            : null,
+      };
+    });
+  });
 
   private stopTicking?: () => void;
   private routeQuerySubscription?: Subscription;
@@ -144,6 +174,39 @@ export class TradeComponent implements OnInit, OnDestroy {
     };
 
     this.orders.update((current) => [order, ...current]);
+  }
+
+  setWatchlistMembership(request: AssetSetWatchlistMembershipRequest) {
+    const target = this.watchlists().find((watchlist) => watchlist.id === request.watchlistId);
+    if (!target) {
+      return;
+    }
+
+    const alreadyIncluded = target.symbols.includes(request.symbol);
+    if (request.included === alreadyIncluded) {
+      return;
+    }
+
+    if (request.included && target.symbols.length >= this.maxWatchlistHoldings) {
+      return;
+    }
+
+    this.watchlists.update((current) =>
+      current.map((watchlist) =>
+        watchlist.id === request.watchlistId
+          ? {
+              ...watchlist,
+              symbols: request.included
+                ? [...watchlist.symbols, request.symbol]
+                : watchlist.symbols.filter((symbol) => symbol !== request.symbol),
+            }
+          : watchlist,
+      ),
+    );
+
+    if (request.included) {
+      this.activeWatchlistId.set(request.watchlistId);
+    }
   }
 
   cancelOrder(orderId: string) {

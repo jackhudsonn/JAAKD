@@ -36,3 +36,6 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### OpenAPI generated client ###
+target/generated-sources/openapi-generator/
