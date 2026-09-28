@@ -11,14 +11,14 @@ spring:
     import: optional:file:.env[.properties] # loads backend/.env (KEY=value is valid .properties syntax)
 
   datasource:
-    url: ${SUPABASE_DB_URL}
-    username: ${SUPABASE_DB_USER}
-    password: ${SUPABASE_DB_PASSWORD}
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
 
   jpa:
     open-in-view: false
     hibernate:
-      ddl-auto: validate # schema is owned by Supabase migrations, never generated from entities
+      ddl-auto: validate # schema is owned by SQL scripts, never generated from entities
     properties:
       hibernate:
         default_schema: public

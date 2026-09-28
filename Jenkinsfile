@@ -144,7 +144,7 @@ pipeline {
                         --network jaakd-dev-net \
                         --restart unless-stopped \
                         -p 8081:8081 \
-                        -e SUPABASE_DB_URL=${SUPABASE_DB_URL} \
+                        -e DB_URL=${SUPABASE_DB_URL} \
                         -e SUPABASE_DB_USER=${SUPABASE_DB_USER} \
                         -e SUPABASE_DB_PASSWORD=${SUPABASE_DB_PASSWORD} \
                         -e SUPABASE_URL=${SUPABASE_URL} \
