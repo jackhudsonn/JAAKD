@@ -16,7 +16,14 @@ public interface PositionLotRepository extends JpaRepository<PositionLot, UUID> 
     boolean existsBySourceBuyLogOrderID(UUID sourceBuyLogOrderID);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    List<PositionLot> findByHoldingIDAndRemainingQuantityGreaterThanOrderByOpenedAtAscPositionLotIDAsc(
+    @Query("""
+        SELECT pl
+        FROM PositionLot pl
+        WHERE pl.holdingID = :holdingID
+          AND pl.remainingQuantity > :remainingQuantity
+        ORDER BY pl.openedAt ASC, pl.positionLotID ASC
+        """)
+    List<PositionLot> findPositionLotsByHoldingIDWithSufficientQuantity(
         UUID holdingID,
         BigDecimal remainingQuantity
     );

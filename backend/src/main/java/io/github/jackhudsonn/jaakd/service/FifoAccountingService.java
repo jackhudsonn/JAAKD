@@ -39,27 +39,13 @@ public class FifoAccountingService {
             return;
         }
 
-        if (orderLog.getSide() == OrderSide.BUY) {
-            applyBuy(orderLog);
-            return;
+        switch (orderLog.getSide()) {
+            case BUY -> applyBuy(orderLog);
+            case SELL -> applySell(orderLog);
+            case DEPOSIT -> applyDeposit(orderLog);
+            case WITHDRAW -> applyWithdraw(orderLog);
+            default -> throw new InvalidTradeException("Unsupported FIFO side: " + orderLog.getSide());
         }
-
-        if (orderLog.getSide() == OrderSide.SELL) {
-            applySell(orderLog);
-            return;
-        }
-
-        if (orderLog.getSide() == OrderSide.DEPOSIT) {
-            applyDeposit(orderLog);
-            return;
-        }
-
-        if (orderLog.getSide() == OrderSide.WITHDRAW) {
-            applyWithdraw(orderLog);
-            return;
-        }
-
-        throw new InvalidTradeException("Unsupported FIFO side: " + orderLog.getSide());
     }
 
     private void applyBuy(OrderLog orderLog) {
@@ -106,7 +92,7 @@ public class FifoAccountingService {
         }
 
         List<PositionLot> openLots = positionLotRepository
-            .findByHoldingIDAndRemainingQuantityGreaterThanOrderByOpenedAtAscPositionLotIDAsc(
+            .findPositionLotsByHoldingIDWithSufficientQuantity(
                 holding.getHoldingID(),
                 BigDecimal.ZERO
             );

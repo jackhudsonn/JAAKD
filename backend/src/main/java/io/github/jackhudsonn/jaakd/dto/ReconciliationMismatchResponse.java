@@ -1,13 +1,14 @@
 package io.github.jackhudsonn.jaakd.dto;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 public record ReconciliationMismatchResponse(
     UUID instrumentId,
-    Double expectedQuantity,
-    Double actualQuantity,
-    Double expectedCumulativeRealizedPnl,
-    Double actualCumulativeRealizedPnl,
+    BigDecimal expectedQuantity,
+    BigDecimal actualQuantity,
+    BigDecimal expectedCumulativeRealizedPnl,
+    BigDecimal actualCumulativeRealizedPnl,
     String reason
 ) {
 }

@@ -115,7 +115,7 @@ class FifoAccountingServiceTest {
 
         when(lotMatchRepository.existsBySellLogOrderID(sellLogId)).thenReturn(false);
         when(holdingRepository.findByPortfolioIDAndInstrumentID(portfolioId, instrumentId)).thenReturn(Optional.of(holding));
-        when(positionLotRepository.findByHoldingIDAndRemainingQuantityGreaterThanOrderByOpenedAtAscPositionLotIDAsc(
+        when(positionLotRepository.findPositionLotsByHoldingIDWithSufficientQuantity(
             holdingId,
             BigDecimal.ZERO
         )).thenReturn(List.of(firstLot, secondLot));
@@ -178,7 +178,7 @@ class FifoAccountingServiceTest {
         assertThrows(InvalidTradeException.class, () -> fifoAccountingService.applyExecution(sellLog));
 
         verify(positionLotRepository, never())
-            .findByHoldingIDAndRemainingQuantityGreaterThanOrderByOpenedAtAscPositionLotIDAsc(holding.getHoldingID(), BigDecimal.ZERO);
+            .findPositionLotsByHoldingIDWithSufficientQuantity(holding.getHoldingID(), BigDecimal.ZERO);
         verify(holdingRepository, never()).save(holding);
     }
 
@@ -325,7 +325,7 @@ class FifoAccountingServiceTest {
         verify(lotMatchRepository, times(1)).existsBySellLogOrderID(sellLogId);
         verify(holdingRepository, never()).findByPortfolioIDAndInstrumentID(portfolioId, instrumentId);
         verify(positionLotRepository, never())
-            .findByHoldingIDAndRemainingQuantityGreaterThanOrderByOpenedAtAscPositionLotIDAsc(any(UUID.class), any(BigDecimal.class));
+            .findPositionLotsByHoldingIDWithSufficientQuantity(any(UUID.class), any(BigDecimal.class));
         verify(positionLotRepository, never()).save(any(PositionLot.class));
         verify(lotMatchRepository, never()).save(any(LotMatch.class));
         verify(holdingRepository, never()).save(any(Holding.class));
