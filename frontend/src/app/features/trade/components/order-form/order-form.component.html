@@ -1,44 +1,46 @@
 <div class="order-form">
-  <div class="type-tabs">
-    <button
-      type="button"
-      class="type-tab buy"
-      [class.active]="type() === 'buy'"
-      (click)="setType('buy')"
-    >
-      Buy
-    </button>
+  <div class="order-mode-controls">
+    <div class="type-tabs">
+      <button
+        type="button"
+        class="type-tab buy"
+        [class.active]="type() === 'buy'"
+        (click)="setType('buy')"
+      >
+        Buy
+      </button>
 
-    <button
-      type="button"
-      class="type-tab sell"
-      [class.active]="type() === 'sell'"
-      [disabled]="!canSell()"
-      [title]="canSell() ? '' : 'You have no holdings to sell.'"
-      (click)="setType('sell')"
-    >
-      Sell
-    </button>
-  </div>
+      <button
+        type="button"
+        class="type-tab sell"
+        [class.active]="type() === 'sell'"
+        [disabled]="!canSell()"
+        [title]="canSell() ? '' : 'You have no holdings to sell.'"
+        (click)="setType('sell')"
+      >
+        Sell
+      </button>
+    </div>
 
-  <div class="kind-tabs">
-    <button
-      type="button"
-      class="kind-tab"
-      [class.active]="kind() === 'market'"
-      (click)="setKind('market')"
-    >
-      Market
-    </button>
+    <div class="kind-tabs">
+      <button
+        type="button"
+        class="kind-tab"
+        [class.active]="kind() === 'market'"
+        (click)="setKind('market')"
+      >
+        Market
+      </button>
 
-    <button
-      type="button"
-      class="kind-tab"
-      [class.active]="kind() === 'limit'"
-      (click)="setKind('limit')"
-    >
-      Limit
-    </button>
+      <button
+        type="button"
+        class="kind-tab"
+        [class.active]="kind() === 'limit'"
+        (click)="setKind('limit')"
+      >
+        Limit
+      </button>
+    </div>
   </div>
 
   <div class="form-field">
@@ -81,13 +83,21 @@
     <p class="form-error">{{ error() }}</p>
   }
 
-  <button
-    type="button"
-    class="btn form-submit"
-    [class.btn-primary]="type() === 'buy'"
-    [class.btn-secondary]="type() === 'sell'"
-    (click)="submit()"
-  >
-    {{ type() === 'buy' ? 'Buy' : 'Sell' }} {{ kind() === 'market' ? 'at Market' : 'Limit' }}
-  </button>
+  <div class="form-actions" [class.with-back]="showBackButton()">
+    @if (showBackButton()) {
+      <button type="button" class="btn btn-secondary form-back" (click)="onBack()">
+        {{ backLabel() }}
+      </button>
+    }
+
+    <button
+      type="button"
+      class="btn form-submit"
+      [class.btn-primary]="type() === 'buy'"
+      [class.btn-secondary]="type() === 'sell'"
+      (click)="submit()"
+    >
+      {{ type() === 'buy' ? 'Buy' : 'Sell' }}
+    </button>
+  </div>
 </div>

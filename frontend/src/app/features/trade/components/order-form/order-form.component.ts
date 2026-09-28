@@ -24,11 +24,14 @@ export class OrderFormComponent {
   currentPrice = input.required<number>();
   ownedQuantity = input(0);
   accountCash = input(0);
+  showBackButton = input(false);
+  backLabel = input('Back');
 
   placed = output<OrderFormSubmit>();
+  backPressed = output<void>();
 
   type = signal<OrderType>('buy');
-  kind = signal<OrderKind>('limit');
+  kind = signal<OrderKind>('market');
   quantity = signal<number | null>(null);
   limitPrice = signal<number | null>(null);
 
@@ -89,5 +92,9 @@ export class OrderFormComponent {
 
     this.quantity.set(null);
     this.limitPrice.set(null);
+  }
+
+  onBack() {
+    this.backPressed.emit();
   }
 }
