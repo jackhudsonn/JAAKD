@@ -10,6 +10,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 
 import java.util.List;
 import java.util.UUID;
@@ -31,7 +32,8 @@ public class Portfolio {
     @Column(name = "portfolioName")
     private String portfolioName;
 
-    @OneToMany(mappedBy = "portfolio", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    //@OneToMany(mappedBy = "portfolio", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @Transient
     private List<Holding> holdings;
 
     @OneToMany(mappedBy = "portfolio")

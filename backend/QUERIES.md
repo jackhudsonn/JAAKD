@@ -1,7 +1,7 @@
 # JAAKD: Queries
 
 The queries our application requires, one per API in [`openapi.yaml`](openapi.yaml).
-Implemented with Spring Data JPA; the SQL below is what each repository call runs.
+Core flow now uses `OrderLog` as source of truth plus SQL aggregation for holdings.
 
 `:userId` is the signed-in user (from the JWT). Every query on user data filters by it, so users only see their own data.
 
@@ -21,38 +21,63 @@ ORDER BY p."quotedAt" DESC
 LIMIT 1;
 ```
 
-### createHolding (`POST /api/holdings`)
-Adds a new holding to one of the user's portfolios.
+### autoCreateHoldingOnExecution (`POST /api/order-logs/{logOrderId}/execute`)
+Creates a holding on first interaction with an instrument in a portfolio.
 ```sql
-INSERT INTO holdings ("holdingID", "portfolioID", "instrumentID", "currentQuantity")
-VALUES (gen_random_uuid(), :portfolioId, :instrumentId, :currentQuantity);
-```
-
-### updateHolding (`PUT /api/holdings/{holdingId}`)
-Changes the quantity of a holding the user owns.
-```sql
-UPDATE holdings
-SET "currentQuantity" = :currentQuantity
-WHERE "holdingID" = :holdingId
-  AND "portfolioID" IN (SELECT "portfolioID" FROM portfolios WHERE "userID" = :userId);
+INSERT INTO holdings ("holdingID", "portfolioID", "instrumentID")
+SELECT gen_random_uuid(), o."portfolioID", o."instrumentID"
+FROM "orderLogs" o
+WHERE o."logOrderID" = :logOrderId
+  AND NOT EXISTS (
+      SELECT 1
+      FROM holdings h
+      WHERE h."portfolioID" = o."portfolioID"
+        AND h."instrumentID" = o."instrumentID"
+  );
 ```
 
 ---
 
 ## Holdings
 
-**getHoldingsByPortfolio** (`GET /api/holdings/portfolio/{portfolioId}`): all holdings in a portfolio.
+**getHoldingsByPortfolio** (`GET /api/holdings/portfolio/{portfolioId}`): all holdings in a portfolio, including executed order IDs.
 ```sql
-SELECT h.* FROM holdings h
+SELECT
+  h."holdingID",
+  h."portfolioID",
+  h."instrumentID",
+  COALESCE(
+    ARRAY_AGG(o."logOrderID") FILTER (WHERE o."logOrderID" IS NOT NULL),
+    ARRAY[]::uuid[]
+  ) AS executed_order_log_ids
+FROM holdings h
 JOIN portfolios p ON p."portfolioID" = h."portfolioID"
-WHERE h."portfolioID" = :portfolioId AND p."userID" = :userId;
+LEFT JOIN "orderLogs" o
+  ON o."portfolioID" = h."portfolioID"
+ AND o."instrumentID" = h."instrumentID"
+ AND o.status = 'EXECUTED'
+WHERE h."portfolioID" = :portfolioId AND p."userID" = :userId
+GROUP BY h."holdingID", h."portfolioID", h."instrumentID";
 ```
 
-**getHoldingById** (`GET /api/holdings/{holdingId}`): one holding.
+**getHoldingById** (`GET /api/holdings/{holdingId}`): one holding, including executed order IDs.
 ```sql
-SELECT h.* FROM holdings h
+SELECT
+  h."holdingID",
+  h."portfolioID",
+  h."instrumentID",
+  COALESCE(
+    ARRAY_AGG(o."logOrderID") FILTER (WHERE o."logOrderID" IS NOT NULL),
+    ARRAY[]::uuid[]
+  ) AS executed_order_log_ids
+FROM holdings h
 JOIN portfolios p ON p."portfolioID" = h."portfolioID"
-WHERE h."holdingID" = :holdingId AND p."userID" = :userId;
+LEFT JOIN "orderLogs" o
+  ON o."portfolioID" = h."portfolioID"
+ AND o."instrumentID" = h."instrumentID"
+ AND o.status = 'EXECUTED'
+WHERE h."holdingID" = :holdingId AND p."userID" = :userId
+GROUP BY h."holdingID", h."portfolioID", h."instrumentID";
 ```
 
 **deleteHolding** (`DELETE /api/holdings/{holdingId}`): removes a holding.
@@ -129,26 +154,24 @@ UPDATE portfolios SET "portfolioName" = :portfolioName
 WHERE "portfolioID" = :portfolioId AND "userID" = :userId;
 ```
 
-**deletePortfolio** (`DELETE /api/portfolios/{portfolioId}`): deletes a portfolio (its holdings and watchlist items cascade).
+**deletePortfolio** (`DELETE /api/portfolios/{portfolioId}`): deletes a portfolio (its holdings and watchlist items cascade) only when it is truly empty.
+
+Delete guard conditions:
+- Block deletion if any owned order log is active (`SUBMITTED`, `PENDING`, `ACCEPTED`).
+- Block deletion if any owned holding has `currentQuantity > 0` (cash included, because cash is a holding row).
+- Return `409 Conflict` with details flags when blocked.
+
 ```sql
 DELETE FROM portfolios WHERE "portfolioID" = :portfolioId AND "userID" = :userId;
 ```
 
 ## Orders *(planned)*
 
-**placeOrder** (`POST /api/portfolios/{portfolioId}/orders`): records the order, then on fill updates the holding and writes the trade, all in one transaction.
+**placeOrder** (`POST /api/portfolios/{portfolioId}/orders`): records an order log and later marks it executed.
 ```sql
 BEGIN;
 INSERT INTO "orderLogs" ("logOrderID", "orderID", "portfolioID", "instrumentID", side, quantity, "timestamp", status)
 VALUES (gen_random_uuid(), :orderId, :portfolioId, :instrumentId, :side, :quantity, now(), 'ACCEPTED');
-
-INSERT INTO holdings ("holdingID", "portfolioID", "instrumentID", "currentQuantity")
-VALUES (gen_random_uuid(), :portfolioId, :instrumentId, :quantityDelta)   -- negative for a SELL
-ON CONFLICT ("portfolioID", "instrumentID")
-DO UPDATE SET "currentQuantity" = holdings."currentQuantity" + EXCLUDED."currentQuantity";
-
-INSERT INTO trades ("tradeID", "holdingID", "orderLogID")
-VALUES (gen_random_uuid(), :holdingId, :logOrderId);
 COMMIT;
 ```
 
@@ -175,28 +198,32 @@ INSERT INTO "orderLogs" ("logOrderID", "orderID", "portfolioID", "instrumentID",
 VALUES (gen_random_uuid(), :orderId, :portfolioId, :instrumentId, :side, :quantity, now(), :metadata, 'SUBMITTED', :executionPrice);
 ```
 
-## Trades
-
-**getTradesByHolding** (`GET /api/trades/holding/{holdingId}`): trades that changed a holding.
+**markOrderLogExecuted** (`POST /api/order-logs/{logOrderId}/execute`): marks an order log as EXECUTED and triggers holding auto-create.
 ```sql
-SELECT t.* FROM trades t
-JOIN holdings h   ON h."holdingID"   = t."holdingID"
-JOIN portfolios p ON p."portfolioID" = h."portfolioID"
-WHERE t."holdingID" = :holdingId AND p."userID" = :userId;
+UPDATE "orderLogs" o
+SET status = 'EXECUTED', "executionPrice" = COALESCE(:executionPrice, o."executionPrice")
+FROM portfolios p
+WHERE o."logOrderID" = :logOrderId
+  AND p."portfolioID" = o."portfolioID"
+  AND p."userID" = :userId;
 ```
 
-**getTradeById** (`GET /api/trades/{tradeId}`): one trade.
-```sql
-SELECT t.* FROM trades t
-JOIN holdings h   ON h."holdingID"   = t."holdingID"
-JOIN portfolios p ON p."portfolioID" = h."portfolioID"
-WHERE t."tradeID" = :tradeId AND p."userID" = :userId;
-```
+**cancelOrderByOrderId** (`POST /api/order-logs/{orderId}/cancel`): append-only cancel action over the logical order stream.
 
-**createTrade** (`POST /api/trades`): links an order log entry to the holding it changed.
+Behavior:
+- If latest owned status is `SUBMITTED` or `PENDING`, append a new row with status `CANCELLED`.
+- If latest owned status is already `CANCELLED`, return that row (`200` idempotent).
+- If latest owned status is `ACCEPTED`, `EXECUTED`, `REJECTED`, or `FAILED`, return `409 Conflict`.
+
 ```sql
-INSERT INTO trades ("tradeID", "holdingID", "orderLogID")
-VALUES (gen_random_uuid(), :holdingId, :orderLogId);
+INSERT INTO "orderLogs" ("logOrderID", "orderID", "portfolioID", "instrumentID", side, quantity, "timestamp", metadata, status, "executionPrice")
+SELECT gen_random_uuid(), o."orderID", o."portfolioID", o."instrumentID", o.side, o.quantity, now(), o.metadata, 'CANCELLED', o."executionPrice"
+FROM "orderLogs" o
+JOIN portfolios p ON p."portfolioID" = o."portfolioID"
+WHERE o."orderID" = :orderId
+  AND p."userID" = :userId
+ORDER BY o."timestamp" DESC
+LIMIT 1;
 ```
 
 ## Watchlists

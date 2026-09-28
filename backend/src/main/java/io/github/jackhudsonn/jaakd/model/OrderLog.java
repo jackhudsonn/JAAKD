@@ -11,7 +11,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
-import java.time.ZonedDateTime;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 // Maps to public.orders (named TradeOrder to avoid confusion with the SQL keyword / java.util types).
@@ -44,7 +44,7 @@ public class OrderLog {
     private double quantity;
 
     @Column(name = "timestamp", nullable = false)
-    private ZonedDateTime timestamp;
+    private LocalDateTime timestamp;
 
     @Column(name = "metadata")
     private String metadata;
@@ -65,7 +65,7 @@ public class OrderLog {
         this.instrument = instrument;
         this.side = side;
         this.quantity = quantity;
-        this.timestamp = ZonedDateTime.now();
+        this.timestamp = LocalDateTime.now();
     }
 
     public UUID getOrderId() {
@@ -88,7 +88,7 @@ public class OrderLog {
         this.metadata = metadata;
     }
 
-    public ZonedDateTime getTimeStamp() {
+    public LocalDateTime getTimeStamp() {
         return timestamp;
     }
 

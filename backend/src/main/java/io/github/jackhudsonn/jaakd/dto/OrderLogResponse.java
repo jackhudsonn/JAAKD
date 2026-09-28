@@ -1,6 +1,6 @@
 package io.github.jackhudsonn.jaakd.dto;
 
-import java.time.ZonedDateTime;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 import io.github.jackhudsonn.jaakd.model.OrderSide;
@@ -13,7 +13,7 @@ public record OrderLogResponse(
         UUID instrumentId,
         OrderSide side,
         double quantity,
-        ZonedDateTime timestamp,
+        LocalDateTime timestamp,
         String metadata,
         OrderStatus status,
         double executionPrice
