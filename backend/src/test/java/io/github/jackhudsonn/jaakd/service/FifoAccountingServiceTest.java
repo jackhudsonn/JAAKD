@@ -23,7 +23,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
-import java.time.ZonedDateTime;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -94,7 +94,7 @@ class FifoAccountingServiceTest {
         PositionLot firstLot = new PositionLot(
             holdingId,
             UUID.randomUUID(),
-            ZonedDateTime.now().minusDays(2),
+            LocalDateTime.now().minusDays(2),
             new BigDecimal("100.0"),
             new BigDecimal("100.0"),
             new BigDecimal("110.0")
@@ -104,7 +104,7 @@ class FifoAccountingServiceTest {
         PositionLot secondLot = new PositionLot(
             holdingId,
             UUID.randomUUID(),
-            ZonedDateTime.now().minusDays(1),
+            LocalDateTime.now().minusDays(1),
             new BigDecimal("80.0"),
             new BigDecimal("80.0"),
             new BigDecimal("115.0")

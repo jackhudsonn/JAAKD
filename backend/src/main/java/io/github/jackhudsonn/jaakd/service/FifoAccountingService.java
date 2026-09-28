@@ -13,7 +13,7 @@ import io.github.jackhudsonn.jaakd.repository.PositionLotRepository;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.time.ZonedDateTime;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -85,7 +85,7 @@ public class FifoAccountingService {
 
         BigDecimal currentQuantity = safe(holding.getCurrentQuantity());
         holding.setCurrentQuantity(currentQuantity.add(quantity));
-        holding.setUpdatedAt(ZonedDateTime.now());
+        holding.setUpdatedAt(LocalDateTime.now());
         holdingRepository.save(holding);
     }
 
@@ -151,7 +151,7 @@ public class FifoAccountingService {
 
         holding.setCurrentQuantity(currentQuantity.subtract(sellQuantity));
         holding.setCumulativeRealizedPnl(safe(holding.getCumulativeRealizedPnl()).add(realizedTotal));
-        holding.setUpdatedAt(ZonedDateTime.now());
+        holding.setUpdatedAt(LocalDateTime.now());
         holdingRepository.save(holding);
     }
 
@@ -160,7 +160,7 @@ public class FifoAccountingService {
         BigDecimal depositQuantity = BigDecimal.valueOf(orderLog.getQuantity());
 
         holding.setCurrentQuantity(safe(holding.getCurrentQuantity()).add(depositQuantity));
-        holding.setUpdatedAt(ZonedDateTime.now());
+        holding.setUpdatedAt(LocalDateTime.now());
         holdingRepository.save(holding);
     }
 
@@ -174,7 +174,7 @@ public class FifoAccountingService {
         }
 
         holding.setCurrentQuantity(currentQuantity.subtract(withdrawQuantity));
-        holding.setUpdatedAt(ZonedDateTime.now());
+        holding.setUpdatedAt(LocalDateTime.now());
         holdingRepository.save(holding);
     }
 

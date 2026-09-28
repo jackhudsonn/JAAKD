@@ -8,7 +8,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 import java.math.BigDecimal;
-import java.time.ZonedDateTime;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
@@ -33,7 +33,7 @@ public class Holding {
     private BigDecimal cumulativeRealizedPnl;
 
     @Column(name = "updatedAt")
-    private ZonedDateTime updatedAt;
+    private LocalDateTime updatedAt;
 
     protected Holding() {
     }
@@ -44,7 +44,7 @@ public class Holding {
         this.instrumentID = instrumentID;
         this.currentQuantity = BigDecimal.ZERO;
         this.cumulativeRealizedPnl = BigDecimal.ZERO;
-        this.updatedAt = ZonedDateTime.now();
+        this.updatedAt = LocalDateTime.now();
     }
 
     public Holding(UUID portfolioID, UUID instrumentID) {
@@ -52,7 +52,7 @@ public class Holding {
         this.instrumentID = instrumentID;
         this.currentQuantity = BigDecimal.ZERO;
         this.cumulativeRealizedPnl = BigDecimal.ZERO;
-        this.updatedAt = ZonedDateTime.now();
+        this.updatedAt = LocalDateTime.now();
     }
 
     public UUID getHoldingID() {
@@ -83,11 +83,11 @@ public class Holding {
         this.cumulativeRealizedPnl = cumulativeRealizedPnl;
     }
 
-    public ZonedDateTime getUpdatedAt() {
+    public LocalDateTime getUpdatedAt() {
         return updatedAt;
     }
 
-    public void setUpdatedAt(ZonedDateTime updatedAt) {
+    public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
     }
 }

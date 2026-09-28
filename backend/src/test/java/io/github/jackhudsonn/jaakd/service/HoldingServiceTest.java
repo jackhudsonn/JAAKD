@@ -18,7 +18,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
-import java.time.ZonedDateTime;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -61,7 +61,7 @@ class HoldingServiceTest {
         PositionLot lot = new PositionLot(
             holdingId,
             buyLogId,
-            ZonedDateTime.parse("2026-09-25T10:00:00Z"),
+            LocalDateTime.parse("2026-09-25T10:00:00Z"),
             new BigDecimal("10.00"),
             new BigDecimal("6.00"),
             new BigDecimal("100.25")

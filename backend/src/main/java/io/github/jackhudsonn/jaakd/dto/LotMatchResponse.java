@@ -1,7 +1,7 @@
 package io.github.jackhudsonn.jaakd.dto;
 
 import java.math.BigDecimal;
-import java.time.ZonedDateTime;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 public record LotMatchResponse(
@@ -12,6 +12,6 @@ public record LotMatchResponse(
     BigDecimal matchedQuantity,
     BigDecimal sellUnitPrice,
     BigDecimal realizedPnlAmount,
-    ZonedDateTime matchedAt
+    LocalDateTime matchedAt
 ) {
 }

@@ -8,7 +8,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 import java.math.BigDecimal;
-import java.time.ZonedDateTime;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
@@ -39,7 +39,7 @@ public class LotMatch {
     private BigDecimal realizedPnlAmount;
 
     @Column(name = "matchedAt", nullable = false)
-    private ZonedDateTime matchedAt;
+    private LocalDateTime matchedAt;
 
     protected LotMatch() {
     }
@@ -51,7 +51,7 @@ public class LotMatch {
         BigDecimal matchedQuantity,
         BigDecimal sellUnitPrice,
         BigDecimal realizedPnlAmount,
-        ZonedDateTime matchedAt
+        LocalDateTime matchedAt
     ) {
         this.sellLogOrderID = sellLogOrderID;
         this.positionLotID = positionLotID;
@@ -90,7 +90,7 @@ public class LotMatch {
         return realizedPnlAmount;
     }
 
-    public ZonedDateTime getMatchedAt() {
+    public LocalDateTime getMatchedAt() {
         return matchedAt;
     }
 }

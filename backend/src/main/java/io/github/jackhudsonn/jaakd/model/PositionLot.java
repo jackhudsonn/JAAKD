@@ -8,7 +8,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 import java.math.BigDecimal;
-import java.time.ZonedDateTime;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
@@ -27,7 +27,7 @@ public class PositionLot {
     private UUID sourceBuyLogOrderID;
 
     @Column(name = "openedAt", nullable = false)
-    private ZonedDateTime openedAt;
+    private LocalDateTime openedAt;
 
     @Column(name = "originalQuantity", nullable = false)
     private BigDecimal originalQuantity;
@@ -44,7 +44,7 @@ public class PositionLot {
     public PositionLot(
         UUID holdingID,
         UUID sourceBuyLogOrderID,
-        ZonedDateTime openedAt,
+        LocalDateTime openedAt,
         BigDecimal originalQuantity,
         BigDecimal remainingQuantity,
         BigDecimal unitCost
@@ -69,7 +69,7 @@ public class PositionLot {
         return sourceBuyLogOrderID;
     }
 
-    public ZonedDateTime getOpenedAt() {
+    public LocalDateTime getOpenedAt() {
         return openedAt;
     }
 
