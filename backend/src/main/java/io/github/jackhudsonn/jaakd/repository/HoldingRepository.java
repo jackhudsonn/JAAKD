@@ -44,9 +44,8 @@ public interface HoldingRepository extends JpaRepository<Holding, UUID> {
           )
         """)
     Optional<Holding> findOwnedByHoldingId(
-        @Param("holdingId") UUID holdingId,
-        @Param("userId") UUID userId
-    );
+            @Param("holdingId") UUID holdingId,
+            @Param("userId") UUID userId);
 
     @Modifying
     @Query("""

@@ -3,7 +3,7 @@ import { DecimalPipe } from '@angular/common';
 import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
 import { ScrollableListComponent } from '@shared/components/scrollable-list/scrollable-list.component';
 import { startCycleTimer } from '@shared/utils/cycle-timer';
-import { MOCK_STATE, getAsset, getMockPrice } from '@core/mocks/mock-data';
+import { MOCK_STATE, WATCHLIST_CONSTRAINTS, getAsset, getMockPrice } from '@core/mocks/mock-data';
 
 interface WatchlistRow {
   symbol: string;
@@ -24,8 +24,11 @@ export class WatchlistWidgetComponent implements OnInit, OnDestroy {
   activeWatchlistId = MOCK_STATE.activeWatchlistId;
 
   createWatchlistRequested = output<void>();
-  deleteWatchlistRequested = output<void>();
+  editWatchlistRequested = output<void>();
   assetSelected = output<string>();
+  addAssetRequested = output<void>();
+
+  readonly maxWatchlistHoldings = WATCHLIST_CONSTRAINTS.maxHoldingsPerWatchlist;
 
   private priceTick = signal(0);
   private stopTicking?: () => void;
@@ -34,16 +37,20 @@ export class WatchlistWidgetComponent implements OnInit, OnDestroy {
     this.watchlists().map((watchlist) => ({ id: watchlist.id, name: watchlist.name })),
   );
 
-  canDeleteActive = computed(() => this.watchlists().length > 1);
-
   activeWatchlist = computed(
     () => this.watchlists().find((watchlist) => watchlist.id === this.activeWatchlistId()) ?? null,
+  );
+
+  activeWatchlistSymbolCount = computed(() => this.activeWatchlist()?.symbols.length ?? 0);
+
+  canAddSymbolToActive = computed(
+    () => this.activeWatchlistSymbolCount() < this.maxWatchlistHoldings,
   );
 
   rows = computed<WatchlistRow[]>(() => {
     this.priceTick();
 
-    const active = this.watchlists().find((watchlist) => watchlist.id === this.activeWatchlistId());
+    const active = this.activeWatchlist();
     const symbols = active?.symbols ?? [];
 
     return symbols.flatMap((symbol) => {
@@ -78,16 +85,20 @@ export class WatchlistWidgetComponent implements OnInit, OnDestroy {
     this.createWatchlistRequested.emit();
   }
 
-  requestDeleteWatchlist() {
-    if (!this.canDeleteActive()) {
-      return;
-    }
-
-    this.deleteWatchlistRequested.emit();
+  requestEditWatchlist() {
+    this.editWatchlistRequested.emit();
   }
 
   requestAssetDetails(symbol: string) {
     this.assetSelected.emit(symbol);
+  }
+
+  requestAddAsset() {
+    if (!this.canAddSymbolToActive()) {
+      return;
+    }
+
+    this.addAssetRequested.emit();
   }
 
   ngOnInit() {

@@ -33,8 +33,11 @@
       [showChart]="activeAssetShowChart()"
       [ownedQuantity]="activeAssetOwnedQuantity()"
       [accountCash]="accountCash()"
+      [watchlists]="watchlistOptionsForActiveAsset()"
+      [maxWatchlistHoldings]="maxWatchlistHoldings"
       (closed)="closeAssetPopup()"
       (orderPlaced)="placeOrder($event)"
+      (setWatchlistMembership)="setWatchlistMembership($event)"
     />
   }
 

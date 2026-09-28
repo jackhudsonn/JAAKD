@@ -5,33 +5,101 @@
       @if (asset()) {
         <span class="asset-type">{{ asset()!.instrumentType | titlecase }}</span>
       }
-      <span class="asset-price">{{ currentPrice() | number: '1.2-2' }}</span>
+      <div class="asset-price-group">
+        <span class="asset-price">{{ currentPrice() | number: '1.2-2' }}</span>
+        <span class="asset-price-change" [class.positive]="isPositive()" [class.negative]="!isPositive()">
+          {{ isPositive() ? '+' : '' }}${{ changeAmount() | number: '1.2-2' }}
+          ({{ isPositive() ? '+' : '' }}{{ changePct() | number: '1.2-2' }}%)
+        </span>
+      </div>
     </div>
 
-    @if (showChart()) {
-      <app-line-chart [points]="priceHistory()" />
-    }
+    @if (activeView() === 'analysis') {
+        @if (watchlists().length > 0) {
+          <div class="watchlist-selector">
+            <button
+              type="button"
+              class="btn btn-secondary watchlist-selector-trigger"
+              (click)="toggleWatchlistDropdown()"
+              [attr.aria-expanded]="watchlistDropdownOpen()"
+              aria-label="Toggle watchlist selector"
+            >
+              <span>{{ symbol() }} is in {{ watchlistMembershipCount() }} watchlist(s)</span>
+              <span class="watchlist-selector-chevron" [class.open]="watchlistDropdownOpen()">▾</span>
+            </button>
 
-    @if (confirmation(); as order) {
-      <div class="order-confirmation">
-        <p>
-          Order placed: {{ order.type === 'buy' ? 'Buy' : 'Sell' }} {{ order.quantity }}
-          {{ symbol() }}
-          {{
-            order.kind === 'market'
-              ? 'at market'
-              : 'at limit ' + (order.limitPrice | number: '1.2-2')
-          }}.
-        </p>
-        <button type="button" class="btn btn-secondary" (click)="closed.emit()">Close</button>
+            <div
+              class="watchlist-selector-panel"
+              [class.open]="watchlistDropdownOpen()"
+              [attr.aria-hidden]="!watchlistDropdownOpen()"
+            >
+              @for (watchlist of watchlists(); track watchlist.id) {
+                <label
+                  class="watchlist-selector-option"
+                  [class.disabled]="isOptionDisabled(watchlist)"
+                  [attr.title]="isOptionDisabled(watchlist) ? watchlist.disabledReason : null"
+                >
+                  <input
+                    type="checkbox"
+                    [checked]="watchlist.containsSymbol"
+                    [disabled]="isOptionDisabled(watchlist)"
+                    (change)="onWatchlistOptionChange(watchlist, $event)"
+                  />
+                  <span class="watchlist-selector-name">{{ watchlist.name }}</span>
+                  <span class="watchlist-selector-count"
+                    >{{ watchlist.symbolCount }}/{{ maxWatchlistHoldings() }}</span
+                  >
+                </label>
+              }
+            </div>
+          </div>
+        }
+      <div class="analysis-view">
+        <app-line-chart [points]="performanceSeries()" [positive]="isPositive()" />
+
+        <div class="interval-tabs" aria-label="Performance interval">
+          @for (interval of intervals; track interval.id) {
+            <button
+              type="button"
+              class="interval-tab"
+              [class.active]="selectedInterval() === interval.id"
+              (click)="selectInterval(interval.id)"
+            >
+              {{ interval.label }}
+            </button>
+          }
+        </div>
+
+        <button type="button" class="btn btn-primary trade-cta" (click)="openTradeView()">
+          Trade {{ symbol() }}
+        </button>
       </div>
     } @else {
-      <app-order-form
-        [currentPrice]="currentPrice()"
-        [ownedQuantity]="ownedQuantity()"
-        [accountCash]="accountCash()"
-        (placed)="onOrderPlaced($event)"
-      />
+      <div class="trade-view">
+        @if (confirmation(); as order) {
+          <div class="order-confirmation">
+            <p>
+              Order placed: {{ order.type === 'buy' ? 'Buy' : 'Sell' }} {{ order.quantity }}
+              {{ symbol() }}
+              {{
+                order.kind === 'market'
+                  ? 'at market'
+                  : 'at limit ' + (order.limitPrice | number: '1.2-2')
+              }}.
+            </p>
+          </div>
+        } @else {
+          <app-order-form
+            [currentPrice]="currentPrice()"
+            [ownedQuantity]="ownedQuantity()"
+            [accountCash]="accountCash()"
+              [showBackButton]="true"
+              backLabel="← Back"
+              (backPressed)="openAnalysisView()"
+            (placed)="onOrderPlaced($event)"
+          />
+        }
+      </div>
     }
   </div>
 </app-modal>

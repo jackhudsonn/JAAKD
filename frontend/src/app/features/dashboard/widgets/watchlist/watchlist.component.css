@@ -150,6 +150,50 @@
   color: var(--fail);
 }
 
+.watchlist-add-row {
+  width: 100%;
+  margin-top: var(--space-sm);
+
+  padding: var(--space-sm) var(--space-md);
+
+  color: var(--secondary-light);
+  font-family: var(--font-base);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+
+  background: var(--tertiary-bg);
+  border: 1px dashed var(--quaternary-bg-border);
+  border-radius: var(--radius-sm);
+
+  text-align: left;
+  cursor: pointer;
+
+  transition:
+    border-color 120ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    background-color 120ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.watchlist-add-row:hover {
+  border-color: var(--primary);
+  background: var(--quaternary-bg);
+}
+
+.watchlist-add-row:focus-visible {
+  outline: 3px solid rgba(255, 140, 0, 0.24);
+  outline-offset: 1px;
+}
+
+.watchlist-add-row:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.watchlist-capacity {
+  margin: var(--space-xs) 0 0;
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+}
+
 .watchlist-dialog {
   display: flex;
   flex-direction: column;
