@@ -4,7 +4,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import io.github.jackhudsonn.jaakd.dto.CreateWatchlistItemRequest;
-import io.github.jackhudsonn.jaakd.dto.UpdateWatchlistItemRequest;
 import io.github.jackhudsonn.jaakd.exception.InstrumentNotFoundException;
 import io.github.jackhudsonn.jaakd.exception.PortfolioNotFoundException;
 import io.github.jackhudsonn.jaakd.exception.WatchlistItemConflictException;
@@ -98,27 +97,6 @@ public class WatchlistItemService {
             item.setWatchListName(request.name());
         }
 
-        return watchlistItemRepository.save(item);
-    }
-
-    @Transactional
-    public WatchlistItem updateWatchlistItem(UUID listItemId, UpdateWatchlistItemRequest request) {
-        // 1. Load owned item
-        UUID userId = currentUserService.getUserId();
-        Optional<WatchlistItem> maybeItem = watchlistItemRepository.findOwnedByListItemId(listItemId, userId);
-
-        if (maybeItem.isEmpty()) {
-            throw new WatchlistItemNotFoundException(listItemId);
-        }
-
-        WatchlistItem item = maybeItem.get();
-
-        // 2. Apply updates
-        if (request.name() != null) {
-            item.setWatchListName(request.name());
-        }
-
-        // 3. Persist updates
         return watchlistItemRepository.save(item);
     }
 

@@ -1,134 +1,108 @@
 package io.github.jackhudsonn.jaakd.service;
 
+import io.github.jackhudsonn.jaakd.dto.LotMatchResponse;
+import io.github.jackhudsonn.jaakd.dto.PositionLotResponse;
+import io.github.jackhudsonn.jaakd.exception.HoldingNotFoundException;
+import io.github.jackhudsonn.jaakd.model.Holding;
+import io.github.jackhudsonn.jaakd.model.LotMatch;
+import io.github.jackhudsonn.jaakd.model.PositionLot;
+import io.github.jackhudsonn.jaakd.repository.HoldingRepository;
+import io.github.jackhudsonn.jaakd.repository.LotMatchRepository;
+import io.github.jackhudsonn.jaakd.repository.PositionLotRepository;
+import io.github.jackhudsonn.jaakd.security.CurrentUserService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import io.github.jackhudsonn.jaakd.dto.CreateHoldingRequest;
-import io.github.jackhudsonn.jaakd.dto.UpdateHoldingRequest;
-import io.github.jackhudsonn.jaakd.exception.HoldingConflictException;
-import io.github.jackhudsonn.jaakd.exception.HoldingNotFoundException;
-import io.github.jackhudsonn.jaakd.exception.InstrumentNotFoundException;
-import io.github.jackhudsonn.jaakd.exception.PortfolioNotFoundException;
-import io.github.jackhudsonn.jaakd.model.Holding;
-import io.github.jackhudsonn.jaakd.model.Instrument;
-import io.github.jackhudsonn.jaakd.model.Portfolio;
-import io.github.jackhudsonn.jaakd.repository.HoldingRepository;
-import io.github.jackhudsonn.jaakd.repository.InstrumentRepository;
-import io.github.jackhudsonn.jaakd.repository.PortfolioRepository;
-import io.github.jackhudsonn.jaakd.security.CurrentUserService;
-
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
 public class HoldingService {
     private final HoldingRepository holdingRepository;
-    private final PortfolioRepository portfolioRepository;
-    private final InstrumentRepository instrumentRepository;
+    private final PositionLotRepository positionLotRepository;
+    private final LotMatchRepository lotMatchRepository;
     private final CurrentUserService currentUserService;
 
     public HoldingService(
         HoldingRepository holdingRepository,
-        PortfolioRepository portfolioRepository,
-        InstrumentRepository instrumentRepository,
+        PositionLotRepository positionLotRepository,
+        LotMatchRepository lotMatchRepository,
         CurrentUserService currentUserService
     ) {
         this.holdingRepository = holdingRepository;
-        this.portfolioRepository = portfolioRepository;
-        this.instrumentRepository = instrumentRepository;
+        this.positionLotRepository = positionLotRepository;
+        this.lotMatchRepository = lotMatchRepository;
         this.currentUserService = currentUserService;
     }
 
     public List<Holding> getHoldingsForPortfolio(UUID portfolioId) {
         UUID userId = currentUserService.getUserId();
-
         return holdingRepository.findOwnedByPortfolioId(portfolioId, userId);
     }
 
     public Holding getHoldingById(UUID holdingId) {
         UUID userId = currentUserService.getUserId();
-        Optional<Holding> maybeHolding = holdingRepository.findOwnedByHoldingId(holdingId, userId);
-        
-        if (maybeHolding.isEmpty()) {
-            throw new HoldingNotFoundException(holdingId);
-        }
-
-        return maybeHolding.get();
+        return holdingRepository.findOwnedByHoldingId(holdingId, userId)
+            .orElseThrow(() -> new HoldingNotFoundException(holdingId));
     }
 
-    @Transactional
-    public Holding createHolding(CreateHoldingRequest request) {
-        // 1. Resolve current user
+    public List<PositionLotResponse> getPositionLotsForHolding(UUID holdingId) {
+        Holding holding = getHoldingById(holdingId);
         UUID userId = currentUserService.getUserId();
 
-        // 2. Ensure portfolio exists and belongs to user
-        Optional<Portfolio> maybePortfolio = portfolioRepository.findOwnedByPortfolioId(request.portfolioId(), userId);
-        
-        if (maybePortfolio.isEmpty()) {
-            throw new PortfolioNotFoundException(request.portfolioId());
-        }
-        
-        Portfolio portfolio = maybePortfolio.get();
-
-        // 3. Ensure instrument exists
-        Optional<Instrument> maybeInstrument = instrumentRepository.findById(request.instrumentId());
-        
-        if (maybeInstrument.isEmpty()) {
-            throw new InstrumentNotFoundException(request.instrumentId());
-        }
-        
-        Instrument instrument = maybeInstrument.get();
-
-        // 4. Prevent duplicate holding for same portfolio + instrument
-        Optional<Holding> maybeExisting = holdingRepository.findOwnedByPortfolioAndInstrument(
-            request.portfolioId(),
-            request.instrumentId(),
+        List<PositionLot> positionLots = positionLotRepository.findOwnedByHoldingIdOldestFirst(
+            holding.getHoldingID(),
             userId
         );
 
-        if (maybeExisting.isPresent()) {
-            throw new HoldingConflictException();
+        List<PositionLotResponse> responses = new ArrayList<>();
+        for (PositionLot positionLot : positionLots) {
+            responses.add(toPositionLotResponse(positionLot));
         }
 
-        // 5. Build and persist holding
-        Holding holding = new Holding(portfolio, instrument, request.currentQuantity());
-        
-        return holdingRepository.save(holding);
+        return responses;
     }
 
-    @Transactional
-    public Holding updateHolding(UUID holdingId, UpdateHoldingRequest request) {
-        // 1. Load owned holding
+    public List<LotMatchResponse> getLotMatchesForHolding(UUID holdingId) {
+        Holding holding = getHoldingById(holdingId);
         UUID userId = currentUserService.getUserId();
-        Optional<Holding> maybeHolding = holdingRepository.findOwnedByHoldingId(holdingId, userId);
 
-        if (maybeHolding.isEmpty()) {
-            throw new HoldingNotFoundException(holdingId);
+        List<LotMatch> lotMatches = lotMatchRepository.findOwnedByHoldingIdOldestFirst(
+            holding.getHoldingID(),
+            userId
+        );
+
+        List<LotMatchResponse> responses = new ArrayList<>();
+        for (LotMatch lotMatch : lotMatches) {
+            responses.add(toLotMatchResponse(lotMatch));
         }
 
-        Holding holding = maybeHolding.get();
-
-        // 2. Apply updates
-        if (request.currentQuantity() != null) {
-            holding.setCurrentQuantity(request.currentQuantity());
-        }
-
-        // 3. Persist updates
-        return holdingRepository.save(holding);
+        return responses;
     }
 
-    @Transactional
-    public void deleteHolding(UUID holdingId) {
-        // 1. Load owned holding
-        UUID userId = currentUserService.getUserId();
-        Optional<Holding> maybeHolding = holdingRepository.findOwnedByHoldingId(holdingId, userId);
+    private PositionLotResponse toPositionLotResponse(PositionLot positionLot) {
+        return new PositionLotResponse(
+            positionLot.getPositionLotID(),
+            positionLot.getHoldingID(),
+            positionLot.getSourceBuyLogOrderID(),
+            positionLot.getOpenedAt(),
+            positionLot.getOriginalQuantity(),
+            positionLot.getRemainingQuantity(),
+            positionLot.getUnitCost()
+        );
+    }
 
-        if (maybeHolding.isEmpty()) {
-            throw new HoldingNotFoundException(holdingId);
-        }
-
-        // 2. Delete
-        holdingRepository.delete(maybeHolding.get());
+    private LotMatchResponse toLotMatchResponse(LotMatch lotMatch) {
+        return new LotMatchResponse(
+            lotMatch.getLotMatchID(),
+            lotMatch.getSellLogOrderID(),
+            lotMatch.getPositionLotID(),
+            lotMatch.getHoldingID(),
+            lotMatch.getMatchedQuantity(),
+            lotMatch.getSellUnitPrice(),
+            lotMatch.getRealizedPnlAmount(),
+            lotMatch.getMatchedAt()
+        );
     }
 }

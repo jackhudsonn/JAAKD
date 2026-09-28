@@ -6,14 +6,12 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import io.github.jackhudsonn.jaakd.dto.CreateWatchlistItemRequest;
-import io.github.jackhudsonn.jaakd.dto.UpdateWatchlistItemRequest;
 import io.github.jackhudsonn.jaakd.dto.WatchlistItemResponse;
 import io.github.jackhudsonn.jaakd.model.WatchlistItem;
 import io.github.jackhudsonn.jaakd.service.WatchlistItemService;
@@ -59,15 +57,6 @@ public class WatchlistController {
         return toResponse(created);
     }
 
-    @PutMapping("/{listItemId}")
-    @ResponseStatus(HttpStatus.OK)
-    public WatchlistItemResponse updateWatchlistItem(
-            @PathVariable UUID listItemId,
-            @Valid @RequestBody UpdateWatchlistItemRequest request
-    ) {
-        WatchlistItem updated = watchlistItemService.updateWatchlistItem(listItemId, request);
-        return toResponse(updated);
-    }
 
     @DeleteMapping("/{listItemId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
