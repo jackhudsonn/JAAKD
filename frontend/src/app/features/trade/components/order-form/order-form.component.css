@@ -2,65 +2,108 @@
   display: flex;
   flex-direction: column;
 
-  gap: var(--space-md);
+  gap: var(--space-sm);
+}
+
+.order-mode-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-sm);
 }
 
 .type-tabs,
 .kind-tabs {
   display: flex;
+  align-items: center;
 
-  gap: var(--space-sm);
+  gap: var(--space-xxs);
+
+  padding: var(--space-xxs);
+
+  background: var(--tertiary-bg);
+  border: 1px solid var(--quaternary-bg-border);
+  border-radius: var(--radius-sm);
+}
+
+@media (max-width: 600px) {
+  .order-mode-controls {
+    grid-template-columns: 1fr;
+  }
 }
 
 .type-tab,
 .kind-tab {
   flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
 
-  padding: var(--space-sm) var(--space-md);
+  padding: 0 var(--space-sm);
 
   font-family: var(--font-base);
   font-size: var(--font-size-sm);
-  font-weight: 700;
+  font-weight: 600;
 
-  color: var(--secondary-dark);
-  background: var(--tertiary-bg);
+  color: var(--text-secondary);
+  background: transparent;
 
-  border: 1px solid var(--quaternary-bg-border);
+  border: 1px solid transparent;
   border-radius: var(--radius-sm);
 
   cursor: pointer;
+
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease;
+}
+
+.type-tab:hover,
+.kind-tab:hover {
+  color: var(--secondary-light);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .type-tab.buy.active {
-  color: #1f1f1f;
-  background: var(--success);
+  color: var(--success);
+  background: rgba(79, 196, 106, 0.14);
   border-color: var(--success);
 }
 
 .type-tab.sell.active {
-  color: #1f1f1f;
-  background: var(--fail);
+  color: var(--fail);
+  background: rgba(228, 91, 101, 0.14);
   border-color: var(--fail);
 }
 
 .type-tab:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: not-allowed;
 }
 
 .kind-tab.active {
-  color: #1f1f1f;
-  background: var(--primary);
+  color: var(--secondary-light);
+  background: rgba(255, 152, 22, 0.12);
   border-color: var(--primary-dark);
 }
 
 .order-hint {
-  margin: calc(-1 * var(--space-xs)) 0 0;
+  margin: 0;
 
   color: var(--text-muted);
   font-size: var(--font-size-xs);
 }
 
+.form-actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.form-back {
+  min-width: 110px;
+}
+
 .form-submit {
-  width: 100%;
+  flex: 1;
 }

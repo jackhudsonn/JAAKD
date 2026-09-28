@@ -18,7 +18,13 @@ import {
   OrderFormComponent,
   OrderFormSubmit,
 } from '@features/trade/components/order-form/order-form.component';
-import { getAsset, getMockPrice, getMockPriceHistory } from '@core/mocks/mock-data';
+import {
+  ASSET_PERFORMANCE_INTERVALS,
+  AssetPerformanceInterval,
+  getAsset,
+  getMockAssetPerformanceSeries,
+  getMockPrice,
+} from '@core/mocks/mock-data';
 import { startCycleTimer } from '@shared/utils/cycle-timer';
 
 export type AssetOrderPlaced = OrderFormSubmit & { symbol: string };
@@ -71,9 +77,10 @@ export class AssetPopupComponent implements OnInit, OnDestroy {
   setWatchlistMembership = output<AssetSetWatchlistMembershipRequest>();
 
   confirmation = signal<AssetOrderPlaced | null>(null);
-  watchlistFeedback = signal<string | null>(null);
-  watchlistFeedbackTone = signal<'success' | 'error'>('success');
   watchlistDropdownOpen = signal(false);
+  activeView = signal<'analysis' | 'trade'>('analysis');
+  intervals = ASSET_PERFORMANCE_INTERVALS;
+  selectedInterval = signal<AssetPerformanceInterval>('1D');
 
   private priceTick = signal(0);
   private stopTicking?: () => void;
@@ -83,16 +90,38 @@ export class AssetPopupComponent implements OnInit, OnDestroy {
     this.priceTick();
     return getMockPrice(this.symbol());
   });
-  priceHistory = computed(() => (this.showChart() ? getMockPriceHistory(this.symbol()) : []));
+  // TODO: replace getMockAssetPerformanceSeries with an API-backed call like
+  // GET /assets/{symbol}/performance?interval={interval}.
+  performanceSeries = computed(() =>
+    getMockAssetPerformanceSeries(this.symbol(), this.selectedInterval()),
+  );
   watchlistMembershipCount = computed(
     () => this.watchlists().filter((watchlist) => watchlist.containsSymbol).length,
   );
+  startValue = computed(() => this.performanceSeries()[0]?.value ?? 0);
+  endValue = computed(() => this.performanceSeries().at(-1)?.value ?? 0);
+  highValue = computed(() => {
+    const values = this.performanceSeries().map((point) => point.value);
+    return values.length > 0 ? Math.max(...values) : 0;
+  });
+  lowValue = computed(() => {
+    const values = this.performanceSeries().map((point) => point.value);
+    return values.length > 0 ? Math.min(...values) : 0;
+  });
+  changeAmount = computed(() => this.endValue() - this.startValue());
+  changePct = computed(() => {
+    const start = this.startValue();
+    return start === 0 ? 0 : (this.changeAmount() / start) * 100;
+  });
+  isPositive = computed(() => this.changeAmount() >= 0);
 
   constructor() {
     effect(() => {
       this.symbol();
-      this.watchlistFeedback.set(null);
       this.watchlistDropdownOpen.set(false);
+      this.activeView.set('analysis');
+      this.selectedInterval.set('1D');
+      this.confirmation.set(null);
     });
   }
 
@@ -121,6 +150,19 @@ export class AssetPopupComponent implements OnInit, OnDestroy {
     this.confirmation.set(placed);
   }
 
+  openTradeView() {
+    this.watchlistDropdownOpen.set(false);
+    this.activeView.set('trade');
+  }
+
+  openAnalysisView() {
+    this.activeView.set('analysis');
+  }
+
+  selectInterval(interval: AssetPerformanceInterval) {
+    this.selectedInterval.set(interval);
+  }
+
   toggleWatchlistDropdown() {
     this.watchlistDropdownOpen.update((open) => !open);
   }
@@ -134,8 +176,6 @@ export class AssetPopupComponent implements OnInit, OnDestroy {
     const includeInWatchlist = target.checked;
 
     if (includeInWatchlist && !option.canAdd) {
-      this.watchlistFeedbackTone.set('error');
-      this.watchlistFeedback.set(option.disabledReason ?? 'This symbol cannot be added.');
       return;
     }
 
@@ -144,12 +184,5 @@ export class AssetPopupComponent implements OnInit, OnDestroy {
       watchlistId: option.id,
       included: includeInWatchlist,
     });
-
-    this.watchlistFeedbackTone.set('success');
-    this.watchlistFeedback.set(
-      includeInWatchlist
-        ? `Added ${this.symbol()} to ${option.name}.`
-        : `Removed ${this.symbol()} from ${option.name}.`,
-    );
   }
 }
