@@ -4,7 +4,7 @@
 SELECT table_name
 FROM information_schema.tables
 WHERE table_schema = 'public'
-  AND table_name IN ('profiles', 'portfolios', 'instruments', 'holdings', 'orderLogs', 'position_lots', 'lot_matches', 'watchlist_items')
+  AND table_name IN ('profiles', 'portfolios', 'instruments', 'holdings', 'orderLogs', 'position_lots', 'lot_matches', 'watchlist_items', 'users')
 ORDER BY table_name;
 
 -- 1b) Ensure the canonical cash instrument exists
@@ -18,6 +18,11 @@ FROM pg_indexes
 WHERE schemaname = 'public'
   AND tablename IN ('portfolios', 'holdings', 'orderLogs', 'position_lots', 'lot_matches', 'watchlist_items')
 ORDER BY tablename, indexname;
+
+-- 2b) Role privilege checks
+SELECT has_table_privilege('jaakd_app', 'public.users', 'SELECT') AS jaakd_app_can_select_users;
+SELECT has_table_privilege('jaakd_auth', 'public.users', 'SELECT') AS jaakd_auth_can_select_users;
+SELECT has_table_privilege('jaakd_auth', 'public.profiles', 'SELECT') AS jaakd_auth_can_select_profiles;
 
 -- 3) Deliberate bad insert to prove unique("portfolioID","instrumentID") is enforced
 -- Expected: this script fails on the second holdings insert.

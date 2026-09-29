@@ -1,6 +1,8 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
-import { ApiCreatedResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Headers, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 
+import { ChangePasswordRequestDto } from './dto/change-password-request.dto';
+import { ChangePasswordResponseDto } from './dto/change-password-response.dto';
 import { AuthService } from './auth.service';
 import { LoginRequestDto } from './dto/login-request.dto';
 import { LoginResponseDto } from './dto/login-response.dto';
@@ -18,28 +20,39 @@ export class AuthController {
 
   @Post('register')
   @ApiCreatedResponse({ type: RegisterResponseDto })
-  register(@Body() body: RegisterRequestDto): RegisterResponseDto {
+  async register(@Body() body: RegisterRequestDto): Promise<RegisterResponseDto> {
     return this.authService.register(body);
   }
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ type: LoginResponseDto })
-  login(@Body() body: LoginRequestDto): LoginResponseDto {
+  async login(@Body() body: LoginRequestDto): Promise<LoginResponseDto> {
     return this.authService.login(body);
   }
 
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ type: RefreshResponseDto })
-  refresh(@Body() body: RefreshRequestDto): RefreshResponseDto {
+  async refresh(@Body() body: RefreshRequestDto): Promise<RefreshResponseDto> {
     return this.authService.refresh(body);
   }
 
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ type: LogoutResponseDto })
-  logout(@Body() body: LogoutRequestDto): LogoutResponseDto {
+  async logout(@Body() body: LogoutRequestDto): Promise<LogoutResponseDto> {
     return this.authService.logout(body);
+  }
+
+  @Post('change-password')
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({ type: ChangePasswordResponseDto })
+  async changePassword(
+    @Headers('authorization') authorizationHeader: string | undefined,
+    @Body() body: ChangePasswordRequestDto,
+  ): Promise<ChangePasswordResponseDto> {
+    return this.authService.changePassword(authorizationHeader, body);
   }
 }
