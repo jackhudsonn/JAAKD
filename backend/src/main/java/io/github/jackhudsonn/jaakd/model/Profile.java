@@ -13,9 +13,9 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
-// Maps to public.profiles — merged app-user + profile data. Linked to auth.users via Supabase trigger:
-// when auth.users row is created, trigger creates profiles row with userID = auth.users.id.
-// JWT's 'sub' claim (= auth.users.id) resolves directly to profiles.userID for ownership-scoped queries.
+// Maps to public.profiles for application profile data.
+// JWT's 'sub' claim (issued by auth-service and validated by backend via HS256 JWT_SECRET)
+// resolves directly to profiles.userID for ownership-scoped queries.
 @Entity
 @Table(name = "profiles")
 public class Profile {

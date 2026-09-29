@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.UUID;
 
-// Resolves the authenticated Supabase user from the validated JWT (its `sub` claim = auth.users.id).
+// Resolves the authenticated user from the validated JWT (its `sub` claim = profile owner UUID).
 @Service
 public class CurrentUserService {
 

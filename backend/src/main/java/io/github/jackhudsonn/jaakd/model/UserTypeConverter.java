@@ -5,7 +5,7 @@ import jakarta.persistence.Converter;
 
 import java.math.BigDecimal;
 
-// Converts between UserType and the numeric column type Supabase actually uses for users.userType.
+// Converts between UserType and the numeric column type used for profiles.userType.
 @Converter(autoApply = false)
 public class UserTypeConverter implements AttributeConverter<UserType, BigDecimal> {
 
