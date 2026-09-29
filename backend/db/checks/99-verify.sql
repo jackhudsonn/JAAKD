@@ -4,14 +4,19 @@
 SELECT table_name
 FROM information_schema.tables
 WHERE table_schema = 'public'
-  AND table_name IN ('profiles', 'portfolios', 'instruments', 'holdings', 'orderLogs', 'trades', 'watchlist_items')
+  AND table_name IN ('profiles', 'portfolios', 'instruments', 'holdings', 'orderLogs', 'position_lots', 'lot_matches', 'watchlist_items')
 ORDER BY table_name;
+
+-- 1b) Ensure the canonical cash instrument exists
+SELECT "instrumentID", ticker, market, name, "instrumentClass"
+FROM instruments
+WHERE UPPER(ticker) = 'USD_CASH';
 
 -- 2) Foreign key index checks
 SELECT schemaname, tablename, indexname
 FROM pg_indexes
 WHERE schemaname = 'public'
-  AND tablename IN ('portfolios', 'holdings', 'orderLogs', 'trades', 'watchlist_items')
+  AND tablename IN ('portfolios', 'holdings', 'orderLogs', 'position_lots', 'lot_matches', 'watchlist_items')
 ORDER BY tablename, indexname;
 
 -- 3) Deliberate bad insert to prove unique("portfolioID","instrumentID") is enforced
@@ -30,11 +35,11 @@ INSERT INTO instruments ("instrumentID", ticker, market, name, "instrumentClass"
 VALUES ('00000000-0000-0000-0000-000000000003', 'VCHK', 'TEST', 'Verify Check', 'EQUITY')
 ON CONFLICT ("instrumentID") DO NOTHING;
 
-INSERT INTO holdings ("holdingID", "portfolioID", "instrumentID", "currentQuantity")
-VALUES ('00000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000003', 10.0);
+INSERT INTO holdings ("holdingID", "portfolioID", "instrumentID", "currentQuantity", "cumulativeRealizedPnl", "updatedAt")
+VALUES ('00000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000003', 10.000000, 0.000000, now());
 
 -- Deliberate duplicate on ("portfolioID","instrumentID")
-INSERT INTO holdings ("holdingID", "portfolioID", "instrumentID", "currentQuantity")
-VALUES ('00000000-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000003', 20.0);
+INSERT INTO holdings ("holdingID", "portfolioID", "instrumentID", "currentQuantity", "cumulativeRealizedPnl", "updatedAt")
+VALUES ('00000000-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000003', 20.000000, 0.000000, now());
 
 ROLLBACK;

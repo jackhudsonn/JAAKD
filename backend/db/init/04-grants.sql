@@ -6,6 +6,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE
   instruments,
   holdings,
   "orderLogs",
-  trades,
+  position_lots,
+  lot_matches,
   watchlist_items
 TO jaakd_app;

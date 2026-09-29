@@ -19,9 +19,12 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: validate # schema is owned by SQL scripts, never generated from entities
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
     properties:
       hibernate:
         default_schema: public
+        globally_quoted_identifiers: true
 
   security:
     oauth2:

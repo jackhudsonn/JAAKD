@@ -61,7 +61,7 @@ class HoldingServiceTest {
         PositionLot lot = new PositionLot(
             holdingId,
             buyLogId,
-            LocalDateTime.parse("2026-09-25T10:00:00Z"),
+            LocalDateTime.parse("2026-09-25T10:00:00"),
             new BigDecimal("10.00"),
             new BigDecimal("6.00"),
             new BigDecimal("100.25")
