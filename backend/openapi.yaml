@@ -5,7 +5,7 @@ info:
   description: |
     REST API for the JAAKD direct trading platform (Spring Boot service in `backend/`).
 
-    - Every endpoint requires a Supabase-issued JWT in the `Authorization: Bearer <token>` header.
+    - Every endpoint requires an auth-service-issued JWT in the `Authorization: Bearer <token>` header.
     - A user can only see and change their own data (BR-02): every query is filtered by the
       user ID taken from the JWT's `sub` claim.
     - All errors share one shape, `ErrorResponse` (see `GlobalExceptionHandler`).
@@ -926,6 +926,42 @@ paths:
 
   # ----------------------------------------------------------------- Profile
   /api/profile:
+    post:
+      tags: [Profile]
+      summary: Create the signed-in user's profile
+      description: |
+        Creates a profile row for the JWT `sub` if one does not already exist.
+        Email is read from the JWT email claim and is never accepted from the body.
+      operationId: createCurrentProfile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProfileRequest"
+            example:
+              firstName: Joanna
+              lastName: Smith
+              dob: "1990-04-12"
+              city: Boston
+              state: MA
+              country: USA
+              zipCode: "02110"
+      responses:
+        "201":
+          description: Profile created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfileResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/ServerError"
     get:
       tags: [Profile]
       summary: Get the signed-in user's profile
@@ -959,7 +995,7 @@ paths:
     put:
       tags: [Profile]
       summary: Update the signed-in user's profile
-      description: Only fields that are present are changed. Email is managed by Supabase and cannot be changed here.
+      description: Only fields that are present are changed. Email comes from authentication and cannot be changed here.
       operationId: updateProfile
       requestBody:
         required: true
@@ -992,7 +1028,7 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: Supabase access token (ES256), validated against the project's JWKS
+      description: Auth-service access token (HS256), validated with shared secret
 
   parameters:
     HoldingId:
@@ -1172,11 +1208,11 @@ components:
     ReconciliationMismatchResponse:
       type: object
       properties:
-        instrumentId: { type: string, format: uuid, nullable: true }
-        expectedQuantity: { type: number, format: double, nullable: true }
-        actualQuantity: { type: number, format: double, nullable: true }
-        expectedCumulativeRealizedPnl: { type: number, format: double, nullable: true }
-        actualCumulativeRealizedPnl: { type: number, format: double, nullable: true }
+        instrumentId: { type: [string, "null"], format: uuid }
+        expectedQuantity: { type: [number, "null"], format: double }
+        actualQuantity: { type: [number, "null"], format: double }
+        expectedCumulativeRealizedPnl: { type: [number, "null"], format: double }
+        actualCumulativeRealizedPnl: { type: [number, "null"], format: double }
         reason: { type: string }
 
     # ---- instruments
@@ -1304,6 +1340,17 @@ components:
         name: { type: [string, "null"] }
 
     # ---- profile
+    CreateProfileRequest:
+      type: object
+      required: [firstName, lastName]
+      properties:
+        firstName: { type: string, minLength: 1, maxLength: 100 }
+        lastName: { type: string, minLength: 1, maxLength: 100 }
+        dob: { type: [string, "null"], format: date }
+        city: { type: [string, "null"], maxLength: 100 }
+        state: { type: [string, "null"], maxLength: 2 }
+        country: { type: [string, "null"], maxLength: 100 }
+        zipCode: { type: [string, "null"], maxLength: 10 }
     UpdateProfileRequest:
       type: object
       properties:

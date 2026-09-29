@@ -11,8 +11,5 @@ spring:
             hibernate:
                 default_schema: PUBLIC
                 globally_quoted_identifiers: true
-    security:
-        oauth2:
-            resourceserver:
-                jwt:
-                    jwk-set-uri: https://example.com/.well-known/jwks.json
+jwt:
+    shared-secret: test-jwt-secret-32-characters-min

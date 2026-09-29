@@ -26,11 +26,8 @@ spring:
         default_schema: public
         globally_quoted_identifiers: true
 
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          jwk-set-uri: ${SUPABASE_URL}/auth/v1/.well-known/jwks.json
+  jwt:
+    shared-secret: ${JWT_SECRET}
 
   web:
     error:

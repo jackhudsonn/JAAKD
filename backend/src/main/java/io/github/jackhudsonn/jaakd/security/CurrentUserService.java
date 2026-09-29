@@ -14,4 +14,9 @@ public class CurrentUserService {
         Jwt jwt = (Jwt) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         return UUID.fromString(jwt.getSubject());
     }
+
+    public String getEmail() {
+        Jwt jwt = (Jwt) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return jwt.getClaimAsString("email");
+    }
 }

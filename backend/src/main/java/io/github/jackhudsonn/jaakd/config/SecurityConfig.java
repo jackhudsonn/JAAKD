@@ -1,6 +1,8 @@
 package io.github.jackhudsonn.jaakd.config;
 
 import java.util.List;
+import java.nio.charset.StandardCharsets;
+import javax.crypto.spec.SecretKeySpec;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -8,7 +10,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
+import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -16,7 +18,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-// Stateless resource server: every request must carry a valid Supabase-issued JWT (validated against its JWKS).
+// Stateless resource server: every request must carry a valid HS256 JWT signed with the shared secret.
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
@@ -35,11 +37,12 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // Supabase signs tokens with ES256; NimbusJwtDecoder.withJwkSetUri(...) trusts only RS256 unless told otherwise.
+    // Shared-secret decoder used by both auth-service and backend.
     @Bean
-    public JwtDecoder jwtDecoder(@Value("${spring.security.oauth2.resourceserver.jwt.jwk-set-uri}") String jwkSetUri) {
-        return NimbusJwtDecoder.withJwkSetUri(jwkSetUri)
-                .jwsAlgorithm(SignatureAlgorithm.ES256)
+    public JwtDecoder jwtDecoder(@Value("${jwt.shared-secret}") String sharedSecret) {
+        SecretKeySpec key = new SecretKeySpec(sharedSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+        return NimbusJwtDecoder.withSecretKey(key)
+                .macAlgorithm(MacAlgorithm.HS256)
                 .build();
     }
 

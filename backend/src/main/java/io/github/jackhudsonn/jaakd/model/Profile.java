@@ -70,6 +70,12 @@ public class Profile {
         this.userType = userType;
     }
 
+    public Profile(UUID userId, String email, BigDecimal userType) {
+        this.userId = userId;
+        this.email = email;
+        this.userType = userType;
+    }
+
     public UUID getUserId() {
         return userId;
     }

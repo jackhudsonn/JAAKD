@@ -3,9 +3,13 @@ package io.github.jackhudsonn.jaakd.service;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import io.github.jackhudsonn.jaakd.dto.CreateProfileRequest;
 import io.github.jackhudsonn.jaakd.dto.UpdateProfileRequest;
+import io.github.jackhudsonn.jaakd.exception.ConflictException;
+import io.github.jackhudsonn.jaakd.exception.ValidationException;
 import io.github.jackhudsonn.jaakd.exception.ProfileNotFoundException;
 import io.github.jackhudsonn.jaakd.model.Profile;
+import io.github.jackhudsonn.jaakd.model.UserType;
 import io.github.jackhudsonn.jaakd.repository.ProfileRepository;
 import io.github.jackhudsonn.jaakd.security.CurrentUserService;
 
@@ -20,6 +24,31 @@ public class ProfileService {
     public ProfileService(ProfileRepository profileRepository, CurrentUserService currentUserService) {
         this.profileRepository = profileRepository;
         this.currentUserService = currentUserService;
+    }
+
+    @Transactional
+    public Profile createCurrentUserProfile(CreateProfileRequest request) {
+        UUID userId = currentUserService.getUserId();
+
+        if (profileRepository.existsById(userId)) {
+            throw new ConflictException("Profile already exists for user: " + userId);
+        }
+
+        String email = currentUserService.getEmail();
+        if (email == null || email.isBlank()) {
+            throw new ValidationException("Authenticated token is missing email claim");
+        }
+
+        Profile profile = new Profile(userId, email, UserType.RETAIL_CLIENT.getCode());
+        profile.setFirstName(request.firstName());
+        profile.setLastName(request.lastName());
+        profile.setDob(request.dob());
+        profile.setCity(request.city());
+        profile.setState(request.state());
+        profile.setCountry(request.country());
+        profile.setZipCode(request.zipCode());
+
+        return profileRepository.save(profile);
     }
 
     // Retrieves the current authenticated user's profile.
