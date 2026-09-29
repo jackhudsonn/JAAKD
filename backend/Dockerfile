@@ -9,6 +9,8 @@ COPY mvnw .
 # Makes the wrapper executable
 RUN chmod +x mvnw && ./mvnw dependency:go-offline
 # Copies the source code to the working directory
+COPY openapi-generator-config.json .
+COPY openapi openapi
 COPY src src
 # Builds the project and packages it into a JAR file, skipping tests
 RUN ./mvnw -B clean package -DskipTests
