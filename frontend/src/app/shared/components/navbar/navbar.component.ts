@@ -8,7 +8,6 @@ import {
   signal,
 } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
-import { User } from '@supabase/supabase-js';
 
 @Component({
   selector: 'app-navbar',
@@ -18,7 +17,8 @@ import { User } from '@supabase/supabase-js';
   styleUrl: './navbar.component.css',
 })
 export class NavbarComponent {
-  @Input() user: User | null = null;
+  @Input() isLoggedIn = false;
+  @Input() userEmail: string | null = null;
   @Input() profileName: string | null = null;
   @Output() logoutClicked = new EventEmitter<void>();
 
@@ -29,11 +29,7 @@ export class NavbarComponent {
   constructor(private elementRef: ElementRef<HTMLElement>) {}
 
   get displayName() {
-    const metadataFirstName = this.user?.user_metadata?.['first_name'];
-    const metadataLastName = this.user?.user_metadata?.['last_name'];
-    const metadataName = [metadataFirstName, metadataLastName].filter(Boolean).join(' ').trim();
-
-    return this.profileName?.trim() || metadataName || 'User';
+    return this.profileName?.trim() || this.userEmail || 'User';
   }
 
   get displayInitial() {

@@ -1,7 +1,9 @@
 import { Component, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { SupabaseService } from '@core/services/supabase.service';
+import { AuthService } from '@core/services/auth.service';
+import { ErrorResponse, toUserFacingErrorMessage } from '@core/models/profile.model';
 
 @Component({
   selector: 'app-update-password',
@@ -11,6 +13,7 @@ import { SupabaseService } from '@core/services/supabase.service';
   styleUrl: './update-password.component.css',
 })
 export class UpdatePasswordComponent {
+  currentPassword = '';
   password = '';
   confirmPassword = '';
 
@@ -21,7 +24,7 @@ export class UpdatePasswordComponent {
   loading = signal(false);
 
   constructor(
-    private supabaseService: SupabaseService,
+    private authService: AuthService,
     private router: Router,
   ) {}
 
@@ -34,8 +37,8 @@ export class UpdatePasswordComponent {
   }
 
   async updatePassword() {
-    if (!this.password || !this.confirmPassword) {
-      this.message.set('Enter and confirm your new password.');
+    if (!this.currentPassword || !this.password || !this.confirmPassword) {
+      this.message.set('Enter your current password and your new password.');
       return;
     }
 
@@ -52,17 +55,28 @@ export class UpdatePasswordComponent {
     this.loading.set(true);
     this.message.set('');
 
-    const { error } = await this.supabaseService.updatePassword(this.password);
+    try {
+      await this.authService.changePassword(this.currentPassword, this.password);
+      this.loading.set(false);
+      this.message.set('Password updated successfully.');
+      await this.router.navigate(['/dashboard']);
+    } catch (error) {
+      this.loading.set(false);
+      this.message.set(this.mapErrorToMessage(error));
+    }
+  }
 
-    this.loading.set(false);
-
-    if (error) {
-      this.message.set(error.message);
-      return;
+  private mapErrorToMessage(error: unknown): string {
+    if (!(error instanceof HttpErrorResponse)) {
+      return 'Unable to update your password right now. Please try again.';
     }
 
-    this.message.set('Password updated successfully.');
+    const response = error.error as Partial<ErrorResponse> | undefined;
+    const detailedMessage = toUserFacingErrorMessage(response);
+    if (detailedMessage) {
+      return detailedMessage;
+    }
 
-    await this.router.navigate(['/dashboard']);
+    return 'Unable to update your password right now. Please try again.';
   }
 }

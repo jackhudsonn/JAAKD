@@ -20,7 +20,7 @@ public record UpdateProfileRequest(
     @Size(max = 100, message = "City must not exceed 100 characters")
     String city,
     
-    @Size(max = 2, message = "State must be 2 characters or less")
+    @Size(max = 100, message = "State must not exceed 100 characters")
     String state,
     
     @Size(max = 100, message = "Country must not exceed 100 characters")

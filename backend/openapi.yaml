@@ -1348,7 +1348,7 @@ components:
         lastName: { type: string, minLength: 1, maxLength: 100 }
         dob: { type: [string, "null"], format: date }
         city: { type: [string, "null"], maxLength: 100 }
-        state: { type: [string, "null"], maxLength: 2 }
+        state: { type: [string, "null"], maxLength: 100 }
         country: { type: [string, "null"], maxLength: 100 }
         zipCode: { type: [string, "null"], maxLength: 10 }
     UpdateProfileRequest:
@@ -1358,7 +1358,7 @@ components:
         lastName: { type: [string, "null"], minLength: 1, maxLength: 100 }
         username: { type: [string, "null"], maxLength: 50 }
         city: { type: [string, "null"], maxLength: 100 }
-        state: { type: [string, "null"], maxLength: 2 }
+        state: { type: [string, "null"], maxLength: 100 }
         country: { type: [string, "null"], maxLength: 100 }
         zipCode: { type: [string, "null"], maxLength: 10 }
         dob: { type: [string, "null"], format: date }
