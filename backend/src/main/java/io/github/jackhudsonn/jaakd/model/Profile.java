@@ -2,11 +2,10 @@ package io.github.jackhudsonn.jaakd.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.CascadeType;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
 import java.math.BigDecimal;
@@ -22,7 +21,6 @@ import java.util.UUID;
 public class Profile {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "`userID`")
     private UUID userId;
 
@@ -74,6 +72,13 @@ public class Profile {
         this.userId = userId;
         this.email = email;
         this.userType = userType;
+    }
+
+    @PrePersist
+    void prePersist() {
+        if (userId == null) {
+            userId = UUID.randomUUID();
+        }
     }
 
     public UUID getUserId() {
