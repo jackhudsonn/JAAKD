@@ -37,7 +37,19 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // Shared-secret decoder used by both auth-service and backend.
+    // Verifies access tokens issued by auth-service.
+    //
+    // Known trade-off: HS256 is symmetric, so this service holds the same
+    // JWT_SECRET that
+    // auth-service signs with. Anyone who obtains it (from either service) can mint
+    // a valid
+    // token for any user. Mitigations today: the secret lives only in env vars /
+    // Jenkins
+    // credentials, the algorithm is pinned to HS256, and tokens expire after 15
+    // minutes.
+    // Planned follow-up: RS256 with a JWKS endpoint on auth-service, so the backend
+    // only holds
+    // public keys (see prototypes/Kyle/docs/04-jwt-signing-key-notes.md).
     @Bean
     public JwtDecoder jwtDecoder(@Value("${jwt.shared-secret}") String sharedSecret) {
         SecretKeySpec key = new SecretKeySpec(sharedSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
@@ -46,7 +58,8 @@ public class SecurityConfig {
                 .build();
     }
 
-    // Allows the Angular dev server (and other configured origins) to call this API with the Authorization header.
+    // Allows the Angular dev server (and other configured origins) to call this API
+    // with the Authorization header.
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
