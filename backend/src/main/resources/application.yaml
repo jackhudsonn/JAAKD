@@ -11,23 +11,20 @@ spring:
     import: optional:file:.env[.properties] # loads backend/.env (KEY=value is valid .properties syntax)
 
   datasource:
-    url: ${SUPABASE_DB_URL}
-    username: ${SUPABASE_DB_USER}
-    password: ${SUPABASE_DB_PASSWORD}
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
 
   jpa:
     open-in-view: false
     hibernate:
-      ddl-auto: validate # schema is owned by Supabase migrations, never generated from entities
+      ddl-auto: validate # schema is owned by SQL scripts, never generated from entities
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
     properties:
       hibernate:
         default_schema: public
-
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          jwk-set-uri: ${SUPABASE_URL}/auth/v1/.well-known/jwks.json
+        globally_quoted_identifiers: true
 
   web:
     error:
@@ -35,7 +32,12 @@ spring:
       include-message: never
       include-binding-errors: never
       include-exception: false
-
+jwt:
+  shared-secret: ${JWT_SECRET}
+springdoc:
+  swagger-ui:
+    url: /openapi.yaml
+    path: /swagger-ui.html
 server:
     port: 8081
 

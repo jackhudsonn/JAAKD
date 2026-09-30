@@ -5,7 +5,7 @@ info:
   description: |
     REST API for the JAAKD direct trading platform (Spring Boot service in `backend/`).
 
-    - Every endpoint requires a Supabase-issued JWT in the `Authorization: Bearer <token>` header.
+    - Every endpoint requires an auth-service-issued JWT in the `Authorization: Bearer <token>` header.
     - A user can only see and change their own data (BR-02): every query is filtered by the
       user ID taken from the JWT's `sub` claim.
     - All errors share one shape, `ErrorResponse` (see `GlobalExceptionHandler`).
@@ -547,7 +547,8 @@ paths:
           description: Portfolio is not empty and cannot be deleted
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/ErrorResponse" }
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
               example:
                 timestamp: "2026-09-23T14:30:00Z"
                 message: Cannot delete portfolio with active orders and non-zero holdings
@@ -926,6 +927,42 @@ paths:
 
   # ----------------------------------------------------------------- Profile
   /api/profile:
+    post:
+      tags: [Profile]
+      summary: Create the signed-in user's profile
+      description: |
+        Creates a profile row for the JWT `sub` if one does not already exist.
+        Email is read from the JWT email claim and is never accepted from the body.
+      operationId: createCurrentProfile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProfileRequest"
+            example:
+              firstName: Joanna
+              lastName: Smith
+              dob: "1990-04-12"
+              city: Boston
+              state: MA
+              country: USA
+              zipCode: "02110"
+      responses:
+        "201":
+          description: Profile created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfileResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/ServerError"
     get:
       tags: [Profile]
       summary: Get the signed-in user's profile
@@ -959,7 +996,7 @@ paths:
     put:
       tags: [Profile]
       summary: Update the signed-in user's profile
-      description: Only fields that are present are changed. Email is managed by Supabase and cannot be changed here.
+      description: Only fields that are present are changed. Email comes from authentication and cannot be changed here.
       operationId: updateProfile
       requestBody:
         required: true
@@ -992,44 +1029,58 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: Supabase access token (ES256), validated against the project's JWKS
+      description: Auth-service access token (HS256), validated with shared secret
 
   parameters:
     HoldingId:
       name: holdingId
       in: path
       required: true
-      schema: { type: string, format: uuid }
+      schema:
+        type: string
+        format: uuid
     PortfolioId:
       name: portfolioId
       in: path
       required: true
-      schema: { type: string, format: uuid }
+      schema:
+        type: string
+        format: uuid
     InstrumentId:
       name: instrumentId
       in: path
       required: true
-      schema: { type: string, format: uuid }
+      schema:
+        type: string
+        format: uuid
     LogOrderId:
       name: logOrderId
       in: path
       required: true
-      schema: { type: string, format: uuid }
+      schema:
+        type: string
+        format: uuid
     OrderId:
       name: orderId
       in: path
       required: true
-      schema: { type: string, format: uuid }
+      schema:
+        type: string
+        format: uuid
     ListItemId:
       name: listItemId
       in: path
       required: true
-      schema: { type: string, format: uuid }
+      schema:
+        type: string
+        format: uuid
     Ticker:
       name: ticker
       in: path
       required: true
-      schema: { type: string, maxLength: 20 }
+      schema:
+        type: string
+        maxLength: 20
       example: AAPL
 
   responses:
@@ -1037,7 +1088,8 @@ components:
       description: Malformed request - failed validation (details lists each bad field)
       content:
         application/json:
-          schema: { $ref: "#/components/schemas/ErrorResponse" }
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
           example:
             timestamp: "2026-09-23T14:30:00Z"
             message: Validation failed
@@ -1047,12 +1099,14 @@ components:
       description: Missing, expired or invalid JWT
       content:
         application/json:
-          schema: { $ref: "#/components/schemas/ErrorResponse" }
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
     Forbidden:
       description: Authenticated but not authorized for this operation
       content:
         application/json:
-          schema: { $ref: "#/components/schemas/ErrorResponse" }
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
           example:
             timestamp: "2026-09-23T14:30:00Z"
             message: Admin or auditor user type is required
@@ -1061,7 +1115,8 @@ components:
       description: Resource does not exist, or is not owned by the signed-in user
       content:
         application/json:
-          schema: { $ref: "#/components/schemas/ErrorResponse" }
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
           example:
             timestamp: "2026-09-23T14:30:00Z"
             message: Holding not found
@@ -1070,22 +1125,28 @@ components:
       description: Request conflicts with current resource state (duplicate or guarded operation)
       content:
         application/json:
-          schema: { $ref: "#/components/schemas/ErrorResponse" }
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
     ServerError:
       description: Unexpected error - generic message only, no stack trace
       content:
         application/json:
-          schema: { $ref: "#/components/schemas/ErrorResponse" }
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
 
   schemas:
     ErrorResponse:
       type: object
       properties:
-        timestamp: { type: string, format: date-time }
-        message: { type: string }
+        timestamp:
+          type: string
+          format: date-time
+        message:
+          type: string
         details:
           type: object
-          additionalProperties: { type: string }
+          additionalProperties:
+            type: string
 
     # ---- enums
     InstrumentClass:
@@ -1103,9 +1164,15 @@ components:
       type: object
       description: Projection row for one portfolio + instrument pair. For the dedicated cash instrument, currentQuantity represents cash balance.
       properties:
-        holdingID: { type: string, format: uuid }
-        portfolioID: { type: string, format: uuid }
-        instrumentID: { type: string, format: uuid }
+        holdingID:
+          type: string
+          format: uuid
+        portfolioID:
+          type: string
+          format: uuid
+        instrumentID:
+          type: string
+          format: uuid
         currentQuantity:
           type: number
           format: double
@@ -1123,10 +1190,18 @@ components:
       type: object
       description: One FIFO BUY lot attached to a holding.
       properties:
-        positionLotID: { type: string, format: uuid }
-        holdingID: { type: string, format: uuid }
-        sourceBuyLogOrderID: { type: string, format: uuid }
-        openedAt: { type: string, format: date-time }
+        positionLotID:
+          type: string
+          format: uuid
+        holdingID:
+          type: string
+          format: uuid
+        sourceBuyLogOrderID:
+          type: string
+          format: uuid
+        openedAt:
+          type: string
+          format: date-time
         originalQuantity:
           type: number
           description: Original BUY quantity for this lot.
@@ -1141,10 +1216,18 @@ components:
       type: object
       description: One FIFO SELL-to-BUY match slice for a holding.
       properties:
-        lotMatchID: { type: string, format: uuid }
-        sellLogOrderID: { type: string, format: uuid }
-        positionLotID: { type: string, format: uuid }
-        holdingID: { type: string, format: uuid }
+        lotMatchID:
+          type: string
+          format: uuid
+        sellLogOrderID:
+          type: string
+          format: uuid
+        positionLotID:
+          type: string
+          format: uuid
+        holdingID:
+          type: string
+          format: uuid
         matchedQuantity:
           type: number
           description: Quantity consumed from the matched BUY lot.
@@ -1154,16 +1237,24 @@ components:
         realizedPnlAmount:
           type: number
           description: Realized PnL for this match slice.
-        matchedAt: { type: string, format: date-time }
+        matchedAt:
+          type: string
+          format: date-time
 
     PortfolioReconciliationResponse:
       type: object
       properties:
-        portfolioId: { type: string, format: uuid }
-        executedLogCount: { type: integer }
-        holdingCount: { type: integer }
-        mismatchCount: { type: integer }
-        hasMismatches: { type: boolean }
+        portfolioId:
+          type: string
+          format: uuid
+        executedLogCount:
+          type: integer
+        holdingCount:
+          type: integer
+        mismatchCount:
+          type: integer
+        hasMismatches:
+          type: boolean
         mismatches:
           type: array
           items:
@@ -1172,80 +1263,147 @@ components:
     ReconciliationMismatchResponse:
       type: object
       properties:
-        instrumentId: { type: string, format: uuid, nullable: true }
-        expectedQuantity: { type: number, format: double, nullable: true }
-        actualQuantity: { type: number, format: double, nullable: true }
-        expectedCumulativeRealizedPnl: { type: number, format: double, nullable: true }
-        actualCumulativeRealizedPnl: { type: number, format: double, nullable: true }
-        reason: { type: string }
+        instrumentId:
+          type: [string, "null"]
+          format: uuid
+        expectedQuantity:
+          type: [number, "null"]
+          format: double
+        actualQuantity:
+          type: [number, "null"]
+          format: double
+        expectedCumulativeRealizedPnl:
+          type: [number, "null"]
+          format: double
+        actualCumulativeRealizedPnl:
+          type: [number, "null"]
+          format: double
+        reason:
+          type: string
 
     # ---- instruments
     CreateInstrumentRequest:
       type: object
       required: [ticker, market, name, instrumentClass]
       properties:
-        ticker: { type: string, minLength: 1, maxLength: 20 }
-        market: { type: string, minLength: 1, maxLength: 50 }
-        name: { type: string, minLength: 1, maxLength: 255 }
-        instrumentClass: { $ref: "#/components/schemas/InstrumentClass" }
-        logoUrl: { type: [string, "null"], maxLength: 1000 }
-        description: { type: [string, "null"], maxLength: 4000 }
+        ticker:
+          type: string
+          minLength: 1
+          maxLength: 20
+        market:
+          type: string
+          minLength: 1
+          maxLength: 50
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        instrumentClass:
+          $ref: "#/components/schemas/InstrumentClass"
+        logoUrl:
+          type: [string, "null"]
+          maxLength: 1000
+        description:
+          type: [string, "null"]
+          maxLength: 4000
     UpdateInstrumentRequest:
       type: object
       properties:
-        name: { type: [string, "null"], minLength: 1, maxLength: 255 }
-        logoUrl: { type: [string, "null"], maxLength: 1000 }
-        description: { type: [string, "null"], maxLength: 4000 }
+        name:
+          type: [string, "null"]
+          minLength: 1
+          maxLength: 255
+        logoUrl:
+          type: [string, "null"]
+          maxLength: 1000
+        description:
+          type: [string, "null"]
+          maxLength: 4000
     InstrumentResponse:
       type: object
       properties:
-        instrumentId: { type: string, format: uuid }
-        ticker: { type: string }
-        market: { type: string }
-        name: { type: string }
-        instrumentClass: { $ref: "#/components/schemas/InstrumentClass" }
-        logoUrl: { type: [string, "null"] }
-        description: { type: [string, "null"] }
+        instrumentId:
+          type: string
+          format: uuid
+        ticker:
+          type: string
+        market:
+          type: string
+        name:
+          type: string
+        instrumentClass:
+          $ref: "#/components/schemas/InstrumentClass"
+        logoUrl:
+          type: [string, "null"]
+        description:
+          type: [string, "null"]
     InstrumentPriceResponse:
       type: object
       properties:
-        instrumentId: { type: string, format: uuid }
-        ticker: { type: string }
-        name: { type: string }
-        price: { type: number, format: double }
-        quotedAt: { type: string, format: date-time }
+        instrumentId:
+          type: string
+          format: uuid
+        ticker:
+          type: string
+        name:
+          type: string
+        price:
+          type: number
+          format: double
+        quotedAt:
+          type: string
+          format: date-time
 
     # ---- portfolios
     CreatePortfolioRequest:
       type: object
       required: [portfolioName]
       properties:
-        portfolioName: { type: string, minLength: 1, maxLength: 100 }
+        portfolioName:
+          type: string
+          minLength: 1
+          maxLength: 100
     UpdatePortfolioRequest:
       type: object
       required: [portfolioName]
       properties:
-        portfolioName: { type: string, minLength: 1, maxLength: 100 }
+        portfolioName:
+          type: string
+          minLength: 1
+          maxLength: 100
     PortfolioResponse:
       type: object
       properties:
-        portfolioId: { type: string, format: uuid }
-        portfolioName: { type: string }
+        portfolioId:
+          type: string
+          format: uuid
+        portfolioName:
+          type: string
 
     # ---- orders (planned)
     OrderRequest:
       type: object
       required: [instrumentId, side, quantity]
       properties:
-        instrumentId: { type: string, format: uuid }
-        side: { type: string, enum: [BUY, SELL] }
-        quantity: { type: number, format: double, exclusiveMinimum: 0 }
+        instrumentId:
+          type: string
+          format: uuid
+        side:
+          type: string
+          enum: [BUY, SELL]
+        quantity:
+          type: number
+          format: double
+          exclusiveMinimum: 0
     OrderResponse:
       type: object
       required: [orderId, status]
       properties:
-        orderId: { type: string, format: uuid }
-        status: { $ref: "#/components/schemas/OrderStatus" }
+        orderId:
+          type: string
+          format: uuid
+        status:
+          $ref: "#/components/schemas/OrderStatus"
         executionPrice:
           type: [number, "null"]
           format: double
@@ -1263,71 +1421,177 @@ components:
           type: string
           format: uuid
           description: Shared by every log entry of the same order
-        portfolioId: { type: string, format: uuid }
-        instrumentId: { type: string, format: uuid }
-        side: { $ref: "#/components/schemas/OrderSide" }
-        quantity: { type: number, format: double, minimum: 0.000001 }
-        metadata: { type: [string, "null"], maxLength: 4000 }
-        executionPrice: { type: [number, "null"], format: double }
+        portfolioId:
+          type: string
+          format: uuid
+        instrumentId:
+          type: string
+          format: uuid
+        side:
+          $ref: "#/components/schemas/OrderSide"
+        quantity:
+          type: number
+          format: double
+          minimum: 0.000001
+        metadata:
+          type: [string, "null"]
+          maxLength: 4000
+        executionPrice:
+          type: [number, "null"]
+          format: double
     OrderLogResponse:
       type: object
       properties:
-        logOrderId: { type: string, format: uuid }
-        orderId: { type: string, format: uuid }
-        portfolioId: { type: string, format: uuid }
-        instrumentId: { type: string, format: uuid }
-        side: { $ref: "#/components/schemas/OrderSide" }
-        quantity: { type: number, format: double }
-        timestamp: { type: string, format: date-time }
-        metadata: { type: [string, "null"] }
-        status: { $ref: "#/components/schemas/OrderStatus" }
-        executionPrice: { type: number, format: double }
+        logOrderId:
+          type: string
+          format: uuid
+        orderId:
+          type: string
+          format: uuid
+        portfolioId:
+          type: string
+          format: uuid
+        instrumentId:
+          type: string
+          format: uuid
+        side:
+          $ref: "#/components/schemas/OrderSide"
+        quantity:
+          type: number
+          format: double
+        timestamp:
+          type: string
+          format: date-time
+        metadata:
+          type: [string, "null"]
+        status:
+          $ref: "#/components/schemas/OrderStatus"
+        executionPrice:
+          type: number
+          format: double
 
     # ---- watchlists
     CreateWatchlistItemRequest:
       type: object
       required: [portfolioId, instrumentId]
       properties:
-        portfolioId: { type: string, format: uuid }
-        instrumentId: { type: string, format: uuid }
-        name: { type: [string, "null"], maxLength: 255 }
+        portfolioId:
+          type: string
+          format: uuid
+        instrumentId:
+          type: string
+          format: uuid
+        name:
+          type: [string, "null"]
+          maxLength: 255
     UpdateWatchlistItemRequest:
       type: object
       properties:
-        name: { type: [string, "null"], maxLength: 255 }
+        name:
+          type: [string, "null"]
+          maxLength: 255
     WatchlistItemResponse:
       type: object
       properties:
-        listItemId: { type: string, format: uuid }
-        portfolioId: { type: string, format: uuid }
-        instrumentId: { type: string, format: uuid }
-        name: { type: [string, "null"] }
+        listItemId:
+          type: string
+          format: uuid
+        portfolioId:
+          type: string
+          format: uuid
+        instrumentId:
+          type: string
+          format: uuid
+        name:
+          type: [string, "null"]
 
     # ---- profile
+    CreateProfileRequest:
+      type: object
+      required: [firstName, lastName]
+      properties:
+        firstName:
+          type: string
+          minLength: 1
+          maxLength: 100
+        lastName:
+          type: string
+          minLength: 1
+          maxLength: 100
+        dob:
+          type: [string, "null"]
+          format: date
+        city:
+          type: [string, "null"]
+          maxLength: 100
+        state:
+          type: [string, "null"]
+          maxLength: 100
+        country:
+          type: [string, "null"]
+          maxLength: 100
+        zipCode:
+          type: [string, "null"]
+          maxLength: 10
     UpdateProfileRequest:
       type: object
       properties:
-        firstName: { type: [string, "null"], minLength: 1, maxLength: 100 }
-        lastName: { type: [string, "null"], minLength: 1, maxLength: 100 }
-        username: { type: [string, "null"], maxLength: 50 }
-        city: { type: [string, "null"], maxLength: 100 }
-        state: { type: [string, "null"], maxLength: 2 }
-        country: { type: [string, "null"], maxLength: 100 }
-        zipCode: { type: [string, "null"], maxLength: 10 }
-        dob: { type: [string, "null"], format: date }
-        avatar: { type: [string, "null"], maxLength: 255 }
+        firstName:
+          type: [string, "null"]
+          minLength: 1
+          maxLength: 100
+        lastName:
+          type: [string, "null"]
+          minLength: 1
+          maxLength: 100
+        username:
+          type: [string, "null"]
+          maxLength: 50
+        city:
+          type: [string, "null"]
+          maxLength: 100
+        state:
+          type: [string, "null"]
+          maxLength: 100
+        country:
+          type: [string, "null"]
+          maxLength: 100
+        zipCode:
+          type: [string, "null"]
+          maxLength: 10
+        dob:
+          type: [string, "null"]
+          format: date
+        avatar:
+          type: [string, "null"]
+          maxLength: 255
     ProfileResponse:
       type: object
       properties:
-        userId: { type: string, format: uuid }
-        email: { type: string, format: email }
-        userType: { type: number }
-        firstName: { type: [string, "null"] }
-        lastName: { type: [string, "null"] }
-        username: { type: [string, "null"] }
-        city: { type: [string, "null"] }
-        state: { type: [string, "null"] }
-        country: { type: [string, "null"] }
-        zipCode: { type: [string, "null"] }
-        dob: { type: [string, "null"], format: date }
-        avatar: { type: [string, "null"] }
+        userId:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        userType:
+          type: number
+        firstName:
+          type: [string, "null"]
+        lastName:
+          type: [string, "null"]
+        username:
+          type: [string, "null"]
+        city:
+          type: [string, "null"]
+        state:
+          type: [string, "null"]
+        country:
+          type: [string, "null"]
+        zipCode:
+          type: [string, "null"]
+        dob:
+          type: [string, "null"]
+          format: date
+        avatar:
+          type: [string, "null"]

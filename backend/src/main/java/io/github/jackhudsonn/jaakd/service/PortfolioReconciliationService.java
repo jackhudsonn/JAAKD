@@ -149,10 +149,10 @@ public class PortfolioReconciliationService {
 
                 mismatches.add(new ReconciliationMismatchResponse(
                     instrumentId,
-                    expectedQuantity.doubleValue(),
-                    actualQuantity.doubleValue(),
-                    expectedRealized.doubleValue(),
-                    actualRealized.doubleValue(),
+                    expectedQuantity,
+                    actualQuantity,
+                    expectedRealized,
+                    actualRealized,
                     reason
                 ));
             }

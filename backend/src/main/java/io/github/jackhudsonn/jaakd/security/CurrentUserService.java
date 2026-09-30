@@ -6,12 +6,20 @@ import org.springframework.stereotype.Service;
 
 import java.util.UUID;
 
-// Resolves the authenticated Supabase user from the validated JWT (its `sub` claim = auth.users.id).
+// Resolves the authenticated user from the validated JWT (its `sub` claim = profile owner UUID).
 @Service
 public class CurrentUserService {
+    public static final String EMAIL_CLAIM = "email";
 
     public UUID getUserId() {
-        Jwt jwt = (Jwt) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        return UUID.fromString(jwt.getSubject());
+        return UUID.fromString(currentJwt().getSubject());
+    }
+
+    public String getEmail() {
+        return currentJwt().getClaimAsString(EMAIL_CLAIM);
+    }
+
+    private Jwt currentJwt() {
+        return (Jwt) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
     }
 }

@@ -2,11 +2,10 @@ package io.github.jackhudsonn.jaakd.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.CascadeType;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
 import java.math.BigDecimal;
@@ -14,15 +13,14 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
-// Maps to public.profiles — merged app-user + profile data. Linked to auth.users via Supabase trigger:
-// when auth.users row is created, trigger creates profiles row with userID = auth.users.id.
-// JWT's 'sub' claim (= auth.users.id) resolves directly to profiles.userID for ownership-scoped queries.
+// Maps to public.profiles for application profile data.
+// JWT's 'sub' claim (issued by auth-service and validated by backend via HS256 JWT_SECRET)
+// resolves directly to profiles.userID for ownership-scoped queries.
 @Entity
 @Table(name = "profiles")
 public class Profile {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "`userID`")
     private UUID userId;
 
@@ -68,6 +66,19 @@ public class Profile {
     public Profile(String email, BigDecimal userType) {
         this.email = email;
         this.userType = userType;
+    }
+
+    public Profile(UUID userId, String email, BigDecimal userType) {
+        this.userId = userId;
+        this.email = email;
+        this.userType = userType;
+    }
+
+    @PrePersist
+    void prePersist() {
+        if (userId == null) {
+            userId = UUID.randomUUID();
+        }
     }
 
     public UUID getUserId() {

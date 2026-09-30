@@ -1,8 +1,11 @@
 import { Component, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Router, RouterLink } from '@angular/router';
-import { SupabaseService } from '@core/services/supabase.service';
+import { AuthService } from '@core/services/auth.service';
 import { LocationDataService, CountryOption } from '@core/services/location-data.service';
+import { ProfileService } from '@core/services/profile.service';
+import { ErrorResponse, toUserFacingErrorMessage } from '@core/models/profile.model';
 
 import {
   getLatestEligibleDob,
@@ -41,7 +44,8 @@ export class RegisterComponent {
   message = signal('');
 
   constructor(
-    private supabaseService: SupabaseService,
+    private authService: AuthService,
+    private profileService: ProfileService,
     private router: Router,
     private locationDataService: LocationDataService,
   ) {
@@ -92,8 +96,8 @@ export class RegisterComponent {
       return;
     }
 
-    if (this.password.length < 6) {
-      this.message.set('Password must be at least 6 characters.');
+    if (this.password.length < 8) {
+      this.message.set('Password must be at least 8 characters.');
       return;
     }
 
@@ -111,25 +115,72 @@ export class RegisterComponent {
       return;
     }
 
-    const { data, error } = await this.supabaseService.signUp(this.email, this.password, {
-      firstName: this.firstName,
-      lastName: this.lastName,
-      dob: this.dob,
-      city: this.city,
-      state: this.state,
-      country: this.country,
-      zipCode: this.zipCode,
-    });
+    let registered = false;
 
-    if (error) {
-      this.message.set(error.message);
+    try {
+      await this.authService.register(this.email, this.password);
+      registered = true;
+    } catch (error) {
+      if (!(error instanceof HttpErrorResponse) || error.status !== 409) {
+        this.message.set(this.mapErrorToMessage(error));
+        return;
+      }
+    }
+
+    try {
+      await this.authService.login(this.email, this.password);
+    } catch (error) {
+      this.message.set(registered ? this.mapErrorToMessage(error) : 'An account with this email already exists. Please sign in with your existing password.');
       return;
     }
 
-    if (data.session) {
+    try {
+      await this.profileService.getCurrentProfile();
+      this.message.set('');
       await this.router.navigate(['/dashboard']);
-    } else {
-      this.message.set('Account created. Check your email to confirm your account.');
+      return;
+    } catch (error) {
+      if (error instanceof HttpErrorResponse && error.status === 404) {
+        if (registered) {
+          try {
+            await this.profileService.createCurrentProfile({
+              firstName: this.firstName,
+              lastName: this.lastName,
+              dob: this.dob,
+              city: this.city,
+              state: this.state,
+              country: this.country,
+              zipCode: this.zipCode,
+            });
+
+            this.message.set('');
+            await this.router.navigate(['/dashboard']);
+          } catch (createError) {
+            this.message.set(this.mapErrorToMessage(createError));
+          }
+          return;
+        }
+
+        this.message.set('Please complete your profile to continue.');
+        await this.router.navigate(['/profile']);
+        return;
+      }
+
+      this.message.set(this.mapErrorToMessage(error));
     }
+  }
+
+  private mapErrorToMessage(error: unknown): string {
+    if (!(error instanceof HttpErrorResponse)) {
+      return 'Unable to create your account right now. Please try again.';
+    }
+
+    const response = error.error as Partial<ErrorResponse> | undefined;
+    const detailedMessage = toUserFacingErrorMessage(response);
+    if (detailedMessage) {
+      return detailedMessage;
+    }
+
+    return 'Unable to create your account right now. Please try again.';
   }
 }

@@ -264,6 +264,16 @@ WHERE "listItemID" = :listItemId
 
 ## Profile
 
+**createCurrentProfile** (`POST /api/profile`): creates the signed-in user's profile if it does not already exist. Email is sourced from JWT claim.
+```sql
+INSERT INTO profiles (
+  "userID", email, "userType", "firstName", "lastName", dob, city, state, country, "zipCode"
+)
+VALUES (
+  :userId, :email, 0, :firstName, :lastName, :dob, :city, :state, :country, :zipCode
+);
+```
+
 **getCurrentProfile** (`GET /api/profile`): the user's profile.
 ```sql
 SELECT * FROM profiles WHERE "userID" = :userId;

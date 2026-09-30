@@ -113,8 +113,8 @@ class PortfolioReconciliationServiceTest {
         assertTrue(response.hasMismatches());
         assertEquals(1, response.mismatchCount());
         assertEquals(cashId, response.mismatches().get(0).instrumentId());
-        assertEquals(800.0, response.mismatches().get(0).expectedQuantity());
-        assertEquals(700.0, response.mismatches().get(0).actualQuantity());
+        assertEquals(new BigDecimal("800.0"), response.mismatches().get(0).expectedQuantity());
+        assertEquals(new BigDecimal("700.0"), response.mismatches().get(0).actualQuantity());
     }
 
     @Test

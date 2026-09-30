@@ -1,33 +1,28 @@
 # Backend Requirements
 
-Tooling and access needed to build and run the `backend/` module locally.
+Tooling and access needed to build and run `backend/` locally.
 
 ## Tooling
 
 | Tool | Version verified | Used for |
 |---|---|---|
-| JDK | 21+ (tested on 25.0.3) | Building/running the backend — `pom.xml` targets `java.version=21` |
-| Maven | via included `./mvnw` wrapper — no separate install needed | Building the backend |
-| `psql` (PostgreSQL client) | 18.x | Inspecting the live Supabase schema directly; optional but useful for debugging |
+| JDK | 21+ (tested on 25.0.3) | Build and run backend |
+| Maven | via `./mvnw` | Build/test lifecycle |
+| Docker + docker-compose | current | Full local stack (Postgres + auth-service + backend) |
 
-## Required access
+## Required environment variables
 
-- **Supabase project** (existing JAAKD project) — you need:
-  - The project URL (`https://<project-ref>.supabase.co`)
-  - A **privileged Postgres role** (session-pooler connection string, port 5432) — get this from Supabase dashboard → Project Settings → Database → Connect → **ORM** tab, or generate a dedicated non-superuser role. Never use the anon/publishable key for this backend's DB connection.
-  - The database password — Project Settings → Database → **Reset database password** if you don't have it (note: your Supabase account login, e.g. GitHub OAuth, is separate from the DB password).
+For containerized local runs, copy root `.env.example` to `.env` and set:
 
-## Environment variables (`.env`, copy from `.env.example`, git-ignored)
+- `POSTGRES_PASSWORD`
+- `JAAKD_APP_DB_PASSWORD`
+- `JAAKD_AUTH_DB_PASSWORD`
+- `JWT_SECRET`
 
-| Variable | Example | Notes |
-|---|---|---|
-| `SUPABASE_DB_URL` | `jdbc:postgresql://aws-0-<region>.pooler.supabase.com:5432/postgres` | Must start with `jdbc:`; use the **session pooler** (port 5432), not the transaction pooler (6543) — Hibernate needs persistent connections |
-| `SUPABASE_DB_USER` | `postgres.<project-ref>` | The privileged role, not the anon key |
-| `SUPABASE_DB_PASSWORD` | — | The database password (see above) |
-| `SUPABASE_URL` | `https://<project-ref>.supabase.co` | Used to fetch the JWKS for validating client-supplied JWTs |
+For running backend directly (without Docker), use `backend/.env.example` as template.
 
 ## Known gotchas
 
-- `me.paulschwarz:spring-dotenv` does **not** work with this project's Spring Boot version (4.1.1) — do not re-add it. `.env` loading is handled natively via `spring.config.import: optional:file:.env[.properties]` in `application.yaml`.
-- `.env` is git-ignored via the root `.gitignore` (`.env`, `.env.*`, with `!.env.example` explicitly un-ignored) — never put real secrets in `.env.example`.
-- OpenAPI client generation uses a committed local spec at `backend/openapi/scrumtuous-api.json` during `generate-sources`, so routine builds do not require network access to `scrumtuous.com`. Refreshes of the pinned spec are manual and should be reviewed together with regenerated client output.
+- `spring-dotenv` is not used; env loading is configured via Spring `spring.config.import`.
+- Never commit real secrets into `.env` files.
+- OpenAPI client generation uses the pinned local spec at `backend/openapi/scrumtuous-api.json`.

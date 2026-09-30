@@ -2,6 +2,7 @@ package io.github.jackhudsonn.jaakd.controller;
 
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -9,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import io.github.jackhudsonn.jaakd.dto.CreateProfileRequest;
 import io.github.jackhudsonn.jaakd.dto.ProfileResponse;
 import io.github.jackhudsonn.jaakd.dto.UpdateProfileRequest;
 import io.github.jackhudsonn.jaakd.model.Profile;
@@ -22,6 +24,13 @@ public class ProfileController {
 
     public ProfileController(ProfileService profileService) {
         this.profileService = profileService;
+    }
+
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public ProfileResponse createProfile(@Valid @RequestBody CreateProfileRequest request) {
+        Profile createdProfile = profileService.createCurrentUserProfile(request);
+        return mapProfileToResponse(createdProfile);
     }
 
     // GET /api/profile

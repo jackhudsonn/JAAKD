@@ -2,7 +2,7 @@ package io.github.jackhudsonn.jaakd.model;
 
 import java.math.BigDecimal;
 
-// Enum-shaped values for public.users.userType, which is a numeric column in the live Supabase schema.
+// Enum-shaped values for profiles.userType, which is a numeric column in the current schema.
 // Only one case exists today; add more constants + codes here as new user types are introduced.
 public enum UserType {
 

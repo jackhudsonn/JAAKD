@@ -130,9 +130,9 @@ pipeline {
             when { expression { params.DEPLOY_ENV == 'dev' } }
             steps {
                 withCredentials ([
-                    string(credentialsId: 'supabase-db-url', variable: 'SUPABASE_DB_URL'),
-                    string(credentialsId: 'supabase-db-user', variable: 'SUPABASE_DB_USER'),
-                    string(credentialsId: 'supabase-db-password', variable: 'SUPABASE_DB_PASSWORD'),
+                    string(credentialsId: 'supabase-db-url', variable: 'SPRING_DATASOURCE_URL'),
+                    string(credentialsId: 'supabase-db-user', variable: 'SPRING_DATASOURCE_USERNAME'),
+                    string(credentialsId: 'supabase-db-password', variable: 'SPRING_DATASOURCE_PASSWORD'),
                     string(credentialsId: 'supabase-url', variable: 'SUPABASE_URL')
                 ]) {
                 sh """
@@ -144,9 +144,9 @@ pipeline {
                         --network jaakd-dev-net \
                         --restart unless-stopped \
                         -p 8081:8081 \
-                        -e SUPABASE_DB_URL=${SUPABASE_DB_URL} \
-                        -e SUPABASE_DB_USER=${SUPABASE_DB_USER} \
-                        -e SUPABASE_DB_PASSWORD=${SUPABASE_DB_PASSWORD} \
+                        -e SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL} \
+                        -e SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME} \
+                        -e SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD} \
                         -e SUPABASE_URL=${SUPABASE_URL} \
                         -e SPRING_PROFILES_ACTIVE=dev \
                         ${BACKEND_IMAGE}:${IMAGE_TAG}

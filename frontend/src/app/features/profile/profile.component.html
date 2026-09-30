@@ -9,16 +9,20 @@
 
   <section class="account-summary card">
     <div class="account-summary-avatar">
-      {{ (displayName() || user()?.email || 'U').charAt(0).toUpperCase() }}
+      {{
+        (displayName() || profile()?.email || authService.userEmail() || 'U')
+          .charAt(0)
+          .toUpperCase()
+      }}
     </div>
 
     <div class="account-summary-info">
       <h2>
-        {{ displayName() || user()?.email || '—' }}
+        {{ displayName() || profile()?.email || authService.userEmail() || '—' }}
       </h2>
 
       <p>
-        {{ user()?.email || '—' }}
+        {{ profile()?.email || authService.userEmail() || '—' }}
       </p>
     </div>
   </section>
@@ -27,49 +31,55 @@
     <div class="account-section-heading profile-section-heading">
       <div>
         <h2>Personal Information</h2>
-        <p>Information associated with your JAAKD account.</p>
+        <p>
+          {{
+            isProfileMissing()
+              ? 'Complete your profile to continue using JAAKD.'
+              : 'Information associated with your JAAKD account.'
+          }}
+        </p>
       </div>
 
-      @if (!editing()) {
+      @if (!editing() && !isProfileMissing()) {
         <button type="button" class="btn btn-secondary" (click)="startEditing()">Edit</button>
       }
     </div>
 
-    @if (!editing()) {
+    @if (!editing() && !isProfileMissing()) {
       <div class="account-details-grid">
         <div class="account-detail">
           <span>First Name</span>
-          <strong>{{ metadata['first_name'] || '—' }}</strong>
+          <strong>{{ profile()?.firstName || '—' }}</strong>
         </div>
 
         <div class="account-detail">
           <span>Last Name</span>
-          <strong>{{ metadata['last_name'] || '—' }}</strong>
+          <strong>{{ profile()?.lastName || '—' }}</strong>
         </div>
 
         <div class="account-detail">
           <span>Date of Birth</span>
-          <strong>{{ metadata['dob'] || '—' }}</strong>
+          <strong>{{ profile()?.dob || '—' }}</strong>
         </div>
 
         <div class="account-detail">
           <span>City</span>
-          <strong>{{ metadata['city'] || '—' }}</strong>
+          <strong>{{ profile()?.city || '—' }}</strong>
         </div>
 
         <div class="account-detail">
           <span>State</span>
-          <strong>{{ metadata['state'] || '—' }}</strong>
+          <strong>{{ profile()?.state || '—' }}</strong>
         </div>
 
         <div class="account-detail">
           <span>Country</span>
-          <strong>{{ metadata['country'] || '—' }}</strong>
+          <strong>{{ profile()?.country || '—' }}</strong>
         </div>
 
         <div class="account-detail">
           <span>ZIP / Postal Code</span>
-          <strong>{{ metadata['zip_code'] || '—' }}</strong>
+          <strong>{{ profile()?.zipCode || '—' }}</strong>
         </div>
       </div>
     } @else {
@@ -87,7 +97,7 @@
         <div class="form-field">
           <label for="profileDob">Date of Birth *</label>
 
-          <input id="profileDob" type="date" [(ngModel)]="dob" [max]="maxDob" />
+          <input id="profileDob" type="date" [(ngModel)]="dob" [max]="maxDob" min="1900-01-01"/>
 
           <small>Account holders must be 18 or older.</small>
         </div>
@@ -147,9 +157,13 @@
       </div>
 
       <div class="profile-edit-actions">
-        <button type="button" class="btn btn-primary" (click)="saveProfile()">Save Changes</button>
+        <button type="button" class="btn btn-primary" (click)="saveProfile()">
+          {{ isProfileMissing() ? 'Create Profile' : 'Save Changes' }}
+        </button>
 
-        <button type="button" class="btn btn-secondary" (click)="cancelEditing()">Cancel</button>
+        @if (!isProfileMissing()) {
+          <button type="button" class="btn btn-secondary" (click)="cancelEditing()">Cancel</button>
+        }
       </div>
     }
     @if (profileMessage()) {
@@ -168,33 +182,19 @@
 
     <div class="account-detail">
       <span>Email</span>
-      <strong>{{ user()?.email || '—' }}</strong>
+      <strong>{{ profile()?.email || authService.userEmail() || '—' }}</strong>
     </div>
 
     <div class="security-password">
       <div class="security-password-copy">
         <strong>Password</strong>
 
-        <p>
-          Your password is securely managed through Supabase Auth. For security, JAAKD does not
-          display or store your password.
-        </p>
+        <p>For security, JAAKD does not display or store your password.</p>
       </div>
 
-      <button
-        type="button"
-        class="btn btn-secondary reset-password-button"
-        (click)="resetPassword()"
-        [disabled]="resetLoading()"
-      >
-        {{ resetLoading() ? 'Sending...' : 'Send Password Reset Email' }}
-      </button>
-
-      @if (resetMessage()) {
-        <div class="status-message password-reset-message">
-          {{ resetMessage() }}
-        </div>
-      }
+      <a routerLink="/auth/update-password" class="btn btn-secondary reset-password-button">
+        Update Password
+      </a>
     </div>
   </section>
 </main>
