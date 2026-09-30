@@ -42,8 +42,8 @@ export class UpdatePasswordComponent {
       return;
     }
 
-    if (this.password.length < 6) {
-      this.message.set('Password must be at least 6 characters.');
+    if (this.password.length < 8) {
+      this.message.set('Password must be at least 8 characters.');
       return;
     }
 

@@ -97,7 +97,7 @@
         <div class="form-field">
           <label for="profileDob">Date of Birth *</label>
 
-          <input id="profileDob" type="date" [(ngModel)]="dob" [max]="maxDob" />
+          <input id="profileDob" type="date" [(ngModel)]="dob" [max]="maxDob" min="1900-01-01"/>
 
           <small>Account holders must be 18 or older.</small>
         </div>

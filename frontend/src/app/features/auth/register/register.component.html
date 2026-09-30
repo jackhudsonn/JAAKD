@@ -82,7 +82,7 @@
         <div class="form-field">
           <label for="dob">Date of Birth *</label>
 
-          <input id="dob" type="date" [(ngModel)]="dob" [max]="maxDob" required />
+          <input id="dob" type="date" [(ngModel)]="dob" [max]="maxDob" min="1900-01-01" required />
 
           <small>You must be 18 or older to create an account.</small>
         </div>
