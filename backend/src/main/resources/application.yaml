@@ -34,6 +34,10 @@ spring:
       include-exception: false
 jwt:
   shared-secret: ${JWT_SECRET}
+springdoc:
+  swagger-ui:
+    url: /openapi.yaml
+    path: /swagger-ui.html
 server:
     port: 8081
 
