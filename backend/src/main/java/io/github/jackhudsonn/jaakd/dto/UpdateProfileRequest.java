@@ -1,5 +1,6 @@
 package io.github.jackhudsonn.jaakd.dto;
 
+import io.github.jackhudsonn.jaakd.validation.ValidBirthDate;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 
@@ -29,6 +30,7 @@ public record UpdateProfileRequest(
     @Size(max = 10, message = "Zip code must not exceed 10 characters")
     String zipCode,
     
+    @ValidBirthDate
     LocalDate dob,
     
     @Size(max = 255, message = "Avatar URL must not exceed 255 characters")

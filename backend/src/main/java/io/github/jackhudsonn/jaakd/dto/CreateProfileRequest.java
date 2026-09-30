@@ -1,5 +1,6 @@
 package io.github.jackhudsonn.jaakd.dto;
 
+import io.github.jackhudsonn.jaakd.validation.ValidBirthDate;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
@@ -10,9 +11,10 @@ public record CreateProfileRequest(
     String firstName,
 
     @NotBlank(message = "Last name is required")
-    @Size(max = 100, message = "Last name must not exceeds 100 characters")
+    @Size(max = 100, message = "Last name must not exceed 100 characters")
     String lastName,
 
+    @ValidBirthDate
     LocalDate dob,
 
     @Size(max = 100, message = "City must not exceed 100 characters")

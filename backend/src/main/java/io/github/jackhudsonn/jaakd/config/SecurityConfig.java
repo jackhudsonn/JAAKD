@@ -10,13 +10,20 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtClaimNames;
+import org.springframework.security.oauth2.jwt.JwtClaimValidator;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import io.github.jackhudsonn.jaakd.security.CurrentUserService;
 
 // Stateless resource server: every request must carry a valid HS256 JWT signed with the shared secret.
 @Configuration
@@ -38,7 +45,6 @@ public class SecurityConfig {
     }
 
     // Verifies access tokens issued by auth-service.
-    //
     // Known trade-off: HS256 is symmetric, so this service holds the same
     // JWT_SECRET that
     // auth-service signs with. Anyone who obtains it (from either service) can mint
@@ -53,9 +59,24 @@ public class SecurityConfig {
     @Bean
     public JwtDecoder jwtDecoder(@Value("${jwt.shared-secret}") String sharedSecret) {
         SecretKeySpec key = new SecretKeySpec(sharedSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
-        return NimbusJwtDecoder.withSecretKey(key)
+        NimbusJwtDecoder decoder = NimbusJwtDecoder.withSecretKey(key)
                 .macAlgorithm(MacAlgorithm.HS256)
                 .build();
+        decoder.setJwtValidator(accessTokenValidator());
+        return decoder;
+    }
+
+    // Expiry plus the claims the backend relies on. A token without a
+    // subject or email is rejected here with 401.
+    static OAuth2TokenValidator<Jwt> accessTokenValidator() {
+        return new DelegatingOAuth2TokenValidator<>(
+                JwtValidators.createDefault(),
+                new JwtClaimValidator<String>(JwtClaimNames.SUB, SecurityConfig::hasText),
+                new JwtClaimValidator<String>(CurrentUserService.EMAIL_CLAIM, SecurityConfig::hasText));
+    }
+
+    private static boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 
     // Allows the Angular dev server (and other configured origins) to call this API

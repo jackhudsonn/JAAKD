@@ -6,7 +6,6 @@ import org.springframework.transaction.annotation.Transactional;
 import io.github.jackhudsonn.jaakd.dto.CreateProfileRequest;
 import io.github.jackhudsonn.jaakd.dto.UpdateProfileRequest;
 import io.github.jackhudsonn.jaakd.exception.ConflictException;
-import io.github.jackhudsonn.jaakd.exception.ValidationException;
 import io.github.jackhudsonn.jaakd.exception.ProfileNotFoundException;
 import io.github.jackhudsonn.jaakd.model.Profile;
 import io.github.jackhudsonn.jaakd.model.UserType;
@@ -35,9 +34,6 @@ public class ProfileService {
         }
 
         String email = currentUserService.getEmail();
-        if (email == null || email.isBlank()) {
-            throw new ValidationException("Authenticated token is missing email claim");
-        }
 
         Profile profile = new Profile(userId, email, UserType.RETAIL_CLIENT.getCode());
         profile.setFirstName(request.firstName());
