@@ -1,7 +1,5 @@
 # JAAKD
 
-# JAAKD
-
 Direct-to-consumer trading platform workspace.
 
 ## Members
