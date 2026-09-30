@@ -111,3 +111,19 @@ After pulling this change, create a new account. Older Supabase-based accounts d
 - `docker-compose down` stops everything and keeps your data.
 - `docker-compose down -v` also deletes the local database. Needed after changing `backend/db/init/` or the DB passwords in `.env`, then run `docker-compose up -d --build` again.
 - An old `backend/.env` with `SUPABASE_*` values is no longer used and can be deleted.
+
+- ### Browse the database (pgAdmin)
+
+Postgres only listens on the Docker host's `127.0.0.1:5433`. If Docker runs on another host, add the database port to the tunnel:
+
+```bash
+ssh -N -L 3000:localhost:3000 -L 8081:localhost:8081 -L 5433:localhost:5433 <user>@<host>
+```
+s
+In pgAdmin: **Register > Server**, then on the Connection tab:
+
+- Host `localhost`, port `5433`, database `jaakd`
+- Username `jaakd_app` (trading tables) or `jaakd_auth` (`users` table only)
+- Password: the matching value from your `.env` (`JAAKD_APP_DB_PASSWORD` or `JAAKD_AUTH_DB_PASSWORD`). Don't save it in pgAdmin or share it.
+
+Each role only sees its own tables, so `jaakd_app` gets "permission denied" on `users`. That is intended. Use pgAdmin to look, not to edit; change data through the app.
