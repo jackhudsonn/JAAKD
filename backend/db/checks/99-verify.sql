@@ -19,14 +19,36 @@ WHERE schemaname = 'public'
   AND tablename IN ('portfolios', 'holdings', 'orderLogs', 'position_lots', 'lot_matches', 'watchlist_items')
 ORDER BY tablename, indexname;
 
+-- 2a) Ensure the profiles-to-users foreign key exists
+SELECT
+  conname,
+  conrelid::regclass AS source_table,
+  confrelid::regclass AS target_table,
+  pg_get_constraintdef(oid) AS definition
+FROM pg_constraint
+WHERE conname = 'fk_profiles_users';
+
 -- 2b) Role privilege checks
 SELECT has_table_privilege('jaakd_app', 'public.users', 'SELECT') AS jaakd_app_can_select_users;
 SELECT has_table_privilege('jaakd_auth', 'public.users', 'SELECT') AS jaakd_auth_can_select_users;
 SELECT has_table_privilege('jaakd_auth', 'public.profiles', 'SELECT') AS jaakd_auth_can_select_profiles;
 
--- 3) Deliberate bad insert to prove unique("portfolioID","instrumentID") is enforced
+-- 3) Deliberate bad insert to prove profiles must reference users
+-- Expected: this block fails on the profiles insert.
+BEGIN;
+
+INSERT INTO profiles ("userID", email, "userType")
+VALUES (gen_random_uuid(), 'orphan-profile@example.com', 0);
+
+ROLLBACK;
+
+-- 4) Deliberate bad insert to prove unique("portfolioID","instrumentID") is enforced
 -- Expected: this script fails on the second holdings insert.
 BEGIN;
+
+INSERT INTO users ("userID", email, "passwordHash")
+VALUES ('00000000-0000-0000-0000-000000000001', 'verify@example.com', 'not-a-real-hash')
+ON CONFLICT ("userID") DO NOTHING;
 
 INSERT INTO profiles ("userID", email, "userType")
 VALUES ('00000000-0000-0000-0000-000000000001', 'verify@example.com', 0)
