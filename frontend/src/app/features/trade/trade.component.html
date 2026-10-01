@@ -3,13 +3,6 @@
 
   <p class="page-description">Perform trades and view your orders.</p>
 
-  @if (loadError()) {
-    <div class="error-banner">
-      <span>{{ loadError() }}</span>
-      <button type="button" class="btn btn-secondary" (click)="dismissError()">Dismiss</button>
-    </div>
-  }
-
   <section class="trade-grid">
     <app-trade-card (selectSymbol)="openAsset($event, false)" />
 

@@ -40,10 +40,11 @@
                   [attr.title]="isOptionDisabled(watchlist) ? watchlist.disabledReason : null"
                 >
                   <input
+                    #watchlistToggle
                     type="checkbox"
                     [checked]="watchlist.containsSymbol"
                     [disabled]="isOptionDisabled(watchlist)"
-                    (change)="onWatchlistOptionChange(watchlist, $event)"
+                    (change)="onWatchlistOptionChange(watchlist, watchlistToggle.checked)"
                   />
                   <span class="watchlist-selector-name">{{ watchlist.name }}</span>
                   <span class="watchlist-selector-count"

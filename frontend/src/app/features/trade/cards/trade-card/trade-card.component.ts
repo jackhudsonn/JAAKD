@@ -1,14 +1,17 @@
-import { Component, OnDestroy, OnInit, computed, output, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, inject, output, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
 import { ScrollableListComponent } from '@shared/components/scrollable-list/scrollable-list.component';
 import { startCycleTimer } from '@shared/utils/cycle-timer';
 import { InstrumentType } from '@core/models';
-import { MOCK_ASSETS, MockAsset, getMockPrice } from '@core/mocks/mock-data';
+import {
+  TRADE_MARKET_DATA_PORT,
+  TradeMarketAsset,
+} from '@features/trade/services/trade-market-data.port';
 
 interface TickerRow {
-  asset: MockAsset;
+  asset: TradeMarketAsset;
   price: number;
   changePct: number;
 }
@@ -30,6 +33,8 @@ const INSTRUMENT_OPTIONS: { id: InstrumentFilter; label: string }[] = [
   styleUrl: './trade-card.component.css',
 })
 export class TradeCardComponent implements OnInit, OnDestroy {
+  private readonly marketData = inject(TRADE_MARKET_DATA_PORT);
+
   selectSymbol = output<string>();
 
   instrumentOptions = INSTRUMENT_OPTIONS;
@@ -43,9 +48,11 @@ export class TradeCardComponent implements OnInit, OnDestroy {
     this.priceTick();
     const query = this.search().trim().toLowerCase();
 
-    return MOCK_ASSETS.filter(
-      (asset) => this.instrument() === 'all' || asset.instrumentType === this.instrument(),
-    )
+    return this.marketData
+      .listAssets()
+      .filter(
+        (asset) => this.instrument() === 'all' || asset.instrumentType === this.instrument(),
+      )
       .filter(
         (asset) =>
           !query ||
@@ -53,7 +60,7 @@ export class TradeCardComponent implements OnInit, OnDestroy {
           asset.name.toLowerCase().includes(query),
       )
       .map((asset) => {
-        const price = getMockPrice(asset.symbol);
+        const price = this.marketData.getPrice(asset.symbol);
         return { asset, price, changePct: ((price - asset.basePrice) / asset.basePrice) * 100 };
       });
   });

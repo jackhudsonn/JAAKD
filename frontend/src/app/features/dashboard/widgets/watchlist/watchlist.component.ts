@@ -1,9 +1,10 @@
-import { Component, OnDestroy, OnInit, computed, output, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, inject, output, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
 import { ScrollableListComponent } from '@shared/components/scrollable-list/scrollable-list.component';
 import { startCycleTimer } from '@shared/utils/cycle-timer';
-import { MOCK_STATE, WATCHLIST_CONSTRAINTS, getAsset, getMockPrice } from '@core/mocks/mock-data';
+import { DASHBOARD_MARKET_DATA_PORT } from '@features/dashboard/services/dashboard-market-data.port';
+import { DASHBOARD_STATE_PORT } from '@features/dashboard/services/dashboard-state.port';
 
 interface WatchlistRow {
   symbol: string;
@@ -20,15 +21,18 @@ interface WatchlistRow {
   styleUrl: './watchlist.component.css',
 })
 export class WatchlistWidgetComponent implements OnInit, OnDestroy {
-  watchlists = MOCK_STATE.watchlists;
-  activeWatchlistId = MOCK_STATE.activeWatchlistId;
+  private readonly marketData = inject(DASHBOARD_MARKET_DATA_PORT);
+  private readonly state = inject(DASHBOARD_STATE_PORT);
+
+  watchlists = this.state.watchlists;
+  activeWatchlistId = this.state.activeWatchlistId;
 
   createWatchlistRequested = output<void>();
   editWatchlistRequested = output<void>();
   assetSelected = output<string>();
   addAssetRequested = output<void>();
 
-  readonly maxWatchlistHoldings = WATCHLIST_CONSTRAINTS.maxHoldingsPerWatchlist;
+  readonly maxWatchlistHoldings = this.state.watchlistConstraints.maxHoldingsPerWatchlist;
 
   private priceTick = signal(0);
   private stopTicking?: () => void;
@@ -54,12 +58,12 @@ export class WatchlistWidgetComponent implements OnInit, OnDestroy {
     const symbols = active?.symbols ?? [];
 
     return symbols.flatMap((symbol) => {
-      const asset = getAsset(symbol);
+      const asset = this.marketData.getAsset(symbol);
       if (!asset) {
         return [];
       }
 
-      const price = getMockPrice(symbol);
+      const price = this.marketData.getPrice(symbol);
       return [
         {
           symbol,

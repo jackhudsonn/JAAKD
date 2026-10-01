@@ -1,11 +1,11 @@
-import { Component, OnDestroy, OnInit, computed, input, output, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, inject, input, output, signal } from '@angular/core';
 import { DatePipe, TitleCasePipe } from '@angular/common';
 import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
 import { ScrollableListComponent } from '@shared/components/scrollable-list/scrollable-list.component';
 import { StatusBadgeComponent } from '@shared/components/status-badge/status-badge.component';
 import { startCycleTimer } from '@shared/utils/cycle-timer';
 import { Order } from '@core/models';
-import { MARKET_ORDER_PENDING_MS } from '@core/mocks/mock-data';
+import { TRADE_MARKET_DATA_PORT } from '@features/trade/services/trade-market-data.port';
 
 type SortKey = 'createdAt' | 'symbol' | 'status';
 type SortDirection = 'asc' | 'desc';
@@ -30,6 +30,8 @@ type SortDirection = 'asc' | 'desc';
   styleUrl: './orders-card.component.css',
 })
 export class OrdersCardComponent implements OnInit, OnDestroy {
+  private readonly marketData = inject(TRADE_MARKET_DATA_PORT);
+
   openOrders = input.required<readonly Order[]>();
   historyOrders = input.required<readonly Order[]>();
 
@@ -65,7 +67,9 @@ export class OrdersCardComponent implements OnInit, OnDestroy {
           ? Math.max(
               0,
               Math.ceil(
-                (MARKET_ORDER_PENDING_MS - (now - new Date(order.createdAt).getTime())) / 1000,
+                (this.marketData.marketOrderPendingMs -
+                  (now - new Date(order.createdAt).getTime())) /
+                  1000,
               ),
             )
           : null,

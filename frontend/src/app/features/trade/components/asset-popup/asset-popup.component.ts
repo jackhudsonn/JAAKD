@@ -13,18 +13,15 @@ import {
 } from '@angular/core';
 import { DecimalPipe, TitleCasePipe } from '@angular/common';
 import { ModalComponent } from '@shared/components/modal/modal.component';
-import { LineChartComponent } from '@shared/components/line-chart/line-chart.component';
+import { LineChartComponent, LineChartPoint } from '@shared/components/line-chart/line-chart.component';
 import {
   OrderFormComponent,
   OrderFormSubmit,
 } from '@features/trade/components/order-form/order-form.component';
 import {
-  ASSET_PERFORMANCE_INTERVALS,
-  AssetPerformanceInterval,
-  getAsset,
-  getMockAssetPerformanceSeries,
-  getMockPrice,
-} from '@core/mocks/mock-data';
+  TRADE_MARKET_DATA_PORT,
+  TradeAssetPerformanceInterval,
+} from '@features/trade/services/trade-market-data.port';
 import { startCycleTimer } from '@shared/utils/cycle-timer';
 
 export type AssetOrderPlaced = OrderFormSubmit & { symbol: string };
@@ -64,6 +61,7 @@ export interface AssetSetWatchlistMembershipRequest {
 })
 export class AssetPopupComponent implements OnInit, OnDestroy {
   private readonly elementRef = inject(ElementRef<HTMLElement>);
+  private readonly marketData = inject(TRADE_MARKET_DATA_PORT);
 
   symbol = input.required<string>();
   showChart = input(false);
@@ -79,21 +77,21 @@ export class AssetPopupComponent implements OnInit, OnDestroy {
   confirmation = signal<AssetOrderPlaced | null>(null);
   watchlistDropdownOpen = signal(false);
   activeView = signal<'analysis' | 'trade'>('analysis');
-  intervals = ASSET_PERFORMANCE_INTERVALS;
-  selectedInterval = signal<AssetPerformanceInterval>('1D');
+  intervals = this.marketData.performanceIntervals;
+  selectedInterval = signal<TradeAssetPerformanceInterval>('1D');
 
   private priceTick = signal(0);
   private stopTicking?: () => void;
 
-  asset = computed(() => getAsset(this.symbol()));
+  asset = computed(() => this.marketData.getAsset(this.symbol()));
   currentPrice = computed(() => {
     this.priceTick();
-    return getMockPrice(this.symbol());
+    return this.marketData.getPrice(this.symbol());
   });
-  // TODO: replace getMockAssetPerformanceSeries with an API-backed call like
+  // TODO: replace market data adapter with an API-backed call like
   // GET /assets/{symbol}/performance?interval={interval}.
-  performanceSeries = computed(() =>
-    getMockAssetPerformanceSeries(this.symbol(), this.selectedInterval()),
+  performanceSeries = computed<LineChartPoint[]>(() =>
+    [...this.marketData.getPerformanceSeries(this.symbol(), this.selectedInterval())],
   );
   watchlistMembershipCount = computed(
     () => this.watchlists().filter((watchlist) => watchlist.containsSymbol).length,
@@ -127,9 +125,14 @@ export class AssetPopupComponent implements OnInit, OnDestroy {
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent) {
+    const target = event.target;
+    if (!(target instanceof Node)) {
+      return;
+    }
+
     if (
       this.watchlistDropdownOpen() &&
-      !this.elementRef.nativeElement.contains(event.target as Node)
+      !this.elementRef.nativeElement.contains(target)
     ) {
       this.watchlistDropdownOpen.set(false);
     }
@@ -159,7 +162,7 @@ export class AssetPopupComponent implements OnInit, OnDestroy {
     this.activeView.set('analysis');
   }
 
-  selectInterval(interval: AssetPerformanceInterval) {
+  selectInterval(interval: TradeAssetPerformanceInterval) {
     this.selectedInterval.set(interval);
   }
 
@@ -171,10 +174,7 @@ export class AssetPopupComponent implements OnInit, OnDestroy {
     return !option.containsSymbol && !option.canAdd;
   }
 
-  onWatchlistOptionChange(option: AssetPopupWatchlistOption, event: Event) {
-    const target = event.target as HTMLInputElement;
-    const includeInWatchlist = target.checked;
-
+  onWatchlistOptionChange(option: AssetPopupWatchlistOption, includeInWatchlist: boolean) {
     if (includeInWatchlist && !option.canAdd) {
       return;
     }

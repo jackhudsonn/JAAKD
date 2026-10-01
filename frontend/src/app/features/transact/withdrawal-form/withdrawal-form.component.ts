@@ -24,7 +24,7 @@ export class WithdrawalFormComponent {
     }
 
     this.error.set('');
-    // TODO: call TransactionService.withdraw(...) instead of just emitting locally.
+    // Submission handling lives in the feature-level transact facade.
     this.submitted.emit({ amount: this.amount, method: this.method });
     this.amount = null;
   }
