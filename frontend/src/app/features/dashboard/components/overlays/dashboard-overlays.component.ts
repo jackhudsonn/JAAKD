@@ -1,10 +1,10 @@
 import { Component, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { AllocationAssetSelection } from '@features/dashboard/widgets/allocation-by-asset/allocation-by-asset.component';
-import { AllocationAssetOverlayComponent } from './allocation-asset-overlay.component';
-import { DashboardWatchlistOverlayFacade } from './dashboard-watchlist-overlay.facade';
-import { WatchlistDialogOverlaysComponent } from './watchlist-dialog-overlays.component';
-import { WatchlistSearchOverlayComponent } from './watchlist-search-overlay.component';
+import { AllocationAssetOverlayComponent } from './allocation-by-asset/allocation-asset-overlay.component';
+import { DashboardWatchlistOverlayFacade } from './watchlist/dashboard-watchlist-overlay.facade';
+import { WatchlistDialogOverlaysComponent } from './watchlist/watchlist-dialog-overlays.component';
+import { WatchlistSearchOverlayComponent } from './watchlist/watchlist-search-overlay.component';
 
 @Component({
   selector: 'app-dashboard-overlays',
@@ -15,7 +15,6 @@ import { WatchlistSearchOverlayComponent } from './watchlist-search-overlay.comp
     AllocationAssetOverlayComponent,
   ],
   templateUrl: './dashboard-overlays.component.html',
-  styleUrl: './dashboard-overlays.component.css',
 })
 export class DashboardOverlaysComponent {
   protected readonly watchlistFacade = inject(DashboardWatchlistOverlayFacade);
