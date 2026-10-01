@@ -1,8 +1,9 @@
-import { Component, OnDestroy, OnInit, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
-import { MOCK_RETURNS, MOCK_STATE, getMockPrice } from '@core/mocks/mock-data';
 import { startCycleTimer } from '@shared/utils/cycle-timer';
+import { DASHBOARD_MARKET_DATA_PORT } from '@features/dashboard/services/dashboard-market-data.port';
+import { DASHBOARD_STATE_PORT } from '@features/dashboard/services/dashboard-state.port';
 
 type ValueMode = 'cash' | 'assets' | 'total';
 type ReturnsMode = 'allTime' | 'daily';
@@ -26,12 +27,15 @@ const RETURNS_MODES: { mode: ReturnsMode; label: string }[] = [
   styleUrl: './portfolio-value.component.css',
 })
 export class PortfolioValueWidgetComponent implements OnInit, OnDestroy {
+  private readonly marketData = inject(DASHBOARD_MARKET_DATA_PORT);
+  private readonly state = inject(DASHBOARD_STATE_PORT);
+
   private stopValueCycle?: () => void;
   private stopReturnsCycle?: () => void;
   private stopPriceCycle?: () => void;
 
   // TODO: replace with a live performance/analytics endpoint (all-time + daily P&L).
-  private readonly returns = MOCK_RETURNS;
+  private readonly returns = this.state.returns;
 
   valueIndex = signal(0);
   valueFading = signal(false);
@@ -47,10 +51,10 @@ export class PortfolioValueWidgetComponent implements OnInit, OnDestroy {
 
   get activeValueAmount() {
     const mode = VALUE_MODES[this.valueIndex()].mode;
-    const cash = MOCK_STATE.accountCash();
+    const cash = this.state.accountCash();
     this.priceTick();
-    const assets = MOCK_STATE.holdings().reduce(
-      (total, holding) => total + holding.quantity * getMockPrice(holding.symbol),
+    const assets = this.state.holdings().reduce(
+      (total, holding) => total + holding.quantity * this.marketData.getPrice(holding.symbol),
       0,
     );
 

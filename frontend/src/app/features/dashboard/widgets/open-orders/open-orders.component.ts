@@ -1,8 +1,8 @@
-import { Component, computed } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
 import { ScrollableListComponent } from '@shared/components/scrollable-list/scrollable-list.component';
-import { MOCK_STATE } from '@core/mocks/mock-data';
+import { DASHBOARD_STATE_PORT } from '@features/dashboard/services/dashboard-state.port';
 
 type OpenItem =
   | {
@@ -30,9 +30,11 @@ type OpenItem =
   styleUrl: './open-orders.component.css',
 })
 export class OpenOrdersWidgetComponent {
+  private readonly state = inject(DASHBOARD_STATE_PORT);
+
   // TODO: replace with TransactionsService.getPending() + OrdersService.getOpenOrders().
-  private transactions = MOCK_STATE.transactions;
-  private orders = MOCK_STATE.orders;
+  private readonly transactions = this.state.transactions;
+  private readonly orders = this.state.orders;
 
   items = computed<OpenItem[]>(() => {
     const transactionItems: OpenItem[] = this.transactions()

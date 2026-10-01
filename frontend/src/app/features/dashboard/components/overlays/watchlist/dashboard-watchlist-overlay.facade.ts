@@ -1,13 +1,10 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import { InstrumentType } from '@core/models';
 import {
-  MOCK_ASSETS,
-  MOCK_STATE,
-  MockAsset,
-  WATCHLIST_CONSTRAINTS,
-  getAsset,
-  getMockPrice,
-} from '@core/mocks/mock-data';
+  DASHBOARD_MARKET_DATA_PORT,
+  DashboardMarketAsset,
+} from '@features/dashboard/services/dashboard-market-data.port';
+import { DASHBOARD_STATE_PORT } from '@features/dashboard/services/dashboard-state.port';
 
 export interface DashboardWatchlistAssetSummary {
   symbol: string;
@@ -17,7 +14,7 @@ export interface DashboardWatchlistAssetSummary {
 }
 
 export interface DashboardWatchlistSearchRow {
-  asset: MockAsset;
+  asset: DashboardMarketAsset;
   price: number;
   changePct: number;
 }
@@ -40,8 +37,11 @@ const INSTRUMENT_OPTIONS: DashboardInstrumentOption[] = [
   providedIn: 'root',
 })
 export class DashboardWatchlistOverlayFacade {
-  private readonly watchlists = MOCK_STATE.watchlists;
-  private readonly activeWatchlistId = MOCK_STATE.activeWatchlistId;
+  private readonly marketData = inject(DASHBOARD_MARKET_DATA_PORT);
+  private readonly state = inject(DASHBOARD_STATE_PORT);
+
+  private readonly watchlists = this.state.watchlists;
+  private readonly activeWatchlistId = this.state.activeWatchlistId;
 
   readonly watchlistDialogMode = signal<'create' | 'edit' | null>(null);
   readonly watchlistNameDraft = signal('');
@@ -53,11 +53,11 @@ export class DashboardWatchlistOverlayFacade {
   readonly selectedWatchlistSymbol = signal<string | null>(null);
 
   readonly instrumentOptions = INSTRUMENT_OPTIONS;
-  readonly maxWatchlists = WATCHLIST_CONSTRAINTS.maxWatchlists;
-  readonly maxHoldingsPerWatchlist = WATCHLIST_CONSTRAINTS.maxHoldingsPerWatchlist;
+  readonly maxWatchlists = this.state.watchlistConstraints.maxWatchlists;
+  readonly maxHoldingsPerWatchlist = this.state.watchlistConstraints.maxHoldingsPerWatchlist;
 
   readonly canDeleteActive = computed(
-    () => this.watchlists().length > WATCHLIST_CONSTRAINTS.minWatchlists,
+    () => this.watchlists().length > this.state.watchlistConstraints.minWatchlists,
   );
   readonly canCreateWatchlist = computed(() => this.watchlists().length < this.maxWatchlists);
 
@@ -81,9 +81,11 @@ export class DashboardWatchlistOverlayFacade {
     const query = this.watchlistSearch().trim().toLowerCase();
     const activeSymbols = new Set(active.symbols);
 
-    return MOCK_ASSETS.filter(
-      (asset) => selectedInstrument === 'all' || asset.instrumentType === selectedInstrument,
-    )
+    return this.marketData
+      .listAssets()
+      .filter(
+        (asset) => selectedInstrument === 'all' || asset.instrumentType === selectedInstrument,
+      )
       .filter((asset) => !activeSymbols.has(asset.symbol))
       .filter(
         (asset) =>
@@ -92,7 +94,7 @@ export class DashboardWatchlistOverlayFacade {
           asset.name.toLowerCase().includes(query),
       )
       .map((asset) => {
-        const price = getMockPrice(asset.symbol);
+        const price = this.marketData.getPrice(asset.symbol);
         return {
           asset,
           price,
@@ -119,12 +121,12 @@ export class DashboardWatchlistOverlayFacade {
       return null;
     }
 
-    const asset = getAsset(symbol);
+    const asset = this.marketData.getAsset(symbol);
     if (!asset) {
       return null;
     }
 
-    const price = getMockPrice(symbol);
+    const price = this.marketData.getPrice(symbol);
     return {
       symbol,
       name: asset.name,
@@ -242,7 +244,7 @@ export class DashboardWatchlistOverlayFacade {
 
   confirmDeleteWatchlist() {
     const currentWatchlists = this.watchlists();
-    if (currentWatchlists.length <= WATCHLIST_CONSTRAINTS.minWatchlists) {
+    if (currentWatchlists.length <= this.state.watchlistConstraints.minWatchlists) {
       return;
     }
 
