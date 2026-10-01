@@ -20,35 +20,66 @@ import java.util.UUID;
 @Service
 public class FifoAccountingService {
 
+    public record ExecutionOutcome(boolean succeeded, String failureReason, Double executionPriceUsed) {
+        public static ExecutionOutcome success(Double executionPriceUsed) {
+            return new ExecutionOutcome(true, null, executionPriceUsed);
+        }
+
+        public static ExecutionOutcome failed(String failureReason) {
+            return new ExecutionOutcome(false, failureReason, null);
+        }
+    }
+
     private final HoldingRepository holdingRepository;
     private final PositionLotRepository positionLotRepository;
     private final LotMatchRepository lotMatchRepository;
+    private final QuoteService quoteService;
 
     public FifoAccountingService(
         HoldingRepository holdingRepository,
         PositionLotRepository positionLotRepository,
-        LotMatchRepository lotMatchRepository
+        LotMatchRepository lotMatchRepository,
+        QuoteService quoteService
     ) {
         this.holdingRepository = holdingRepository;
         this.positionLotRepository = positionLotRepository;
         this.lotMatchRepository = lotMatchRepository;
+        this.quoteService = quoteService;
     }
 
-    public void applyExecution(OrderLog orderLog) {
-        if (orderLog.getStatus() != OrderStatus.EXECUTED) {
-            return;
+    // Execution pricing is resolved internally via QuoteService for BUY/SELL.
+    public ExecutionOutcome applyExecution(OrderLog orderLog) {
+        if (orderLog.getStatus() != OrderStatus.ACCEPTED) {
+            return ExecutionOutcome.failed("Order must be ACCEPTED before execution accounting");
         }
 
-        switch (orderLog.getSide()) {
-            case BUY -> applyBuy(orderLog);
-            case SELL -> applySell(orderLog);
-            case DEPOSIT -> applyDeposit(orderLog);
-            case WITHDRAW -> applyWithdraw(orderLog);
-            default -> throw new InvalidTradeException("Unsupported FIFO side: " + orderLog.getSide());
+        Double effectiveExecutionPrice = null;
+        if (orderLog.getSide() == OrderSide.BUY || orderLog.getSide() == OrderSide.SELL) {
+            effectiveExecutionPrice = quoteService.getExecutionPrice(orderLog.getInstrument().getInstrumentId());
+        }
+
+        if ((orderLog.getSide() == OrderSide.BUY || orderLog.getSide() == OrderSide.SELL)
+            && effectiveExecutionPrice == null) {
+            return ExecutionOutcome.failed("Execution price is required for BUY/SELL execution");
+        }
+
+        try {
+            switch (orderLog.getSide()) {
+                case BUY -> applyBuy(orderLog, effectiveExecutionPrice);
+                case SELL -> applySell(orderLog, effectiveExecutionPrice);
+                case DEPOSIT -> applyDeposit(orderLog);
+                case WITHDRAW -> applyWithdraw(orderLog);
+                default -> throw new InvalidTradeException("Unsupported FIFO side: " + orderLog.getSide());
+            }
+            return ExecutionOutcome.success(effectiveExecutionPrice);
+        } catch (InvalidTradeException ex) {
+            return ExecutionOutcome.failed(ex.getMessage());
+        } catch (RuntimeException ex) {
+            return ExecutionOutcome.failed("Execution pricing unavailable: " + ex.getMessage());
         }
     }
 
-    private void applyBuy(OrderLog orderLog) {
+    private void applyBuy(OrderLog orderLog, Double executionPrice) {
         UUID buyLogId = orderLog.getLogOrderID();
         if (positionLotRepository.existsBySourceBuyLogOrderID(buyLogId)) {
             return;
@@ -57,7 +88,7 @@ public class FifoAccountingService {
         Holding holding = resolveOrCreateHolding(orderLog);
 
         BigDecimal quantity = BigDecimal.valueOf(orderLog.getQuantity());
-        BigDecimal unitCost = BigDecimal.valueOf(orderLog.getExecutionPrice());
+        BigDecimal unitCost = BigDecimal.valueOf(executionPrice);
 
         PositionLot lot = new PositionLot(
             holding.getHoldingID(),
@@ -75,7 +106,7 @@ public class FifoAccountingService {
         holdingRepository.save(holding);
     }
 
-    private void applySell(OrderLog orderLog) {
+    private void applySell(OrderLog orderLog, Double executionPrice) {
         UUID sellLogId = orderLog.getLogOrderID();
         if (lotMatchRepository.existsBySellLogOrderID(sellLogId)) {
             return;
@@ -84,7 +115,7 @@ public class FifoAccountingService {
         Holding holding = resolveExistingHolding(orderLog);
 
         BigDecimal sellQuantity = BigDecimal.valueOf(orderLog.getQuantity());
-        BigDecimal sellUnitPrice = BigDecimal.valueOf(orderLog.getExecutionPrice());
+        BigDecimal sellUnitPrice = BigDecimal.valueOf(executionPrice);
 
         BigDecimal currentQuantity = safe(holding.getCurrentQuantity());
         if (currentQuantity.compareTo(sellQuantity) < 0) {

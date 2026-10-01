@@ -71,14 +71,17 @@ This starts:
 - `jaakd-postgres` on `127.0.0.1:5433`
 - `jaakd-auth` on `:3000`
 - `jaakd-backend` on `:8081`
+- `jaakd-kafka` on `:9092` (for backend event processing inside Docker)
 
-### 3) Run integration checks
+### 3) Run integration checks (optional)
 
 ```bash
 bash scripts/integration-test.sh
 ```
 
 The script verifies auth + backend endpoints and confirms user/profile rows in Postgres.
+
+If you are validating Kafka manually from the lifecycle testing page in the frontend, you can skip this step.
 
 ### 4) Start frontend
 
@@ -102,6 +105,12 @@ ssh -N -L 3000:localhost:3000 -L 8081:localhost:8081 <user>@<host>
 
 Run this in its own terminal on the frontend machine before step 4 and leave it open. It asks for the host password, then shows nothing.
 
+Notes for Linux VM + Windows frontend setup:
+
+- No Kafka tunnel is required for normal app usage or lifecycle-page Kafka validation.
+- Backend reaches Kafka through Docker networking (`jaakd-kafka:9092`) inside the VM.
+- Add `-L 9092:localhost:9092` only if you want host-side Kafka diagnostics tools from Windows.
+
 ### Important migration note
 
 After pulling this change, create a new account. Older Supabase-based accounts do not carry over to this local stack.
@@ -112,14 +121,14 @@ After pulling this change, create a new account. Older Supabase-based accounts d
 - `docker-compose down -v` also deletes the local database. Needed after changing `backend/db/init/` or the DB passwords in `.env`, then run `docker-compose up -d --build` again.
 - An old `backend/.env` with `SUPABASE_*` values is no longer used and can be deleted.
 
-- ### Browse the database (pgAdmin)
+### Browse the database (pgAdmin)
 
 Postgres only listens on the Docker host's `127.0.0.1:5433`. If Docker runs on another host, add the database port to the tunnel:
 
 ```bash
 ssh -N -L 3000:localhost:3000 -L 8081:localhost:8081 -L 5433:localhost:5433 <user>@<host>
 ```
-s
+
 In pgAdmin: **Register > Server**, then on the Connection tab:
 
 - Host `localhost`, port `5433`, database `jaakd`

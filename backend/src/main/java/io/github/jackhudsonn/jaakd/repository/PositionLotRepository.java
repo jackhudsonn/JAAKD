@@ -29,6 +29,14 @@ public interface PositionLotRepository extends JpaRepository<PositionLot, UUID> 
     );
 
     @Query("""
+      SELECT COALESCE(SUM(pl.remainingQuantity), 0)
+      FROM PositionLot pl
+      WHERE pl.holdingID = :holdingID
+        AND pl.remainingQuantity > 0
+      """)
+    BigDecimal sumOpenRemainingQuantityByHoldingID(@Param("holdingID") UUID holdingID);
+
+    @Query("""
         SELECT pl
         FROM PositionLot pl
         WHERE pl.holdingID = :holdingId

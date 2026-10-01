@@ -17,6 +17,10 @@
 
       <a routerLink="/trade" routerLinkActive="active" (click)="closeMenus()"> Trade </a>
 
+      <a routerLink="/testing/order-lifecycle" routerLinkActive="active" (click)="closeMenus()">
+        Lifecycle Lab
+      </a>
+
       <div class="menu-wrapper">
         <button
           type="button"
@@ -52,6 +56,15 @@
 
             <a routerLink="/trade" routerLinkActive="active" role="menuitem" (click)="closeMenu()">
               Trade
+            </a>
+
+            <a
+              routerLink="/testing/order-lifecycle"
+              routerLinkActive="active"
+              role="menuitem"
+              (click)="closeMenu()"
+            >
+              Lifecycle Lab
             </a>
           </div>
         }
@@ -133,6 +146,15 @@
 
         <a routerLink="/trade" routerLinkActive="active" role="menuitem" (click)="closeMenus()">
           Trade
+        </a>
+
+        <a
+          routerLink="/testing/order-lifecycle"
+          routerLinkActive="active"
+          role="menuitem"
+          (click)="closeMenus()"
+        >
+          Lifecycle Lab
         </a>
       </div>
     }

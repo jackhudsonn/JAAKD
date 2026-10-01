@@ -54,6 +54,13 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/profile/profile.component').then((m) => m.ProfileComponent),
       },
+      {
+        path: 'testing/order-lifecycle',
+        loadComponent: () =>
+          import('./features/testing/order-lifecycle-lab/order-lifecycle-lab.component').then(
+            (m) => m.OrderLifecycleLabComponent,
+          ),
+      },
     ],
   },
   { path: '**', redirectTo: '' },

@@ -737,41 +737,6 @@ paths:
         "500":
           $ref: "#/components/responses/ServerError"
 
-  /api/order-logs/{logOrderId}/execute:
-    post:
-      tags: [OrderLogs]
-      summary: Mark an order log as EXECUTED and apply accounting projections
-      description: |
-        Applies side-effects transactionally and idempotently for the order log:
-        - BUY: creates one FIFO lot and increments holding currentQuantity.
-        - SELL: consumes FIFO lots, writes lot matches, decrements holding currentQuantity, and updates cumulativeRealizedPnl.
-        - DEPOSIT: increments cash holding currentQuantity.
-        - WITHDRAW: decrements cash holding currentQuantity and rejects if insufficient cash.
-
-        Repeating execution for an already EXECUTED log does not re-apply accounting side effects.
-      operationId: markOrderLogExecuted
-      parameters:
-        - $ref: "#/components/parameters/LogOrderId"
-        - name: executionPrice
-          in: query
-          required: false
-          schema:
-            type: number
-            format: double
-      responses:
-        "200":
-          description: Order log updated to EXECUTED
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/OrderLogResponse"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/ServerError"
-
   /api/order-logs/{orderId}/cancel:
     post:
       tags: [OrderLogs]
