@@ -1,6 +1,7 @@
 import { ConflictException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-import { createHash, randomBytes } from 'crypto';
+import { createHash, createPublicKey, randomBytes } from 'crypto';
+import { readFileSync } from 'fs';
 import * as jwt from 'jsonwebtoken';
 
 import { AuthRepository } from './auth.repository';
@@ -18,20 +19,77 @@ import { RegisterResponseDto } from './dto/register-response.dto';
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
-  private readonly jwtSecret: string;
+  private readonly jwtPrivateKey: string;
+  private readonly jwtPublicKey: string;
+  private readonly jwtIssuer: string;
+  private readonly jwtKeyId: string;
+  private readonly jwks: {
+    keys: Array<{
+      kty: 'RSA';
+      use: 'sig';
+      alg: 'RS256';
+      kid: string;
+      n: string;
+      e: string;
+    }>;
+  };
 
   constructor(private readonly authRepository: AuthRepository) {
-    const jwtSecret = process.env.JWT_SECRET;
+    const jwtIssuer = process.env.JWT_ISSUER?.trim();
+    const jwtKeyId = process.env.JWT_KEY_ID?.trim() || 'key-1';
+    const jwtPrivateKeyPath = process.env.JWT_PRIVATE_KEY_PATH?.trim();
+    let jwtPrivateKey = process.env.JWT_PRIVATE_KEY?.trim();
 
-    if (!jwtSecret) {
-      throw new Error('JWT_SECRET is required');
+    if (!jwtIssuer) {
+      throw new Error('JWT_ISSUER is required');
     }
 
-    if (jwtSecret.length < 32) {
-      throw new Error('JWT_SECRET must be at least 32 characters');
+    if (!jwtPrivateKey && !jwtPrivateKeyPath) {
+      throw new Error('JWT_PRIVATE_KEY_PATH or JWT_PRIVATE_KEY is required');
     }
 
-    this.jwtSecret = jwtSecret;
+    if (!jwtPrivateKey && jwtPrivateKeyPath) {
+      jwtPrivateKey = readFileSync(jwtPrivateKeyPath, 'utf8').trim();
+    }
+
+    if (!jwtPrivateKey) {
+      throw new Error('JWT private key is empty');
+    }
+
+    if (jwtPrivateKey.includes('\\n')) {
+      jwtPrivateKey = jwtPrivateKey.replace(/\\n/g, '\n');
+    }
+
+    let publicJwk: JsonWebKey;
+    let jwtPublicKey: string;
+    try {
+      const publicKey = createPublicKey(jwtPrivateKey);
+      publicJwk = publicKey.export({ format: 'jwk' }) as JsonWebKey;
+      jwtPublicKey = publicKey.export({ format: 'pem', type: 'spki' }).toString();
+    } catch {
+      throw new Error('Failed to load RSA private key');
+    }
+
+    if (publicJwk.kty !== 'RSA' || !publicJwk.n || !publicJwk.e) {
+      throw new Error('JWT private key must be RSA');
+    }
+
+    this.jwtPrivateKey = jwtPrivateKey;
+    this.jwtPublicKey = jwtPublicKey;
+    this.jwtIssuer = jwtIssuer;
+    this.jwtKeyId = jwtKeyId;
+    this.jwks = {
+      keys: [
+        {
+          kty: 'RSA',
+          use: 'sig',
+          alg: 'RS256',
+          kid: this.jwtKeyId,
+          n: publicJwk.n,
+          e: publicJwk.e,
+        },
+      ],
+    };
   }
 
   async register(body: RegisterRequestDto): Promise<RegisterResponseDto> {
@@ -140,6 +198,19 @@ export class AuthService {
     };
   }
 
+  getJwks(): {
+    keys: Array<{
+      kty: 'RSA';
+      use: 'sig';
+      alg: 'RS256';
+      kid: string;
+      n: string;
+      e: string;
+    }>;
+  } {
+    return this.jwks;
+  }
+
   private normalizeEmail(email: string): string {
     return email.trim().toLowerCase();
   }
@@ -155,8 +226,13 @@ export class AuthService {
   private generateAccessToken(userId: string, email: string): string {
     return jwt.sign(
       { sub: userId, email, roles: ['CLIENT'] },
-      this.jwtSecret,
-      { algorithm: 'HS256', expiresIn: '15m' },
+      this.jwtPrivateKey,
+      {
+        algorithm: 'RS256',
+        keyid: this.jwtKeyId,
+        issuer: this.jwtIssuer,
+        expiresIn: '15m',
+      },
     );
   }
 
@@ -168,7 +244,10 @@ export class AuthService {
     const token = authorizationHeader.substring('Bearer '.length).trim();
 
     try {
-      const decoded = jwt.verify(token, this.jwtSecret, { algorithms: ['HS256'] }) as jwt.JwtPayload;
+      const decoded = jwt.verify(token, this.jwtPublicKey, {
+        algorithms: ['RS256'],
+        issuer: this.jwtIssuer,
+      }) as jwt.JwtPayload;
       const subject = decoded.sub;
 
       if (!subject || typeof subject !== 'string') {

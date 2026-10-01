@@ -1,8 +1,6 @@
 package io.github.jackhudsonn.jaakd.config;
 
 import java.util.List;
-import java.nio.charset.StandardCharsets;
-import javax.crypto.spec.SecretKeySpec;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -12,7 +10,6 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2TokenValidator;
-import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtClaimNames;
 import org.springframework.security.oauth2.jwt.JwtClaimValidator;
@@ -25,7 +22,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import io.github.jackhudsonn.jaakd.security.CurrentUserService;
 
-// Stateless resource server: every request must carry a valid HS256 JWT signed with the shared secret.
+// Stateless resource server: every request must carry a valid JWT from auth-service.
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
@@ -45,33 +42,21 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // Verifies access tokens issued by auth-service.
-    // Known trade-off: HS256 is symmetric, so this service holds the same
-    // JWT_SECRET that
-    // auth-service signs with. Anyone who obtains it (from either service) can mint
-    // a valid
-    // token for any user. Mitigations today: the secret lives only in env vars /
-    // Jenkins
-    // credentials, the algorithm is pinned to HS256, and tokens expire after 15
-    // minutes.
-    // Planned follow-up: RS256 with a JWKS endpoint on auth-service, so the backend
-    // only holds
-    // public keys (see prototypes/Kyle/docs/04-jwt-signing-key-notes.md).
+    // Verifies access tokens issued by auth-service via its public JWKS endpoint.
     @Bean
-    public JwtDecoder jwtDecoder(@Value("${jwt.shared-secret}") String sharedSecret) {
-        SecretKeySpec key = new SecretKeySpec(sharedSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
-        NimbusJwtDecoder decoder = NimbusJwtDecoder.withSecretKey(key)
-                .macAlgorithm(MacAlgorithm.HS256)
-                .build();
-        decoder.setJwtValidator(accessTokenValidator());
+    public JwtDecoder jwtDecoder(
+            @Value("${jwt.jwk-set-uri}") String jwkSetUri,
+            @Value("${jwt.issuer}") String issuer) {
+        NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build();
+        decoder.setJwtValidator(accessTokenValidator(issuer));
         return decoder;
     }
 
     // Expiry plus the claims the backend relies on. A token without a
     // subject or email is rejected here with 401.
-    static OAuth2TokenValidator<Jwt> accessTokenValidator() {
+    static OAuth2TokenValidator<Jwt> accessTokenValidator(String issuer) {
         return new DelegatingOAuth2TokenValidator<>(
-                JwtValidators.createDefault(),
+                JwtValidators.createDefaultWithIssuer(issuer),
                 new JwtClaimValidator<String>(JwtClaimNames.SUB, SecurityConfig::hasText),
                 new JwtClaimValidator<String>(CurrentUserService.EMAIL_CLAIM, SecurityConfig::hasText));
     }

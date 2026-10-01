@@ -33,7 +33,8 @@ spring:
       include-binding-errors: never
       include-exception: false
 jwt:
-  shared-secret: ${JWT_SECRET}
+  issuer: ${JWT_ISSUER}
+  jwk-set-uri: ${JWT_JWK_SET_URI}
 springdoc:
   swagger-ui:
     url: /openapi.yaml

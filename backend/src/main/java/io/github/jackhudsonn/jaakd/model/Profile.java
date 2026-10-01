@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.UUID;
 
 // Maps to public.profiles for application profile data.
-// JWT's 'sub' claim (issued by auth-service and validated by backend via HS256 JWT_SECRET)
+// JWT's 'sub' claim (issued by auth-service and validated by backend)
 // resolves directly to profiles.userID for ownership-scoped queries.
 @Entity
 @Table(name = "profiles")

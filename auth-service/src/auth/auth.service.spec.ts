@@ -1,17 +1,39 @@
 import * as bcrypt from 'bcrypt';
+import { generateKeyPairSync } from 'crypto';
 import * as jwt from 'jsonwebtoken';
 
 import { AuthRepository, AuthUserRow } from './auth.repository';
 import { AuthService } from './auth.service';
 
 describe('AuthService', () => {
-  const jwtSecret = '12345678901234567890123456789012';
+  const jwtIssuer = 'http://jaakd-auth:3000';
+  const jwtKeyId = 'key-test-1';
 
   let authRepository: jest.Mocked<AuthRepository>;
   let authService: AuthService;
+  let jwtPrivateKey: string;
+  let jwtPublicKey: string;
 
   beforeEach(() => {
-    process.env.JWT_SECRET = jwtSecret;
+    const keyPair = generateKeyPairSync('rsa', {
+      modulusLength: 2048,
+      privateKeyEncoding: {
+        format: 'pem',
+        type: 'pkcs8',
+      },
+      publicKeyEncoding: {
+        format: 'pem',
+        type: 'spki',
+      },
+    });
+
+    jwtPrivateKey = keyPair.privateKey;
+    jwtPublicKey = keyPair.publicKey;
+
+    process.env.JWT_PRIVATE_KEY = jwtPrivateKey;
+    delete process.env.JWT_PRIVATE_KEY_PATH;
+    process.env.JWT_ISSUER = jwtIssuer;
+    process.env.JWT_KEY_ID = jwtKeyId;
 
     authRepository = {
       findUserByEmail: jest.fn(),
@@ -24,6 +46,13 @@ describe('AuthService', () => {
     } as unknown as jest.Mocked<AuthRepository>;
 
     authService = new AuthService(authRepository);
+  });
+
+  afterEach(() => {
+    delete process.env.JWT_PRIVATE_KEY;
+    delete process.env.JWT_PRIVATE_KEY_PATH;
+    delete process.env.JWT_ISSUER;
+    delete process.env.JWT_KEY_ID;
   });
 
   it('login happy path returns JWT and refresh token', async () => {
@@ -44,10 +73,16 @@ describe('AuthService', () => {
       password: 'password123',
     });
 
-    const decoded = jwt.verify(response.accessToken, jwtSecret) as jwt.JwtPayload;
+    const decoded = jwt.verify(response.accessToken, jwtPublicKey, {
+      algorithms: ['RS256'],
+      issuer: jwtIssuer,
+    }) as jwt.JwtPayload;
     expect(decoded.sub).toBe(row.userId);
     expect(decoded.email).toBe(row.email);
     expect(decoded.roles).toEqual(['CLIENT']);
+
+    const decodedComplete = jwt.decode(response.accessToken, { complete: true }) as jwt.Jwt | null;
+    expect(decodedComplete?.header.kid).toBe(jwtKeyId);
 
     expect(response.refreshToken).toMatch(/^[a-f0-9]{64}$/);
     expect(authRepository.updateRefreshTokenByUserId).toHaveBeenCalledTimes(1);
@@ -123,8 +158,8 @@ describe('AuthService', () => {
 
     const accessToken = jwt.sign(
       { sub: row.userId, email: row.email, roles: ['CLIENT'] },
-      jwtSecret,
-      { algorithm: 'HS256', expiresIn: '15m' },
+      jwtPrivateKey,
+      { algorithm: 'RS256', keyid: jwtKeyId, issuer: jwtIssuer, expiresIn: '15m' },
     );
 
     authRepository.findUserById.mockResolvedValue(row);
@@ -155,8 +190,8 @@ describe('AuthService', () => {
 
     const accessToken = jwt.sign(
       { sub: row.userId, email: row.email, roles: ['CLIENT'] },
-      jwtSecret,
-      { algorithm: 'HS256', expiresIn: '15m' },
+      jwtPrivateKey,
+      { algorithm: 'RS256', keyid: jwtKeyId, issuer: jwtIssuer, expiresIn: '15m' },
     );
 
     authRepository.findUserById.mockResolvedValue(row);

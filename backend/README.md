@@ -5,7 +5,7 @@ Spring Boot API backend for JAAKD.
 ## Current architecture
 
 - Angular frontend obtains JWTs from `auth-service`.
-- Backend validates HS256 JWTs locally using `JWT_SECRET`.
+- Backend validates RS256 JWTs using auth-service JWKS.
 - Backend connects to our PostgreSQL database using the `jaakd_app` role.
 - Trading/profile data is served only through backend REST APIs.
 
@@ -16,7 +16,8 @@ The backend reads env values from `backend/.env` (or container env variables):
 - `SPRING_DATASOURCE_URL`
 - `SPRING_DATASOURCE_USERNAME`
 - `SPRING_DATASOURCE_PASSWORD`
-- `JWT_SECRET`
+- `JWT_ISSUER`
+- `JWT_JWK_SET_URI`
 
 ## Run locally (without Docker)
 

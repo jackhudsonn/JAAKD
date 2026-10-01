@@ -17,7 +17,8 @@ For containerized local runs, copy root `.env.example` to `.env` and set:
 - `POSTGRES_PASSWORD`
 - `JAAKD_APP_DB_PASSWORD`
 - `JAAKD_AUTH_DB_PASSWORD`
-- `JWT_SECRET`
+- `JWT_ISSUER`
+- `JWT_JWK_SET_URI`
 
 For running backend directly (without Docker), use `backend/.env.example` as template.
 

@@ -12,4 +12,5 @@ spring:
                 default_schema: PUBLIC
                 globally_quoted_identifiers: true
 jwt:
-    shared-secret: test-jwt-secret-32-characters-min
+    issuer: http://auth.test
+    jwk-set-uri: http://127.0.0.1:65535/.well-known/jwks.json

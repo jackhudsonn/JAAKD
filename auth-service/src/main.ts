@@ -1,5 +1,6 @@
 import 'reflect-metadata';
 
+import { existsSync } from 'fs';
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -8,18 +9,24 @@ import { AppModule } from './app.module';
 
 async function bootstrap(): Promise<void> {
   const databaseUrl = process.env.DATABASE_URL;
-  const jwtSecret = process.env.JWT_SECRET;
+  const jwtIssuer = process.env.JWT_ISSUER?.trim();
+  const jwtPrivateKeyPath = process.env.JWT_PRIVATE_KEY_PATH?.trim();
+  const jwtPrivateKey = process.env.JWT_PRIVATE_KEY?.trim();
 
   if (!databaseUrl) {
     throw new Error('DATABASE_URL is required');
   }
 
-  if (!jwtSecret) {
-    throw new Error('JWT_SECRET is required');
+  if (!jwtIssuer) {
+    throw new Error('JWT_ISSUER is required');
   }
 
-  if (jwtSecret.length < 32) {
-    throw new Error('JWT_SECRET must be at least 32 characters');
+  if (!jwtPrivateKeyPath && !jwtPrivateKey) {
+    throw new Error('JWT_PRIVATE_KEY_PATH or JWT_PRIVATE_KEY is required');
+  }
+
+  if (jwtPrivateKeyPath && !existsSync(jwtPrivateKeyPath)) {
+    throw new Error(`JWT private key file does not exist: ${jwtPrivateKeyPath}`);
   }
 
   const app = await NestFactory.create(AppModule);

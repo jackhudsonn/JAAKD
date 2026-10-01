@@ -5,9 +5,10 @@ import { AuthController } from './auth/auth.controller';
 import { AuthRepository } from './auth/auth.repository';
 import { AuthService } from './auth/auth.service';
 import { createDbPool } from './auth/db';
+import { JwksController } from './auth/jwks.controller';
 
 @Module({
-  controllers: [AuthController],
+  controllers: [AuthController, JwksController],
   providers: [
     {
       provide: Pool,

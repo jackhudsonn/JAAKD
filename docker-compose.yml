@@ -31,10 +31,14 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql://jaakd_auth:${JAAKD_AUTH_DB_PASSWORD}@jaakd-postgres:5432/jaakd
-      JWT_SECRET: ${JWT_SECRET}
+      JWT_PRIVATE_KEY_PATH: /app/keys/jwt-private.pem
+      JWT_ISSUER: ${JWT_ISSUER}
+      JWT_KEY_ID: ${JWT_KEY_ID}
       PORT: 3000
     ports:
       - "3000:3000"
+    volumes:
+      - ./auth-service/keys:/app/keys:ro
 
   jaakd-backend:
     build:
@@ -49,7 +53,8 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://jaakd-postgres:5432/jaakd
       SPRING_DATASOURCE_USERNAME: jaakd_app
       SPRING_DATASOURCE_PASSWORD: ${JAAKD_APP_DB_PASSWORD}
-      JWT_SECRET: ${JWT_SECRET}
+      JWT_ISSUER: ${JWT_ISSUER}
+      JWT_JWK_SET_URI: ${JWT_JWK_SET_URI}
     ports:
       - "8081:8081"
 
