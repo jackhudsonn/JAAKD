@@ -1,15 +1,19 @@
 # Identity Provider Seam — Design Notes
 
-Follows `04-jwt-signing-key-notes.md`. That note moved token *issuance* to
-RS256 + JWKS so the backend verifies with public keys only, and that direction
-is now in the code (`auth-service` signs RS256, serves
-`/.well-known/jwks.json`; `SecurityConfig.jwtDecoder` verifies by JWK Set URI).
+Follows `04-jwt-signing-key-notes.md`, which moved token *issuance* to RS256 +
+JWKS so the backend verifies with public keys only. That work is superseded on
+the browser path by this note: the backend now owns sessions and talks to the
+provider server-side, so no client-facing token is issued at all, and the JWKS
+machinery is dormant (retained only for a possible future bearer client).
 
 This note covers the next question: how to adopt a managed identity provider
 (Amazon Cognito) for production while keeping development self-contained, and
 without letting either environment leak into the other.
 
-Status: direction only. No code, config, or schema has changed from this note.
+Status: implemented for the development path. The dev identity provider, the
+server-side session model, the schema split, and the frontend changes are in
+the code; the Cognito adapter (Layout A's production provider) is not yet
+written. See "Implementation status" at the end.
 
 ## The principle
 
@@ -36,7 +40,7 @@ model. An interface replaces it.
   changes application identities — a migration event, not a runtime concern.
 - **Email is authentication-owned.** It lives with the provider (Cognito, or
   the dev issuer's credential store) and reaches the application at sign-in.
-- **Full BFF session model.** The browser holds only an opaque session cookie;
+- **Server-side sessions.** The browser holds only an opaque session cookie;
   JWTs never reach the frontend and become an internal detail of the backend's
   provider adapters.
 
@@ -145,19 +149,21 @@ Application schema holds no credentials and names no provider:
 ```sql
 CREATE TABLE IF NOT EXISTS users (
   "userID" UUID PRIMARY KEY,
+  email TEXT NOT NULL,
   roles TEXT[] NOT NULL DEFAULT '{CLIENT}',
   "createdAt" TIMESTAMP NOT NULL DEFAULT now()
 );
 ```
 
-Email is authentication-owned and is not stored on the anchor. It lives with
-the provider and reaches the application at sign-in; where the application
-needs its own copy for display, `profiles.email` holds it.
+Email is authentication-owned and reaches the application at sign-in. The
+application caches it once per user on `users.email` (refreshed at each
+sign-in); it is deliberately not duplicated onto sessions, which are per-user
+rows, not per-user attributes.
 
-`profiles` and everything below it are unchanged. `users` remains the identity
-anchor for the `profiles → users` foreign key; `userID` is the provider's
-subject (`sub`), so switching providers changes application identities — a
-migration event, not a runtime concern.
+`profiles` holds no email: the only copy lives on `users`. `users` remains the
+identity anchor for the `profiles → users` foreign key; `userID` is the
+provider's subject (`sub`), so switching providers changes application
+identities — a migration event, not a runtime concern.
 
 Credentials live **with the adapter**:
 
@@ -217,23 +223,23 @@ store is its own table (above), never the application schema.
    regenerated; the token's identity claim and the application's `users` row
    both key on it.
 3. A stable signing key with a **new `kid` every boot**, only if a bearer path
-   is retained. Under full BFF the dev adapter returns an identity and no
-   client-facing token, so no key or JWKS is needed.
+   is retained. With server-side sessions the dev adapter returns an identity
+   and no client-facing token, so no key or JWKS is needed.
 4. Idempotent provisioning: `ensureUser` treats an existing row as a no-op.
 
 Refresh tokens are then the only thing deciding whether a restart ends a
 session — persist them to keep sessions, keep them in memory to end them.
 Access tokens are never persisted.
 
-## Session model (full BFF)
+## Session model (server-side sessions)
 
 The browser holds only an opaque session cookie. JWTs never reach the frontend
 and are an internal detail of the backend's provider adapters.
 
 - **Sign in.** The backend calls the provider, receives the provider response
-  (tokens and email), provisions the application user, writes a session
-  (`sessionID`, `userID`, `email`, `expiresAt`, provider refresh token),
-  rotates the session id, and sets
+  (tokens and email), provisions the application user (storing the email on
+  its `users` row), writes a session (`sessionID`, `userID`, `expiresAt`,
+  provider refresh token), rotates the session id, and sets
   `Set-Cookie: jaakd_session=<id>; HttpOnly; Secure; SameSite=Lax; Path=/`.
   Nothing token-shaped is returned to the browser.
 - **API calls.** The browser sends the cookie automatically; a filter resolves
@@ -350,8 +356,9 @@ The environment is chosen once, at wiring. The core runs one path.
 
 The port's promise is that the core runs one path. **Claim drift** is when the
 two issuers' tokens differ in a way the core depends on, so that "one path"
-silently behaves differently in production. Under full BFF this contract sits
-at the backend↔provider boundary rather than on the request path: the backend
+silently behaves differently in production. With server-side sessions this
+contract sits at the backend↔provider boundary rather than on the request
+path: the backend
 reads identity and email from the provider response at sign-in, so it is still
 the place those differences would bite.
 
@@ -412,6 +419,28 @@ satisfies what the core requires.
   publishes JWKS; the backend only verifies.
 - Changing providers is an adapter and configuration change, not a schema
   change. If it starts to require schema changes, the design has drifted.
+
+## Implementation status
+
+Done (development path):
+
+- Schema split: `users` holds no credentials; a `sessions` table added; the
+dev-only `dev_credentials` table lives in `backend/db/dev/` and is mounted
+only in local development.
+- Backend: `IdentityProvider` port with `DevIdentityProvider` (bcrypt over
+  `dev_credentials`), `SessionService`, `SessionAuthenticationFilter`,
+  `UserProvisioner`, `AuthService`, and the `/auth/*` routes. Security is
+  cookie-based; the JWT resource-server path was removed.
+- Frontend: `AuthService` talks to the backend with credentials; the
+  interceptor no longer handles tokens or refresh; the guard restores the
+  session via `GET /auth/session`.
+- `auth-service` removed; `docker-compose.yml`, env examples, and docs updated.
+
+Remaining:
+
+- Cognito adapter (`identity.provider=cognito`), with pool/app-client config
+  and challenge relay.
+- CSRF hardening beyond `SameSite=Lax` if the deployment is not same-site.
 
 ## Scope note
 

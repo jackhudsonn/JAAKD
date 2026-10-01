@@ -11,6 +11,5 @@ spring:
             hibernate:
                 default_schema: PUBLIC
                 globally_quoted_identifiers: true
-jwt:
-    issuer: http://auth.test
-    jwk-set-uri: http://127.0.0.1:65535/.well-known/jwks.json
+identity:
+    provider: dev

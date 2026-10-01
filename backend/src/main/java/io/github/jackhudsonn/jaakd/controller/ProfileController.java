@@ -62,7 +62,6 @@ public class ProfileController {
     private ProfileResponse mapProfileToResponse(Profile profile) {
         return new ProfileResponse(
             profile.getUserId(),
-            profile.getEmail(),
             profile.getUserType(),
             profile.getFirstName(),
             profile.getLastName(),

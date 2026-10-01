@@ -339,7 +339,7 @@ class FifoAccountingServiceTest {
         double quantity,
         double executionPrice
     ) throws Exception {
-        Profile profile = new Profile("user@example.com", BigDecimal.ZERO);
+        Profile profile = new Profile(BigDecimal.ZERO);
         Portfolio portfolio = new Portfolio(profile);
         setField(portfolio, "portfolioId", portfolioId);
 

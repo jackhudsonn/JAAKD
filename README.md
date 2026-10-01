@@ -55,10 +55,8 @@ Fill all required values in `.env`:
 
 - `POSTGRES_PASSWORD`
 - `JAAKD_APP_DB_PASSWORD`
-- `JAAKD_AUTH_DB_PASSWORD`
-- `JWT_SECRET`
 
-Use a different long random value for each, e.g. run `openssl rand -hex 32` on the Docker host once per value. `JWT_SECRET` must be at least 32 characters. Never commit `.env`.
+Use a different long random value for each, e.g. run `openssl rand -hex 32` on the Docker host once per value. Never commit `.env`.
 
 ### 2) Start backend stack
 
@@ -69,7 +67,6 @@ docker-compose up -d --build
 This starts:
 
 - `jaakd-postgres` on `127.0.0.1:5433`
-- `jaakd-auth` on `:3000`
 - `jaakd-backend` on `:8081`
 
 ### 3) Run integration checks
@@ -117,13 +114,13 @@ After pulling this change, create a new account. Older Supabase-based accounts d
 Postgres only listens on the Docker host's `127.0.0.1:5433`. If Docker runs on another host, add the database port to the tunnel:
 
 ```bash
-ssh -N -L 3000:localhost:3000 -L 8081:localhost:8081 -L 5433:localhost:5433 <user>@<host>
+ssh -N -L 8081:localhost:8081 -L 5433:localhost:5433 <user>@<host>
 ```
 s
 In pgAdmin: **Register > Server**, then on the Connection tab:
 
 - Host `localhost`, port `5433`, database `jaakd`
-- Username `jaakd_app` (trading tables) or `jaakd_auth` (`users` table only)
-- Password: the matching value from your `.env` (`JAAKD_APP_DB_PASSWORD` or `JAAKD_AUTH_DB_PASSWORD`). Don't save it in pgAdmin or share it.
+- Username `jaakd_app`
+- Password: the value from your `.env` (`JAAKD_APP_DB_PASSWORD`). Don't save it in pgAdmin or share it.
 
-Each role only sees its own tables, so `jaakd_app` gets "permission denied" on `users`. That is intended. Use pgAdmin to look, not to edit; change data through the app.
+`jaakd_app` owns the application tables, so it can read them for inspection. Use pgAdmin to look, not to edit; change data through the app.

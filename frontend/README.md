@@ -17,16 +17,16 @@ http://localhost:4200
 
 ## Architecture notes
 
-- Authentication calls `auth-service` (`http://localhost:3000`).
-- Trading/profile APIs call backend (`http://localhost:8081`).
-- Access tokens are sent as Bearer auth headers by the frontend interceptor.
+- Authentication calls the backend (`http://localhost:8081`).
+- Trading/profile APIs call the same backend.
+- The interceptor sends requests with credentials; the backend session cookie authorizes them. No token is held in the browser.
 
 ## Environment
 
 Frontend environment files define:
 
 - `apiUrl` (backend)
-- `authUrl` (auth-service)
+- `authUrl` (backend auth endpoints)
 
 ## Current mock data
 

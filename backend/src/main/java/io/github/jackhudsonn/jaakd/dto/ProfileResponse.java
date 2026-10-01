@@ -8,7 +8,6 @@ import java.util.UUID;
 // Provides a clean, read-only view of the profile for the client.
 public record ProfileResponse(
     UUID userId,
-    String email,
     BigDecimal userType,
     String firstName,
     String lastName,

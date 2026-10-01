@@ -3,16 +3,23 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 -- 1) Tables
 CREATE TABLE IF NOT EXISTS users (
   "userID" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  email TEXT UNIQUE NOT NULL,
-  "passwordHash" TEXT NOT NULL,
+  email TEXT NOT NULL,
   roles TEXT[] NOT NULL DEFAULT '{CLIENT}',
-  "refreshToken" TEXT NULL,
   "createdAt" TIMESTAMP NOT NULL DEFAULT now()
+);
+
+-- Server-side session store. The browser holds only the opaque "sessionID";
+-- credentials and provider tokens stay on the server.
+CREATE TABLE IF NOT EXISTS sessions (
+  "sessionID" UUID PRIMARY KEY,
+  "userID" UUID NOT NULL,
+  "refreshToken" TEXT NULL, -- provider refresh token; null for the dev provider
+  "createdAt" TIMESTAMP NOT NULL DEFAULT now(),
+  "expiresAt" TIMESTAMP NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS profiles (
   "userID" UUID PRIMARY KEY,
-  email TEXT NOT NULL,
   "userType" NUMERIC NOT NULL DEFAULT 0,
   "firstName" TEXT,
   "lastName" TEXT,
@@ -96,15 +103,20 @@ ALTER TABLE users
   ADD CONSTRAINT chk_users_email_not_blank
   CHECK (btrim(email) <> '');
 
+ALTER TABLE users
+  ADD CONSTRAINT chk_users_roles_not_empty
+  CHECK (array_length(roles, 1) >= 1);
+
 -- A profile can only exist for a registered user; RESTRICT so deleting a user never removes their profile and order history (BR-14, BR-15).
 ALTER TABLE profiles
   ADD CONSTRAINT fk_profiles_users
   FOREIGN KEY ("userID") REFERENCES users("userID")
   ON DELETE RESTRICT;
 
-ALTER TABLE profiles
-  ADD CONSTRAINT chk_profiles_email_not_blank
-  CHECK (btrim(email) <> '');
+ALTER TABLE sessions
+  ADD CONSTRAINT fk_sessions_users
+  FOREIGN KEY ("userID") REFERENCES users("userID")
+  ON DELETE CASCADE;
 
 ALTER TABLE profiles
   ADD CONSTRAINT chk_profiles_dob_range
@@ -190,6 +202,8 @@ ALTER TABLE watchlist_items
 -- 3) Indexes
 CREATE INDEX idx_portfolios_userid ON portfolios ("userID");
 
+CREATE INDEX idx_sessions_userid ON sessions ("userID");
+
 CREATE INDEX idx_holdings_portfolioid ON holdings ("portfolioID");
 CREATE INDEX idx_holdings_instrumentid ON holdings ("instrumentID");
 
@@ -209,7 +223,7 @@ CREATE INDEX idx_watchlist_items_instrumentid ON watchlist_items ("instrumentID"
 -- 4) Grants
 REVOKE ALL ON ALL TABLES IN SCHEMA public FROM PUBLIC;
 
-GRANT USAGE ON SCHEMA public TO jaakd_app, jaakd_auth;
+GRANT USAGE ON SCHEMA public TO jaakd_app;
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE
   profiles,
@@ -222,7 +236,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE
   watchlist_items
 TO jaakd_app;
 
-GRANT SELECT, INSERT, UPDATE ON TABLE users TO jaakd_auth;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE users, sessions TO jaakd_app;
 
 -- 5) Seed data
 -- Seed canonical cash instrument used for cash-balance holdings projection

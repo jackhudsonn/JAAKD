@@ -5,9 +5,9 @@ info:
   description: |
     REST API for the JAAKD direct trading platform (Spring Boot service in `backend/`).
 
-    - Every endpoint requires an auth-service-issued JWT in the `Authorization: Bearer <token>` header.
+    - Every endpoint requires a valid session cookie (`jaakd_session`); the browser never holds a token.
     - A user can only see and change their own data (BR-02): every query is filtered by the
-      user ID taken from the JWT's `sub` claim.
+      authenticated user's ID.
     - All errors share one shape, `ErrorResponse` (see `GlobalExceptionHandler`).
     - Endpoints tagged **Orders** and the **instrument prices** endpoint are planned (contract first)
       and not implemented yet.
@@ -17,7 +17,7 @@ servers:
   - url: http://localhost:8081
     description: Local development server
 security:
-  - bearerAuth: []
+  - sessionCookie: []
 tags:
   - name: Holdings
     description: A user's current position projection in one instrument, within one portfolio (including the dedicated cash instrument holding)
@@ -931,8 +931,8 @@ paths:
       tags: [Profile]
       summary: Create the signed-in user's profile
       description: |
-        Creates a profile row for the JWT `sub` if one does not already exist.
-        Email is read from the JWT email claim and is never accepted from the body.
+        Creates a profile row for the authenticated user if one does not already exist.
+        Email is not part of the profile and is never accepted from the body.
       operationId: createCurrentProfile
       requestBody:
         required: true
@@ -976,7 +976,6 @@ paths:
                 $ref: "#/components/schemas/ProfileResponse"
               example:
                 userId: 0f1e2d3c-4b5a-4968-8776-655443322110
-                email: joanna@example.com
                 userType: 0
                 firstName: Joanna
                 lastName: Smith
@@ -1025,11 +1024,11 @@ paths:
 
 components:
   securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-      description: Auth-service access token (HS256), validated with shared secret
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: jaakd_session
+      description: Opaque session cookie issued by POST /auth/login; the browser never holds a token
 
   parameters:
     HoldingId:
@@ -1096,7 +1095,7 @@ components:
             details:
               currentQuantity: Current quantity must be greater than 0
     Unauthorized:
-      description: Missing, expired or invalid JWT
+      description: Missing, expired or invalid session
       content:
         application/json:
           schema:
@@ -1571,9 +1570,6 @@ components:
         userId:
           type: string
           format: uuid
-        email:
-          type: string
-          format: email
         userType:
           type: number
         firstName:

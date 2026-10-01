@@ -4,8 +4,8 @@ Spring Boot API backend for JAAKD.
 
 ## Current architecture
 
-- Angular frontend obtains JWTs from `auth-service`.
-- Backend validates RS256 JWTs using auth-service JWKS.
+- The Angular frontend authenticates against the backend and receives an HttpOnly session cookie; it never holds a token.
+- The backend owns sessions and talks to the configured identity provider (`dev` locally, `cognito` in production).
 - Backend connects to our PostgreSQL database using the `jaakd_app` role.
 - Trading/profile data is served only through backend REST APIs.
 
@@ -16,8 +16,8 @@ The backend reads env values from `backend/.env` (or container env variables):
 - `SPRING_DATASOURCE_URL`
 - `SPRING_DATASOURCE_USERNAME`
 - `SPRING_DATASOURCE_PASSWORD`
-- `JWT_ISSUER`
-- `JWT_JWK_SET_URI`
+- `IDENTITY_PROVIDER` (`dev` or `cognito`)
+- `AUTH_COOKIE_SECURE` (`true` behind HTTPS)
 
 ## Run locally (without Docker)
 
