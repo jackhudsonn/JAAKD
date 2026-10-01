@@ -1,8 +1,9 @@
-import { Component, computed, output, signal } from '@angular/core';
+import { Component, computed, inject, output, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
 import { PieChartComponent, PieChartSlice } from '@shared/components/pie-chart/pie-chart.component';
-import { MOCK_STATE, getMockPrice } from '@core/mocks/mock-data';
+import { DASHBOARD_MARKET_DATA_PORT } from '@features/dashboard/services/dashboard-market-data.port';
+import { DASHBOARD_STATE_PORT } from '@features/dashboard/services/dashboard-state.port';
 
 // TODO: confirm that these are the correct categories
 type AllocationCategory = 'Cash' | 'Stocks' | 'Crypto' | 'Bonds';
@@ -37,8 +38,11 @@ export interface AllocationAssetSelection {
   styleUrl: './allocation-by-asset.component.css',
 })
 export class AllocationByAssetWidgetComponent {
-  private readonly accountCash = MOCK_STATE.accountCash;
-  private readonly holdings = MOCK_STATE.holdings;
+  private readonly marketData = inject(DASHBOARD_MARKET_DATA_PORT);
+  private readonly state = inject(DASHBOARD_STATE_PORT);
+
+  private readonly accountCash = this.state.accountCash;
+  private readonly holdings = this.state.holdings;
 
   assetSelected = output<AllocationAssetSelection>();
 
@@ -69,7 +73,7 @@ export class AllocationByAssetWidgetComponent {
 
     for (const holding of this.holdings()) {
       const category = CATEGORY_BY_INSTRUMENT[holding.instrumentType];
-      const value = holding.quantity * getMockPrice(holding.symbol);
+      const value = holding.quantity * this.marketData.getPrice(holding.symbol);
       const existing = bySymbol.get(holding.symbol);
 
       bySymbol.set(holding.symbol, {
@@ -133,7 +137,7 @@ export class AllocationByAssetWidgetComponent {
       return;
     }
 
-    const price = getMockPrice(slice.label);
+    const price = this.marketData.getPrice(slice.label);
     this.assetSelected.emit({
       symbol: slice.label,
       price,

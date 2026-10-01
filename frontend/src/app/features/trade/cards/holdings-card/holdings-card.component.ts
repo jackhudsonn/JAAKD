@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, computed, input, output, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, inject, input, output, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -6,7 +6,7 @@ import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.
 import { ScrollableListComponent } from '@shared/components/scrollable-list/scrollable-list.component';
 import { startCycleTimer } from '@shared/utils/cycle-timer';
 import { Holding, InstrumentType } from '@core/models';
-import { getAsset, getMockPrice } from '@core/mocks/mock-data';
+import { TRADE_MARKET_DATA_PORT } from '@features/trade/services/trade-market-data.port';
 
 type HoldingsRow =
   | { kind: 'cash'; amount: number }
@@ -37,6 +37,8 @@ const HOLDINGS_FILTER_OPTIONS: { id: HoldingsFilter; label: string }[] = [
   styleUrl: './holdings-card.component.css',
 })
 export class HoldingsCardComponent implements OnInit, OnDestroy {
+  private readonly marketData = inject(TRADE_MARKET_DATA_PORT);
+
   holdings = input.required<readonly Holding[]>();
   accountCash = input.required<number>();
 
@@ -64,8 +66,8 @@ export class HoldingsCardComponent implements OnInit, OnDestroy {
         continue;
       }
 
-      const price = getMockPrice(holding.symbol);
-      const asset = getAsset(holding.symbol);
+      const price = this.marketData.getPrice(holding.symbol);
+      const asset = this.marketData.getAsset(holding.symbol);
       const basePrice = asset?.basePrice ?? price;
       const changePct = ((price - basePrice) / basePrice) * 100;
       rows.push({

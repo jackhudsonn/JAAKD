@@ -1,0 +1,68 @@
+@if (watchlistSearchOpen()) {
+  <app-modal title="Search" (closed)="closeWatchlistSearchPopup.emit()">
+    <div class="watchlist-search">
+      <div class="watchlist-search-toolbar">
+        <label class="sr-only" for="watchlist-search-input">Search tickers</label>
+        <input
+          id="watchlist-search-input"
+          type="text"
+          class="ticker-search-header"
+          placeholder="Search tickers..."
+          aria-label="Search tickers"
+          [ngModel]="watchlistSearch()"
+          (ngModelChange)="watchlistSearchChange.emit($event)"
+        />
+
+        <label class="sr-only" for="watchlist-instrument-filter">Filter by asset class</label>
+        <select
+          id="watchlist-instrument-filter"
+          class="instrument-select"
+          [ngModel]="watchlistSearchInstrument()"
+          (ngModelChange)="watchlistInstrumentFilterChange.emit($event)"
+        >
+          @for (option of instrumentOptions(); track option.id) {
+            <option [ngValue]="option.id">{{ option.label }}</option>
+          }
+        </select>
+      </div>
+
+      <p class="watchlist-search-capacity">
+        {{ activeWatchlistSymbolCount() }}/{{ maxHoldingsPerWatchlist() }} items
+      </p>
+
+      @if (watchlistSearchError()) {
+        <p class="form-error">{{ watchlistSearchError() }}</p>
+      }
+
+      <app-scrollable-list
+        [items]="watchlistSearchRows()"
+        [trackBy]="trackByWatchlistSearchSymbol"
+        [emptyMessage]="watchlistSearchEmptyMessage()"
+      >
+        <ng-template let-row>
+          <button
+            type="button"
+            class="listing-row"
+            [disabled]="!activeWatchlistHasCapacity()"
+            (click)="addSymbolToActiveWatchlist.emit(row.asset.symbol)"
+          >
+            <div class="listing-info">
+              <span class="symbol">{{ row.asset.symbol }}</span>
+              <span class="name">{{ row.asset.name }}</span>
+            </div>
+            <div class="price-stack">
+              <span class="price">{{ row.price | number: '1.2-2' }}</span>
+              <span
+                class="change"
+                [class.positive]="row.changePct >= 0"
+                [class.negative]="row.changePct < 0"
+              >
+                {{ row.changePct >= 0 ? '+' : '' }}{{ row.changePct | number: '1.2-2' }}%
+              </span>
+            </div>
+          </button>
+        </ng-template>
+      </app-scrollable-list>
+    </div>
+  </app-modal>
+}
