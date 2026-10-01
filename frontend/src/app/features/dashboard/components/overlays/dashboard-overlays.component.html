@@ -1,205 +1,42 @@
-@if (watchlistDialogMode() === 'create') {
-  <app-modal title="Create Watchlist" (closed)="closeWatchlistDialog()">
-    <div class="watchlist-dialog">
-      <div class="form-field">
-        <label for="dashboard-watchlist-name-input">Watchlist name</label>
-        <input
-          id="dashboard-watchlist-name-input"
-          type="text"
-          [value]="watchlistNameDraft()"
-          (input)="onWatchlistNameInput($event)"
-          maxlength="40"
-          placeholder="e.g. Recommendations"
-        />
-      </div>
+<app-watchlist-dialog-overlays
+  [watchlistDialogMode]="watchlistFacade.watchlistDialogMode()"
+  [watchlistNameDraft]="watchlistFacade.watchlistNameDraft()"
+  [watchlistDialogError]="watchlistFacade.watchlistDialogError()"
+  [canCreateWatchlist]="watchlistFacade.canCreateWatchlist()"
+  [canDeleteActive]="watchlistFacade.canDeleteActive()"
+  [maxWatchlists]="watchlistFacade.maxWatchlists"
+  [maxHoldingsPerWatchlist]="watchlistFacade.maxHoldingsPerWatchlist"
+  [activeWatchlistName]="watchlistFacade.activeWatchlist()?.name ?? null"
+  [activeWatchlistSymbolCount]="watchlistFacade.activeWatchlistSymbolCount()"
+  [selectedWatchlistAsset]="watchlistFacade.selectedWatchlistAsset()"
+  (closeWatchlistDialog)="closeWatchlistDialog()"
+  (watchlistNameChange)="onWatchlistNameInput($event)"
+  (saveWatchlistName)="saveWatchlistName()"
+  (confirmDeleteWatchlist)="confirmDeleteWatchlist()"
+  (closeWatchlistAssetPopup)="closeWatchlistAssetPopup()"
+  (removeSelectedWatchlistAsset)="removeSelectedWatchlistAsset()"
+  (tradeSelectedWatchlistAsset)="openTradeForWatchlistSelectedAsset()"
+/>
 
-      @if (watchlistDialogError()) {
-        <p class="form-error">{{ watchlistDialogError() }}</p>
-      }
+<app-watchlist-search-overlay
+  [watchlistSearchOpen]="watchlistFacade.watchlistSearchOpen()"
+  [watchlistSearch]="watchlistFacade.watchlistSearch()"
+  [watchlistSearchInstrument]="watchlistFacade.watchlistSearchInstrument()"
+  [instrumentOptions]="watchlistFacade.instrumentOptions"
+  [activeWatchlistSymbolCount]="watchlistFacade.activeWatchlistSymbolCount()"
+  [maxHoldingsPerWatchlist]="watchlistFacade.maxHoldingsPerWatchlist"
+  [watchlistSearchError]="watchlistFacade.watchlistSearchError()"
+  [activeWatchlistHasCapacity]="watchlistFacade.activeWatchlistHasCapacity()"
+  [watchlistSearchRows]="watchlistFacade.watchlistSearchRows()"
+  [watchlistSearchEmptyMessage]="watchlistFacade.watchlistSearchEmptyMessage()"
+  (closeWatchlistSearchPopup)="closeWatchlistSearchPopup()"
+  (watchlistSearchChange)="onWatchlistSearchChange($event)"
+  (watchlistInstrumentFilterChange)="setWatchlistInstrumentFilter($event)"
+  (addSymbolToActiveWatchlist)="addSymbolToActiveWatchlist($event)"
+/>
 
-      <p class="watchlist-limit-copy">Max watchlists: {{ maxWatchlists }}</p>
-
-      <div class="watchlist-dialog-actions">
-        <button
-          type="button"
-          class="btn btn-primary"
-          [disabled]="!canCreateWatchlist()"
-          (click)="saveWatchlistName()"
-        >
-          Save
-        </button>
-      </div>
-    </div>
-  </app-modal>
-}
-
-@if (watchlistDialogMode() === 'edit') {
-  @if (activeWatchlist(); as watchlist) {
-    <app-modal title="Edit Watchlist" (closed)="closeWatchlistDialog()">
-      <div class="watchlist-dialog">
-        <div class="form-field">
-          <label for="dashboard-watchlist-edit-name-input">Watchlist name</label>
-          <input
-            id="dashboard-watchlist-edit-name-input"
-            type="text"
-            [value]="watchlistNameDraft()"
-            (input)="onWatchlistNameInput($event)"
-            maxlength="40"
-            placeholder="e.g. Recommendations"
-          />
-        </div>
-
-        @if (watchlistDialogError()) {
-          <p class="form-error">{{ watchlistDialogError() }}</p>
-        }
-
-        <p class="watchlist-limit-copy">
-          {{ activeWatchlistSymbolCount() }}/{{ maxHoldingsPerWatchlist }} items in "{{ watchlist.name }}"
-        </p>
-
-        <div class="watchlist-dialog-actions">
-          <button
-            type="button"
-            class="btn btn-secondary watchlist-delete-btn"
-            [disabled]="!canDeleteActive()"
-            (click)="confirmDeleteWatchlist()"
-          >
-            Delete
-          </button>
-          <button type="button" class="btn btn-primary" (click)="saveWatchlistName()">Save</button>
-        </div>
-      </div>
-    </app-modal>
-  }
-}
-
-@if (selectedWatchlistAsset(); as asset) {
-  <app-modal [title]="asset.name" (closed)="closeWatchlistAssetPopup()">
-    <div class="watchlist-details">
-      <div class="watchlist-details-header">
-        <span class="symbol">{{ asset.symbol }}</span>
-        <span
-          class="change"
-          [class.positive]="asset.changePct >= 0"
-          [class.negative]="asset.changePct < 0"
-        >
-          {{ asset.changePct >= 0 ? '+' : '' }}{{ asset.changePct | number: '1.2-2' }}%
-        </span>
-      </div>
-
-      <p class="watchlist-details-price">Current Price: {{ asset.price | number: '1.2-2' }}</p>
-
-      <div class="watchlist-details-actions">
-        <button
-          type="button"
-          class="btn btn-secondary watchlist-delete-btn"
-          (click)="removeSelectedWatchlistAsset()"
-        >
-          Remove
-        </button>
-        <button
-          type="button"
-          class="btn btn-primary"
-          (click)="openTradeForWatchlistSelectedAsset()"
-        >
-          Trade
-        </button>
-      </div>
-    </div>
-  </app-modal>
-}
-
-@if (watchlistSearchOpen()) {
-  <app-modal title="Search" (closed)="closeWatchlistSearchPopup()">
-    <div class="watchlist-search">
-      <div class="watchlist-search-toolbar">
-        <label class="sr-only" for="watchlist-search-input">Search tickers</label>
-        <input
-          id="watchlist-search-input"
-          type="text"
-          class="ticker-search-header"
-          placeholder="Search tickers..."
-          aria-label="Search tickers"
-          [ngModel]="watchlistSearch()"
-          (ngModelChange)="onWatchlistSearchChange($event)"
-        />
-
-        <label class="sr-only" for="watchlist-instrument-filter">Filter by asset class</label>
-        <select
-          id="watchlist-instrument-filter"
-          class="instrument-select"
-          [ngModel]="watchlistSearchInstrument()"
-          (ngModelChange)="setWatchlistInstrumentFilter($event)"
-        >
-          @for (option of instrumentOptions; track option.id) {
-            <option [ngValue]="option.id">{{ option.label }}</option>
-          }
-        </select>
-      </div>
-
-      <p class="watchlist-search-capacity">
-        {{ activeWatchlistSymbolCount() }}/{{ maxHoldingsPerWatchlist }} items
-      </p>
-
-      @if (watchlistSearchError()) {
-        <p class="form-error">{{ watchlistSearchError() }}</p>
-      }
-
-      <app-scrollable-list
-        [items]="watchlistSearchRows()"
-        [trackBy]="trackByWatchlistSearchSymbol"
-        [emptyMessage]="watchlistSearchEmptyMessage()"
-      >
-        <ng-template let-row>
-          <button
-            type="button"
-            class="listing-row"
-            [disabled]="!activeWatchlistHasCapacity()"
-            (click)="addSymbolToActiveWatchlist(row.asset.symbol)"
-          >
-            <div class="listing-info">
-              <span class="symbol">{{ row.asset.symbol }}</span>
-              <span class="name">{{ row.asset.name }}</span>
-            </div>
-            <div class="price-stack">
-              <span class="price">{{ row.price | number: '1.2-2' }}</span>
-              <span
-                class="change"
-                [class.positive]="row.changePct >= 0"
-                [class.negative]="row.changePct < 0"
-              >
-                {{ row.changePct >= 0 ? '+' : '' }}{{ row.changePct | number: '1.2-2' }}%
-              </span>
-            </div>
-          </button>
-        </ng-template>
-      </app-scrollable-list>
-
-    </div>
-  </app-modal>
-}
-
-@if (selectedAllocationAsset(); as asset) {
-  <app-modal [title]="asset.symbol" (closed)="closeAllocationAssetPopup()">
-    <div class="allocation-details">
-      <p class="allocation-line">
-        <span>Current Price</span>
-        <strong>{{ asset.price | number: '1.2-2' }}</strong>
-      </p>
-      <p class="allocation-line">
-        <span>Holding Value</span>
-        <strong>{{ asset.value | number: '1.2-2' }}</strong>
-      </p>
-      <p class="allocation-line">
-        <span>Estimated Units</span>
-        <strong>{{ asset.estimatedUnits | number: '1.2-4' }}</strong>
-      </p>
-
-      <div class="allocation-actions">
-        <button type="button" class="btn btn-primary" (click)="openTradeForAllocationAsset()">
-          Trade
-        </button>
-      </div>
-    </div>
-  </app-modal>
-}
+<app-allocation-asset-overlay
+  [asset]="selectedAllocationAsset()"
+  (closed)="closeAllocationAssetPopup()"
+  (tradeRequested)="openTradeForAllocationAsset()"
+/>

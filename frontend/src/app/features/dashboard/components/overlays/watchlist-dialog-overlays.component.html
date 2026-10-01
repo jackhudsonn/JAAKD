@@ -1,0 +1,106 @@
+@if (watchlistDialogMode() === 'create') {
+  <app-modal title="Create Watchlist" (closed)="closeWatchlistDialog.emit()">
+    <div class="watchlist-dialog">
+      <div class="form-field">
+        <label for="dashboard-watchlist-name-input">Watchlist name</label>
+        <input
+          id="dashboard-watchlist-name-input"
+          type="text"
+          [value]="watchlistNameDraft()"
+          (input)="onWatchlistNameInput($event)"
+          maxlength="40"
+          placeholder="e.g. Recommendations"
+        />
+      </div>
+
+      @if (watchlistDialogError()) {
+        <p class="form-error">{{ watchlistDialogError() }}</p>
+      }
+
+      <p class="watchlist-limit-copy">Max watchlists: {{ maxWatchlists() }}</p>
+
+      <div class="watchlist-dialog-actions">
+        <button
+          type="button"
+          class="btn btn-primary"
+          [disabled]="!canCreateWatchlist()"
+          (click)="saveWatchlistName.emit()"
+        >
+          Save
+        </button>
+      </div>
+    </div>
+  </app-modal>
+}
+
+@if (watchlistDialogMode() === 'edit') {
+  @if (activeWatchlistName(); as watchlistName) {
+    <app-modal title="Edit Watchlist" (closed)="closeWatchlistDialog.emit()">
+      <div class="watchlist-dialog">
+        <div class="form-field">
+          <label for="dashboard-watchlist-edit-name-input">Watchlist name</label>
+          <input
+            id="dashboard-watchlist-edit-name-input"
+            type="text"
+            [value]="watchlistNameDraft()"
+            (input)="onWatchlistNameInput($event)"
+            maxlength="40"
+            placeholder="e.g. Recommendations"
+          />
+        </div>
+
+        @if (watchlistDialogError()) {
+          <p class="form-error">{{ watchlistDialogError() }}</p>
+        }
+
+        <p class="watchlist-limit-copy">
+          {{ activeWatchlistSymbolCount() }}/{{ maxHoldingsPerWatchlist() }} items in "{{ watchlistName }}"
+        </p>
+
+        <div class="watchlist-dialog-actions">
+          <button
+            type="button"
+            class="btn btn-secondary watchlist-delete-btn"
+            [disabled]="!canDeleteActive()"
+            (click)="confirmDeleteWatchlist.emit()"
+          >
+            Delete
+          </button>
+          <button type="button" class="btn btn-primary" (click)="saveWatchlistName.emit()">Save</button>
+        </div>
+      </div>
+    </app-modal>
+  }
+}
+
+@if (selectedWatchlistAsset(); as asset) {
+  <app-modal [title]="asset.name" (closed)="closeWatchlistAssetPopup.emit()">
+    <div class="watchlist-details">
+      <div class="watchlist-details-header">
+        <span class="symbol">{{ asset.symbol }}</span>
+        <span
+          class="change"
+          [class.positive]="asset.changePct >= 0"
+          [class.negative]="asset.changePct < 0"
+        >
+          {{ asset.changePct >= 0 ? '+' : '' }}{{ asset.changePct | number: '1.2-2' }}%
+        </span>
+      </div>
+
+      <p class="watchlist-details-price">Current Price: {{ asset.price | number: '1.2-2' }}</p>
+
+      <div class="watchlist-details-actions">
+        <button
+          type="button"
+          class="btn btn-secondary watchlist-delete-btn"
+          (click)="removeSelectedWatchlistAsset.emit()"
+        >
+          Remove
+        </button>
+        <button type="button" class="btn btn-primary" (click)="tradeSelectedWatchlistAsset.emit()">
+          Trade
+        </button>
+      </div>
+    </div>
+  </app-modal>
+}

@@ -1,0 +1,22 @@
+@if (asset(); as selectedAsset) {
+  <app-modal [title]="selectedAsset.symbol" (closed)="closed.emit()">
+    <div class="allocation-details">
+      <p class="allocation-line">
+        <span>Current Price</span>
+        <strong>{{ selectedAsset.price | number: '1.2-2' }}</strong>
+      </p>
+      <p class="allocation-line">
+        <span>Holding Value</span>
+        <strong>{{ selectedAsset.value | number: '1.2-2' }}</strong>
+      </p>
+      <p class="allocation-line">
+        <span>Estimated Units</span>
+        <strong>{{ selectedAsset.estimatedUnits | number: '1.2-4' }}</strong>
+      </p>
+
+      <div class="allocation-actions">
+        <button type="button" class="btn btn-primary" (click)="tradeRequested.emit()">Trade</button>
+      </div>
+    </div>
+  </app-modal>
+}
