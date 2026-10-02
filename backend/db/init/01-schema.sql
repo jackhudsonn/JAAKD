@@ -60,7 +60,8 @@ CREATE TABLE IF NOT EXISTS "orderLogs" (
   "timestamp" TIMESTAMP NOT NULL,
   metadata TEXT,
   status TEXT NOT NULL,
-  "executionPrice" DOUBLE PRECISION
+  "executionPrice" DOUBLE PRECISION,
+  "quotedPrice" DOUBLE PRECISION
 );
 
 CREATE TABLE IF NOT EXISTS position_lots (
