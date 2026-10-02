@@ -63,6 +63,11 @@
   color: var(--fail);
 }
 
+.returns-amount.unavailable {
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
 .value-hint {
   margin-top: var(--space-lg);
 

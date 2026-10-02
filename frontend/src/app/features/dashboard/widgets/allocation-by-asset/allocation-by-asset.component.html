@@ -7,6 +7,16 @@
 
   <app-pie-chart [slices]="slices()" (sliceClick)="onSliceClick($event)" />
 
+  @if (unavailablePriceHoldings().length > 0) {
+    <div class="unavailable-prices">
+      @for (holding of unavailablePriceHoldings(); track holding.symbol) {
+        <p class="unavailable-price-row">
+          {{ holding.symbol }} Qty {{ holding.quantity | number: '1.0-6' }}: price unavailable
+        </p>
+      }
+    </div>
+  }
+
   @if (!selectedCategory()) {
     <p class="drilldown-hint">Click a slice to see its breakdown.</p>
   } @else {

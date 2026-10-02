@@ -36,6 +36,7 @@ export class PortfolioValueWidgetComponent implements OnInit, OnDestroy {
 
   // TODO: replace with a live performance/analytics endpoint (all-time + daily P&L).
   private readonly returns = this.state.returns;
+  private readonly backendDataMode = this.state.backendDataMode ?? false;
 
   valueIndex = signal(0);
   valueFading = signal(false);
@@ -53,10 +54,14 @@ export class PortfolioValueWidgetComponent implements OnInit, OnDestroy {
     const mode = VALUE_MODES[this.valueIndex()].mode;
     const cash = this.state.accountCash();
     this.priceTick();
-    const assets = this.state.holdings().reduce(
-      (total, holding) => total + holding.quantity * this.marketData.getPrice(holding.symbol),
-      0,
-    );
+    const assets = this.state
+      .holdings()
+      .reduce(
+        (total, holding) =>
+          total +
+          holding.quantity * (holding.indicativePrice ?? this.marketData.getPrice(holding.symbol)),
+        0,
+      );
 
     if (mode === 'cash') {
       return cash;
@@ -79,6 +84,10 @@ export class PortfolioValueWidgetComponent implements OnInit, OnDestroy {
 
   get returnsPositive() {
     return this.activeReturnsAmount >= 0;
+  }
+
+  get shouldShowReturnsUnavailableMessage() {
+    return this.backendDataMode;
   }
 
   ngOnInit() {
