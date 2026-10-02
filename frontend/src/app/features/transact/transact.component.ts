@@ -1,14 +1,26 @@
 import { Component, inject } from '@angular/core';
+<<<<<<< HEAD
 import { MoveFundsComponent } from './cards/move-funds-card/move-funds.component';
 import { TransactionHistoryComponent } from './cards/transaction-history-card/transaction-history.component';
 import { CurrencyExchangeComponent } from './cards/currency-exchange-card/currency-exchange.component';
 import { Deposit, Withdrawal } from '@core/models';
 import { ExchangeRequest, TransactFacadeService } from '@features/transact/services/transact-facade.service';
+=======
+import { DepositFormComponent } from './deposit-form/deposit-form.component';
+import { TransactionHistoryComponent } from './transaction-history/transaction-history.component';
+import { CurrencyExchangeComponent } from './currency-exchange/currency-exchange.component';
+import { Deposit, Withdrawal } from '@core/models';
+import { ExchangeRequest, TransactFacadeService } from './services/transact-facade.service';
+>>>>>>> 496ffab (backend integration work)
 
 @Component({
   selector: 'app-transact',
   standalone: true,
+<<<<<<< HEAD
   imports: [MoveFundsComponent, CurrencyExchangeComponent, TransactionHistoryComponent],
+=======
+  imports: [DepositFormComponent, CurrencyExchangeComponent, TransactionHistoryComponent],
+>>>>>>> 496ffab (backend integration work)
   templateUrl: './transact.component.html',
   styleUrl: './transact.component.css',
 })

@@ -9,7 +9,11 @@
   margin-bottom: var(--space-xl);
 }
 
+<<<<<<< HEAD
 app-move-funds,
+=======
+app-deposit-form,
+>>>>>>> 496ffab (backend integration work)
 app-currency-exchange,
 app-transaction-history {
   display: block;

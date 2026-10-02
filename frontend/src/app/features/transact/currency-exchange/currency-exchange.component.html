@@ -1,0 +1,71 @@
+<app-widget-card title="Currency Exchange" subtitle="Quick mock conversion preview">
+  <div class="exchange-form">
+    <div class="form-field">
+      <label for="exchange-amount">Amount</label>
+      <input
+        id="exchange-amount"
+        type="number"
+        min="0"
+        step="0.01"
+        placeholder="0.00"
+        [ngModel]="amount()"
+        (ngModelChange)="amount.set($event)"
+      />
+    </div>
+
+    <div class="currency-row">
+      <div class="form-field">
+        <label for="from-currency">From</label>
+        <select
+          id="from-currency"
+          [ngModel]="fromCurrency()"
+          (ngModelChange)="fromCurrency.set($event)"
+        >
+          @for (currency of currencies; track currency) {
+            <option [value]="currency">{{ currency }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="form-field">
+        <label for="to-currency">To</label>
+        <select id="to-currency" [ngModel]="toCurrency()" (ngModelChange)="toCurrency.set($event)">
+          @for (currency of currencies; track currency) {
+            <option [value]="currency">{{ currency }}</option>
+          }
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="exchange-result">
+    <div class="exchange-summary">
+      <p class="exchange-total">
+        {{ convertedAmount() | number: '1.2-2' }} {{ toCurrency() }}
+      </p>
+
+      <p class="exchange-rate">1 {{ fromCurrency() }} = {{ quoteRate() | number: '1.2-4' }} {{ toCurrency() }}</p>
+    </div>
+
+    <div class="exchange-actions">
+      <button type="button" class="btn btn-primary swap-button" (click)="requestExchange()">
+        Swap
+      </button>
+    </div>
+  </div>
+</app-widget-card>
+
+@if (pendingExchange(); as pendingExchange) {
+  <app-modal title="Confirm Exchange" (closed)="cancelExchange()">
+    <p class="confirm-copy">
+      Exchange {{ pendingExchange.amount | number: '1.2-2' }} {{ pendingExchange.fromCurrency }} to
+      {{ pendingExchange.toCurrency }}?
+    </p>
+
+    <div class="confirm-actions">
+      <button type="button" class="btn btn-secondary" (click)="cancelExchange()">Cancel</button>
+
+      <button type="button" class="btn btn-primary" (click)="confirmExchange()">Confirm</button>
+    </div>
+  </app-modal>
+}
