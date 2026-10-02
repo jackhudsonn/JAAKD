@@ -4,7 +4,6 @@ import io.github.jackhudsonn.jaakd.dto.LotMatchResponse;
 import io.github.jackhudsonn.jaakd.dto.PositionLotResponse;
 import io.github.jackhudsonn.jaakd.exception.HoldingNotFoundException;
 import io.github.jackhudsonn.jaakd.model.Holding;
-import io.github.jackhudsonn.jaakd.model.LotMatch;
 import io.github.jackhudsonn.jaakd.model.PositionLot;
 import io.github.jackhudsonn.jaakd.repository.HoldingRepository;
 import io.github.jackhudsonn.jaakd.repository.LotMatchRepository;

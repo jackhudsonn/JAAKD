@@ -11,5 +11,9 @@ spring:
             hibernate:
                 default_schema: PUBLIC
                 globally_quoted_identifiers: true
-jwt:
-    shared-secret: test-jwt-secret-32-characters-min
+identity:
+    provider: development
+auth:
+    session:
+        cookie:
+            secure: false

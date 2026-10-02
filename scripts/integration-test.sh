@@ -3,6 +3,9 @@ set -e
 
 PASS_COUNT=0
 FAIL_COUNT=0
+COOKIE_JAR="/tmp/jaakd-cookies.txt"
+RESPONSE_FILE="/tmp/jaakd-response.json"
+BACKEND="http://localhost:8081"
 
 PASS() {
   PASS_COUNT=$((PASS_COUNT + 1))
@@ -33,52 +36,43 @@ wait_for_url() {
   return 1
 }
 
+# Sends a request carrying the session cookie jar; writes the body to
+# RESPONSE_FILE and prints the status code.
 status_code() {
   local method="$1"
   local url="$2"
   local body="${3:-}"
-  local auth_header="${4:-}"
-
-  if [[ -n "$body" && -n "$auth_header" ]]; then
-    curl -s -o /tmp/jaakd-response.json -w "%{http_code}" -X "$method" "$url" \
-      -H "Content-Type: application/json" -H "Authorization: Bearer $auth_header" -d "$body"
-    return
-  fi
 
   if [[ -n "$body" ]]; then
-    curl -s -o /tmp/jaakd-response.json -w "%{http_code}" -X "$method" "$url" \
-      -H "Content-Type: application/json" -d "$body"
+    curl -s -o "$RESPONSE_FILE" -w "%{http_code}" -X "$method" "$url" \
+      -H "Content-Type: application/json" -b "$COOKIE_JAR" -c "$COOKIE_JAR" -d "$body"
     return
   fi
 
-  if [[ -n "$auth_header" ]]; then
-    curl -s -o /tmp/jaakd-response.json -w "%{http_code}" -X "$method" "$url" \
-      -H "Authorization: Bearer $auth_header"
-    return
-  fi
-
-  curl -s -o /tmp/jaakd-response.json -w "%{http_code}" -X "$method" "$url"
+  curl -s -o "$RESPONSE_FILE" -w "%{http_code}" -X "$method" "$url" \
+    -b "$COOKIE_JAR" -c "$COOKIE_JAR"
 }
 
 extract_json_value() {
   local key="$1"
-  sed -n "s/.*\"$key\"[[:space:]]*:[[:space:]]*\"\([^\"]*\)\".*/\1/p" /tmp/jaakd-response.json | head -n 1
+  sed -n "s/.*\"$key\"[[:space:]]*:[[:space:]]*\"\([^\"]*\)\".*/\1/p" "$RESPONSE_FILE" | head -n 1
 }
 
-wait_for_url "backend actuator" "http://localhost:8081/actuator/health" '"status":"UP"'
-wait_for_url "auth swagger" "http://localhost:3000/api-json" '"openapi"'
+rm -f "$COOKIE_JAR"
 
-NO_TOKEN_CODE="$(status_code GET "http://localhost:8081/api/profile")"
-if [[ "$NO_TOKEN_CODE" == "401" ]]; then
-  PASS "GET /api/profile without token returns 401"
+wait_for_url "backend actuator" "$BACKEND/actuator/health" '"status":"UP"'
+
+NO_SESSION_CODE="$(status_code GET "$BACKEND/api/profile")"
+if [[ "$NO_SESSION_CODE" == "401" ]]; then
+  PASS "GET /api/profile without a session returns 401"
 else
-  FAIL "GET /api/profile without token expected 401 got $NO_TOKEN_CODE"
+  FAIL "GET /api/profile without a session expected 401 got $NO_SESSION_CODE"
 fi
 
 TEST_EMAIL="integration.$(date +%s)@example.com"
 TEST_PASSWORD="Password123!"
 REGISTER_BODY="{\"email\":\"$TEST_EMAIL\",\"password\":\"$TEST_PASSWORD\"}"
-REGISTER_CODE="$(status_code POST "http://localhost:3000/auth/register" "$REGISTER_BODY")"
+REGISTER_CODE="$(status_code POST "$BACKEND/auth/register" "$REGISTER_BODY")"
 if [[ "$REGISTER_CODE" == "201" ]]; then
   PASS "POST /auth/register returns 201"
 else
@@ -86,52 +80,137 @@ else
 fi
 
 LOGIN_BODY="{\"email\":\"$TEST_EMAIL\",\"password\":\"$TEST_PASSWORD\"}"
-LOGIN_CODE="$(status_code POST "http://localhost:3000/auth/login" "$LOGIN_BODY")"
+LOGIN_CODE="$(status_code POST "$BACKEND/auth/login" "$LOGIN_BODY")"
 if [[ "$LOGIN_CODE" == "200" ]]; then
   PASS "POST /auth/login returns 200"
 else
   FAIL "POST /auth/login expected 200 got $LOGIN_CODE"
 fi
 
-ACCESS_TOKEN="$(extract_json_value accessToken)"
-if [[ -z "$ACCESS_TOKEN" ]]; then
-  FAIL "Login response did not include accessToken"
+if grep -q "jaakd_session" "$COOKIE_JAR" 2>/dev/null; then
+  PASS "login set the jaakd_session cookie"
+else
+  FAIL "login did not set the jaakd_session cookie"
+fi
+
+SESSION_CODE="$(status_code GET "$BACKEND/auth/session")"
+if [[ "$SESSION_CODE" == "200" ]]; then
+  PASS "GET /auth/session returns 200 with the session cookie"
+else
+  FAIL "GET /auth/session expected 200 got $SESSION_CODE"
 fi
 
 PROFILE_BODY='{"firstName":"Joanna","lastName":"Investor","dob":"1990-04-12","city":"Boston","state":"Massachusetts","country":"United States","zipCode":"02110"}'
-CREATE_PROFILE_CODE="$(status_code POST "http://localhost:8081/api/profile" "$PROFILE_BODY" "$ACCESS_TOKEN")"
+CREATE_PROFILE_CODE="$(status_code POST "$BACKEND/api/profile" "$PROFILE_BODY")"
 if [[ "$CREATE_PROFILE_CODE" == "201" ]]; then
   PASS "POST /api/profile returns 201"
 else
   FAIL "POST /api/profile expected 201 got $CREATE_PROFILE_CODE"
 fi
 
-GET_PROFILE_CODE="$(status_code GET "http://localhost:8081/api/profile" "" "$ACCESS_TOKEN")"
+GET_PROFILE_CODE="$(status_code GET "$BACKEND/api/profile")"
 if [[ "$GET_PROFILE_CODE" == "200" ]]; then
   PASS "GET /api/profile returns 200"
 else
   FAIL "GET /api/profile expected 200 got $GET_PROFILE_CODE"
 fi
 
-GET_PORTFOLIOS_CODE="$(status_code GET "http://localhost:8081/api/portfolios" "" "$ACCESS_TOKEN")"
+GET_PORTFOLIOS_CODE="$(status_code GET "$BACKEND/api/portfolios")"
 if [[ "$GET_PORTFOLIOS_CODE" == "200" ]]; then
   PASS "GET /api/portfolios returns 200"
 else
   FAIL "GET /api/portfolios expected 200 got $GET_PORTFOLIOS_CODE"
 fi
 
-USER_ROW_COUNT="$(docker exec jaakd-postgres psql -U postgres -d jaakd -t -A -c "SELECT COUNT(*) FROM users WHERE email = '$TEST_EMAIL';")"
+DEV_CRED_COUNT="$(docker exec jaakd-postgres psql -U postgres -d jaakd -t -A -c "SELECT COUNT(*) FROM development_credentials WHERE email = '$TEST_EMAIL';")"
+if [[ "$DEV_CRED_COUNT" == "1" ]]; then
+  PASS "development_credentials row exists for registered user"
+else
+  FAIL "Expected development_credentials row count 1, got $DEV_CRED_COUNT"
+fi
+
+USER_ROW_COUNT="$(docker exec jaakd-postgres psql -U postgres -d jaakd -t -A -c "SELECT COUNT(*) FROM users u JOIN development_credentials d ON d.\"userID\" = u.\"userID\" WHERE d.email = '$TEST_EMAIL';")"
 if [[ "$USER_ROW_COUNT" == "1" ]]; then
   PASS "users row exists for registered user"
 else
   FAIL "Expected users row count 1, got $USER_ROW_COUNT"
 fi
 
-PROFILE_ROW_COUNT="$(docker exec jaakd-postgres psql -U postgres -d jaakd -t -A -c "SELECT COUNT(*) FROM profiles WHERE email = '$TEST_EMAIL';")"
+PROFILE_ROW_COUNT="$(docker exec jaakd-postgres psql -U postgres -d jaakd -t -A -c "SELECT COUNT(*) FROM profiles p JOIN development_credentials d ON d.\"userID\" = p.\"userID\" WHERE d.email = '$TEST_EMAIL';")"
 if [[ "$PROFILE_ROW_COUNT" == "1" ]]; then
   PASS "profiles row exists for registered user"
 else
   FAIL "Expected profiles row count 1, got $PROFILE_ROW_COUNT"
+fi
+
+# Change-password revokes the caller's other sessions and keeps the caller signed in.
+COOKIE_JAR_SECOND="/tmp/jaakd-cookies-second.txt"
+NEW_PASSWORD="NewPassword456!"
+
+rm -f "$COOKIE_JAR_SECOND"
+SECOND_LOGIN_CODE="$(curl -s -o "$RESPONSE_FILE" -w "%{http_code}" -X POST "$BACKEND/auth/login" \
+  -H "Content-Type: application/json" -c "$COOKIE_JAR_SECOND" -d "$LOGIN_BODY")"
+if [[ "$SECOND_LOGIN_CODE" == "200" ]]; then
+  PASS "second login returns 200"
+else
+  FAIL "second login expected 200 got $SECOND_LOGIN_CODE"
+fi
+
+SECOND_SESSION_CODE="$(curl -s -o "$RESPONSE_FILE" -w "%{http_code}" -b "$COOKIE_JAR_SECOND" "$BACKEND/auth/session")"
+if [[ "$SECOND_SESSION_CODE" == "200" ]]; then
+  PASS "second session is authenticated"
+else
+  FAIL "second session expected 200 got $SECOND_SESSION_CODE"
+fi
+
+CHANGE_BODY="{\"currentPassword\":\"$TEST_PASSWORD\",\"newPassword\":\"$NEW_PASSWORD\"}"
+CHANGE_CODE="$(status_code POST "$BACKEND/auth/change-password" "$CHANGE_BODY")"
+if [[ "$CHANGE_CODE" == "204" ]]; then
+  PASS "POST /auth/change-password returns 204"
+else
+  FAIL "POST /auth/change-password expected 204 got $CHANGE_CODE"
+fi
+
+REVOKED_CODE="$(curl -s -o "$RESPONSE_FILE" -w "%{http_code}" -b "$COOKIE_JAR_SECOND" "$BACKEND/api/profile")"
+if [[ "$REVOKED_CODE" == "401" ]]; then
+  PASS "change-password revoked the other session"
+else
+  FAIL "other session after change-password expected 401 got $REVOKED_CODE"
+fi
+
+CURRENT_CODE="$(status_code GET "$BACKEND/api/profile")"
+if [[ "$CURRENT_CODE" == "200" ]]; then
+  PASS "change-password kept the caller signed in"
+else
+  FAIL "caller session after change-password expected 200 got $CURRENT_CODE"
+fi
+
+SESSION_ROW_COUNT="$(docker exec jaakd-postgres psql -U postgres -d jaakd -t -A -c "SELECT COUNT(*) FROM sessions s JOIN development_credentials d ON d.\"userID\" = s.\"userID\" WHERE d.email = '$TEST_EMAIL';")"
+if [[ "$SESSION_ROW_COUNT" == "1" ]]; then
+  PASS "one session row remains after change-password"
+else
+  FAIL "Expected 1 session row after change-password, got $SESSION_ROW_COUNT"
+fi
+
+OLD_PASSWORD_CODE="$(curl -s -o "$RESPONSE_FILE" -w "%{http_code}" -X POST "$BACKEND/auth/login" -H "Content-Type: application/json" -d "$LOGIN_BODY")"
+if [[ "$OLD_PASSWORD_CODE" == "401" ]]; then
+  PASS "the old password no longer signs in"
+else
+  FAIL "old password login expected 401 got $OLD_PASSWORD_CODE"
+fi
+
+LOGOUT_CODE="$(status_code POST "$BACKEND/auth/logout")"
+if [[ "$LOGOUT_CODE" == "204" ]]; then
+  PASS "POST /auth/logout returns 204"
+else
+  FAIL "POST /auth/logout expected 204 got $LOGOUT_CODE"
+fi
+
+AFTER_LOGOUT_CODE="$(status_code GET "$BACKEND/api/profile")"
+if [[ "$AFTER_LOGOUT_CODE" == "401" ]]; then
+  PASS "GET /api/profile after logout returns 401"
+else
+  FAIL "GET /api/profile after logout expected 401 got $AFTER_LOGOUT_CODE"
 fi
 
 echo "Checks complete: PASS=$PASS_COUNT FAIL=$FAIL_COUNT"

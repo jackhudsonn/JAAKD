@@ -78,7 +78,7 @@ class PortfolioServiceTest {
     void deletePortfolio_activeOrdersPresent_throwsConflictAndSkipsDelete() {
         UUID userId = UUID.randomUUID();
         UUID portfolioId = UUID.randomUUID();
-        Portfolio portfolio = new Portfolio(new Profile("owner@test.com", BigDecimal.ZERO));
+        Portfolio portfolio = new Portfolio(new Profile(BigDecimal.ZERO));
 
         when(currentUserService.getUserId()).thenReturn(userId);
         when(portfolioRepository.findOwnedByPortfolioId(portfolioId, userId)).thenReturn(Optional.of(portfolio));
@@ -103,7 +103,7 @@ class PortfolioServiceTest {
     void deletePortfolio_nonZeroHoldingsPresent_throwsConflictAndSkipsDelete() {
         UUID userId = UUID.randomUUID();
         UUID portfolioId = UUID.randomUUID();
-        Portfolio portfolio = new Portfolio(new Profile("owner@test.com", BigDecimal.ZERO));
+        Portfolio portfolio = new Portfolio(new Profile(BigDecimal.ZERO));
 
         when(currentUserService.getUserId()).thenReturn(userId);
         when(portfolioRepository.findOwnedByPortfolioId(portfolioId, userId)).thenReturn(Optional.of(portfolio));
@@ -128,7 +128,7 @@ class PortfolioServiceTest {
     void deletePortfolio_bothGuardsPresent_throwsConflictWithBothFlags() {
         UUID userId = UUID.randomUUID();
         UUID portfolioId = UUID.randomUUID();
-        Portfolio portfolio = new Portfolio(new Profile("owner@test.com", BigDecimal.ZERO));
+        Portfolio portfolio = new Portfolio(new Profile(BigDecimal.ZERO));
 
         when(currentUserService.getUserId()).thenReturn(userId);
         when(portfolioRepository.findOwnedByPortfolioId(portfolioId, userId)).thenReturn(Optional.of(portfolio));
@@ -153,7 +153,7 @@ class PortfolioServiceTest {
     void deletePortfolio_noGuardsPresent_deletesPortfolioAndUsesExpectedStatuses() {
         UUID userId = UUID.randomUUID();
         UUID portfolioId = UUID.randomUUID();
-        Portfolio portfolio = new Portfolio(new Profile("owner@test.com", BigDecimal.ZERO));
+        Portfolio portfolio = new Portfolio(new Profile(BigDecimal.ZERO));
 
         when(currentUserService.getUserId()).thenReturn(userId);
         when(portfolioRepository.findOwnedByPortfolioId(portfolioId, userId)).thenReturn(Optional.of(portfolio));
