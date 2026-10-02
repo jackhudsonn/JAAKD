@@ -1,0 +1,47 @@
+<app-widget-card title="Withdraw Funds" subtitle="Move money out of your account">
+  <div class="form-field">
+    <label for="withdrawal-amount">Amount (USD)</label>
+    <input
+      id="withdrawal-amount"
+      type="number"
+      min="0"
+      step="0.01"
+      placeholder="0.00"
+      [(ngModel)]="amount"
+    />
+  </div>
+
+  <div class="form-field">
+    <label for="withdrawal-method">Payment Method</label>
+
+    <select id="withdrawal-method" [(ngModel)]="selectedMethodId" (ngModelChange)="onMethodSelectionChange()">
+      <option value="" disabled>Select a payment method</option>
+
+      @for (option of paymentOptions(); track option.id) {
+        <option [value]="option.id">{{ option.label }}</option>
+      }
+
+      <option value="__add_method__">Add +</option>
+    </select>
+  </div>
+
+  @if (error()) {
+    <p class="form-error">{{ error() }}</p>
+  }
+
+  <button type="button" class="btn btn-secondary form-submit" (click)="submit()">Withdraw</button>
+</app-widget-card>
+
+@if (pendingWithdrawal(); as pendingWithdrawal) {
+  <app-modal title="Confirm Withdrawal" (closed)="cancelWithdrawal()">
+    <p class="confirm-copy">
+      Withdraw ${{ pendingWithdrawal.amount }} from your account?
+    </p>
+
+    <div class="confirm-actions">
+      <button type="button" class="btn btn-secondary" (click)="cancelWithdrawal()">Cancel</button>
+
+      <button type="button" class="btn btn-primary" (click)="confirmWithdrawal()">Confirm</button>
+    </div>
+  </app-modal>
+}
