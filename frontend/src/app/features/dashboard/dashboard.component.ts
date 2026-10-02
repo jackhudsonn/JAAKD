@@ -1,4 +1,12 @@
-import { Component, ElementRef, signal, viewChild, viewChildren } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  OnInit,
+  inject,
+  signal,
+  viewChild,
+  viewChildren,
+} from '@angular/core';
 import { WidgetSelectorComponent } from './components/widget-selector/widget-selector.component';
 import { PortfolioValueWidgetComponent } from './widgets/portfolio-value/portfolio-value.component';
 import { OpenOrdersWidgetComponent } from './widgets/open-orders/open-orders.component';
@@ -9,10 +17,13 @@ import { PerformanceGraphWidgetComponent } from './widgets/performance-graph/per
 import { ToBeDeletedWidgetComponent } from './widgets/to-be-deleted/to-be-deleted.component';
 import { DashboardOverlaysComponent } from './components/overlays/dashboard-overlays.component';
 import { WidgetId, WIDGET_CATALOGUE } from './components/widget-selector/widget-selector.component';
+import { DASHBOARD_STATE_PORT } from './services/dashboard-state.port';
+import { BackendDashboardStateService } from './services/backend-dashboard-state.service';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
+  providers: [{ provide: DASHBOARD_STATE_PORT, useExisting: BackendDashboardStateService }],
   imports: [
     WidgetSelectorComponent,
     PortfolioValueWidgetComponent,
@@ -27,7 +38,9 @@ import { WidgetId, WIDGET_CATALOGUE } from './components/widget-selector/widget-
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css',
 })
-export class DashboardComponent {
+export class DashboardComponent implements OnInit {
+  readonly backendState = inject(BackendDashboardStateService);
+
   readonly overlays = viewChild(DashboardOverlaysComponent);
 
   // TODO: persist widget selection + order (e.g. localStorage or a
@@ -58,6 +71,10 @@ export class DashboardComponent {
   private static readonly EXIT_DURATION_MS = 260;
   private static readonly REFLOW_DURATION_MS = 320;
   private static readonly REFLOW_EASING = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
+
+  ngOnInit() {
+    void this.backendState.load();
+  }
 
   isEntering(id: WidgetId) {
     return this.enteringIds().has(id);

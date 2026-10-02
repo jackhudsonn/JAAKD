@@ -18,22 +18,21 @@ export interface DashboardStatePort {
   readonly dashboardOpenOrders: WritableSignal<MockOrder[]>;
   readonly returns: Readonly<typeof MOCK_RETURNS>;
   readonly watchlistConstraints: typeof WATCHLIST_CONSTRAINTS;
+  readonly backendDataMode?: boolean;
 }
 
-export const DASHBOARD_STATE_PORT = new InjectionToken<DashboardStatePort>(
-  'DASHBOARD_STATE_PORT',
-  {
-    providedIn: 'root',
-    factory: () => ({
-      accountCash: MOCK_STATE.accountCash,
-      holdings: MOCK_STATE.holdings,
-      orders: MOCK_STATE.orders,
-      transactions: MOCK_STATE.transactions,
-      watchlists: MOCK_STATE.watchlists,
-      activeWatchlistId: MOCK_STATE.activeWatchlistId,
-      dashboardOpenOrders: MOCK_STATE.dashboardOpenOrders,
-      returns: MOCK_RETURNS,
-      watchlistConstraints: WATCHLIST_CONSTRAINTS,
-    }),
-  },
-);
+export const DASHBOARD_STATE_PORT = new InjectionToken<DashboardStatePort>('DASHBOARD_STATE_PORT', {
+  providedIn: 'root',
+  factory: () => ({
+    accountCash: MOCK_STATE.accountCash,
+    holdings: MOCK_STATE.holdings,
+    orders: MOCK_STATE.orders,
+    transactions: MOCK_STATE.transactions,
+    watchlists: MOCK_STATE.watchlists,
+    activeWatchlistId: MOCK_STATE.activeWatchlistId,
+    dashboardOpenOrders: MOCK_STATE.dashboardOpenOrders,
+    returns: MOCK_RETURNS,
+    watchlistConstraints: WATCHLIST_CONSTRAINTS,
+    backendDataMode: false,
+  }),
+});

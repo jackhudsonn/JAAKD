@@ -9,18 +9,23 @@
 
     <div class="value-display" [class.fading]="returnsFading()">
       <p class="value-label">{{ activeReturnsLabel }}</p>
-      <p
-        class="value-amount returns-amount"
-        [class.positive]="returnsPositive"
-        [class.negative]="!returnsPositive"
-      >
-        {{ returnsPositive ? '+' : '' }}{{ activeReturnsAmount | number: '1.2-2' }}
-      </p>
+      @if (shouldShowReturnsUnavailableMessage) {
+        <p class="value-amount returns-amount unavailable">Not available yet</p>
+      } @else {
+        <p
+          class="value-amount returns-amount"
+          [class.positive]="returnsPositive"
+          [class.negative]="!returnsPositive"
+        >
+          {{ returnsPositive ? '+' : '' }}{{ activeReturnsAmount | number: '1.2-2' }}
+        </p>
+      }
     </div>
   </div>
 
   <p class="value-hint">
     <span>Total → Cash → Assets</span>
     <span>All-Time → Today</span>
+    <span>Prices are indicative.</span>
   </p>
 </app-widget-card>

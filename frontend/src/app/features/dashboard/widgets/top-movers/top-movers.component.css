@@ -41,3 +41,10 @@
 .amount.negative {
   color: var(--fail);
 }
+
+.indicative-note {
+  margin: var(--space-sm) 0 0;
+
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+}

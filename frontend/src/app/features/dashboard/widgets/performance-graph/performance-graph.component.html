@@ -1,40 +1,47 @@
-<app-widget-card title="Performance">
-  <div widget-actions class="value-summary">
-    <span class="amount">{{ endValue() | number: '1.2-2' }}</span>
-    <span class="change" [class.positive]="isPositive()" [class.negative]="!isPositive()">
-      {{ isPositive() ? '+$' : '' }}{{ changeAmount() | number: '1.2-2' }}
-    </span>
-  </div>
-
-  <app-line-chart [points]="series()" [positive]="isPositive()" />
-  <div class="performance-stats">
-    <div class="performance-stat">
-      <span class="stat-label">Period High</span>
-      <span class="stat-value"> ${{ highValue() | number: '1.2-2' }} </span>
-    </div>
-
-    <div class="performance-stat">
-      <span class="stat-label">Period Low</span>
-      <span class="stat-value"> ${{ lowValue() | number: '1.2-2' }} </span>
-    </div>
-
-    <div class="performance-stat">
-      <span class="stat-label">Period Change</span>
-      <span class="stat-value" [class.positive]="isPositive()" [class.negative]="!isPositive()">
-        {{ isPositive() ? '+' : '' }}{{ changePct() | number: '1.2-2' }}%
+@if (backendDataMode) {
+  <app-widget-card title="Performance">
+    <p class="unavailable-note">Performance history isn't available yet (needs live prices).</p>
+  </app-widget-card>
+} @else {
+  <app-widget-card title="Performance">
+    <div widget-actions class="value-summary">
+      <span class="amount">{{ endValue() | number: '1.2-2' }}</span>
+      <span class="change" [class.positive]="isPositive()" [class.negative]="!isPositive()">
+        {{ isPositive() ? '+$' : '' }}{{ changeAmount() | number: '1.2-2' }}
       </span>
     </div>
-  </div>
-  <div class="interval-tabs">
-    @for (interval of intervals; track interval.id) {
-      <button
-        type="button"
-        class="interval-tab"
-        [class.active]="selectedInterval() === interval.id"
-        (click)="selectInterval(interval.id)"
-      >
-        {{ interval.label }}
-      </button>
-    }
-  </div>
-</app-widget-card>
+
+    <app-line-chart [points]="series()" [positive]="isPositive()" />
+    <div class="performance-stats">
+      <div class="performance-stat">
+        <span class="stat-label">Period High</span>
+        <span class="stat-value"> ${{ highValue() | number: '1.2-2' }} </span>
+      </div>
+
+      <div class="performance-stat">
+        <span class="stat-label">Period Low</span>
+        <span class="stat-value"> ${{ lowValue() | number: '1.2-2' }} </span>
+      </div>
+
+      <div class="performance-stat">
+        <span class="stat-label">Period Change</span>
+        <span class="stat-value" [class.positive]="isPositive()" [class.negative]="!isPositive()">
+          {{ isPositive() ? '+' : '' }}{{ changePct() | number: '1.2-2' }}%
+        </span>
+      </div>
+    </div>
+    <div class="interval-tabs">
+      @for (interval of intervals; track interval.id) {
+        <button
+          type="button"
+          class="interval-tab"
+          [class.active]="selectedInterval() === interval.id"
+          (click)="selectInterval(interval.id)"
+        >
+          {{ interval.label }}
+        </button>
+      }
+    </div>
+    <p class="indicative-note">Prices are indicative.</p>
+  </app-widget-card>
+}
