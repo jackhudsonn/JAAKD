@@ -1,3 +1,4 @@
+import { DecimalPipe } from '@angular/common';
 import { Component, computed, inject, output, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
@@ -30,10 +31,15 @@ export interface AllocationAssetSelection {
   value: number;
 }
 
+interface UnavailablePriceHolding {
+  symbol: string;
+  quantity: number;
+}
+
 @Component({
   selector: 'app-allocation-by-asset-widget',
   standalone: true,
-  imports: [WidgetCardComponent, PieChartComponent],
+  imports: [WidgetCardComponent, PieChartComponent, DecimalPipe],
   templateUrl: './allocation-by-asset.component.html',
   styleUrl: './allocation-by-asset.component.css',
 })
@@ -73,7 +79,8 @@ export class AllocationByAssetWidgetComponent {
 
     for (const holding of this.holdings()) {
       const category = CATEGORY_BY_INSTRUMENT[holding.instrumentType];
-      const value = holding.quantity * this.marketData.getPrice(holding.symbol);
+      const value =
+        holding.quantity * (holding.indicativePrice ?? this.marketData.getPrice(holding.symbol));
       const existing = bySymbol.get(holding.symbol);
 
       bySymbol.set(holding.symbol, {
@@ -104,7 +111,9 @@ export class AllocationByAssetWidgetComponent {
         value: breakdowns[category].reduce((sum, slice) => sum + slice.value, 0),
         color: CATEGORY_COLORS[category],
       }))
-      .filter((slice) => slice.value > 0);
+      .filter(
+        (slice) => slice.value > 0 || breakdowns[slice.label as AllocationCategory].length > 0,
+      );
   });
 
   slices = computed<PieChartSlice[]>(() => {
@@ -113,7 +122,27 @@ export class AllocationByAssetWidgetComponent {
       return this.topLevelSlices();
     }
 
-    return this.breakdowns()[category].filter((slice) => slice.value > 0);
+    return this.breakdowns()[category];
+  });
+
+  unavailablePriceHoldings = computed<UnavailablePriceHolding[]>(() => {
+    const category = this.selectedCategory();
+    const rows: UnavailablePriceHolding[] = [];
+
+    for (const holding of this.holdings()) {
+      const matchesCategory =
+        !category || CATEGORY_BY_INSTRUMENT[holding.instrumentType] === category;
+      if (!matchesCategory || holding.priceStatus !== 'price unavailable') {
+        continue;
+      }
+
+      rows.push({
+        symbol: holding.symbol,
+        quantity: holding.quantity,
+      });
+    }
+
+    return rows;
   });
 
   onSliceClick(slice: PieChartSlice) {

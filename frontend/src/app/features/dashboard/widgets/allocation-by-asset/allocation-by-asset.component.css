@@ -14,6 +14,17 @@
   text-align: center;
 }
 
+.unavailable-prices {
+  margin-top: var(--space-sm);
+}
+
+.unavailable-price-row {
+  margin: var(--space-xxs) 0;
+
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+}
+
 .allocation-details {
   display: flex;
   flex-direction: column;
