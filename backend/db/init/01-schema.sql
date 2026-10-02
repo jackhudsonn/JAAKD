@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS sessions (
   "sessionID" UUID PRIMARY KEY,
   "userID" UUID NOT NULL,
-  "refreshToken" TEXT NULL, -- provider refresh token; null for the dev provider
+  "refreshToken" TEXT NULL, -- provider refresh token; null for the development provider
   "createdAt" TIMESTAMP NOT NULL DEFAULT now(),
   "expiresAt" TIMESTAMP NOT NULL
 );

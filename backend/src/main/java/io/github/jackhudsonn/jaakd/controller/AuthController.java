@@ -19,6 +19,7 @@ import io.github.jackhudsonn.jaakd.dto.auth.ChangePasswordRequest;
 import io.github.jackhudsonn.jaakd.dto.auth.LoginRequest;
 import io.github.jackhudsonn.jaakd.dto.auth.LoginResponse;
 import io.github.jackhudsonn.jaakd.dto.auth.RegisterRequest;
+import io.github.jackhudsonn.jaakd.exception.UnauthorizedException;
 import io.github.jackhudsonn.jaakd.model.Session;
 import io.github.jackhudsonn.jaakd.security.AuthenticatedUser;
 import io.github.jackhudsonn.jaakd.security.CurrentUserService;
@@ -42,7 +43,7 @@ public class AuthController {
 
     public AuthController(AuthService authService, CurrentUserService currentUserService,
             @Value("${auth.session.ttl:PT8H}") Duration sessionTtl,
-            @Value("${auth.session.cookie.secure:false}") boolean secureCookie) {
+            @Value("${auth.session.cookie.secure}") boolean secureCookie) {
         this.authService = authService;
         this.currentUserService = currentUserService;
         this.sessionTtl = sessionTtl;
@@ -81,8 +82,13 @@ public class AuthController {
 
     @PostMapping("/change-password")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void changePassword(@Valid @RequestBody ChangePasswordRequest request) {
-        authService.changePassword(currentUserService.getEmail(), request.currentPassword(), request.newPassword());
+    public void changePassword(@Valid @RequestBody ChangePasswordRequest request, HttpServletRequest httpRequest) {
+        AuthenticatedUser user = currentUserService.currentUser();
+        UUID sessionId = SessionAuthenticationFilter.readSessionId(httpRequest)
+                .orElseThrow(() -> new UnauthorizedException("no active session"));
+
+        authService.changePassword(user.userId(), sessionId, user.email(), request.currentPassword(),
+                request.newPassword());
     }
 
     private ResponseCookie sessionCookie(Session session) {

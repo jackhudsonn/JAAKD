@@ -122,25 +122,81 @@ else
   FAIL "GET /api/portfolios expected 200 got $GET_PORTFOLIOS_CODE"
 fi
 
-DEV_CRED_COUNT="$(docker exec jaakd-postgres psql -U postgres -d jaakd -t -A -c "SELECT COUNT(*) FROM dev_credentials WHERE email = '$TEST_EMAIL';")"
+DEV_CRED_COUNT="$(docker exec jaakd-postgres psql -U postgres -d jaakd -t -A -c "SELECT COUNT(*) FROM development_credentials WHERE email = '$TEST_EMAIL';")"
 if [[ "$DEV_CRED_COUNT" == "1" ]]; then
-  PASS "dev_credentials row exists for registered user"
+  PASS "development_credentials row exists for registered user"
 else
-  FAIL "Expected dev_credentials row count 1, got $DEV_CRED_COUNT"
+  FAIL "Expected development_credentials row count 1, got $DEV_CRED_COUNT"
 fi
 
-USER_ROW_COUNT="$(docker exec jaakd-postgres psql -U postgres -d jaakd -t -A -c "SELECT COUNT(*) FROM users u JOIN dev_credentials d ON d.\"userID\" = u.\"userID\" WHERE d.email = '$TEST_EMAIL';")"
+USER_ROW_COUNT="$(docker exec jaakd-postgres psql -U postgres -d jaakd -t -A -c "SELECT COUNT(*) FROM users u JOIN development_credentials d ON d.\"userID\" = u.\"userID\" WHERE d.email = '$TEST_EMAIL';")"
 if [[ "$USER_ROW_COUNT" == "1" ]]; then
   PASS "users row exists for registered user"
 else
   FAIL "Expected users row count 1, got $USER_ROW_COUNT"
 fi
 
-PROFILE_ROW_COUNT="$(docker exec jaakd-postgres psql -U postgres -d jaakd -t -A -c "SELECT COUNT(*) FROM profiles p JOIN dev_credentials d ON d.\"userID\" = p.\"userID\" WHERE d.email = '$TEST_EMAIL';")"
+PROFILE_ROW_COUNT="$(docker exec jaakd-postgres psql -U postgres -d jaakd -t -A -c "SELECT COUNT(*) FROM profiles p JOIN development_credentials d ON d.\"userID\" = p.\"userID\" WHERE d.email = '$TEST_EMAIL';")"
 if [[ "$PROFILE_ROW_COUNT" == "1" ]]; then
   PASS "profiles row exists for registered user"
 else
   FAIL "Expected profiles row count 1, got $PROFILE_ROW_COUNT"
+fi
+
+# Change-password revokes the caller's other sessions and keeps the caller signed in.
+COOKIE_JAR_SECOND="/tmp/jaakd-cookies-second.txt"
+NEW_PASSWORD="NewPassword456!"
+
+rm -f "$COOKIE_JAR_SECOND"
+SECOND_LOGIN_CODE="$(curl -s -o "$RESPONSE_FILE" -w "%{http_code}" -X POST "$BACKEND/auth/login" \
+  -H "Content-Type: application/json" -c "$COOKIE_JAR_SECOND" -d "$LOGIN_BODY")"
+if [[ "$SECOND_LOGIN_CODE" == "200" ]]; then
+  PASS "second login returns 200"
+else
+  FAIL "second login expected 200 got $SECOND_LOGIN_CODE"
+fi
+
+SECOND_SESSION_CODE="$(curl -s -o "$RESPONSE_FILE" -w "%{http_code}" -b "$COOKIE_JAR_SECOND" "$BACKEND/auth/session")"
+if [[ "$SECOND_SESSION_CODE" == "200" ]]; then
+  PASS "second session is authenticated"
+else
+  FAIL "second session expected 200 got $SECOND_SESSION_CODE"
+fi
+
+CHANGE_BODY="{\"currentPassword\":\"$TEST_PASSWORD\",\"newPassword\":\"$NEW_PASSWORD\"}"
+CHANGE_CODE="$(status_code POST "$BACKEND/auth/change-password" "$CHANGE_BODY")"
+if [[ "$CHANGE_CODE" == "204" ]]; then
+  PASS "POST /auth/change-password returns 204"
+else
+  FAIL "POST /auth/change-password expected 204 got $CHANGE_CODE"
+fi
+
+REVOKED_CODE="$(curl -s -o "$RESPONSE_FILE" -w "%{http_code}" -b "$COOKIE_JAR_SECOND" "$BACKEND/api/profile")"
+if [[ "$REVOKED_CODE" == "401" ]]; then
+  PASS "change-password revoked the other session"
+else
+  FAIL "other session after change-password expected 401 got $REVOKED_CODE"
+fi
+
+CURRENT_CODE="$(status_code GET "$BACKEND/api/profile")"
+if [[ "$CURRENT_CODE" == "200" ]]; then
+  PASS "change-password kept the caller signed in"
+else
+  FAIL "caller session after change-password expected 200 got $CURRENT_CODE"
+fi
+
+SESSION_ROW_COUNT="$(docker exec jaakd-postgres psql -U postgres -d jaakd -t -A -c "SELECT COUNT(*) FROM sessions s JOIN development_credentials d ON d.\"userID\" = s.\"userID\" WHERE d.email = '$TEST_EMAIL';")"
+if [[ "$SESSION_ROW_COUNT" == "1" ]]; then
+  PASS "one session row remains after change-password"
+else
+  FAIL "Expected 1 session row after change-password, got $SESSION_ROW_COUNT"
+fi
+
+OLD_PASSWORD_CODE="$(curl -s -o "$RESPONSE_FILE" -w "%{http_code}" -X POST "$BACKEND/auth/login" -H "Content-Type: application/json" -d "$LOGIN_BODY")"
+if [[ "$OLD_PASSWORD_CODE" == "401" ]]; then
+  PASS "the old password no longer signs in"
+else
+  FAIL "old password login expected 401 got $OLD_PASSWORD_CODE"
 fi
 
 LOGOUT_CODE="$(status_code POST "$BACKEND/auth/logout")"

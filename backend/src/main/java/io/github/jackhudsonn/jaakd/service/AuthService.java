@@ -3,7 +3,6 @@ package io.github.jackhudsonn.jaakd.service;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import io.github.jackhudsonn.jaakd.exception.ChallengeRequiredException;
 import io.github.jackhudsonn.jaakd.identity.IdentityProvider;
@@ -28,7 +27,9 @@ public class AuthService {
         identityProvider.register(email, password);
     }
 
-    @Transactional
+    // Deliberately not transactional: the provider call may be a network round
+    // trip, so it must not sit inside a database transaction. Provisioning and
+    // session creation each open their own transaction.
     public SignInResult signIn(String email, String password) {
         SignInOutcome outcome = identityProvider.signIn(email, password);
 
@@ -43,8 +44,15 @@ public class AuthService {
         };
     }
 
-    public void changePassword(String email, String currentPassword, String newPassword) {
+    // The provider changes the credential outside any transaction; only the
+    // session revocation that follows is transactional. If revocation fails
+    // after a successful change, the password is changed but the other sessions
+    // remain until they expire; there is no cross-system transaction to prevent
+    // that window.
+    public void changePassword(UUID userId, UUID currentSessionId, String email, String currentPassword,
+            String newPassword) {
         identityProvider.changePassword(email, currentPassword, newPassword);
+        sessionService.revokeOtherSessions(userId, currentSessionId);
     }
 
     public void signOut(UUID sessionId) {

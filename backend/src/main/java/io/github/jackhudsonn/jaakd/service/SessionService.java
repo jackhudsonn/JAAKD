@@ -54,9 +54,11 @@ public class SessionService {
         sessionRepository.deleteById(sessionId);
     }
 
+    // Ends every session for the user except the one making the request, so a
+    // password change signs out other devices without ending the caller's.
     @Transactional
-    public void deleteAllFor(UUID userId) {
-        sessionRepository.deleteByUserId(userId);
+    public void revokeOtherSessions(UUID userId, UUID currentSessionId) {
+        sessionRepository.deleteByUserIdAndSessionIdNot(userId, currentSessionId);
     }
 
     public Duration ttl() {

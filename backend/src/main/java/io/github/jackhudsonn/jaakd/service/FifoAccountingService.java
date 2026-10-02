@@ -4,7 +4,6 @@ import io.github.jackhudsonn.jaakd.exception.InvalidTradeException;
 import io.github.jackhudsonn.jaakd.model.Holding;
 import io.github.jackhudsonn.jaakd.model.LotMatch;
 import io.github.jackhudsonn.jaakd.model.OrderLog;
-import io.github.jackhudsonn.jaakd.model.OrderSide;
 import io.github.jackhudsonn.jaakd.model.OrderStatus;
 import io.github.jackhudsonn.jaakd.model.PositionLot;
 import io.github.jackhudsonn.jaakd.repository.HoldingRepository;

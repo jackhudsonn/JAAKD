@@ -18,9 +18,9 @@ services:
     volumes:
       - jaakd-postgres-data:/var/lib/postgresql/data
       - ./backend/db/init:/docker-entrypoint-initdb.d:ro
-      # Development-only credential store; applied by 02-dev-credentials.sh
+      # Development-only credential store; applied by 02-development-credentials.sh
       # and absent in production. Not part of the application schema.
-      - ./backend/db/dev:/opt/jaakd-dev:ro
+      - ./backend/db/development:/opt/jaakd-development:ro
 
   jaakd-backend:
     build:
@@ -35,7 +35,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://jaakd-postgres:5432/jaakd
       SPRING_DATASOURCE_USERNAME: jaakd_app
       SPRING_DATASOURCE_PASSWORD: ${JAAKD_APP_DB_PASSWORD}
-      IDENTITY_PROVIDER: dev
+      IDENTITY_PROVIDER: development
       AUTH_COOKIE_SECURE: "false"
     ports:
       - "8081:8081"

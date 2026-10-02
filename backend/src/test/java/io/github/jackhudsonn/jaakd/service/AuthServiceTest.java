@@ -24,6 +24,7 @@ import static org.mockito.Mockito.when;
 class AuthServiceTest {
 
     private static final UUID USER_ID = UUID.randomUUID();
+    private static final UUID SESSION_ID = UUID.randomUUID();
     private static final String EMAIL = "joanna@example.com";
 
     @Mock
@@ -66,6 +67,27 @@ class AuthServiceTest {
         verify(sessionService, never()).create(any(), any());
     }
 
+    @Test
+    void changePassword_revokesOtherSessionsAfterTheProviderChange() {
+        AuthService authService = new AuthService(providerThatReturns(new SignInOutcome.Authenticated(USER_ID, EMAIL)),
+                userProvisioner, sessionService);
+
+        authService.changePassword(USER_ID, SESSION_ID, EMAIL, "old-password", "new-password");
+
+        verify(sessionService).revokeOtherSessions(USER_ID, SESSION_ID);
+    }
+
+    @Test
+    void changePassword_doesNotRevokeWhenTheProviderRejects() {
+        AuthService authService = new AuthService(providerThatRejectsPasswordChange(), userProvisioner,
+                sessionService);
+
+        assertThrows(UnauthorizedException.class,
+                () -> authService.changePassword(USER_ID, SESSION_ID, EMAIL, "wrong-password", "new-password"));
+
+        verify(sessionService, never()).revokeOtherSessions(any(), any());
+    }
+
     private static IdentityProvider providerThatReturns(SignInOutcome outcome) {
         return new IdentityProvider() {
             @Override
@@ -100,6 +122,28 @@ class AuthServiceTest {
 
             @Override
             public void changePassword(String email, String currentPassword, String newPassword) {
+            }
+
+            @Override
+            public void signOut(String email) {
+            }
+        };
+    }
+
+    private static IdentityProvider providerThatRejectsPasswordChange() {
+        return new IdentityProvider() {
+            @Override
+            public void register(String email, String password) {
+            }
+
+            @Override
+            public SignInOutcome signIn(String email, String password) {
+                return new SignInOutcome.Authenticated(USER_ID, EMAIL);
+            }
+
+            @Override
+            public void changePassword(String email, String currentPassword, String newPassword) {
+                throw new UnauthorizedException("invalid email or password");
             }
 
             @Override

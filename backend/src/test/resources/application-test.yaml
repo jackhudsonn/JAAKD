@@ -12,4 +12,8 @@ spring:
                 default_schema: PUBLIC
                 globally_quoted_identifiers: true
 identity:
-    provider: dev
+    provider: development
+auth:
+    session:
+        cookie:
+            secure: false

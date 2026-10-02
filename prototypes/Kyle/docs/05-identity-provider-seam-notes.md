@@ -39,7 +39,7 @@ model. An interface replaces it.
   as `userID`, and `sub` is the identity claim. Switching providers therefore
   changes application identities — a migration event, not a runtime concern.
 - **Email is authentication-owned.** It lives with the provider (Cognito, or
-  the dev issuer's credential store) and reaches the application at sign-in.
+  the development issuer's credential store) and reaches the application at sign-in.
 - **Server-side sessions.** The browser holds only an opaque session cookie;
   JWTs never reach the frontend and become an internal detail of the backend's
   provider adapters.
@@ -51,8 +51,8 @@ only calls the backend at a configured URL.
 
 | Port                | Responsibility                                                  | Adapters                          |
 | ------------------- | --------------------------------------------------------------- | --------------------------------- |
-| `TokenAuthenticator`| Verify an incoming access token and return identity.            | JWKS-backed JWT (dev issuer, Cognito) |
-| `IdentityProvider`  | Credential and session operations: register, sign in, refresh, change password, sign out. | dev issuer, Cognito |
+| `TokenAuthenticator`| Verify an incoming access token and return identity.            | JWKS-backed JWT (development issuer, Cognito) |
+| `IdentityProvider`  | Credential and session operations: register, sign in, refresh, change password, sign out. | development issuer, Cognito |
 
 The browser path authenticates by session cookie, not by token, so
 `TokenAuthenticator` serves only non-browser consumers (a future mobile app, a
@@ -106,7 +106,7 @@ this note applies to all of them.
 | Frontend provider-aware | No | No | **Yes** |
 | Backend provider code | One adapter per provider | None (config only) | None |
 | Login UI | Your existing inline forms | Provider-hosted page | Provider SDK (Amplify) |
-| Dev work | Dev issuer service | Dev issuer service + login page | Dev issuer as OIDC provider |
+| Development work | Development issuer service | Development issuer service + login page | Development issuer as OIDC provider |
 | Verdict | **Recommended** | Purest; some UX change | Avoid unless required |
 
 ### Layout A — Backend-mediated (recommended)
@@ -116,7 +116,7 @@ is the only thing that knows which provider is configured.
 
 - Frontend: `AuthService` posts to `${environment.authUrl}/auth/...`. Only the
   URL varies per environment — the frontend never learns the provider.
-- Backend: `IdentityProvider` has a dev adapter (calls the dev issuer) and a
+- Backend: `IdentityProvider` has a development adapter (calls the development issuer) and a
   Cognito adapter (calls the user pool API). Selected by config.
 - Preserves current inline login/register forms and the current UX.
 
@@ -130,7 +130,7 @@ client, configured with issuer / authorize / token / JWKS URLs). No
 provider-specific backend code at all.
 
 - Login redirects to the provider's hosted page, then back with a code.
-- The dev issuer must serve a small `/authorize` login page.
+- The development issuer must serve a small `/authorize` login page.
 
 Cost: replaces inline forms with a redirect. Choose it only if that UX is
 acceptable and you want literally zero provider code.
@@ -168,12 +168,12 @@ identities — a migration event, not a runtime concern.
 Credentials live **with the adapter**:
 
 - Production: Amazon Cognito. The application schema has no credential table.
-- Development: the dev issuer's own store, created by the dev issuer's own
+- Development: the development issuer's own store, created by the development issuer's own
   migration and never referenced by application code.
 
 ```sql
 -- dev-issuer-owned migration; not applied in production
-CREATE TABLE IF NOT EXISTS dev_credentials (
+CREATE TABLE IF NOT EXISTS development_credentials (
   "userID" UUID PRIMARY KEY,
   email TEXT UNIQUE NOT NULL,
   "passwordHash" TEXT NOT NULL,
@@ -181,7 +181,7 @@ CREATE TABLE IF NOT EXISTS dev_credentials (
 );
 ```
 
-The two line up because the dev issuer mints the UUID and puts it in the
+The two line up because the development issuer mints the UUID and puts it in the
 identity claim; the application provisions its `users` row from that. In
 production the identity claim is Cognito's `sub` (or an application UUID the
 pool injects). Either way the application stores the value as `userID` and
@@ -193,7 +193,7 @@ Persistence is a property of **where state lives**, not of whether the dev
 issuer's process keeps running. Containers restart; that is normal, and in
 development as in production it is irrelevant when the state is external.
 
-- **Credentials and refresh tokens** persist if the dev issuer writes them to
+- **Credentials and refresh tokens** persist if the development issuer writes them to
   Postgres — which the current `auth-service` already does. A service restart
   loses nothing.
 - **The signing key** persists only if stored durably. Today it is a mounted
@@ -203,7 +203,7 @@ development as in production it is irrelevant when the state is external.
 - **The process** is not durable by design, and it is the only thing a restart
   loses — and only if state was kept in memory.
 
-So the persistent dev issuer is the default, and it is close to free because
+So the persistent development issuer is the default, and it is close to free because
 the database and key mount already exist. An in-memory mint is an
 **intentional exception** chosen for a disposable clean slate, not a
 persistence trade. If chosen, accept that a restart logs everyone out and
@@ -211,7 +211,7 @@ rotates the key.
 
 Caveat: Postgres persistence lasts only while the volume does; a
 `docker compose down -v` wipes it. Resetting dev data is often desirable, so
-treat the volume as disposable on purpose, not by accident. The dev issuer's
+treat the volume as disposable on purpose, not by accident. The development issuer's
 store is its own table (above), never the application schema.
 
 **Persisting users while discarding sessions** — the common development target
@@ -223,7 +223,7 @@ store is its own table (above), never the application schema.
    regenerated; the token's identity claim and the application's `users` row
    both key on it.
 3. A stable signing key with a **new `kid` every boot**, only if a bearer path
-   is retained. With server-side sessions the dev adapter returns an identity
+   is retained. With server-side sessions the development adapter returns an identity
    and no client-facing token, so no key or JWKS is needed.
 4. Idempotent provisioning: `ensureUser` treats an existing row as a no-op.
 
@@ -248,8 +248,9 @@ and are an internal detail of the backend's provider adapters.
 - **Session refresh.** The backend refreshes the provider token or extends the
   session on its own schedule. The browser is not involved and never sees a
   401 caused by token expiry.
-- **Sign out.** The backend deletes the session, revokes at the provider, and
-  clears the cookie.
+- **Sign out.** The backend deletes the session and clears the cookie.
+  Revoking the provider's own session is the adapter's concern and applies only
+  if we retain provider tokens (see "Session authority").
 
 What this settles:
 
@@ -282,6 +283,40 @@ Details to get right:
 If a non-browser client appears later, add a bearer path alongside sessions;
 `TokenAuthenticator` already exists for it.
 
+## Session authority
+
+The application's session is the authority for its own API; the provider is not
+consulted per request. That is the ordinary OIDC relationship, not a shortcut:
+the provider authenticates credentials and issues tokens, and the relying party
+establishes its own session afterwards. The provider does not enforce the
+application's authentication — even a gateway authorizer validates a presented
+token locally rather than calling the provider per request.
+
+So there are two independent stores with independent lifetimes:
+
+- the application's session row, which authorizes requests; and
+- the provider's own session and tokens, needed only to act as the user
+  elsewhere.
+
+Either may outlive the other, and that is expected — the same user may hold
+several sessions from several browsers, each with its own provider token.
+Treating them as a single object that must always agree is the mistake.
+
+What this costs is staleness: the application's session can outlive upstream
+truth (a revoked refresh token, a disabled or deleted account). The knobs are
+the session TTL and explicit revocation events — password change now, an
+administrative sign-out later — not a per-request provider call, which the
+provider does not offer. A client-presented token does not remove staleness
+either; it only shortens the window, because a revoked provider token still
+passes local signature verification until it expires.
+
+Provider tokens are retained only for calls made on the user's behalf (provider
+APIs that take the user's access token, or exchanging a token for cloud
+credentials). That is a concrete, later need: until a call needs a token the
+application stores none, and `sessions.refreshToken` stays unused. When it does,
+the tokens are stored for that purpose and their lifecycle belongs to the
+adapter; the session remains the authority for the application's own API.
+
 ## Backend auth routes
 
 The frontend keeps its shape; `environment.authUrl` points at the backend and
@@ -292,7 +327,8 @@ auth calls are sent with credentials. No route returns a token.
   cookie; `202 { challenge, continuation }` if the provider returns a
   challenge; `401` otherwise.
 - `POST /auth/challenge` `{ continuation, response }` → `200` (as login) or
-  `401`.
+  `401`. *(not implemented; only providers that challenge, such as an
+  MFA-capable pool, need it)*
 - `GET /auth/session` (cookie) → `200 { email }` or `401`.
 - `POST /auth/logout` (cookie) → `204`, clears the cookie.
 - `POST /auth/change-password` (cookie) `{ currentPassword, newPassword }` →
@@ -326,12 +362,12 @@ The frontend stays provider-blind; only the backend differs.
 
 | Flow | Development | Production |
 | --- | --- | --- |
-| Register | Frontend → backend → dev adapter stores the credential | Frontend → backend → Cognito stores the credential, may send a code |
-| Sign in | Frontend → backend → dev adapter checks the credential, backend starts a session | Frontend → backend → Cognito verifies, backend starts a session |
+| Register | Frontend → backend → development adapter stores the credential | Frontend → backend → Cognito stores the credential, may send a code |
+| Sign in | Frontend → backend → development adapter checks the credential, backend starts a session | Frontend → backend → Cognito verifies, backend starts a session |
 | Authenticated request | Browser sends the session cookie; backend resolves it to the user | Same |
 | Provisioning | Backend provisions the application `users` row from the provider response (which carries email) | Same |
 | Session refresh | Backend refreshes its own session; browser not involved | Same |
-| Change password | Dev adapter updates its store | Cognito `ChangePassword` |
+| Change password | Development adapter updates its store | Cognito `ChangePassword` |
 | Sign out | Backend deletes the session | Backend deletes the session |
 
 The environment is chosen once, at wiring. The core runs one path.
@@ -340,15 +376,15 @@ The environment is chosen once, at wiring. The core runs one path.
 
 1. Split the current shared `users` table: keep application facts
    (`userID`, roles, createdAt) in the application schema; move
-   `passwordHash` / `refreshToken` into the dev issuer's own store.
+   `passwordHash` / `refreshToken` into the development issuer's own store.
 2. Grant the backend `INSERT` on the application `users` table (it currently
    cannot write it), so `ensureUser` works.
 3. Add the session store and the cookie filter; make `CurrentUserService` read
    the session's `AuthenticatedUser`.
-4. Introduce `IdentityProvider` with the dev adapter first; point the frontend
-   at the backend for auth instead of calling the dev issuer directly.
+4. Introduce `IdentityProvider` with the development adapter first; point the frontend
+   at the backend for auth instead of calling the development issuer directly.
 5. Add the Cognito adapter and select it by config in production. Do not
-   deploy the dev issuer there.
+   deploy the development issuer there.
 6. Remove the frontend's bearer/refresh handling; keep `TokenAuthenticator`
    only if a non-browser consumer exists.
 
@@ -373,10 +409,10 @@ Drift happens on any of these axes:
 
 | Axis | Example | How it closes |
 | --- | --- | --- |
-| Claim name | Dev uses `sub`; Cognito puts the application UUID in `custom:userId`. | Name claims in configuration (`jwt.user-id-claim`, `jwt.email-claim`) so the difference is a reviewable value, not hidden code. |
-| Claim presence | Cognito access tokens omit top-level `email`; the dev issuer includes it. | Decide the email source once; both issuers must satisfy it (pool scope or trigger for Cognito, otherwise resolve from the application store). |
+| Claim name | Development uses `sub`; Cognito puts the application UUID in `custom:userId`. | Name claims in configuration (`jwt.user-id-claim`, `jwt.email-claim`) so the difference is a reviewable value, not hidden code. |
+| Claim presence | Cognito access tokens omit top-level `email`; the development issuer includes it. | Decide the email source once; both issuers must satisfy it (pool scope or trigger for Cognito, otherwise resolve from the application store). |
 | Claim meaning | Both use `sub`, but dev's is the application UUID and Cognito's is the pool UUID. | Fix the semantics once in the contract; provisioning is the only place that interprets it. |
-| Token flags | Cognito emits `token_use` / `client_id`; the dev issuer omits them. | Make the dev issuer emit the same claims so one validator serves both. |
+| Token flags | Cognito emits `token_use` / `client_id`; the development issuer omits them. | Make the development issuer emit the same claims so one validator serves both. |
 | TTL and skew | Different lifetimes, no tolerance for clock skew. | Set lifetimes and skew by configuration; keep them explicit. |
 
 The dangerous axis is **claim meaning**, because it fails silently: data can be
@@ -391,9 +427,9 @@ A contract test runs tokens from each issuer through the **same**
   missing identity claim or a malformed UUID must be rejected.
 - *Cross-issuer*: an integration test that fetches a real token from the
   configured issuer and runs it through the same authenticator. In development
-  this hits the dev issuer; in a staging pipeline it hits a test Cognito pool.
+  this hits the development issuer; in a staging pipeline it hits a test Cognito pool.
 
-The contract belongs to the application, not to Cognito: the dev token stays
+The contract belongs to the application, not to Cognito: the development token stays
 distinct (its own issuer and key), and the test only asserts that each issuer
 satisfies what the core requires.
 
@@ -405,7 +441,7 @@ satisfies what the core requires.
   core must not see provider-specific exceptions.
 - **Capability gaps.** If confirmation or MFA exists only in production,
   model it as an optional capability (`Challenge`) and skip it where absent —
-  never as a method the dev adapter silently fakes.
+  never as a method the development adapter silently fakes.
 - **Credentials in the schema.** The moment `passwordHash` reappears in the
   application `users` table, the environment has leaked into the model again.
 
@@ -415,7 +451,7 @@ satisfies what the core requires.
   seam is a port, not a column.
 - Do not add a provider SDK (Amplify) to the frontend while Layout A is in
   effect; the frontend stays provider-blind.
-- Do not let the backend sign tokens in development. The dev issuer signs and
+- Do not let the backend sign tokens in development. The development issuer signs and
   publishes JWKS; the backend only verifies.
 - Changing providers is an adapter and configuration change, not a schema
   change. If it starts to require schema changes, the design has drifted.
@@ -425,10 +461,10 @@ satisfies what the core requires.
 Done (development path):
 
 - Schema split: `users` holds no credentials; a `sessions` table added; the
-dev-only `dev_credentials` table lives in `backend/db/dev/` and is mounted
+dev-only `development_credentials` table lives in `backend/db/development/` and is mounted
 only in local development.
-- Backend: `IdentityProvider` port with `DevIdentityProvider` (bcrypt over
-  `dev_credentials`), `SessionService`, `SessionAuthenticationFilter`,
+- Backend: `IdentityProvider` port with `DevelopmentIdentityProvider` (bcrypt over
+  `development_credentials`), `SessionService`, `SessionAuthenticationFilter`,
   `UserProvisioner`, `AuthService`, and the `/auth/*` routes. Security is
   cookie-based; the JWT resource-server path was removed.
 - Frontend: `AuthService` talks to the backend with credentials; the

@@ -11,7 +11,6 @@ import io.github.jackhudsonn.jaakd.repository.LotMatchRepository;
 import io.github.jackhudsonn.jaakd.repository.PositionLotRepository;
 import io.github.jackhudsonn.jaakd.security.CurrentUserService;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -58,6 +58,8 @@ Fill all required values in `.env`:
 
 Use a different long random value for each, e.g. run `openssl rand -hex 32` on the Docker host once per value. Never commit `.env`.
 
+This root `.env` configures Docker Compose. Running the backend outside Docker uses a separate `backend/.env` (loaded by `spring.config.import`), because a host process reaches Postgres on `localhost:5433` rather than the compose service name.
+
 ### 2) Start backend stack
 
 ```bash

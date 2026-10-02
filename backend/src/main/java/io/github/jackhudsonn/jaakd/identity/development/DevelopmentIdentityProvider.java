@@ -1,4 +1,4 @@
-package io.github.jackhudsonn.jaakd.identity.dev;
+package io.github.jackhudsonn.jaakd.identity.development;
 
 import java.util.List;
 import java.util.Map;
@@ -15,20 +15,20 @@ import io.github.jackhudsonn.jaakd.exception.UnauthorizedException;
 import io.github.jackhudsonn.jaakd.identity.IdentityProvider;
 import io.github.jackhudsonn.jaakd.identity.SignInOutcome;
 
-// Development adapter backed by the dev-only dev_credentials table. It verifies
-// credentials and returns an identity; it issues no tokens, because the
-// application owns sessions.
+// Development adapter backed by the development-only development_credentials
+// table. It verifies credentials and returns an identity; it issues no tokens,
+// because the application owns sessions.
 @Component
-@ConditionalOnProperty(name = "identity.provider", havingValue = "dev", matchIfMissing = true)
-public class DevIdentityProvider implements IdentityProvider {
+@ConditionalOnProperty(name = "identity.provider", havingValue = "development")
+public class DevelopmentIdentityProvider implements IdentityProvider {
 
     private static final String SELECT_BY_EMAIL =
-            "SELECT \"userID\", \"passwordHash\" FROM dev_credentials WHERE email = ?";
+            "SELECT \"userID\", \"passwordHash\" FROM development_credentials WHERE email = ?";
 
     private final JdbcTemplate jdbcTemplate;
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
-    public DevIdentityProvider(JdbcTemplate jdbcTemplate) {
+    public DevelopmentIdentityProvider(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
@@ -36,12 +36,12 @@ public class DevIdentityProvider implements IdentityProvider {
     public void register(String email, String password) {
         String normalized = normalize(email);
 
-        if (!jdbcTemplate.queryForList("SELECT 1 FROM dev_credentials WHERE email = ?", normalized).isEmpty()) {
+        if (!jdbcTemplate.queryForList("SELECT 1 FROM development_credentials WHERE email = ?", normalized).isEmpty()) {
             throw new ConflictException("email already registered");
         }
 
         jdbcTemplate.update(
-                "INSERT INTO dev_credentials (\"userID\", email, \"passwordHash\") VALUES (?, ?, ?)",
+                "INSERT INTO development_credentials (\"userID\", email, \"passwordHash\") VALUES (?, ?, ?)",
                 UUID.randomUUID(), normalized, passwordEncoder.encode(password));
     }
 
@@ -65,7 +65,7 @@ public class DevIdentityProvider implements IdentityProvider {
         }
 
         jdbcTemplate.update(
-                "UPDATE dev_credentials SET \"passwordHash\" = ? WHERE email = ?",
+                "UPDATE development_credentials SET \"passwordHash\" = ? WHERE email = ?",
                 passwordEncoder.encode(newPassword), normalize(email));
     }
 

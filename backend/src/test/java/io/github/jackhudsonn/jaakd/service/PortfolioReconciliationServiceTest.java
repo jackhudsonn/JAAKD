@@ -10,7 +10,6 @@ import io.github.jackhudsonn.jaakd.model.OrderSide;
 import io.github.jackhudsonn.jaakd.model.OrderStatus;
 import io.github.jackhudsonn.jaakd.model.Portfolio;
 import io.github.jackhudsonn.jaakd.model.Profile;
-import io.github.jackhudsonn.jaakd.model.UserType;
 import io.github.jackhudsonn.jaakd.repository.HoldingRepository;
 import io.github.jackhudsonn.jaakd.repository.OrderLogRepository;
 import io.github.jackhudsonn.jaakd.repository.PortfolioRepository;

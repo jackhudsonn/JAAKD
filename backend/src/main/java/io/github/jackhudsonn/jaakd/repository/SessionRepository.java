@@ -7,6 +7,5 @@ import io.github.jackhudsonn.jaakd.model.Session;
 import java.util.UUID;
 
 public interface SessionRepository extends JpaRepository<Session, UUID> {
-
-    void deleteByUserId(UUID userId);
+    void deleteByUserIdAndSessionIdNot(UUID userId, UUID sessionId);
 }
