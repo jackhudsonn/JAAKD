@@ -44,7 +44,7 @@ spring:
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
-        spring.json.trusted.packages: io.github.jackhudsonn.jaakd
+        spring.json.trusted.packages: io.github.jackhudsonn.jaakd.event
 jwt:
   shared-secret: ${JWT_SECRET}
 springdoc:
