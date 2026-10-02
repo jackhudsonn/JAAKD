@@ -12,6 +12,7 @@ import io.github.jackhudsonn.jaakd.model.Portfolio;
 import io.github.jackhudsonn.jaakd.model.Profile;
 import io.github.jackhudsonn.jaakd.model.UserType;
 import io.github.jackhudsonn.jaakd.repository.HoldingRepository;
+import io.github.jackhudsonn.jaakd.repository.InstrumentRepository;
 import io.github.jackhudsonn.jaakd.repository.OrderLogRepository;
 import io.github.jackhudsonn.jaakd.repository.PortfolioRepository;
 import org.junit.jupiter.api.Test;
@@ -46,6 +47,9 @@ class PortfolioReconciliationServiceTest {
     private HoldingRepository holdingRepository;
 
     @Mock
+    private InstrumentRepository instrumentRepository;
+
+    @Mock
     private PrivilegedAccessService privilegedAccessService;
 
     @InjectMocks
@@ -58,11 +62,12 @@ class PortfolioReconciliationServiceTest {
         UUID cashId = UUID.randomUUID();
 
         Portfolio portfolio = buildPortfolio(portfolioId);
+        Instrument cashInstrument = buildCashInstrument(cashId, "USD");
 
         List<OrderLog> executedLogs = List.of(
             buildExecutedLog(portfolio, equityId, OrderSide.BUY, 100, 110),
             buildExecutedLog(portfolio, equityId, OrderSide.SELL, 40, 120),
-            buildExecutedLog(portfolio, cashId, OrderSide.DEPOSIT, 1000, 1),
+            buildExecutedLog(portfolio, cashId, OrderSide.DEPOSIT, 20000, 1),
             buildExecutedLog(portfolio, cashId, OrderSide.WITHDRAW, 250, 1)
         );
 
@@ -71,10 +76,12 @@ class PortfolioReconciliationServiceTest {
         equityHolding.setCumulativeRealizedPnl(new BigDecimal("400.0"));
 
         Holding cashHolding = new Holding(UUID.randomUUID(), portfolioId, cashId);
-        cashHolding.setCurrentQuantity(new BigDecimal("750.0"));
+        cashHolding.setCurrentQuantity(new BigDecimal("13550.0"));
         cashHolding.setCumulativeRealizedPnl(BigDecimal.ZERO);
 
         when(portfolioRepository.findById(portfolioId)).thenReturn(Optional.of(portfolio));
+        when(instrumentRepository.findByTickerIgnoreCaseAndInstrumentClass("USD", InstrumentClass.CASH))
+            .thenReturn(Optional.of(cashInstrument));
         when(orderLogRepository.findByPortfolioPortfolioIdAndStatusOrderByTimestampAsc(portfolioId, OrderStatus.EXECUTED))
             .thenReturn(executedLogs);
         when(holdingRepository.findByPortfolioID(portfolioId)).thenReturn(List.of(equityHolding, cashHolding));
@@ -93,6 +100,7 @@ class PortfolioReconciliationServiceTest {
         UUID cashId = UUID.randomUUID();
 
         Portfolio portfolio = buildPortfolio(portfolioId);
+        Instrument cashInstrument = buildCashInstrument(cashId, "USD");
 
         List<OrderLog> executedLogs = List.of(
             buildExecutedLog(portfolio, cashId, OrderSide.DEPOSIT, 1000, 1),
@@ -104,6 +112,8 @@ class PortfolioReconciliationServiceTest {
         cashHolding.setCumulativeRealizedPnl(BigDecimal.ZERO);
 
         when(portfolioRepository.findById(portfolioId)).thenReturn(Optional.of(portfolio));
+        when(instrumentRepository.findByTickerIgnoreCaseAndInstrumentClass("USD", InstrumentClass.CASH))
+            .thenReturn(Optional.of(cashInstrument));
         when(orderLogRepository.findByPortfolioPortfolioIdAndStatusOrderByTimestampAsc(portfolioId, OrderStatus.EXECUTED))
             .thenReturn(executedLogs);
         when(holdingRepository.findByPortfolioID(portfolioId)).thenReturn(List.of(cashHolding));
@@ -131,6 +141,12 @@ class PortfolioReconciliationServiceTest {
         Portfolio portfolio = new Portfolio(profile);
         setField(portfolio, "portfolioId", portfolioId);
         return portfolio;
+    }
+
+    private Instrument buildCashInstrument(UUID instrumentId, String ticker) throws Exception {
+        Instrument instrument = new Instrument(ticker, "CASH", ticker + " Cash", InstrumentClass.CASH);
+        setField(instrument, "instrumentId", instrumentId);
+        return instrument;
     }
 
     private OrderLog buildExecutedLog(

@@ -326,14 +326,15 @@ class ValidationServiceTest {
         OrderLog pending = buildOrderLog(orderId, logOrderId, OrderStatus.PENDING);
         pending.setQuotedPrice(10.0);
 
-        Instrument cashInstrument = new Instrument("USD_CASH", "USD", "US Dollar Cash Balance", InstrumentClass.USD);
+        Instrument cashInstrument = new Instrument("USD", "USD", "US Dollar Cash Balance", InstrumentClass.CASH);
         setField(cashInstrument, "instrumentId", cashInstrumentId);
 
         Holding cashHolding = new Holding(UUID.randomUUID(), portfolioId, cashInstrumentId);
         cashHolding.setCurrentQuantity(new BigDecimal("40"));
 
         when(orderLogService.appendPendingFromSystem(orderId, logOrderId)).thenReturn(pending);
-        when(instrumentRepository.findByTickerIgnoreCase("USD_CASH")).thenReturn(Optional.of(cashInstrument));
+        when(instrumentRepository.findByTickerIgnoreCaseAndInstrumentClass("USD", InstrumentClass.CASH))
+            .thenReturn(Optional.of(cashInstrument));
         when(holdingRepository.findByPortfolioIDAndInstrumentID(portfolioId, cashInstrumentId))
             .thenReturn(Optional.of(cashHolding));
         when(orderLogService.appendRejectedFromSystem(orderId, logOrderId, "Cannot buy more than current cash quantity"))
@@ -380,14 +381,15 @@ class ValidationServiceTest {
         OrderLog pending = buildOrderLog(orderId, logOrderId, OrderStatus.PENDING);
         pending.setQuotedPrice(10.0);
 
-        Instrument cashInstrument = new Instrument("USD_CASH", "USD", "US Dollar Cash Balance", InstrumentClass.USD);
+        Instrument cashInstrument = new Instrument("USD", "USD", "US Dollar Cash Balance", InstrumentClass.CASH);
         setField(cashInstrument, "instrumentId", cashInstrumentId);
 
         Holding cashHolding = new Holding(UUID.randomUUID(), portfolioId, cashInstrumentId);
         cashHolding.setCurrentQuantity(new BigDecimal("100"));
 
         when(orderLogService.appendPendingFromSystem(orderId, logOrderId)).thenReturn(pending);
-        when(instrumentRepository.findByTickerIgnoreCase("USD_CASH")).thenReturn(Optional.of(cashInstrument));
+        when(instrumentRepository.findByTickerIgnoreCaseAndInstrumentClass("USD", InstrumentClass.CASH))
+            .thenReturn(Optional.of(cashInstrument));
         when(holdingRepository.findByPortfolioIDAndInstrumentID(portfolioId, cashInstrumentId))
             .thenReturn(Optional.of(cashHolding));
         when(orderLogService.appendAcceptedFromSystem(orderId, logOrderId))

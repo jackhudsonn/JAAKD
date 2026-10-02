@@ -145,7 +145,7 @@ class OrderLogExecutionIntegrationTest {
             equityInstrument.getInstrumentId()
         ).orElseThrow();
 
-        assertEquals(new BigDecimal("4000.0"), cashHolding.getCurrentQuantity());
+        assertEquals(new BigDecimal("3300.00"), cashHolding.getCurrentQuantity());
         assertEquals(new BigDecimal("7.0"), equityHolding.getCurrentQuantity());
         assertEquals(new BigDecimal("0.00"), equityHolding.getCumulativeRealizedPnl().setScale(2));
 
@@ -302,7 +302,7 @@ class OrderLogExecutionIntegrationTest {
     }
 
     private Instrument createCashInstrument() {
-        Instrument instrument = new Instrument("USD_CASH", "CASH", "US Dollar Cash", InstrumentClass.USD);
+        Instrument instrument = new Instrument("USD", "CASH", "US Dollar Cash", InstrumentClass.CASH);
         entityManager.persist(instrument);
         entityManager.flush();
         return instrument;

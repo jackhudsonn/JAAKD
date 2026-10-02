@@ -2,12 +2,15 @@ package io.github.jackhudsonn.jaakd.service;
 
 import io.github.jackhudsonn.jaakd.exception.InvalidTradeException;
 import io.github.jackhudsonn.jaakd.model.Holding;
+import io.github.jackhudsonn.jaakd.model.Instrument;
+import io.github.jackhudsonn.jaakd.model.InstrumentClass;
 import io.github.jackhudsonn.jaakd.model.LotMatch;
 import io.github.jackhudsonn.jaakd.model.OrderLog;
 import io.github.jackhudsonn.jaakd.model.OrderSide;
 import io.github.jackhudsonn.jaakd.model.OrderStatus;
 import io.github.jackhudsonn.jaakd.model.PositionLot;
 import io.github.jackhudsonn.jaakd.repository.HoldingRepository;
+import io.github.jackhudsonn.jaakd.repository.InstrumentRepository;
 import io.github.jackhudsonn.jaakd.repository.LotMatchRepository;
 import io.github.jackhudsonn.jaakd.repository.PositionLotRepository;
 import org.springframework.stereotype.Service;
@@ -20,6 +23,10 @@ import java.util.UUID;
 @Service
 public class FifoAccountingService {
 
+    private static final String[] CASH_TICKER_PRIORITY = {"USD", "GBP", "RUP"};
+    private static final String REASON_CASH_INSTRUMENT_NOT_CONFIGURED = "Cash instrument is not configured";
+    private static final String REASON_INSUFFICIENT_BUY_CASH = "Cannot buy more than current cash quantity";
+
     public record ExecutionOutcome(boolean succeeded, String failureReason, Double executionPriceUsed) {
         public static ExecutionOutcome success(Double executionPriceUsed) {
             return new ExecutionOutcome(true, null, executionPriceUsed);
@@ -31,17 +38,20 @@ public class FifoAccountingService {
     }
 
     private final HoldingRepository holdingRepository;
+    private final InstrumentRepository instrumentRepository;
     private final PositionLotRepository positionLotRepository;
     private final LotMatchRepository lotMatchRepository;
     private final QuoteService quoteService;
 
     public FifoAccountingService(
         HoldingRepository holdingRepository,
+        InstrumentRepository instrumentRepository,
         PositionLotRepository positionLotRepository,
         LotMatchRepository lotMatchRepository,
         QuoteService quoteService
     ) {
         this.holdingRepository = holdingRepository;
+        this.instrumentRepository = instrumentRepository;
         this.positionLotRepository = positionLotRepository;
         this.lotMatchRepository = lotMatchRepository;
         this.quoteService = quoteService;
@@ -104,6 +114,17 @@ public class FifoAccountingService {
         holding.setCurrentQuantity(currentQuantity.add(quantity));
         holding.setUpdatedAt(LocalDateTime.now());
         holdingRepository.save(holding);
+
+        Holding cashHolding = resolveOrCreateCashHolding(orderLog);
+        BigDecimal tradeNotional = quantity.multiply(unitCost);
+        BigDecimal currentCash = safe(cashHolding.getCurrentQuantity());
+        if (currentCash.compareTo(tradeNotional) < 0) {
+            throw new InvalidTradeException(REASON_INSUFFICIENT_BUY_CASH);
+        }
+
+        cashHolding.setCurrentQuantity(currentCash.subtract(tradeNotional));
+        cashHolding.setUpdatedAt(LocalDateTime.now());
+        holdingRepository.save(cashHolding);
     }
 
     private void applySell(OrderLog orderLog, Double executionPrice) {
@@ -170,6 +191,13 @@ public class FifoAccountingService {
         holding.setCumulativeRealizedPnl(safe(holding.getCumulativeRealizedPnl()).add(realizedTotal));
         holding.setUpdatedAt(LocalDateTime.now());
         holdingRepository.save(holding);
+
+        Holding cashHolding = resolveOrCreateCashHolding(orderLog);
+        BigDecimal currentCash = safe(cashHolding.getCurrentQuantity());
+        BigDecimal tradeNotional = sellQuantity.multiply(sellUnitPrice);
+        cashHolding.setCurrentQuantity(currentCash.add(tradeNotional));
+        cashHolding.setUpdatedAt(LocalDateTime.now());
+        holdingRepository.save(cashHolding);
     }
 
     private void applyDeposit(OrderLog orderLog) {
@@ -209,6 +237,27 @@ public class FifoAccountingService {
 
         return holdingRepository.findByPortfolioIDAndInstrumentID(portfolioId, instrumentId)
             .orElseThrow(() -> new InvalidTradeException("Cannot sell without an existing holding"));
+    }
+
+    private Holding resolveOrCreateCashHolding(OrderLog orderLog) {
+        UUID portfolioId = orderLog.getPortfolio().getPortfolioId();
+        Instrument cashInstrument = resolveCashInstrument();
+
+        return holdingRepository.findByPortfolioIDAndInstrumentID(portfolioId, cashInstrument.getInstrumentId())
+            .orElseGet(() -> holdingRepository.save(new Holding(portfolioId, cashInstrument.getInstrumentId())));
+    }
+
+    private Instrument resolveCashInstrument() {
+        for (String ticker : CASH_TICKER_PRIORITY) {
+            Instrument found = instrumentRepository
+                .findByTickerIgnoreCaseAndInstrumentClass(ticker, InstrumentClass.CASH)
+                .orElse(null);
+            if (found != null) {
+                return found;
+            }
+        }
+
+        throw new InvalidTradeException(REASON_CASH_INSTRUMENT_NOT_CONFIGURED);
     }
 
     private BigDecimal safe(BigDecimal value) {

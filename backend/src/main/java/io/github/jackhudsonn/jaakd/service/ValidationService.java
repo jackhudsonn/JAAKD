@@ -6,6 +6,7 @@ import io.github.jackhudsonn.jaakd.event.OrderRejectedEvent;
 import io.github.jackhudsonn.jaakd.event.OrderSubmittedEvent;
 import io.github.jackhudsonn.jaakd.model.Holding;
 import io.github.jackhudsonn.jaakd.model.Instrument;
+import io.github.jackhudsonn.jaakd.model.InstrumentClass;
 import io.github.jackhudsonn.jaakd.model.OrderLog;
 import io.github.jackhudsonn.jaakd.model.OrderSide;
 import io.github.jackhudsonn.jaakd.model.OrderStatus;
@@ -30,7 +31,7 @@ import java.util.Optional;
  * 4) ACCEPTED remains best-effort and does not guarantee eventual execution.
  */
 public class ValidationService {
-    private static final String CASH_TICKER = "USD_CASH";
+    private static final String[] CASH_TICKER_PRIORITY = {"USD", "GBP", "RUP"};
     private static final String REASON_NON_POSITIVE_QUANTITY = "Quantity must be greater than zero";
     private static final String REASON_CASH_INSTRUMENT_NOT_CONFIGURED = "Cash instrument is not configured";
     private static final String REASON_HOLDING_REQUIRED_FOR_BUY = "Cannot buy without an existing cash holding";
@@ -126,7 +127,7 @@ public class ValidationService {
     }
 
     private String validateBuy(OrderSubmittedEvent event, OrderLog pendingOrderLog) {
-        Optional<Instrument> maybeCashInstrument = instrumentRepository.findByTickerIgnoreCase(CASH_TICKER);
+        Optional<Instrument> maybeCashInstrument = resolveCashInstrument();
         if (maybeCashInstrument.isEmpty()) {
             return REASON_CASH_INSTRUMENT_NOT_CONFIGURED;
         }
@@ -153,6 +154,18 @@ public class ValidationService {
         }
 
         return null;
+    }
+
+    private Optional<Instrument> resolveCashInstrument() {
+        for (String ticker : CASH_TICKER_PRIORITY) {
+            Optional<Instrument> found = instrumentRepository
+                .findByTickerIgnoreCaseAndInstrumentClass(ticker, InstrumentClass.CASH);
+            if (found.isPresent()) {
+                return found;
+            }
+        }
+
+        return Optional.empty();
     }
 
     private String validateWithdraw(OrderSubmittedEvent event) {
