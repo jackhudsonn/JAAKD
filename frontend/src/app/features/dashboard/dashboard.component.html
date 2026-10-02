@@ -4,6 +4,9 @@
       <!-- <h1>Dashboard</h1> -->
 
       <p class="page-description">Insights into your portfolio.</p>
+      @if (backendState.loadState() === 'error') {
+        <p class="page-description">We couldn't load your portfolio. Try refreshing.</p>
+      }
     </div>
 
     <div class="dashboard-toolbar">

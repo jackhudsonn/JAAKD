@@ -74,6 +74,21 @@
   border-color: var(--primary-dark);
   color: #1f1f1f;
 }
+
+.indicative-note {
+  margin: var(--space-sm) 0 0;
+
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.unavailable-note {
+  margin: var(--space-md) 0;
+
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
 .performance-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
