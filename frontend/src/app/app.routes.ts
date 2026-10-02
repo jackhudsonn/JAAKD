@@ -54,6 +54,11 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/profile/profile.component').then((m) => m.ProfileComponent),
       },
+      {
+        path: 'payment-methods',
+        loadComponent: () =>
+          import('./features/payment/payment.component').then((m) => m.PaymentComponent),
+      },
     ],
   },
   { path: '**', redirectTo: '' },

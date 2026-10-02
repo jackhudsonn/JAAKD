@@ -36,6 +36,8 @@
 
   <app-scrollable-list
     [items]="rows()"
+    [minHeight]="watchlistListMinHeight"
+    [maxHeight]="watchlistListMaxHeight"
     [trackBy]="trackBySymbol"
     emptyMessage="Your watchlist is empty."
   >

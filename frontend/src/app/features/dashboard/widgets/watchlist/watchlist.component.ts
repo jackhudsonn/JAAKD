@@ -24,6 +24,9 @@ export class WatchlistWidgetComponent implements OnInit, OnDestroy {
   private readonly marketData = inject(DASHBOARD_MARKET_DATA_PORT);
   private readonly state = inject(DASHBOARD_STATE_PORT);
 
+  readonly watchlistListMinHeight = '255px';
+  readonly watchlistListMaxHeight = '255px';
+
   watchlists = this.state.watchlists;
   activeWatchlistId = this.state.activeWatchlistId;
 

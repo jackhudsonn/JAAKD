@@ -94,6 +94,10 @@
   color: var(--fail);
 }
 
+.transaction-type.exchange {
+  color: var(--primary);
+}
+
 .transaction-amount {
   color: var(--secondary-light);
   font-weight: 700;

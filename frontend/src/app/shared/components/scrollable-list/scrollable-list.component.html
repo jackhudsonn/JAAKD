@@ -1,4 +1,4 @@
-<div class="scrollable-list">
+<div class="scrollable-list" [style.min-height]="minHeight()" [style.max-height]="maxHeight()">
   @if (items().length === 0) {
     <p class="scrollable-list-empty">{{ emptyMessage() }}</p>
   } @else {

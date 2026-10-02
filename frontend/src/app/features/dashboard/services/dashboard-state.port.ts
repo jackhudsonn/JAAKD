@@ -1,11 +1,6 @@
 import { InjectionToken, WritableSignal } from '@angular/core';
-import {
-  MOCK_RETURNS,
-  MOCK_STATE,
-  MockOrder,
-  SharedWatchlist,
-  WATCHLIST_CONSTRAINTS,
-} from '@core/mocks/mock-data';
+import { MOCK_RETURNS, MOCK_STATE, MockOrder } from '@core/mocks/state.mock';
+import { SharedWatchlist, WATCHLIST_CONSTRAINTS } from '@core/mocks/watchlist.mock';
 import { Holding, Order, Transaction } from '@core/models';
 
 export interface DashboardStatePort {
@@ -13,6 +8,8 @@ export interface DashboardStatePort {
   readonly holdings: WritableSignal<Holding[]>;
   readonly orders: WritableSignal<Order[]>;
   readonly transactions: WritableSignal<Transaction[]>;
+  // CONTRACT_DIFF: UI state is modeled as named watchlists with variable symbol counts.
+  // Backend may need a watchlist aggregate endpoint/model beyond item-level rows.
   readonly watchlists: WritableSignal<SharedWatchlist[]>;
   readonly activeWatchlistId: WritableSignal<string>;
   readonly dashboardOpenOrders: WritableSignal<MockOrder[]>;

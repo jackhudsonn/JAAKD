@@ -12,7 +12,13 @@
     }
   </select>
 
-  <app-scrollable-list [items]="rows()" [trackBy]="trackByRow" emptyMessage="No holdings yet.">
+  <app-scrollable-list 
+    [items]="rows()" 
+    [trackBy]="trackByRow" 
+    [minHeight]="holdingsListMinHeight"
+    [maxHeight]="holdingsListMaxHeight"
+    emptyMessage="No holdings yet."
+    >
     <ng-template let-row>
       @if (row.kind === 'cash') {
         <button type="button" class="listing-row selectable" (click)="goToTransact()">

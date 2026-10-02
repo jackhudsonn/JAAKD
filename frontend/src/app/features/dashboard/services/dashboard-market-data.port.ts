@@ -9,7 +9,7 @@ import {
   getAsset,
   getMockPerformanceSeries,
   getMockPrice,
-} from '@core/mocks/mock-data';
+} from '@core/mocks/market-reference.mock';
 import { LineChartPoint } from '@shared/components/line-chart/line-chart.component';
 
 export interface DashboardMarketAsset {
