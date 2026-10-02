@@ -15,7 +15,7 @@ interface InstrumentResponse {
   ticker: string;
   market: string;
   name: string;
-  instrumentClass: 'ETF' | 'EQUITY' | 'STOCK' | 'BOND' | 'USD' | 'GBP' | 'CRYPTO';
+  instrumentClass: 'ETF' | 'EQUITY' | 'STOCK' | 'BOND' | 'CASH' | 'CRYPTO';
   logoUrl: string | null;
   description: string | null;
 }
@@ -139,9 +139,7 @@ export class OrderLifecycleLabComponent implements OnInit, OnDestroy {
   readonly cashInstruments = computed(() =>
     this.instruments().filter(
       (instrument) =>
-        instrument.instrumentClass === 'USD' ||
-        instrument.instrumentClass === 'GBP' ||
-        instrument.ticker.toUpperCase().includes('CASH'),
+        instrument.instrumentClass === 'CASH'
     ),
   );
 
