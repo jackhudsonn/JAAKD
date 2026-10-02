@@ -39,13 +39,15 @@ export interface MarketQuote {
   changePct: number;
 }
 
-export type TransactionType = 'deposit' | 'withdrawal';
+export type TransactionType = 'deposit' | 'withdrawal' | 'exchange';
 export type PaymentMethod = 'bank_transfer' | 'card' | 'crypto_wallet';
 export type TransactionStatus = 'pending' | 'completed' | 'failed' | 'cancelled';
 
 export interface Transaction {
   id: string;
   type: TransactionType;
+  /** Optional display label for exchange rows (example: USD → INR). */
+  typeLabel?: string;
   amount: number;
   method: PaymentMethod;
   status: TransactionStatus;

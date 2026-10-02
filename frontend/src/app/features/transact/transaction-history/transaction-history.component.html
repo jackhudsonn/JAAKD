@@ -9,6 +9,7 @@
       <option value="all">All Types</option>
       <option value="deposit">Deposit</option>
       <option value="withdrawal">Withdrawal</option>
+      <option value="exchange">Exchange</option>
     </select>
 
     <select
@@ -58,12 +59,15 @@
           class="transaction-type"
           [class.deposit]="transaction.type === 'deposit'"
           [class.withdrawal]="transaction.type === 'withdrawal'"
+          [class.exchange]="transaction.type === 'exchange'"
         >
           {{ formatLabel(transaction.type) }}
         </span>
 
         <span class="transaction-amount">${{ transaction.amount | number: '1.2-2' }}</span>
-        <span class="transaction-method">{{ formatLabel(transaction.method) }}</span>
+        <span class="transaction-method">
+          {{ transaction.type === 'exchange' ? transaction.typeLabel : formatLabel(transaction.method) }}
+        </span>
         <app-status-badge [status]="transaction.status" />
       </div>
     </ng-template>

@@ -34,6 +34,8 @@ import { NgTemplateOutlet } from '@angular/common';
 export class ScrollableListComponent<T> {
   items = input.required<readonly T[]>();
   emptyMessage = input('Nothing to display.');
+  minHeight = input('0px');
+  maxHeight = input('260px');
 
   // Identity function used for @for's track expression. Defaults to
   // returning the item itself; pass e.g. `(order) => order.id` for objects
