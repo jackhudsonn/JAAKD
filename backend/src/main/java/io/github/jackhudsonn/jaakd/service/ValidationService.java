@@ -104,7 +104,8 @@ public class ValidationService {
                 LocalDateTime.now(),
                 event.version()
             );
-            orderRejectedKafkaTemplate.send(KafkaTopics.ORDER_REJECTED, rejected.getOrderId().toString(), rejectedEvent);
+            String rejectedPartitionKey = rejected.getInstrument().getTicker();
+            orderRejectedKafkaTemplate.send(KafkaTopics.ORDER_REJECTED, rejectedPartitionKey, rejectedEvent);
             return;
         }
 
@@ -119,7 +120,8 @@ public class ValidationService {
             LocalDateTime.now(),
             event.version()
         );
-        orderAcceptedKafkaTemplate.send(KafkaTopics.ORDER_ACCEPTED, accepted.getOrderId().toString(), acceptedEvent);
+        String acceptedPartitionKey = accepted.getInstrument().getTicker();
+        orderAcceptedKafkaTemplate.send(KafkaTopics.ORDER_ACCEPTED, acceptedPartitionKey, acceptedEvent);
     }
 
     private String validateTrade(OrderSubmittedEvent event, OrderLog pendingOrderLog) {

@@ -164,7 +164,7 @@ class ValidationServiceTest {
         );
         verify(orderRejectedKafkaTemplate, times(1)).send(
             ArgumentMatchers.eq(KafkaTopics.ORDER_REJECTED),
-            ArgumentMatchers.eq(orderId.toString()),
+            ArgumentMatchers.eq("AAPL"),
             ArgumentMatchers.any(OrderRejectedEvent.class)
         );
         verify(orderAcceptedKafkaTemplate, never()).send(
@@ -205,7 +205,7 @@ class ValidationServiceTest {
         );
         verify(orderRejectedKafkaTemplate, times(1)).send(
             ArgumentMatchers.eq(KafkaTopics.ORDER_REJECTED),
-            ArgumentMatchers.eq(orderId.toString()),
+            ArgumentMatchers.eq("AAPL"),
             ArgumentMatchers.any(OrderRejectedEvent.class)
         );
     }
@@ -249,7 +249,7 @@ class ValidationServiceTest {
         );
         verify(orderRejectedKafkaTemplate, times(1)).send(
             ArgumentMatchers.eq(KafkaTopics.ORDER_REJECTED),
-            ArgumentMatchers.eq(orderId.toString()),
+            ArgumentMatchers.eq("AAPL"),
             ArgumentMatchers.any(OrderRejectedEvent.class)
         );
         verify(orderAcceptedKafkaTemplate, never()).send(
@@ -294,7 +294,7 @@ class ValidationServiceTest {
         verify(validationLifecycleTxService, times(1)).appendAccepted(orderId, logOrderId);
         verify(orderAcceptedKafkaTemplate, times(1)).send(
             ArgumentMatchers.eq(KafkaTopics.ORDER_ACCEPTED),
-            ArgumentMatchers.eq(orderId.toString()),
+            ArgumentMatchers.eq("AAPL"),
             ArgumentMatchers.any(OrderAcceptedEvent.class)
         );
         verify(orderRejectedKafkaTemplate, never()).send(
@@ -349,7 +349,7 @@ class ValidationServiceTest {
         );
         verify(orderRejectedKafkaTemplate, times(1)).send(
             ArgumentMatchers.eq(KafkaTopics.ORDER_REJECTED),
-            ArgumentMatchers.eq(orderId.toString()),
+            ArgumentMatchers.eq("AAPL"),
             ArgumentMatchers.any(OrderRejectedEvent.class)
         );
         verify(orderAcceptedKafkaTemplate, never()).send(
@@ -400,7 +400,7 @@ class ValidationServiceTest {
         verify(validationLifecycleTxService, times(1)).appendAccepted(orderId, logOrderId);
         verify(orderAcceptedKafkaTemplate, times(1)).send(
             ArgumentMatchers.eq(KafkaTopics.ORDER_ACCEPTED),
-            ArgumentMatchers.eq(orderId.toString()),
+            ArgumentMatchers.eq("AAPL"),
             ArgumentMatchers.any(OrderAcceptedEvent.class)
         );
         verify(orderRejectedKafkaTemplate, never()).send(

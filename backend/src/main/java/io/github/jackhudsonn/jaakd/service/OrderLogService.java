@@ -138,7 +138,8 @@ public class OrderLogService {
             saved.getTimeStamp(),
             1L
         );
-        orderSubmittedKafkaTemplate.send(KafkaTopics.ORDER_SUBMITTED, saved.getOrderId().toString(), event);
+        String partitionKey = saved.getInstrument().getTicker();
+        orderSubmittedKafkaTemplate.send(KafkaTopics.ORDER_SUBMITTED, partitionKey, event);
 
         return saved;
     }
