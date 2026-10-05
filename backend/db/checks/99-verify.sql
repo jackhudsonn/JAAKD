@@ -10,7 +10,7 @@ ORDER BY table_name;
 -- 1b) Ensure the canonical cash instrument exists
 SELECT "instrumentID", ticker, market, name, "instrumentClass"
 FROM instruments
-WHERE UPPER(ticker) = 'USD_CASH';
+WHERE UPPER(ticker) = 'USD';
 
 -- 2) Foreign key index checks
 SELECT schemaname, tablename, indexname

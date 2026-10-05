@@ -71,7 +71,7 @@ This starts:
 - `jaakd-postgres` on `127.0.0.1:5433`
 - `jaakd-auth` on `:3000`
 - `jaakd-backend` on `:8081`
-- `jaakd-kafka` on `:9092` (for backend event processing inside Docker)
+- `jaakd-kafka` on `:9092`
 
 ### 3) Run integration checks (optional)
 
@@ -81,7 +81,6 @@ bash scripts/integration-test.sh
 
 The script verifies auth + backend endpoints and confirms user/profile rows in Postgres.
 
-If you are validating Kafka manually from the lifecycle testing page in the frontend, you can skip this step.
 
 ### 4) Start frontend
 

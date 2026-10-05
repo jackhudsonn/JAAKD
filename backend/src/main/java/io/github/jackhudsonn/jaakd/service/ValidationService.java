@@ -16,11 +16,11 @@ import io.github.jackhudsonn.jaakd.repository.LotMatchRepository;
 import io.github.jackhudsonn.jaakd.repository.PositionLotRepository;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Optional;
+import static java.lang.Thread.sleep;
 
 @Service
 /**
@@ -44,46 +44,55 @@ public class ValidationService {
     private static final String REASON_INSUFFICIENT_WITHDRAW_QUANTITY = "Cannot withdraw more than current cash quantity";
     private static final String REASON_DUPLICATE_MATCHED_SELL = "Sell order has already been lot-matched";
 
-    private final OrderLogService orderLogService;
     private final HoldingRepository holdingRepository;
     private final InstrumentRepository instrumentRepository;
     private final PositionLotRepository positionLotRepository;
     private final LotMatchRepository lotMatchRepository;
+    private final ValidationLifecycleTxService validationLifecycleTxService;
     private final KafkaTemplate<String, OrderAcceptedEvent> orderAcceptedKafkaTemplate;
     private final KafkaTemplate<String, OrderRejectedEvent> orderRejectedKafkaTemplate;
 
     public ValidationService(
-        OrderLogService orderLogService,
         HoldingRepository holdingRepository,
         InstrumentRepository instrumentRepository,
         PositionLotRepository positionLotRepository,
         LotMatchRepository lotMatchRepository,
+        ValidationLifecycleTxService validationLifecycleTxService,
         KafkaTemplate<String, OrderAcceptedEvent> orderAcceptedKafkaTemplate,
         KafkaTemplate<String, OrderRejectedEvent> orderRejectedKafkaTemplate
     ) {
-        this.orderLogService = orderLogService;
         this.holdingRepository = holdingRepository;
         this.instrumentRepository = instrumentRepository;
         this.positionLotRepository = positionLotRepository;
         this.lotMatchRepository = lotMatchRepository;
+        this.validationLifecycleTxService = validationLifecycleTxService;
         this.orderAcceptedKafkaTemplate = orderAcceptedKafkaTemplate;
         this.orderRejectedKafkaTemplate = orderRejectedKafkaTemplate;
     }
 
-    @Transactional
     public void handleOrderSubmitted(OrderSubmittedEvent event) {
         if (event == null) {
             return;
         }
 
-        OrderLog pending = orderLogService.appendPendingFromSystem(event.orderId(), event.logOrderId());
+        OrderLog pending = validationLifecycleTxService.appendPending(event.orderId(), event.logOrderId());
         if (pending.getStatus() != OrderStatus.PENDING) {
             return;
         }
 
+        try {
+            sleep(5000); // Sleep for 5 seconds to simulate processing delay
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
         String rejectionReason = validateTrade(event, pending);
         if (rejectionReason != null) {
-            OrderLog rejected = orderLogService.appendRejectedFromSystem(event.orderId(), event.logOrderId(), rejectionReason);
+            OrderLog rejected = validationLifecycleTxService.appendRejected(
+                event.orderId(),
+                event.logOrderId(),
+                rejectionReason
+            );
             if (rejected.getStatus() != OrderStatus.REJECTED) {
                 return;
             }
@@ -99,7 +108,7 @@ public class ValidationService {
             return;
         }
 
-        OrderLog accepted = orderLogService.appendAcceptedFromSystem(event.orderId(), event.logOrderId());
+        OrderLog accepted = validationLifecycleTxService.appendAccepted(event.orderId(), event.logOrderId());
         if (accepted.getStatus() != OrderStatus.ACCEPTED) {
             return;
         }

@@ -239,14 +239,14 @@ INSERT INTO instruments (
 )
 SELECT
   gen_random_uuid(),
-  'USD_CASH',
+  'USD',
   'INTERNAL',
   'US Dollar Cash Balance',
-  'USD',
+  'CASH',
   NULL,
   'Synthetic cash instrument used to represent portfolio cash balance in holdings.'
 WHERE NOT EXISTS (
   SELECT 1
   FROM instruments i
-  WHERE UPPER(i.ticker) = 'USD_CASH'
+  WHERE UPPER(i.ticker) = 'USD'
 );

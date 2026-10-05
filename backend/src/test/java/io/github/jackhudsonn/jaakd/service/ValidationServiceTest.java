@@ -37,7 +37,7 @@ import static org.mockito.Mockito.when;
 class ValidationServiceTest {
 
     @Mock
-    private OrderLogService orderLogService;
+    private ValidationLifecycleTxService validationLifecycleTxService;
 
     @Mock
     private HoldingRepository holdingRepository;
@@ -62,11 +62,11 @@ class ValidationServiceTest {
     @BeforeEach
     void setUp() {
         validationService = new ValidationService(
-            orderLogService,
             holdingRepository,
             instrumentRepository,
             positionLotRepository,
             lotMatchRepository,
+            validationLifecycleTxService,
             orderAcceptedKafkaTemplate,
             orderRejectedKafkaTemplate
         );
@@ -76,7 +76,7 @@ class ValidationServiceTest {
     void handleOrderSubmitted_nullEvent_noop() {
         validationService.handleOrderSubmitted(null);
 
-        verify(orderLogService, never()).appendPendingFromSystem(
+        verify(validationLifecycleTxService, never()).appendPending(
             ArgumentMatchers.any(UUID.class),
             ArgumentMatchers.any(UUID.class)
         );
@@ -107,17 +107,17 @@ class ValidationServiceTest {
             1L
         );
 
-        when(orderLogService.appendPendingFromSystem(orderId, logOrderId))
+        when(validationLifecycleTxService.appendPending(orderId, logOrderId))
             .thenReturn(buildOrderLog(orderId, logOrderId, OrderStatus.CANCELLED));
 
         validationService.handleOrderSubmitted(event);
 
-        verify(orderLogService, times(1)).appendPendingFromSystem(orderId, logOrderId);
-        verify(orderLogService, never()).appendAcceptedFromSystem(
+        verify(validationLifecycleTxService, times(1)).appendPending(orderId, logOrderId);
+        verify(validationLifecycleTxService, never()).appendAccepted(
             ArgumentMatchers.any(UUID.class),
             ArgumentMatchers.any(UUID.class)
         );
-        verify(orderLogService, never()).appendRejectedFromSystem(
+        verify(validationLifecycleTxService, never()).appendRejected(
             ArgumentMatchers.any(UUID.class),
             ArgumentMatchers.any(UUID.class),
             ArgumentMatchers.anyString()
@@ -149,15 +149,15 @@ class ValidationServiceTest {
             2L
         );
 
-        when(orderLogService.appendPendingFromSystem(orderId, logOrderId))
+        when(validationLifecycleTxService.appendPending(orderId, logOrderId))
             .thenReturn(buildOrderLog(orderId, logOrderId, OrderStatus.PENDING));
-        when(orderLogService.appendRejectedFromSystem(orderId, logOrderId, "Quantity must be greater than zero"))
+        when(validationLifecycleTxService.appendRejected(orderId, logOrderId, "Quantity must be greater than zero"))
             .thenReturn(buildOrderLog(orderId, logOrderId, OrderStatus.REJECTED));
 
         validationService.handleOrderSubmitted(event);
 
-        verify(orderLogService, times(1)).appendPendingFromSystem(orderId, logOrderId);
-        verify(orderLogService, times(1)).appendRejectedFromSystem(
+        verify(validationLifecycleTxService, times(1)).appendPending(orderId, logOrderId);
+        verify(validationLifecycleTxService, times(1)).appendRejected(
             orderId,
             logOrderId,
             "Quantity must be greater than zero"
@@ -189,16 +189,16 @@ class ValidationServiceTest {
             3L
         );
 
-        when(orderLogService.appendPendingFromSystem(orderId, logOrderId))
+        when(validationLifecycleTxService.appendPending(orderId, logOrderId))
             .thenReturn(buildOrderLog(orderId, logOrderId, OrderStatus.PENDING));
         when(lotMatchRepository.existsBySellLogOrderID(logOrderId)).thenReturn(true);
-        when(orderLogService.appendRejectedFromSystem(orderId, logOrderId, "Sell order has already been lot-matched"))
+        when(validationLifecycleTxService.appendRejected(orderId, logOrderId, "Sell order has already been lot-matched"))
             .thenReturn(buildOrderLog(orderId, logOrderId, OrderStatus.REJECTED));
 
         validationService.handleOrderSubmitted(event);
 
         verify(lotMatchRepository, times(1)).existsBySellLogOrderID(logOrderId);
-        verify(orderLogService, times(1)).appendRejectedFromSystem(
+        verify(validationLifecycleTxService, times(1)).appendRejected(
             orderId,
             logOrderId,
             "Sell order has already been lot-matched"
@@ -232,17 +232,17 @@ class ValidationServiceTest {
         Holding holding = new Holding(holdingId, portfolioId, instrumentId);
         holding.setCurrentQuantity(new BigDecimal("10"));
 
-        when(orderLogService.appendPendingFromSystem(orderId, logOrderId))
+        when(validationLifecycleTxService.appendPending(orderId, logOrderId))
             .thenReturn(buildOrderLog(orderId, logOrderId, OrderStatus.PENDING));
         when(lotMatchRepository.existsBySellLogOrderID(logOrderId)).thenReturn(false);
         when(holdingRepository.findByPortfolioIDAndInstrumentID(portfolioId, instrumentId)).thenReturn(Optional.of(holding));
         when(positionLotRepository.sumOpenRemainingQuantityByHoldingID(holdingId)).thenReturn(new BigDecimal("5"));
-        when(orderLogService.appendRejectedFromSystem(orderId, logOrderId, "Cannot sell more than open lot quantity"))
+        when(validationLifecycleTxService.appendRejected(orderId, logOrderId, "Cannot sell more than open lot quantity"))
             .thenReturn(buildOrderLog(orderId, logOrderId, OrderStatus.REJECTED));
 
         validationService.handleOrderSubmitted(event);
 
-        verify(orderLogService, times(1)).appendRejectedFromSystem(
+        verify(validationLifecycleTxService, times(1)).appendRejected(
             orderId,
             logOrderId,
             "Cannot sell more than open lot quantity"
@@ -281,17 +281,17 @@ class ValidationServiceTest {
         Holding holding = new Holding(holdingId, portfolioId, instrumentId);
         holding.setCurrentQuantity(new BigDecimal("10"));
 
-        when(orderLogService.appendPendingFromSystem(orderId, logOrderId))
+        when(validationLifecycleTxService.appendPending(orderId, logOrderId))
             .thenReturn(buildOrderLog(orderId, logOrderId, OrderStatus.PENDING));
         when(lotMatchRepository.existsBySellLogOrderID(logOrderId)).thenReturn(false);
         when(holdingRepository.findByPortfolioIDAndInstrumentID(portfolioId, instrumentId)).thenReturn(Optional.of(holding));
         when(positionLotRepository.sumOpenRemainingQuantityByHoldingID(holdingId)).thenReturn(new BigDecimal("10"));
-        when(orderLogService.appendAcceptedFromSystem(orderId, logOrderId))
+        when(validationLifecycleTxService.appendAccepted(orderId, logOrderId))
             .thenReturn(buildOrderLog(orderId, logOrderId, OrderStatus.ACCEPTED));
 
         validationService.handleOrderSubmitted(event);
 
-        verify(orderLogService, times(1)).appendAcceptedFromSystem(orderId, logOrderId);
+        verify(validationLifecycleTxService, times(1)).appendAccepted(orderId, logOrderId);
         verify(orderAcceptedKafkaTemplate, times(1)).send(
             ArgumentMatchers.eq(KafkaTopics.ORDER_ACCEPTED),
             ArgumentMatchers.eq(orderId.toString()),
@@ -332,17 +332,17 @@ class ValidationServiceTest {
         Holding cashHolding = new Holding(UUID.randomUUID(), portfolioId, cashInstrumentId);
         cashHolding.setCurrentQuantity(new BigDecimal("40"));
 
-        when(orderLogService.appendPendingFromSystem(orderId, logOrderId)).thenReturn(pending);
+        when(validationLifecycleTxService.appendPending(orderId, logOrderId)).thenReturn(pending);
         when(instrumentRepository.findByTickerIgnoreCaseAndInstrumentClass("USD", InstrumentClass.CASH))
             .thenReturn(Optional.of(cashInstrument));
         when(holdingRepository.findByPortfolioIDAndInstrumentID(portfolioId, cashInstrumentId))
             .thenReturn(Optional.of(cashHolding));
-        when(orderLogService.appendRejectedFromSystem(orderId, logOrderId, "Cannot buy more than current cash quantity"))
+        when(validationLifecycleTxService.appendRejected(orderId, logOrderId, "Cannot buy more than current cash quantity"))
             .thenReturn(buildOrderLog(orderId, logOrderId, OrderStatus.REJECTED));
 
         validationService.handleOrderSubmitted(event);
 
-        verify(orderLogService, times(1)).appendRejectedFromSystem(
+        verify(validationLifecycleTxService, times(1)).appendRejected(
             orderId,
             logOrderId,
             "Cannot buy more than current cash quantity"
@@ -387,17 +387,17 @@ class ValidationServiceTest {
         Holding cashHolding = new Holding(UUID.randomUUID(), portfolioId, cashInstrumentId);
         cashHolding.setCurrentQuantity(new BigDecimal("100"));
 
-        when(orderLogService.appendPendingFromSystem(orderId, logOrderId)).thenReturn(pending);
+        when(validationLifecycleTxService.appendPending(orderId, logOrderId)).thenReturn(pending);
         when(instrumentRepository.findByTickerIgnoreCaseAndInstrumentClass("USD", InstrumentClass.CASH))
             .thenReturn(Optional.of(cashInstrument));
         when(holdingRepository.findByPortfolioIDAndInstrumentID(portfolioId, cashInstrumentId))
             .thenReturn(Optional.of(cashHolding));
-        when(orderLogService.appendAcceptedFromSystem(orderId, logOrderId))
+        when(validationLifecycleTxService.appendAccepted(orderId, logOrderId))
             .thenReturn(buildOrderLog(orderId, logOrderId, OrderStatus.ACCEPTED));
 
         validationService.handleOrderSubmitted(event);
 
-        verify(orderLogService, times(1)).appendAcceptedFromSystem(orderId, logOrderId);
+        verify(validationLifecycleTxService, times(1)).appendAccepted(orderId, logOrderId);
         verify(orderAcceptedKafkaTemplate, times(1)).send(
             ArgumentMatchers.eq(KafkaTopics.ORDER_ACCEPTED),
             ArgumentMatchers.eq(orderId.toString()),
