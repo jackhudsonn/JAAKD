@@ -6,6 +6,7 @@ import io.github.jackhudsonn.jaakd.model.Instrument;
 import io.github.jackhudsonn.jaakd.model.InstrumentClass;
 import io.github.jackhudsonn.jaakd.model.LotMatch;
 import io.github.jackhudsonn.jaakd.model.OrderLog;
+import io.github.jackhudsonn.jaakd.model.OrderSide;
 import io.github.jackhudsonn.jaakd.model.OrderStatus;
 import io.github.jackhudsonn.jaakd.model.PositionLot;
 import io.github.jackhudsonn.jaakd.repository.HoldingRepository;

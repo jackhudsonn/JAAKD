@@ -413,7 +413,7 @@ class ValidationServiceTest {
     private OrderLog buildOrderLog(UUID orderId, UUID logOrderId, OrderStatus status) throws Exception {
         OrderLog orderLog = new OrderLog(
             orderId,
-            new io.github.jackhudsonn.jaakd.model.Portfolio(new io.github.jackhudsonn.jaakd.model.Profile("v@test.com", BigDecimal.ZERO)),
+            new io.github.jackhudsonn.jaakd.model.Portfolio(new io.github.jackhudsonn.jaakd.model.Profile(UUID.randomUUID(), BigDecimal.ZERO)),
             new io.github.jackhudsonn.jaakd.model.Instrument("AAPL", "NASDAQ", "Apple", io.github.jackhudsonn.jaakd.model.InstrumentClass.EQUITY),
             OrderSide.BUY,
             1.0

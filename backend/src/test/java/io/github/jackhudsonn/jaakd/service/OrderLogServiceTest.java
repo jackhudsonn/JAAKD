@@ -200,7 +200,7 @@ class OrderLogServiceTest {
         UUID portfolioId = UUID.randomUUID();
         UUID instrumentId = UUID.randomUUID();
 
-        Profile profile = new Profile("user@example.com", BigDecimal.ZERO);
+        Profile profile = new Profile(UUID.randomUUID(), BigDecimal.ZERO);
         setField(profile, "userId", userId);
 
         Portfolio portfolio = new Portfolio(profile);

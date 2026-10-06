@@ -166,7 +166,7 @@ class ExecutionServiceTest {
     }
 
     private OrderLog buildOrderLog(UUID orderId, OrderStatus status) throws Exception {
-        Profile profile = new Profile("exec@example.com", BigDecimal.ZERO);
+        Profile profile = new Profile(UUID.randomUUID(), BigDecimal.ZERO);
         Portfolio portfolio = new Portfolio(profile);
 
         Instrument instrument = new Instrument("AAPL", "NASDAQ", "Apple", InstrumentClass.EQUITY);
