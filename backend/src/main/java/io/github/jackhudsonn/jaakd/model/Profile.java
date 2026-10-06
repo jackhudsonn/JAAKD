@@ -14,8 +14,9 @@ import java.util.List;
 import java.util.UUID;
 
 // Maps to public.profiles for application profile data.
-// JWT's 'sub' claim (issued by auth-service and validated by backend via HS256 JWT_SECRET)
-// resolves directly to profiles.userID for ownership-scoped queries.
+// The authenticated user's ID (the provider's identity claim) resolves
+// directly to profiles.userID for ownership-scoped queries. The profile
+// holds no email; the single copy lives on users.
 @Entity
 @Table(name = "profiles")
 public class Profile {
@@ -23,9 +24,6 @@ public class Profile {
     @Id
     @Column(name = "`userID`")
     private UUID userId;
-
-    @Column(name = "email", nullable = false)
-    private String email;
 
     @Column(name = "`userType`", nullable = false)
     private BigDecimal userType = BigDecimal.ZERO;
@@ -63,14 +61,12 @@ public class Profile {
     protected Profile() {
     }
 
-    public Profile(String email, BigDecimal userType) {
-        this.email = email;
+    public Profile(BigDecimal userType) {
         this.userType = userType;
     }
 
-    public Profile(UUID userId, String email, BigDecimal userType) {
+    public Profile(UUID userId, BigDecimal userType) {
         this.userId = userId;
-        this.email = email;
         this.userType = userType;
     }
 
@@ -83,14 +79,6 @@ public class Profile {
 
     public UUID getUserId() {
         return userId;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
     }
 
     public BigDecimal getUserType() {

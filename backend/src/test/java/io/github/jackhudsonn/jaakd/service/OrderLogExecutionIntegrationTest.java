@@ -23,7 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.jwt.Jwt;
+import io.github.jackhudsonn.jaakd.security.AuthenticatedUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -187,7 +187,7 @@ class OrderLogExecutionIntegrationTest {
     }
 
     private Portfolio createOwnedPortfolio() {
-        Profile profile = new Profile("cash-test@example.com", BigDecimal.ZERO);
+        Profile profile = new Profile(BigDecimal.ZERO);
         entityManager.persist(profile);
         entityManager.flush();
 
@@ -218,13 +218,10 @@ class OrderLogExecutionIntegrationTest {
     }
 
     private void setAuthenticatedUser(UUID userId) {
-        Jwt jwt = Jwt.withTokenValue("test-token")
-            .header("alg", "none")
-            .subject(userId.toString())
-            .build();
+        AuthenticatedUser principal = new AuthenticatedUser(userId, "test@example.com");
 
         UsernamePasswordAuthenticationToken authentication =
-            new UsernamePasswordAuthenticationToken(jwt, null, java.util.Collections.emptyList());
+            new UsernamePasswordAuthenticationToken(principal, null, java.util.Collections.emptyList());
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 }

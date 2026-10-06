@@ -33,9 +33,7 @@ public class ProfileService {
             throw new ConflictException("Profile already exists for user: " + userId);
         }
 
-        String email = currentUserService.getEmail();
-
-        Profile profile = new Profile(userId, email, UserType.RETAIL_CLIENT.getCode());
+        Profile profile = new Profile(userId, UserType.RETAIL_CLIENT.getCode());
         profile.setFirstName(request.firstName());
         profile.setLastName(request.lastName());
         profile.setDob(request.dob());

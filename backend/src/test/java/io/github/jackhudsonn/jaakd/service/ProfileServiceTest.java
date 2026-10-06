@@ -35,9 +35,8 @@ class ProfileServiceTest {
     private ProfileService profileService;
 
     @Test
-    void createCurrentUserProfile_happyPath_createsRetailClientProfileFromJwtClaims() {
+    void createCurrentUserProfile_happyPath_createsRetailClientProfile() {
         UUID userId = UUID.randomUUID();
-        String email = "joanna@example.com";
 
         CreateProfileRequest request = new CreateProfileRequest(
             "Joanna",
@@ -50,14 +49,12 @@ class ProfileServiceTest {
         );
 
         when(currentUserService.getUserId()).thenReturn(userId);
-        when(currentUserService.getEmail()).thenReturn(email);
         when(profileRepository.existsById(userId)).thenReturn(false);
         when(profileRepository.save(any(Profile.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         Profile created = profileService.createCurrentUserProfile(request);
 
         assertEquals(userId, created.getUserId());
-        assertEquals(email, created.getEmail());
         assertEquals(BigDecimal.ZERO, created.getUserType());
         assertEquals("Joanna", created.getFirstName());
         assertEquals("Smith", created.getLastName());
@@ -88,6 +85,5 @@ class ProfileServiceTest {
         assertThrows(ConflictException.class, () -> profileService.createCurrentUserProfile(request));
 
         verify(profileRepository, never()).save(any(Profile.class));
-        verify(currentUserService, never()).getEmail();
     }
 }

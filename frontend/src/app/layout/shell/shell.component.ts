@@ -35,7 +35,6 @@ export class ShellComponent implements OnInit {
       const profile = await this.profileService.getCurrentProfile();
       const profileName = [profile.firstName, profile.lastName].filter(Boolean).join(' ').trim();
       this.displayName.set(profileName || null);
-      this.userEmail.set(profile.email);
     } catch {
       this.displayName.set(null);
     }

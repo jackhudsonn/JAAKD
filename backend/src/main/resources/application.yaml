@@ -32,8 +32,16 @@ spring:
       include-message: never
       include-binding-errors: never
       include-exception: false
-jwt:
-  shared-secret: ${JWT_SECRET}
+app:
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:4200,http://10.23.135.30:8082}
+identity:
+  provider: ${IDENTITY_PROVIDER}
+auth:
+  session:
+    ttl: PT8H
+    cookie:
+      secure: ${AUTH_COOKIE_SECURE}
 springdoc:
   swagger-ui:
     url: /openapi.yaml

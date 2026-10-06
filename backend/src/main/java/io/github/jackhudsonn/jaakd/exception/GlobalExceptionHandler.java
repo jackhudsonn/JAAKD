@@ -16,6 +16,22 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(UnauthorizedException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public ErrorResponse handleUnauthorized(UnauthorizedException ex) {
+        return new ErrorResponse(Instant.now(), ex.getMessage(), null);
+    }
+
+    @ExceptionHandler(ChallengeRequiredException.class)
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public ErrorResponse handleChallenge(ChallengeRequiredException ex) {
+        Map<String, String> details = new LinkedHashMap<>();
+        details.put("challenge", ex.getType());
+        details.put("continuation", ex.getContinuation());
+
+        return new ErrorResponse(Instant.now(), ex.getMessage(), details);
+    }
+
     @ExceptionHandler(ResourceNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ErrorResponse handleNotFound(ResourceNotFoundException ex) {

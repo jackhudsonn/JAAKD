@@ -48,13 +48,11 @@ class ProfileServicePersistenceIntegrationTest {
     private ProfileRepository profileRepository;
 
     @Test
-    void createCurrentUserProfile_persistsWithJwtSubAsId_andSecondCallConflicts() {
+    void createCurrentUserProfile_persistsWithAuthenticatedUserId_andSecondCallConflicts() {
         UUID fixedUserId = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
-        String fixedEmail = "fixed.user@example.com";
 
         reset(MockCurrentUserServiceConfig.MOCK);
         when(MockCurrentUserServiceConfig.MOCK.getUserId()).thenReturn(fixedUserId);
-        when(MockCurrentUserServiceConfig.MOCK.getEmail()).thenReturn(fixedEmail);
 
         CreateProfileRequest request = new CreateProfileRequest(
             "Joanna",
@@ -70,7 +68,6 @@ class ProfileServicePersistenceIntegrationTest {
         profileRepository.flush();
 
         Profile saved = profileRepository.findById(fixedUserId).orElseThrow();
-        assertEquals(fixedEmail, saved.getEmail());
         assertEquals(0, saved.getUserType().compareTo(java.math.BigDecimal.ZERO));
 
         assertThrows(ConflictException.class, () -> profileService.createCurrentUserProfile(request));
