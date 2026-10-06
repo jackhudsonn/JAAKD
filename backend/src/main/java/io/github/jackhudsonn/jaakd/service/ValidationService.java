@@ -80,8 +80,9 @@ public class ValidationService {
             return;
         }
 
+        // Simulate processing delay of 2-3 seconds during validation by sleeping for a random duration
         try {
-            sleep(5000); // Sleep for 5 seconds to simulate processing delay
+            sleep(2000 + (int)(Math.random() * 1000));
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }

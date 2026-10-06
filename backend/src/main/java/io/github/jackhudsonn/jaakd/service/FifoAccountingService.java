@@ -19,6 +19,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import static java.lang.Thread.sleep;
 
 @Service
 public class FifoAccountingService {
@@ -71,6 +72,13 @@ public class FifoAccountingService {
         if ((orderLog.getSide() == OrderSide.BUY || orderLog.getSide() == OrderSide.SELL)
             && effectiveExecutionPrice == null) {
             return ExecutionOutcome.failed("Execution price is required for BUY/SELL execution");
+        }
+
+        // Simulate processing delay of 2-3 seconds during execution by sleeping for a random duration
+        try {
+            sleep(2000 + (int)(Math.random() * 1000));
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
 
         try {
