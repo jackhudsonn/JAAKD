@@ -35,7 +35,7 @@ public class ProfileController {
 
     // GET /api/profile
     // Returns the current authenticated user's profile data.
-    // Requires: Valid JWT token in Authorization header.
+    // Requires: an authenticated session (the jaakd_session cookie).
     // Returns: 200 OK with ProfileResponse containing user's profile information.
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
@@ -46,7 +46,7 @@ public class ProfileController {
 
     // PUT /api/profile
     // Updates the current authenticated user's profile with provided fields.
-    // Requires: Valid JWT token in Authorization header.
+    // Requires: an authenticated session (the jaakd_session cookie).
     // Request body: UpdateProfileRequest with fields to update (null fields are ignored).
     // Returns: 200 OK with updated ProfileResponse on success.
     // Returns: 400 Bad Request if validation fails.
@@ -62,7 +62,6 @@ public class ProfileController {
     private ProfileResponse mapProfileToResponse(Profile profile) {
         return new ProfileResponse(
             profile.getUserId(),
-            profile.getEmail(),
             profile.getUserType(),
             profile.getFirstName(),
             profile.getLastName(),

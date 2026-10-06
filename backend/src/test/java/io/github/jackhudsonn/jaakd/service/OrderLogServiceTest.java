@@ -239,7 +239,7 @@ class OrderLogServiceTest {
         UUID portfolioId = UUID.randomUUID();
         UUID instrumentId = UUID.randomUUID();
 
-        Portfolio portfolio = new Portfolio(new Profile("owner@test.com", BigDecimal.ZERO));
+        Portfolio portfolio = new Portfolio(new Profile(BigDecimal.ZERO));
         setField(portfolio, "portfolioId", portfolioId);
 
         OrderLog newer = buildOrderLog(UUID.randomUUID(), portfolioId, instrumentId, OrderSide.BUY, 1, 101);
@@ -380,7 +380,7 @@ class OrderLogServiceTest {
         double quantity,
         double executionPrice
     ) throws Exception {
-        Profile profile = new Profile("user@example.com", BigDecimal.ZERO);
+        Profile profile = new Profile(BigDecimal.ZERO);
         Portfolio portfolio = new Portfolio(profile);
         setField(portfolio, "portfolioId", portfolioId);
 

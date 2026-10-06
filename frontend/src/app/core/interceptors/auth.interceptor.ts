@@ -7,38 +7,15 @@ import {
 } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { environment } from '@environments/environment.local';
 import { AuthService } from '@core/services/auth.service';
-import { Observable, from, throwError } from 'rxjs';
-import { catchError, switchMap } from 'rxjs/operators';
+import { AUTH_FLOW } from '@core/http/auth-flow.token';
+import { Observable, catchError, throwError } from 'rxjs';
 
-function shouldAttachAccessToken(request: HttpRequest<unknown>): boolean {
-  if (request.url.startsWith(environment.apiUrl)) {
-    return true;
-  }
-
-  return request.url.startsWith(`${environment.authUrl}/auth/change-password`);
-}
-
-function shouldAttemptRefresh(request: HttpRequest<unknown>): boolean {
-  return request.url.startsWith(environment.apiUrl) && !request.headers.has('x-jaakd-retried');
-}
-
-function withBearerToken(
-  request: HttpRequest<unknown>,
-  token: string | null,
-): HttpRequest<unknown> {
-  if (!token) {
-    return request;
-  }
-
-  return request.clone({
-    setHeaders: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-}
-
+// The session cookie is the only credential, so every request is sent with
+// credentials. A 401 on a protected request means the session is gone: clear
+// state and send the user to sign in. A 403 means signed in but not allowed,
+// which each screen handles itself. Sign-in-flow requests opt out of the
+// redirect with AUTH_FLOW and surface the error where it was raised.
 export const authInterceptor: HttpInterceptorFn = (
   request: HttpRequest<unknown>,
   next: HttpHandlerFn,
@@ -46,43 +23,18 @@ export const authInterceptor: HttpInterceptorFn = (
   const authService = inject(AuthService);
   const router = inject(Router);
 
-  const outgoingRequest = shouldAttachAccessToken(request)
-    ? withBearerToken(request, authService.getAccessToken())
-    : request;
+  const outgoingRequest = request.clone({ withCredentials: true });
 
   return next(outgoingRequest).pipe(
     catchError((error: unknown) => {
-      if (
-        !(error instanceof HttpErrorResponse) ||
-        error.status !== 401 ||
-        !shouldAttemptRefresh(outgoingRequest)
-      ) {
-        return throwError(() => error);
+      const surfacedByCaller = request.context.get(AUTH_FLOW);
+
+      if (error instanceof HttpErrorResponse && error.status === 401 && !surfacedByCaller) {
+        authService.clearSession();
+        void router.navigate(['/auth/login']);
       }
 
-      return from(authService.refresh()).pipe(
-        switchMap((refreshed) => {
-          if (!refreshed) {
-            return from(
-              authService.logout().then(async () => {
-                await router.navigate(['/auth/login']);
-                throw error;
-              }),
-            );
-          }
-
-          const retriedRequest = withBearerToken(
-            outgoingRequest.clone({
-              setHeaders: {
-                'x-jaakd-retried': 'true',
-              },
-            }),
-            authService.getAccessToken(),
-          );
-
-          return next(retriedRequest);
-        }),
-      );
+      return throwError(() => error);
     }),
   );
 };

@@ -30,15 +30,14 @@ WHERE conname = 'fk_profiles_users';
 
 -- 2b) Role privilege checks
 SELECT has_table_privilege('jaakd_app', 'public.users', 'SELECT') AS jaakd_app_can_select_users;
-SELECT has_table_privilege('jaakd_auth', 'public.users', 'SELECT') AS jaakd_auth_can_select_users;
-SELECT has_table_privilege('jaakd_auth', 'public.profiles', 'SELECT') AS jaakd_auth_can_select_profiles;
+SELECT has_table_privilege('jaakd_app', 'public.sessions', 'INSERT') AS jaakd_app_can_insert_sessions;
 
 -- 3) Deliberate bad insert to prove profiles must reference users
 -- Expected: this block fails on the profiles insert.
 BEGIN;
 
-INSERT INTO profiles ("userID", email, "userType")
-VALUES (gen_random_uuid(), 'orphan-profile@example.com', 0);
+INSERT INTO profiles ("userID", "userType")
+VALUES (gen_random_uuid(), 0);
 
 ROLLBACK;
 
@@ -46,12 +45,12 @@ ROLLBACK;
 -- Expected: this script fails on the second holdings insert.
 BEGIN;
 
-INSERT INTO users ("userID", email, "passwordHash")
-VALUES ('00000000-0000-0000-0000-000000000001', 'verify@example.com', 'not-a-real-hash')
+INSERT INTO users ("userID")
+VALUES ('00000000-0000-0000-0000-000000000001')
 ON CONFLICT ("userID") DO NOTHING;
 
-INSERT INTO profiles ("userID", email, "userType")
-VALUES ('00000000-0000-0000-0000-000000000001', 'verify@example.com', 0)
+INSERT INTO profiles ("userID", "userType")
+VALUES ('00000000-0000-0000-0000-000000000001', 0)
 ON CONFLICT ("userID") DO NOTHING;
 
 INSERT INTO portfolios ("portfolioID", "userID", "portfolioName")

@@ -5,9 +5,9 @@ info:
   description: |
     REST API for the JAAKD direct trading platform (Spring Boot service in `backend/`).
 
-    - Every endpoint requires an auth-service-issued JWT in the `Authorization: Bearer <token>` header.
+    - Every endpoint requires a valid session cookie (`jaakd_session`); the browser never holds a token.
     - A user can only see and change their own data (BR-02): every query is filtered by the
-      user ID taken from the JWT's `sub` claim.
+      authenticated user's ID.
     - All errors share one shape, `ErrorResponse` (see `GlobalExceptionHandler`).
     - Endpoints tagged **Orders** and the **instrument prices** endpoint are planned (contract first)
       and not implemented yet.
@@ -17,8 +17,10 @@ servers:
   - url: http://localhost:8081
     description: Local development server
 security:
-  - bearerAuth: []
+  - sessionCookie: []
 tags:
+  - name: Auth
+    description: Session auth - register, sign in, session, sign out, change password
   - name: Holdings
     description: A user's current position projection in one instrument, within one portfolio (including the dedicated cash instrument holding)
   - name: Instruments
@@ -35,6 +37,137 @@ tags:
     description: Order placement - PLANNED, not implemented yet (BR-04, BR-05, BR-08, BR-09)
 
 paths:
+  # ------------------------------------------------------------------- Auth
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new account
+      description: |
+        Creates a credential with the configured identity provider. No session is
+        created; sign in afterwards with `POST /auth/login`.
+      operationId: register
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+            example:
+              email: joanna@example.com
+              password: correct-horse-battery
+      responses:
+        "201":
+          description: Account created
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Sign in and start a session
+      description: |
+        Authenticates with the identity provider, provisions the application user
+        and sets the `jaakd_session` cookie. No token is returned. If the provider
+        requires another step, the response is `202` with a challenge instead.
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+            example:
+              email: joanna@example.com
+              password: correct-horse-battery
+      responses:
+        "200":
+          description: Signed in - the `jaakd_session` cookie is set
+          headers:
+            Set-Cookie:
+              description: "`jaakd_session=<id>; HttpOnly; SameSite=Lax; Path=/` (adds `Secure` when `AUTH_COOKIE_SECURE` is true)"
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "202":
+          $ref: "#/components/responses/ChallengeRequired"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /auth/session:
+    get:
+      tags: [Auth]
+      summary: Get the signed-in user
+      description: Confirms the session cookie is valid and returns the signed-in email.
+      operationId: getSession
+      responses:
+        "200":
+          description: The signed-in user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: End the session
+      description: Deletes the server-side session and clears the `jaakd_session` cookie.
+      operationId: logout
+      responses:
+        "204":
+          description: Signed out - the `jaakd_session` cookie is cleared
+          headers:
+            Set-Cookie:
+              description: "`jaakd_session=; Max-Age=0; Path=/`"
+              schema:
+                type: string
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /auth/change-password:
+    post:
+      tags: [Auth]
+      summary: Change the signed-in user's password
+      description: Changes the credential at the identity provider. Requires an active session.
+      operationId: changePassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangePasswordRequest"
+            example:
+              currentPassword: correct-horse-battery
+              newPassword: another-correct-horse
+      responses:
+        "204":
+          description: Password changed
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
   # ---------------------------------------------------------------- Holdings
   /api/holdings/portfolio/{portfolioId}:
     get:
@@ -896,8 +1029,8 @@ paths:
       tags: [Profile]
       summary: Create the signed-in user's profile
       description: |
-        Creates a profile row for the JWT `sub` if one does not already exist.
-        Email is read from the JWT email claim and is never accepted from the body.
+        Creates a profile row for the authenticated user if one does not already exist.
+        Email is not part of the profile and is never accepted from the body.
       operationId: createCurrentProfile
       requestBody:
         required: true
@@ -941,7 +1074,6 @@ paths:
                 $ref: "#/components/schemas/ProfileResponse"
               example:
                 userId: 0f1e2d3c-4b5a-4968-8776-655443322110
-                email: joanna@example.com
                 userType: 0
                 firstName: Joanna
                 lastName: Smith
@@ -990,11 +1122,11 @@ paths:
 
 components:
   securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-      description: Auth-service access token (HS256), validated with shared secret
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: jaakd_session
+      description: Opaque session cookie issued by POST /auth/login; the browser never holds a token
 
   parameters:
     HoldingId:
@@ -1061,11 +1193,26 @@ components:
             details:
               currentQuantity: Current quantity must be greater than 0
     Unauthorized:
-      description: Missing, expired or invalid JWT
+      description: Missing, expired or invalid session
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/ErrorResponse"
+    ChallengeRequired:
+      description: |
+        The identity provider requires another step before a session is created.
+        `details.challenge` names the step; `details.continuation` carries the opaque
+        state to submit with the follow-up call.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            timestamp: "2026-09-23T14:30:00Z"
+            message: additional authentication required
+            details:
+              challenge: MFA
+              continuation: opaque-continuation-token
     Forbidden:
       description: Authenticated but not authorized for this operation
       content:
@@ -1112,6 +1259,42 @@ components:
           type: object
           additionalProperties:
             type: string
+
+    # ---- auth
+    RegisterRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+    LoginResponse:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+    ChangePasswordRequest:
+      type: object
+      required: [currentPassword, newPassword]
+      properties:
+        currentPassword:
+          type: string
+        newPassword:
+          type: string
+          minLength: 8
 
     # ---- enums
     InstrumentClass:
@@ -1536,9 +1719,6 @@ components:
         userId:
           type: string
           format: uuid
-        email:
-          type: string
-          format: email
         userType:
           type: number
         firstName:

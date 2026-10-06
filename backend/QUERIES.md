@@ -3,7 +3,7 @@
 The queries our application requires, one per API in [`openapi.yaml`](openapi.yaml).
 Core flow now uses `OrderLog` as source of truth plus SQL aggregation for holdings.
 
-`:userId` is the signed-in user (from the JWT). Every query on user data filters by it, so users only see their own data.
+`:userId` is the signed-in user (resolved from the session cookie). Every query on user data filters by it, so users only see their own data.
 
 ---
 
@@ -34,6 +34,68 @@ WHERE o."logOrderID" = :logOrderId
       WHERE h."portfolioID" = o."portfolioID"
         AND h."instrumentID" = o."instrumentID"
   );
+```
+
+---
+
+## Auth
+
+Credentials belong to the identity provider, not the application schema. The
+development provider owns `development_credentials` (development-only); in
+production the provider owns its credentials outside this schema. The
+application queries only `users` and `sessions`, and only after the provider has
+authenticated the caller. `:userId` is the provider's identity claim (a UUID).
+
+**register** (`POST /auth/register`): no application query. The provider creates
+the credential; the application `users` row is not created until the first sign
+in.
+```sql
+-- development provider only; production credentials live with the provider
+INSERT INTO development_credentials ("userID", email, "passwordHash")
+VALUES (:userId, :email, :passwordHash);
+```
+A duplicate email surfaces as `409` (`development_credentials.email` is unique).
+
+**signIn** (`POST /auth/login`): the provider verifies the credential, then the
+application provisions its identity anchor and opens the session.
+```sql
+-- provider half (development): look up the credential and compare the password hash
+SELECT "userID", "passwordHash" FROM development_credentials WHERE email = :email;
+
+-- application half: get-or-create the anchor, refreshing the email it stores
+INSERT INTO users ("userID", email, "createdAt")
+VALUES (:userId, :email, :createdAt)
+ON CONFLICT ("userID") DO UPDATE SET email = EXCLUDED.email;
+
+-- application half: open the session (:refreshToken is null for the development provider)
+INSERT INTO sessions ("sessionID", "userID", "refreshToken", "createdAt", "expiresAt")
+VALUES (:sessionId, :userId, :refreshToken, :createdAt, :expiresAt);
+```
+
+**getSession** (`GET /auth/session`): resolve the session cookie to the signed-in
+user.
+```sql
+SELECT u."userID", u.email
+FROM sessions s
+JOIN users u ON u."userID" = s."userID"
+WHERE s."sessionID" = :sessionId
+  AND s."expiresAt" > :now;
+```
+
+**logout** (`POST /auth/logout`): delete the session.
+```sql
+DELETE FROM sessions WHERE "sessionID" = :sessionId;
+```
+
+**changePassword** (`POST /auth/change-password`): the provider updates the
+credential; the application then revokes the user's other sessions, so a
+password change signs out other devices without ending the caller's.
+```sql
+-- provider half (development): replace the stored hash
+UPDATE development_credentials SET "passwordHash" = :newPasswordHash WHERE email = :email;
+
+-- application half: revoke every session for the user except the caller's
+DELETE FROM sessions WHERE "userID" = :userId AND "sessionID" <> :currentSessionId;
 ```
 
 ---
@@ -264,13 +326,13 @@ WHERE "listItemID" = :listItemId
 
 ## Profile
 
-**createCurrentProfile** (`POST /api/profile`): creates the signed-in user's profile if it does not already exist. Email is sourced from JWT claim.
+**createCurrentProfile** (`POST /api/profile`): creates the signed-in user's profile if it does not already exist.
 ```sql
 INSERT INTO profiles (
-  "userID", email, "userType", "firstName", "lastName", dob, city, state, country, "zipCode"
+  "userID", "userType", "firstName", "lastName", dob, city, state, country, "zipCode"
 )
 VALUES (
-  :userId, :email, 0, :firstName, :lastName, :dob, :city, :state, :country, :zipCode
+  :userId, 0, :firstName, :lastName, :dob, :city, :state, :country, :zipCode
 );
 ```
 

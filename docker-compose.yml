@@ -8,7 +8,6 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       JAAKD_APP_DB_PASSWORD: ${JAAKD_APP_DB_PASSWORD}
-      JAAKD_AUTH_DB_PASSWORD: ${JAAKD_AUTH_DB_PASSWORD}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d jaakd"]
       interval: 5s
@@ -19,22 +18,9 @@ services:
     volumes:
       - jaakd-postgres-data:/var/lib/postgresql/data
       - ./backend/db/init:/docker-entrypoint-initdb.d:ro
-
-  jaakd-auth:
-    build:
-      context: ./auth-service
-      dockerfile: Dockerfile
-    container_name: jaakd-auth
-    restart: unless-stopped
-    depends_on:
-      jaakd-postgres:
-        condition: service_healthy
-    environment:
-      DATABASE_URL: postgresql://jaakd_auth:${JAAKD_AUTH_DB_PASSWORD}@jaakd-postgres:5432/jaakd
-      JWT_SECRET: ${JWT_SECRET}
-      PORT: 3000
-    ports:
-      - "3000:3000"
+      # Development-only credential store; applied by 02-development-credentials.sh
+      # and absent in production. Not part of the application schema.
+      - ./backend/db/development:/opt/jaakd-development:ro
 
   jaakd-backend:
     build:
@@ -51,8 +37,9 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://jaakd-postgres:5432/jaakd
       SPRING_DATASOURCE_USERNAME: jaakd_app
       SPRING_DATASOURCE_PASSWORD: ${JAAKD_APP_DB_PASSWORD}
-      JWT_SECRET: ${JWT_SECRET}
       SPRING_KAFKA_BOOTSTRAP_SERVERS: jaakd-kafka:9092
+      IDENTITY_PROVIDER: development
+      AUTH_COOKIE_SECURE: "false"
     ports:
       - "8081:8081"
 

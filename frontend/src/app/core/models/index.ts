@@ -9,6 +9,8 @@ export interface Holding {
   symbol: string;
   instrumentType: InstrumentType;
   quantity: number;
+  indicativePrice?: number;
+  priceStatus?: 'available' | 'price unavailable';
 }
 
 export interface Order {

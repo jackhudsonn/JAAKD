@@ -36,7 +36,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -385,7 +384,7 @@ class FifoAccountingServiceTest {
         double quantity,
         double executionPrice
     ) throws Exception {
-        Profile profile = new Profile("user@example.com", BigDecimal.ZERO);
+        Profile profile = new Profile(BigDecimal.ZERO);
         Portfolio portfolio = new Portfolio(profile);
         setField(portfolio, "portfolioId", portfolioId);
 

@@ -34,7 +34,7 @@ class PrivilegedAccessServiceTest {
     @Test
     void ensureAdminOrAuditor_allowsAdmin() throws Exception {
         UUID userId = UUID.randomUUID();
-        Profile profile = new Profile("admin@test.com", UserType.ADMIN.getCode());
+        Profile profile = new Profile(UserType.ADMIN.getCode());
         setField(profile, "userId", userId);
 
         when(currentUserService.getUserId()).thenReturn(userId);
@@ -46,7 +46,7 @@ class PrivilegedAccessServiceTest {
     @Test
     void ensureAdminOrAuditor_allowsAuditor() throws Exception {
         UUID userId = UUID.randomUUID();
-        Profile profile = new Profile("auditor@test.com", UserType.AUDITOR.getCode());
+        Profile profile = new Profile(UserType.AUDITOR.getCode());
         setField(profile, "userId", userId);
 
         when(currentUserService.getUserId()).thenReturn(userId);
@@ -58,7 +58,7 @@ class PrivilegedAccessServiceTest {
     @Test
     void ensureAdminOrAuditor_blocksRetailClient() throws Exception {
         UUID userId = UUID.randomUUID();
-        Profile profile = new Profile("retail@test.com", UserType.RETAIL_CLIENT.getCode());
+        Profile profile = new Profile(UserType.RETAIL_CLIENT.getCode());
         setField(profile, "userId", userId);
 
         when(currentUserService.getUserId()).thenReturn(userId);

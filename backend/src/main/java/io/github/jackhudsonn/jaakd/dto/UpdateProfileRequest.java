@@ -5,7 +5,7 @@ import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 
 // Request DTO for updating a user's profile information.
-// Email cannot be updated (managed by auth-service).
+// Email is not part of the profile; it lives on the user (see users.email).
 // All fields are optional (null = skip this field).
 // Only size constraints are validated; null values are allowed for partial updates.
 public record UpdateProfileRequest(

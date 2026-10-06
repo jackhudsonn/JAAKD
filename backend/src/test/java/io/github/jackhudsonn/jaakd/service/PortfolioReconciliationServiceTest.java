@@ -10,7 +10,6 @@ import io.github.jackhudsonn.jaakd.model.OrderSide;
 import io.github.jackhudsonn.jaakd.model.OrderStatus;
 import io.github.jackhudsonn.jaakd.model.Portfolio;
 import io.github.jackhudsonn.jaakd.model.Profile;
-import io.github.jackhudsonn.jaakd.model.UserType;
 import io.github.jackhudsonn.jaakd.repository.HoldingRepository;
 import io.github.jackhudsonn.jaakd.repository.InstrumentRepository;
 import io.github.jackhudsonn.jaakd.repository.OrderLogRepository;
@@ -137,7 +136,7 @@ class PortfolioReconciliationServiceTest {
     }
 
     private Portfolio buildPortfolio(UUID portfolioId) throws Exception {
-        Profile profile = new Profile("reconcile@test.com", BigDecimal.ZERO);
+        Profile profile = new Profile(BigDecimal.ZERO);
         Portfolio portfolio = new Portfolio(profile);
         setField(portfolio, "portfolioId", portfolioId);
         return portfolio;

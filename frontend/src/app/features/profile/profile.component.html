@@ -10,7 +10,7 @@
   <section class="account-summary card">
     <div class="account-summary-avatar">
       {{
-        (displayName() || profile()?.email || authService.userEmail() || 'U')
+        (displayName() || authService.userEmail() || 'U')
           .charAt(0)
           .toUpperCase()
       }}
@@ -18,11 +18,11 @@
 
     <div class="account-summary-info">
       <h2>
-        {{ displayName() || profile()?.email || authService.userEmail() || '—' }}
+        {{ displayName() || authService.userEmail() || '—' }}
       </h2>
 
       <p>
-        {{ profile()?.email || authService.userEmail() || '—' }}
+        {{ authService.userEmail() || '—' }}
       </p>
     </div>
   </section>
@@ -182,7 +182,7 @@
 
     <div class="account-detail">
       <span>Email</span>
-      <strong>{{ profile()?.email || authService.userEmail() || '—' }}</strong>
+      <strong>{{ authService.userEmail() || '—' }}</strong>
     </div>
 
     <div class="security-password">
