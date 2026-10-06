@@ -15,12 +15,6 @@
   color: var(--text-secondary);
 }
 
-.confirm-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--space-sm);
-}
-
 @media (max-width: 560px) {
   .action-row {
     grid-template-columns: 1fr;

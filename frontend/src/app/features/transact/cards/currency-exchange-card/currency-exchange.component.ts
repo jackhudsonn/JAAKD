@@ -4,14 +4,15 @@ import { DecimalPipe } from '@angular/common';
 import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
 import { ModalComponent } from '@shared/components/modal/modal.component';
 import { output } from '@angular/core';
-import { ExchangeRequest } from '../services/transact-facade.service';
+import { ExchangeRequest } from '@features/transact/services/transact-facade.service';
+import { ConfirmActionsComponent } from '../../components/confirm-actions/confirm-actions.component';
 
 type SupportedCurrency = 'USD' | 'EUR' | 'INR';
 
 @Component({
   selector: 'app-currency-exchange',
   standalone: true,
-  imports: [FormsModule, DecimalPipe, WidgetCardComponent, ModalComponent],
+  imports: [FormsModule, DecimalPipe, WidgetCardComponent, ModalComponent, ConfirmActionsComponent],
   templateUrl: './currency-exchange.component.html',
   styleUrl: './currency-exchange.component.css',
 })

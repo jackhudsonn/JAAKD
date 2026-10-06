@@ -11,8 +11,8 @@ import {
 } from './components/asset-popup/asset-popup.component';
 import { OrderDetailsPopupComponent } from './components/order-details-popup/order-details-popup.component';
 import { startCycleTimer } from '@shared/utils/cycle-timer';
-import { TradeFacadeService } from './services/trade-facade.service';
-import { TradeDeepLinkService } from './services/trade-deep-link.service';
+import { TradeFacadeService } from '@features/trade/services/trade-facade.service';
+import { TradeDeepLinkService } from '@features/trade/services/trade-deep-link.service';
 
 @Component({
   selector: 'app-trade',

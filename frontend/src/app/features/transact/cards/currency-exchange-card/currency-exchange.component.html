@@ -62,10 +62,6 @@
       {{ pendingExchange.toCurrency }}?
     </p>
 
-    <div class="confirm-actions">
-      <button type="button" class="btn btn-secondary" (click)="cancelExchange()">Cancel</button>
-
-      <button type="button" class="btn btn-primary" (click)="confirmExchange()">Confirm</button>
-    </div>
+    <app-confirm-actions (cancelled)="cancelExchange()" (confirmed)="confirmExchange()" />
   </app-modal>
 }

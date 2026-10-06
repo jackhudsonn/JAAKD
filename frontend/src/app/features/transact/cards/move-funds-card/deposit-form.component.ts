@@ -4,7 +4,8 @@ import { Router } from '@angular/router';
 import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
 import { ModalComponent } from '@shared/components/modal/modal.component';
 import { Deposit, PaymentMethod, Withdrawal } from '@core/models';
-import { PaymentMethodsStore } from '../../payment/services/payment-methods.store';
+import { PaymentMethodsStore } from '@features/payment/services/payment-methods.store';
+import { ConfirmActionsComponent } from '../../components/confirm-actions/confirm-actions.component';
 
 type FundsAction = 'deposit' | 'withdrawal';
 
@@ -17,7 +18,7 @@ interface PendingFundsAction {
 @Component({
   selector: 'app-deposit-form',
   standalone: true,
-  imports: [FormsModule, WidgetCardComponent, ModalComponent],
+  imports: [FormsModule, WidgetCardComponent, ModalComponent, ConfirmActionsComponent],
   templateUrl: './deposit-form.component.html',
   styleUrl: './deposit-form.component.css',
 })

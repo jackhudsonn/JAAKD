@@ -1,0 +1,33 @@
+{
+  "users": [
+    {
+      "userId": "00000000-0000-0000-0000-000000000001",
+      "email": "demo@example.com",
+      "password": "Password123!"
+    }
+  ],
+  "profile": {
+    "userId": "00000000-0000-0000-0000-000000000001",
+    "email": "demo@example.com",
+    "userType": 0,
+    "firstName": "Joanna",
+    "lastName": "Investor",
+    "city": "Seattle",
+    "state": "Washington",
+    "country": "United States",
+    "zipCode": "98101",
+    "dob": "1991-08-21"
+  },
+  "portfolios": [
+    {
+      "portfolioId": "00000000-0000-0000-0000-000000000010",
+      "userId": "00000000-0000-0000-0000-000000000001",
+      "portfolioName": "Main Portfolio"
+    },
+    {
+      "portfolioId": "demo-portfolio-002",
+      "userId": "00000000-0000-0000-0000-000000000001",
+      "portfolioName": "Growth Portfolio"
+    }
+  ]
+}

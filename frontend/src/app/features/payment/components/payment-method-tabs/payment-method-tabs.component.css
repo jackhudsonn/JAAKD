@@ -1,0 +1,33 @@
+.method-tabs {
+  display: flex;
+  flex-wrap: wrap;
+
+  gap: var(--space-sm);
+
+  margin-bottom: var(--space-md);
+}
+
+.tab-btn {
+  flex: 1;
+  min-width: 150px;
+
+  padding: var(--space-sm) var(--space-md);
+
+  font-family: var(--font-base);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+
+  color: var(--secondary-dark);
+  background: var(--tertiary-bg);
+
+  border: 1px solid var(--quaternary-bg-border);
+  border-radius: var(--radius-sm);
+
+  cursor: pointer;
+}
+
+.tab-btn.active {
+  color: #1f1f1f;
+  background: var(--primary);
+  border-color: var(--primary-dark);
+}

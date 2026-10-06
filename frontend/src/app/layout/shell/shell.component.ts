@@ -1,7 +1,7 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { Router, RouterOutlet } from '@angular/router';
 import { AuthService } from '@core/services/auth.service';
-import { ProfileService } from '@core/services/profile.service';
+import { ProfileService } from '@features/profile/services/profile.service';
 import { NavbarComponent } from '@shared/components/navbar/navbar.component';
 import { MarketTickerItem, MarketTickerService } from '@core/services/market-ticker.service';
 import { NgTemplateOutlet } from '@angular/common';

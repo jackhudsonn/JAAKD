@@ -55,12 +55,6 @@
   color: var(--text-secondary);
 }
 
-.confirm-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--space-sm);
-}
-
 @media (max-width: 680px) {
   .exchange-result {
     align-items: stretch;
