@@ -111,7 +111,7 @@ class ExecutionServiceTest {
     void handleOrderAccepted_success_appendsExecuted() throws Exception {
         UUID orderId = UUID.randomUUID();
         UUID sourceLogOrderId = UUID.randomUUID();
-        OrderAcceptedEvent event = new OrderAcceptedEvent(orderId, sourceLogOrderId, LocalDateTime.now(), 2L);
+        OrderAcceptedEvent event = new OrderAcceptedEvent(orderId, sourceLogOrderId, LocalDateTime.now());
         OrderLog latest = buildOrderLog(orderId, OrderStatus.ACCEPTED);
 
         when(orderLogService.getLatestOrderLogByOrderIdForUpdate(orderId)).thenReturn(latest);
@@ -142,7 +142,7 @@ class ExecutionServiceTest {
     void handleOrderAccepted_failure_appendsFailed() throws Exception {
         UUID orderId = UUID.randomUUID();
         UUID sourceLogOrderId = UUID.randomUUID();
-        OrderAcceptedEvent event = new OrderAcceptedEvent(orderId, sourceLogOrderId, LocalDateTime.now(), 2L);
+        OrderAcceptedEvent event = new OrderAcceptedEvent(orderId, sourceLogOrderId, LocalDateTime.now());
         OrderLog latest = buildOrderLog(orderId, OrderStatus.ACCEPTED);
 
         when(orderLogService.getLatestOrderLogByOrderIdForUpdate(orderId)).thenReturn(latest);
