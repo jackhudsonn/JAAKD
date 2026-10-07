@@ -67,8 +67,7 @@ CREATE TABLE IF NOT EXISTS "orderLogs" (
   "timestamp" TIMESTAMP NOT NULL,
   metadata TEXT,
   status TEXT NOT NULL,
-  "executionPrice" DOUBLE PRECISION,
-  "quotedPrice" DOUBLE PRECISION
+  "executionPrice" DOUBLE PRECISION
 );
 
 CREATE TABLE IF NOT EXISTS position_lots (
@@ -253,14 +252,14 @@ INSERT INTO instruments (
 )
 SELECT
   gen_random_uuid(),
-  'USD',
+  'USD_CASH',
   'INTERNAL',
   'US Dollar Cash Balance',
-  'CASH',
+  'USD',
   NULL,
   'Synthetic cash instrument used to represent portfolio cash balance in holdings.'
 WHERE NOT EXISTS (
   SELECT 1
   FROM instruments i
-  WHERE UPPER(i.ticker) = 'USD'
+  WHERE UPPER(i.ticker) = 'USD_CASH'
 );
