@@ -7,7 +7,6 @@ public record OrderRejectedEvent(
     UUID orderId,
     UUID sourceLogOrderId,
     String reason,
-    LocalDateTime rejectedAt,
-    long version
+    LocalDateTime rejectedAt
 ) {
 }
