@@ -102,7 +102,6 @@ class ValidationServiceTest {
             UUID.randomUUID(),
             UUID.randomUUID(),
             OrderSide.BUY,
-            1.0,
             LocalDateTime.now()
         );
 
