@@ -21,6 +21,7 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.kafka.core.KafkaTemplate;
+import io.github.jackhudsonn.jaakd.util.SimulateDelay;
 
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
@@ -59,6 +60,9 @@ class ValidationServiceTest {
 
     private ValidationService validationService;
 
+    @Mock
+    private SimulateDelay simulateDelay;
+
     @BeforeEach
     void setUp() {
         validationService = new ValidationService(
@@ -68,7 +72,8 @@ class ValidationServiceTest {
             lotMatchRepository,
             validationLifecycleTxService,
             orderAcceptedKafkaTemplate,
-            orderRejectedKafkaTemplate
+            orderRejectedKafkaTemplate,
+            simulateDelay
         );
     }
 
