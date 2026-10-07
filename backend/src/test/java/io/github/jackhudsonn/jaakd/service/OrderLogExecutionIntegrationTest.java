@@ -219,8 +219,7 @@ class OrderLogExecutionIntegrationTest {
             equityInstrument.getInstrumentId(),
             OrderSide.BUY,
             submitted.getQuantity(),
-            LocalDateTime.now(),
-            1L
+            LocalDateTime.now()
         );
         validationService.handleOrderSubmitted(event);
 
@@ -248,8 +247,7 @@ class OrderLogExecutionIntegrationTest {
             equityInstrument.getInstrumentId(),
             OrderSide.BUY,
             submitted.getQuantity(),
-            LocalDateTime.now(),
-            1L
+            LocalDateTime.now()
         );
         validationService.handleOrderSubmitted(event);
 
@@ -279,8 +277,7 @@ class OrderLogExecutionIntegrationTest {
             equityInstrument.getInstrumentId(),
             OrderSide.BUY,
             submitted.getQuantity(),
-            LocalDateTime.now(),
-            1L
+            LocalDateTime.now()
         );
         validationService.handleOrderSubmitted(event);
 
@@ -339,8 +336,7 @@ class OrderLogExecutionIntegrationTest {
         OrderAcceptedEvent event = new OrderAcceptedEvent(
             acceptedLog.getOrderId(),
             acceptedLog.getLogOrderID(),
-            LocalDateTime.now(),
-            1L
+            LocalDateTime.now()
         );
         executionService.handleOrderAccepted(event);
     }
