@@ -102,6 +102,7 @@ class ValidationServiceTest {
             UUID.randomUUID(),
             UUID.randomUUID(),
             OrderSide.BUY,
+            1.0,
             LocalDateTime.now()
         );
 
@@ -143,8 +144,7 @@ class ValidationServiceTest {
             UUID.randomUUID(),
             OrderSide.BUY,
             0.0,
-            LocalDateTime.now(),
-            2L
+            LocalDateTime.now()
         );
 
         when(validationLifecycleTxService.appendPending(orderId, logOrderId))
@@ -183,8 +183,7 @@ class ValidationServiceTest {
             UUID.randomUUID(),
             OrderSide.SELL,
             2.0,
-            LocalDateTime.now(),
-            3L
+            LocalDateTime.now()
         );
 
         when(validationLifecycleTxService.appendPending(orderId, logOrderId))
@@ -223,8 +222,7 @@ class ValidationServiceTest {
             instrumentId,
             OrderSide.SELL,
             6.0,
-            LocalDateTime.now(),
-            4L
+            LocalDateTime.now()
         );
 
         Holding holding = new Holding(holdingId, portfolioId, instrumentId);
@@ -272,8 +270,7 @@ class ValidationServiceTest {
             instrumentId,
             OrderSide.SELL,
             4.0,
-            LocalDateTime.now(),
-            5L
+            LocalDateTime.now()
         );
 
         Holding holding = new Holding(holdingId, portfolioId, instrumentId);
@@ -317,8 +314,7 @@ class ValidationServiceTest {
             instrumentId,
             OrderSide.BUY,
             5.0,
-            LocalDateTime.now(),
-            6L
+            LocalDateTime.now()
         );
 
         OrderLog pending = buildOrderLog(orderId, logOrderId, OrderStatus.PENDING);
@@ -372,8 +368,7 @@ class ValidationServiceTest {
             instrumentId,
             OrderSide.BUY,
             5.0,
-            LocalDateTime.now(),
-            7L
+            LocalDateTime.now()
         );
 
         OrderLog pending = buildOrderLog(orderId, logOrderId, OrderStatus.PENDING);
