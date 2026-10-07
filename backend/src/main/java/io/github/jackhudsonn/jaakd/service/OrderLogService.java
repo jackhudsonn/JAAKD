@@ -135,8 +135,7 @@ public class OrderLogService {
             saved.getInstrument().getInstrumentId(),
             saved.getSide(),
             saved.getQuantity(),
-            saved.getTimeStamp(),
-            1L
+            saved.getTimeStamp()
         );
         String partitionKey = saved.getInstrument().getTicker();
         orderSubmittedKafkaTemplate.send(KafkaTopics.ORDER_SUBMITTED, partitionKey, event);

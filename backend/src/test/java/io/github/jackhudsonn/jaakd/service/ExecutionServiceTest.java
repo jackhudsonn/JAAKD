@@ -50,7 +50,7 @@ class ExecutionServiceTest {
     @Test
     void handleOrderAccepted_latestExecuted_noop() throws Exception {
         UUID orderId = UUID.randomUUID();
-        OrderAcceptedEvent event = new OrderAcceptedEvent(orderId, UUID.randomUUID(), LocalDateTime.now(), 1L);
+        OrderAcceptedEvent event = new OrderAcceptedEvent(orderId, UUID.randomUUID(), LocalDateTime.now());
         OrderLog latest = buildOrderLog(orderId, OrderStatus.EXECUTED);
 
         when(orderLogService.getLatestOrderLogByOrderIdForUpdate(orderId)).thenReturn(latest);
@@ -74,7 +74,7 @@ class ExecutionServiceTest {
     @Test
     void handleOrderAccepted_latestFailed_noop() throws Exception {
         UUID orderId = UUID.randomUUID();
-        OrderAcceptedEvent event = new OrderAcceptedEvent(orderId, UUID.randomUUID(), LocalDateTime.now(), 1L);
+        OrderAcceptedEvent event = new OrderAcceptedEvent(orderId, UUID.randomUUID(), LocalDateTime.now());
         OrderLog latest = buildOrderLog(orderId, OrderStatus.FAILED);
 
         when(orderLogService.getLatestOrderLogByOrderIdForUpdate(orderId)).thenReturn(latest);
@@ -98,7 +98,7 @@ class ExecutionServiceTest {
     @Test
     void handleOrderAccepted_latestNotAccepted_throws() throws Exception {
         UUID orderId = UUID.randomUUID();
-        OrderAcceptedEvent event = new OrderAcceptedEvent(orderId, UUID.randomUUID(), LocalDateTime.now(), 1L);
+        OrderAcceptedEvent event = new OrderAcceptedEvent(orderId, UUID.randomUUID(), LocalDateTime.now());
         OrderLog latest = buildOrderLog(orderId, OrderStatus.SUBMITTED);
 
         when(orderLogService.getLatestOrderLogByOrderIdForUpdate(orderId)).thenReturn(latest);

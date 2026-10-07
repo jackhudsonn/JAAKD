@@ -12,7 +12,6 @@ public record OrderSubmittedEvent(
     UUID instrumentId,
     OrderSide side,
     double quantity,
-    LocalDateTime submittedAt,
-    long version
+    LocalDateTime submittedAt
 ) {
 }

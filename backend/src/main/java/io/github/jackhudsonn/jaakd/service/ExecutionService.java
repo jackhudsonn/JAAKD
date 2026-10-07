@@ -4,6 +4,7 @@ import io.github.jackhudsonn.jaakd.event.OrderAcceptedEvent;
 import io.github.jackhudsonn.jaakd.exception.InvalidTradeException;
 import io.github.jackhudsonn.jaakd.model.OrderLog;
 import io.github.jackhudsonn.jaakd.model.OrderStatus;
+import io.github.jackhudsonn.jaakd.util.SimulateDelay;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,13 +13,16 @@ public class ExecutionService {
 
     private final OrderLogService orderLogService;
     private final FifoAccountingService fifoAccountingService;
+    private final SimulateDelay simulateDelay;
 
     public ExecutionService(
         OrderLogService orderLogService,
-        FifoAccountingService fifoAccountingService
+        FifoAccountingService fifoAccountingService,
+        SimulateDelay simulateDelay
     ) {
         this.orderLogService = orderLogService;
         this.fifoAccountingService = fifoAccountingService;
+        this.simulateDelay = simulateDelay;
     }
 
     @Transactional
@@ -33,11 +37,7 @@ public class ExecutionService {
 
     private OrderLog executeLatestAcceptedLifecycle(OrderAcceptedEvent event, OrderLog latestOrderLog) {
 
-        if (latestOrderLog.getStatus() == OrderStatus.EXECUTED) {
-            return latestOrderLog;
-        }
-
-        if (latestOrderLog.getStatus() == OrderStatus.FAILED) {
+        if (latestOrderLog.getStatus() == OrderStatus.EXECUTED || latestOrderLog.getStatus() == OrderStatus.FAILED) {
             return latestOrderLog;
         }
 
@@ -49,6 +49,14 @@ public class ExecutionService {
                     + " while latest status is " + latestOrderLog.getStatus()
                     + "; latest status must be ACCEPTED"
             );
+        }
+
+        // Simulate Execution Delay
+        try {
+            simulateDelay.simulateMarketActivityDelay();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Execution delay interrupted", e);
         }
 
         FifoAccountingService.ExecutionOutcome outcome =

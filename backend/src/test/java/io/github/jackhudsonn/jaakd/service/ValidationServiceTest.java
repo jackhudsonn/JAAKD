@@ -103,8 +103,7 @@ class ValidationServiceTest {
             UUID.randomUUID(),
             OrderSide.BUY,
             1.0,
-            LocalDateTime.now(),
-            1L
+            LocalDateTime.now()
         );
 
         when(validationLifecycleTxService.appendPending(orderId, logOrderId))
