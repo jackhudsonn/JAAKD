@@ -74,6 +74,7 @@ This starts:
 
 - `jaakd-postgres` on `127.0.0.1:5433` (reachable only from the Docker host itself)
 - `jaakd-backend` on port `8081`
+- `jaakd-kafka` on `:9092`
 
 The containers keep running until you stop them. Run the same command again after pulling backend changes.
 

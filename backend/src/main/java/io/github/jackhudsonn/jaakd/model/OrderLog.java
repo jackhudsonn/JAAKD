@@ -56,6 +56,9 @@ public class OrderLog {
     @Column(name = "executionPrice")
     private double executionPrice;
 
+    @Column(name = "quotedPrice")
+    private Double quotedPrice;
+
     protected OrderLog() {
     }
 
@@ -114,6 +117,14 @@ public class OrderLog {
 
     public void setExecutionPrice(double executionPrice) {
         this.executionPrice = executionPrice;
+    }
+
+    public Double getQuotedPrice() {
+        return quotedPrice;
+    }
+
+    public void setQuotedPrice(Double quotedPrice) {
+        this.quotedPrice = quotedPrice;
     }
 
     public UUID getLogOrderID() {
