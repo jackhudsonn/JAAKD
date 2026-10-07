@@ -12,6 +12,7 @@ import io.github.jackhudsonn.jaakd.model.Portfolio;
 import io.github.jackhudsonn.jaakd.model.PositionLot;
 import io.github.jackhudsonn.jaakd.model.Profile;
 import io.github.jackhudsonn.jaakd.repository.HoldingRepository;
+import io.github.jackhudsonn.jaakd.repository.InstrumentRepository;
 import io.github.jackhudsonn.jaakd.repository.LotMatchRepository;
 import io.github.jackhudsonn.jaakd.repository.PositionLotRepository;
 import org.junit.jupiter.api.Test;
@@ -29,8 +30,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -49,6 +50,12 @@ class FifoAccountingServiceTest {
     @Mock
     private LotMatchRepository lotMatchRepository;
 
+    @Mock
+    private InstrumentRepository instrumentRepository;
+
+    @Mock
+    private QuoteService quoteService;
+
     @InjectMocks
     private FifoAccountingService fifoAccountingService;
 
@@ -57,14 +64,24 @@ class FifoAccountingServiceTest {
         UUID portfolioId = UUID.randomUUID();
         UUID instrumentId = UUID.randomUUID();
         UUID buyLogId = UUID.randomUUID();
+        UUID cashInstrumentId = UUID.randomUUID();
 
         Holding holding = new Holding(UUID.randomUUID(), portfolioId, instrumentId);
+        Holding cashHolding = new Holding(UUID.randomUUID(), portfolioId, cashInstrumentId);
+        cashHolding.setCurrentQuantity(new BigDecimal("20000.0"));
+        Instrument cashInstrument = buildCashInstrument(cashInstrumentId, "USD");
         OrderLog buyLog = buildExecutedOrderLog(buyLogId, portfolioId, instrumentId, OrderSide.BUY, 100, 110);
 
+        when(quoteService.getExecutionPrice(instrumentId)).thenReturn(110.0);
         when(positionLotRepository.existsBySourceBuyLogOrderID(buyLogId)).thenReturn(false);
         when(holdingRepository.findByPortfolioIDAndInstrumentID(portfolioId, instrumentId)).thenReturn(Optional.of(holding));
+        when(instrumentRepository.findByTickerIgnoreCaseAndInstrumentClass("USD", InstrumentClass.CASH))
+            .thenReturn(Optional.of(cashInstrument));
+        when(holdingRepository.findByPortfolioIDAndInstrumentID(portfolioId, cashInstrumentId))
+            .thenReturn(Optional.of(cashHolding));
 
-        fifoAccountingService.applyExecution(buyLog);
+        FifoAccountingService.ExecutionOutcome outcome = fifoAccountingService.applyExecution(buyLog);
+        assertTrue(outcome.succeeded());
 
         ArgumentCaptor<PositionLot> lotCaptor = ArgumentCaptor.forClass(PositionLot.class);
         verify(positionLotRepository, times(1)).save(lotCaptor.capture());
@@ -75,8 +92,10 @@ class FifoAccountingServiceTest {
         assertEquals(new BigDecimal("110.0"), savedLot.getUnitCost());
 
         ArgumentCaptor<Holding> holdingCaptor = ArgumentCaptor.forClass(Holding.class);
-        verify(holdingRepository, times(1)).save(holdingCaptor.capture());
-        assertEquals(new BigDecimal("100.0"), holdingCaptor.getValue().getCurrentQuantity());
+        verify(holdingRepository, times(2)).save(holdingCaptor.capture());
+        List<Holding> savedHoldings = holdingCaptor.getAllValues();
+        assertEquals(new BigDecimal("100.0"), savedHoldings.get(0).getCurrentQuantity());
+        assertEquals(new BigDecimal("9000.00"), savedHoldings.get(1).getCurrentQuantity());
     }
 
     @Test
@@ -85,10 +104,14 @@ class FifoAccountingServiceTest {
         UUID instrumentId = UUID.randomUUID();
         UUID sellLogId = UUID.randomUUID();
         UUID holdingId = UUID.randomUUID();
+        UUID cashInstrumentId = UUID.randomUUID();
 
         Holding holding = new Holding(holdingId, portfolioId, instrumentId);
         holding.setCurrentQuantity(new BigDecimal("180.0"));
         holding.setCumulativeRealizedPnl(BigDecimal.ZERO);
+        Holding cashHolding = new Holding(UUID.randomUUID(), portfolioId, cashInstrumentId);
+        cashHolding.setCurrentQuantity(new BigDecimal("3000.0"));
+        Instrument cashInstrument = buildCashInstrument(cashInstrumentId, "USD");
 
         PositionLot firstLot = new PositionLot(
             holdingId,
@@ -112,14 +135,20 @@ class FifoAccountingServiceTest {
 
         OrderLog sellLog = buildExecutedOrderLog(sellLogId, portfolioId, instrumentId, OrderSide.SELL, 130, 120);
 
+        when(quoteService.getExecutionPrice(instrumentId)).thenReturn(120.0);
         when(lotMatchRepository.existsBySellLogOrderID(sellLogId)).thenReturn(false);
         when(holdingRepository.findByPortfolioIDAndInstrumentID(portfolioId, instrumentId)).thenReturn(Optional.of(holding));
+        when(instrumentRepository.findByTickerIgnoreCaseAndInstrumentClass("USD", InstrumentClass.CASH))
+            .thenReturn(Optional.of(cashInstrument));
+        when(holdingRepository.findByPortfolioIDAndInstrumentID(portfolioId, cashInstrumentId))
+            .thenReturn(Optional.of(cashHolding));
         when(positionLotRepository.findPositionLotsByHoldingIDWithSufficientQuantity(
             holdingId,
             BigDecimal.ZERO
         )).thenReturn(List.of(firstLot, secondLot));
 
-        fifoAccountingService.applyExecution(sellLog);
+        FifoAccountingService.ExecutionOutcome outcome = fifoAccountingService.applyExecution(sellLog);
+        assertTrue(outcome.succeeded());
 
         ArgumentCaptor<LotMatch> matchCaptor = ArgumentCaptor.forClass(LotMatch.class);
         verify(lotMatchRepository, times(2)).save(matchCaptor.capture());
@@ -153,15 +182,18 @@ class FifoAccountingServiceTest {
             .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         ArgumentCaptor<Holding> holdingCaptor = ArgumentCaptor.forClass(Holding.class);
-        verify(holdingRepository, times(1)).save(holdingCaptor.capture());
-        Holding updatedHolding = holdingCaptor.getValue();
+        verify(holdingRepository, times(2)).save(holdingCaptor.capture());
+        List<Holding> savedHoldings = holdingCaptor.getAllValues();
+        Holding updatedHolding = savedHoldings.get(0);
+        Holding updatedCashHolding = savedHoldings.get(1);
         assertEquals(new BigDecimal("50.0"), updatedHolding.getCurrentQuantity());
         assertEquals(new BigDecimal("1150.00"), updatedHolding.getCumulativeRealizedPnl().setScale(2));
         assertEquals(openLotRemainder, updatedHolding.getCurrentQuantity());
+        assertEquals(new BigDecimal("18600.00"), updatedCashHolding.getCurrentQuantity());
     }
 
     @Test
-    void applyExecution_oversellThrowsValidationError() throws Exception {
+    void applyExecution_oversellReturnsFailedOutcome() throws Exception {
         UUID portfolioId = UUID.randomUUID();
         UUID instrumentId = UUID.randomUUID();
         UUID sellLogId = UUID.randomUUID();
@@ -171,10 +203,13 @@ class FifoAccountingServiceTest {
 
         OrderLog sellLog = buildExecutedOrderLog(sellLogId, portfolioId, instrumentId, OrderSide.SELL, 60, 120);
 
+        when(quoteService.getExecutionPrice(instrumentId)).thenReturn(120.0);
         when(lotMatchRepository.existsBySellLogOrderID(sellLogId)).thenReturn(false);
         when(holdingRepository.findByPortfolioIDAndInstrumentID(portfolioId, instrumentId)).thenReturn(Optional.of(holding));
 
-        assertThrows(InvalidTradeException.class, () -> fifoAccountingService.applyExecution(sellLog));
+        FifoAccountingService.ExecutionOutcome outcome = fifoAccountingService.applyExecution(sellLog);
+        assertFalse(outcome.succeeded());
+        assertEquals("Cannot sell more than current holding quantity", outcome.failureReason());
 
         verify(positionLotRepository, never())
             .findPositionLotsByHoldingIDWithSufficientQuantity(holding.getHoldingID(), BigDecimal.ZERO);
@@ -182,7 +217,7 @@ class FifoAccountingServiceTest {
     }
 
     @Test
-    void applyExecution_nonExecutedOrderIsNoOp() throws Exception {
+    void applyExecution_nonAcceptedOrderIsNoOp() throws Exception {
         UUID portfolioId = UUID.randomUUID();
         UUID instrumentId = UUID.randomUUID();
         UUID logOrderId = UUID.randomUUID();
@@ -190,7 +225,9 @@ class FifoAccountingServiceTest {
         OrderLog orderLog = buildExecutedOrderLog(logOrderId, portfolioId, instrumentId, OrderSide.BUY, 10, 100);
         orderLog.setStatus(OrderStatus.SUBMITTED);
 
-        fifoAccountingService.applyExecution(orderLog);
+        FifoAccountingService.ExecutionOutcome outcome = fifoAccountingService.applyExecution(orderLog);
+        assertFalse(outcome.succeeded());
+        assertEquals("Order must be ACCEPTED before execution accounting", outcome.failureReason());
 
         verify(holdingRepository, never()).findByPortfolioIDAndInstrumentID(portfolioId, instrumentId);
         verify(positionLotRepository, never()).existsBySourceBuyLogOrderID(logOrderId);
@@ -211,7 +248,8 @@ class FifoAccountingServiceTest {
 
         when(holdingRepository.findByPortfolioIDAndInstrumentID(portfolioId, instrumentId)).thenReturn(Optional.of(holding));
 
-        fifoAccountingService.applyExecution(orderLog);
+        FifoAccountingService.ExecutionOutcome outcome = fifoAccountingService.applyExecution(orderLog);
+        assertTrue(outcome.succeeded());
 
         verify(positionLotRepository, never()).save(any(PositionLot.class));
         verify(lotMatchRepository, never()).save(any(LotMatch.class));
@@ -232,7 +270,8 @@ class FifoAccountingServiceTest {
         when(holdingRepository.findByPortfolioIDAndInstrumentID(portfolioId, instrumentId)).thenReturn(Optional.empty());
         when(holdingRepository.save(any(Holding.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        fifoAccountingService.applyExecution(orderLog);
+        FifoAccountingService.ExecutionOutcome outcome = fifoAccountingService.applyExecution(orderLog);
+        assertTrue(outcome.succeeded());
 
         verify(positionLotRepository, never()).save(any(PositionLot.class));
         verify(lotMatchRepository, never()).save(any(LotMatch.class));
@@ -260,7 +299,8 @@ class FifoAccountingServiceTest {
 
         when(holdingRepository.findByPortfolioIDAndInstrumentID(portfolioId, instrumentId)).thenReturn(Optional.of(holding));
 
-        fifoAccountingService.applyExecution(orderLog);
+        FifoAccountingService.ExecutionOutcome outcome = fifoAccountingService.applyExecution(orderLog);
+        assertTrue(outcome.succeeded());
 
         verify(positionLotRepository, never()).save(any(PositionLot.class));
         verify(lotMatchRepository, never()).save(any(LotMatch.class));
@@ -271,7 +311,7 @@ class FifoAccountingServiceTest {
     }
 
     @Test
-    void applyExecution_withdrawMoreThanBalanceThrowsValidationError() throws Exception {
+    void applyExecution_withdrawMoreThanBalanceReturnsFailedOutcome() throws Exception {
         UUID portfolioId = UUID.randomUUID();
         UUID instrumentId = UUID.randomUUID();
         UUID logOrderId = UUID.randomUUID();
@@ -284,7 +324,9 @@ class FifoAccountingServiceTest {
 
         when(holdingRepository.findByPortfolioIDAndInstrumentID(portfolioId, instrumentId)).thenReturn(Optional.of(holding));
 
-        assertThrows(InvalidTradeException.class, () -> fifoAccountingService.applyExecution(orderLog));
+        FifoAccountingService.ExecutionOutcome outcome = fifoAccountingService.applyExecution(orderLog);
+        assertFalse(outcome.succeeded());
+        assertEquals("Cannot withdraw more than current cash quantity", outcome.failureReason());
 
         verify(positionLotRepository, never()).save(any(PositionLot.class));
         verify(lotMatchRepository, never()).save(any(LotMatch.class));
@@ -299,9 +341,11 @@ class FifoAccountingServiceTest {
 
         OrderLog buyLog = buildExecutedOrderLog(buyLogId, portfolioId, instrumentId, OrderSide.BUY, 25, 111);
 
+        when(quoteService.getExecutionPrice(instrumentId)).thenReturn(111.0);
         when(positionLotRepository.existsBySourceBuyLogOrderID(buyLogId)).thenReturn(true);
 
-        fifoAccountingService.applyExecution(buyLog);
+        FifoAccountingService.ExecutionOutcome outcome = fifoAccountingService.applyExecution(buyLog);
+        assertTrue(outcome.succeeded());
 
         verify(positionLotRepository, times(1)).existsBySourceBuyLogOrderID(buyLogId);
         verify(holdingRepository, never()).findByPortfolioIDAndInstrumentID(portfolioId, instrumentId);
@@ -317,9 +361,11 @@ class FifoAccountingServiceTest {
 
         OrderLog sellLog = buildExecutedOrderLog(sellLogId, portfolioId, instrumentId, OrderSide.SELL, 10, 120);
 
+        when(quoteService.getExecutionPrice(instrumentId)).thenReturn(120.0);
         when(lotMatchRepository.existsBySellLogOrderID(sellLogId)).thenReturn(true);
 
-        fifoAccountingService.applyExecution(sellLog);
+        FifoAccountingService.ExecutionOutcome outcome = fifoAccountingService.applyExecution(sellLog);
+        assertTrue(outcome.succeeded());
 
         verify(lotMatchRepository, times(1)).existsBySellLogOrderID(sellLogId);
         verify(holdingRepository, never()).findByPortfolioIDAndInstrumentID(portfolioId, instrumentId);
@@ -346,11 +392,17 @@ class FifoAccountingServiceTest {
         setField(instrument, "instrumentId", instrumentId);
 
         OrderLog orderLog = new OrderLog(UUID.randomUUID(), portfolio, instrument, side, quantity);
-        orderLog.setStatus(OrderStatus.EXECUTED);
+        orderLog.setStatus(OrderStatus.ACCEPTED);
         orderLog.setExecutionPrice(executionPrice);
         setField(orderLog, "logOrderID", logOrderId);
 
         return orderLog;
+    }
+
+    private Instrument buildCashInstrument(UUID instrumentId, String ticker) throws Exception {
+        Instrument instrument = new Instrument(ticker, "CASH", ticker + " Cash", InstrumentClass.CASH);
+        setField(instrument, "instrumentId", instrumentId);
+        return instrument;
     }
 
     private void setField(Object target, String fieldName, Object value) throws Exception {

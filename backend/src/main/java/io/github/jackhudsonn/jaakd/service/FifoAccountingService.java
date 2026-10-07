@@ -2,11 +2,15 @@ package io.github.jackhudsonn.jaakd.service;
 
 import io.github.jackhudsonn.jaakd.exception.InvalidTradeException;
 import io.github.jackhudsonn.jaakd.model.Holding;
+import io.github.jackhudsonn.jaakd.model.Instrument;
+import io.github.jackhudsonn.jaakd.model.InstrumentClass;
 import io.github.jackhudsonn.jaakd.model.LotMatch;
 import io.github.jackhudsonn.jaakd.model.OrderLog;
+import io.github.jackhudsonn.jaakd.model.OrderSide;
 import io.github.jackhudsonn.jaakd.model.OrderStatus;
 import io.github.jackhudsonn.jaakd.model.PositionLot;
 import io.github.jackhudsonn.jaakd.repository.HoldingRepository;
+import io.github.jackhudsonn.jaakd.repository.InstrumentRepository;
 import io.github.jackhudsonn.jaakd.repository.LotMatchRepository;
 import io.github.jackhudsonn.jaakd.repository.PositionLotRepository;
 import org.springframework.stereotype.Service;
@@ -15,39 +19,76 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import static java.lang.Thread.sleep;
 
 @Service
 public class FifoAccountingService {
 
+    private static final String[] CASH_TICKER_PRIORITY = {"USD", "GBP", "RUP"};
+    private static final String REASON_CASH_INSTRUMENT_NOT_CONFIGURED = "Cash instrument is not configured";
+    private static final String REASON_INSUFFICIENT_BUY_CASH = "Cannot buy more than current cash quantity";
+
+    public record ExecutionOutcome(boolean succeeded, String failureReason, Double executionPriceUsed) {
+        public static ExecutionOutcome success(Double executionPriceUsed) {
+            return new ExecutionOutcome(true, null, executionPriceUsed);
+        }
+
+        public static ExecutionOutcome failed(String failureReason) {
+            return new ExecutionOutcome(false, failureReason, null);
+        }
+    }
+
     private final HoldingRepository holdingRepository;
+    private final InstrumentRepository instrumentRepository;
     private final PositionLotRepository positionLotRepository;
     private final LotMatchRepository lotMatchRepository;
+    private final QuoteService quoteService;
 
     public FifoAccountingService(
         HoldingRepository holdingRepository,
+        InstrumentRepository instrumentRepository,
         PositionLotRepository positionLotRepository,
-        LotMatchRepository lotMatchRepository
+        LotMatchRepository lotMatchRepository,
+        QuoteService quoteService
     ) {
         this.holdingRepository = holdingRepository;
+        this.instrumentRepository = instrumentRepository;
         this.positionLotRepository = positionLotRepository;
         this.lotMatchRepository = lotMatchRepository;
+        this.quoteService = quoteService;
     }
 
-    public void applyExecution(OrderLog orderLog) {
-        if (orderLog.getStatus() != OrderStatus.EXECUTED) {
-            return;
+    // Execution pricing is resolved internally via QuoteService for BUY/SELL.
+    public ExecutionOutcome applyExecution(OrderLog orderLog) {
+        if (orderLog.getStatus() != OrderStatus.ACCEPTED) {
+            return ExecutionOutcome.failed("Order must be ACCEPTED before execution accounting");
         }
 
-        switch (orderLog.getSide()) {
-            case BUY -> applyBuy(orderLog);
-            case SELL -> applySell(orderLog);
-            case DEPOSIT -> applyDeposit(orderLog);
-            case WITHDRAW -> applyWithdraw(orderLog);
-            default -> throw new InvalidTradeException("Unsupported FIFO side: " + orderLog.getSide());
+        Double effectiveExecutionPrice = null;
+        if (orderLog.getSide() == OrderSide.BUY || orderLog.getSide() == OrderSide.SELL) {
+            effectiveExecutionPrice = quoteService.getExecutionPrice(orderLog.getInstrument().getInstrumentId());
+            if (effectiveExecutionPrice == null) {
+                return ExecutionOutcome.failed("Failed to retrieve execution price for BUY/SELL order");
+            }
+        }
+
+        try {
+            switch (orderLog.getSide()) {
+                case BUY -> applyBuy(orderLog, effectiveExecutionPrice);
+                case SELL -> applySell(orderLog, effectiveExecutionPrice);
+                case DEPOSIT -> applyDeposit(orderLog);
+                case WITHDRAW -> applyWithdraw(orderLog);
+                default -> throw new InvalidTradeException("Unsupported FIFO side: " + orderLog.getSide());
+            }
+            return ExecutionOutcome.success(effectiveExecutionPrice);
+        } catch (InvalidTradeException ex) {
+            return ExecutionOutcome.failed(ex.getMessage());
+        } catch (RuntimeException ex) {
+            return ExecutionOutcome.failed("Execution pricing unavailable: " + ex.getMessage());
         }
     }
 
-    private void applyBuy(OrderLog orderLog) {
+    private void applyBuy(OrderLog orderLog, Double executionPrice) {
         UUID buyLogId = orderLog.getLogOrderID();
         if (positionLotRepository.existsBySourceBuyLogOrderID(buyLogId)) {
             return;
@@ -56,12 +97,13 @@ public class FifoAccountingService {
         Holding holding = resolveOrCreateHolding(orderLog);
 
         BigDecimal quantity = BigDecimal.valueOf(orderLog.getQuantity());
-        BigDecimal unitCost = BigDecimal.valueOf(orderLog.getExecutionPrice());
+        BigDecimal unitCost = BigDecimal.valueOf(executionPrice);
+        LocalDateTime now = LocalDateTime.now();
 
         PositionLot lot = new PositionLot(
             holding.getHoldingID(),
             buyLogId,
-            orderLog.getTimeStamp(),
+            now,
             quantity,
             quantity,
             unitCost
@@ -70,11 +112,22 @@ public class FifoAccountingService {
 
         BigDecimal currentQuantity = safe(holding.getCurrentQuantity());
         holding.setCurrentQuantity(currentQuantity.add(quantity));
-        holding.setUpdatedAt(LocalDateTime.now());
+        holding.setUpdatedAt(now);
         holdingRepository.save(holding);
+
+        Holding cashHolding = resolveOrCreateCashHolding(orderLog);
+        BigDecimal tradeNotional = quantity.multiply(unitCost);
+        BigDecimal currentCash = safe(cashHolding.getCurrentQuantity());
+        if (currentCash.compareTo(tradeNotional) < 0) {
+            throw new InvalidTradeException(REASON_INSUFFICIENT_BUY_CASH);
+        }
+
+        cashHolding.setCurrentQuantity(currentCash.subtract(tradeNotional));
+        cashHolding.setUpdatedAt(now);
+        holdingRepository.save(cashHolding);
     }
 
-    private void applySell(OrderLog orderLog) {
+    private void applySell(OrderLog orderLog, Double executionPrice) {
         UUID sellLogId = orderLog.getLogOrderID();
         if (lotMatchRepository.existsBySellLogOrderID(sellLogId)) {
             return;
@@ -83,7 +136,7 @@ public class FifoAccountingService {
         Holding holding = resolveExistingHolding(orderLog);
 
         BigDecimal sellQuantity = BigDecimal.valueOf(orderLog.getQuantity());
-        BigDecimal sellUnitPrice = BigDecimal.valueOf(orderLog.getExecutionPrice());
+        BigDecimal sellUnitPrice = BigDecimal.valueOf(executionPrice);
 
         BigDecimal currentQuantity = safe(holding.getCurrentQuantity());
         if (currentQuantity.compareTo(sellQuantity) < 0) {
@@ -98,6 +151,7 @@ public class FifoAccountingService {
 
         BigDecimal remainingToSell = sellQuantity;
         BigDecimal realizedTotal = BigDecimal.ZERO;
+        LocalDateTime now = LocalDateTime.now();
 
         for (PositionLot lot : openLots) {
             if (remainingToSell.compareTo(BigDecimal.ZERO) == 0) {
@@ -119,7 +173,7 @@ public class FifoAccountingService {
                 matched,
                 sellUnitPrice,
                 realized,
-                orderLog.getTimeStamp()
+                now
             );
             lotMatchRepository.save(lotMatch);
 
@@ -136,8 +190,15 @@ public class FifoAccountingService {
 
         holding.setCurrentQuantity(currentQuantity.subtract(sellQuantity));
         holding.setCumulativeRealizedPnl(safe(holding.getCumulativeRealizedPnl()).add(realizedTotal));
-        holding.setUpdatedAt(LocalDateTime.now());
+        holding.setUpdatedAt(now);
         holdingRepository.save(holding);
+
+        Holding cashHolding = resolveOrCreateCashHolding(orderLog);
+        BigDecimal currentCash = safe(cashHolding.getCurrentQuantity());
+        BigDecimal tradeNotional = sellQuantity.multiply(sellUnitPrice);
+        cashHolding.setCurrentQuantity(currentCash.add(tradeNotional));
+        cashHolding.setUpdatedAt(now);
+        holdingRepository.save(cashHolding);
     }
 
     private void applyDeposit(OrderLog orderLog) {
@@ -177,6 +238,27 @@ public class FifoAccountingService {
 
         return holdingRepository.findByPortfolioIDAndInstrumentID(portfolioId, instrumentId)
             .orElseThrow(() -> new InvalidTradeException("Cannot sell without an existing holding"));
+    }
+
+    private Holding resolveOrCreateCashHolding(OrderLog orderLog) {
+        UUID portfolioId = orderLog.getPortfolio().getPortfolioId();
+        Instrument cashInstrument = resolveCashInstrument();
+
+        return holdingRepository.findByPortfolioIDAndInstrumentID(portfolioId, cashInstrument.getInstrumentId())
+            .orElseGet(() -> holdingRepository.save(new Holding(portfolioId, cashInstrument.getInstrumentId())));
+    }
+
+    private Instrument resolveCashInstrument() {
+        for (String ticker : CASH_TICKER_PRIORITY) {
+            Instrument found = instrumentRepository
+                .findByTickerIgnoreCaseAndInstrumentClass(ticker, InstrumentClass.CASH)
+                .orElse(null);
+            if (found != null) {
+                return found;
+            }
+        }
+
+        throw new InvalidTradeException(REASON_CASH_INSTRUMENT_NOT_CONFIGURED);
     }
 
     private BigDecimal safe(BigDecimal value) {
