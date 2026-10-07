@@ -80,33 +80,17 @@ http://localhost:8081/actuator/health
 bash scripts/integration-test.sh
 ```
 
-The script verifies auth + backend endpoints and confirms user/profile rows in Postgres.
-
-### Running the frontend against a backend on another machine
-
-If the backend runs on a different machine than the frontend, forward its port from your frontend machine so the default local URLs work:
-
-```bash
-ssh -N -L 8081:localhost:8081 <user>@<host>
-```
-
-Run this in its own terminal on the frontend machine before starting the frontend and leave it open. It asks for the host password, then shows nothing.
+The script registers a test user, checks the auth and backend endpoints, and confirms the matching rows in Postgres.
 
 ### Browsing the database (pgAdmin)
 
-Postgres only listens on the machine running it, at `127.0.0.1:5433`. To inspect it from another machine, open a tunnel for the database port:
+pgAdmin opens its own SSH tunnel to the Docker host. In pgAdmin: **Register > Server**, then:
 
-```bash
-ssh -N -L 5433:localhost:5433 <user>@<host>
-```
+- **SSH Tunnel** tab: turn on **Use SSH tunneling**. Tunnel host `<host>`, port `22`, your SSH username and login.
+- **Connection** tab: Host `<host>`, port `5433`, maintenance database `jaakd`, username `jaakd_app`.
+- Password: the `JAAKD_APP_DB_PASSWORD` value from the Docker host's `.env`. Don't share it.
 
-In pgAdmin: **Register > Server**, then on the Connection tab:
-
-- Host `localhost`, port `5433`, database `jaakd`
-- Username `jaakd_app`
-- Password: the value from your `.env` (`JAAKD_APP_DB_PASSWORD`). Don't save it in pgAdmin or share it.
-
-`jaakd_app` owns the application tables, so it can read them for inspection. Use pgAdmin to look, not to edit; change data through the app.
+Tables are under **Databases > jaakd > Schemas > public > Tables**. `jaakd_app` owns the application tables, so it can read them for inspection. Use pgAdmin to look, not to edit; change data through the app.
 
 ## Configuration
 
