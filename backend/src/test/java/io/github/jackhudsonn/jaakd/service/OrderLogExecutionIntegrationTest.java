@@ -3,6 +3,7 @@ package io.github.jackhudsonn.jaakd.service;
 import io.github.jackhudsonn.jaakd.BackendApplication;
 import io.github.jackhudsonn.jaakd.dto.LotMatchResponse;
 import io.github.jackhudsonn.jaakd.dto.PositionLotResponse;
+import io.github.jackhudsonn.jaakd.event.OrderAcceptedEvent;
 import io.github.jackhudsonn.jaakd.model.Holding;
 import io.github.jackhudsonn.jaakd.model.Instrument;
 import io.github.jackhudsonn.jaakd.model.InstrumentClass;
@@ -18,6 +19,7 @@ import io.github.jackhudsonn.jaakd.repository.OrderLogRepository;
 import io.github.jackhudsonn.jaakd.repository.PortfolioRepository;
 import io.github.jackhudsonn.jaakd.repository.PositionLotRepository;
 import jakarta.persistence.EntityManager;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -28,6 +30,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -35,13 +38,24 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@SpringBootTest(classes = BackendApplication.class)
+@SpringBootTest(
+    classes = BackendApplication.class,
+    properties = {
+        "spring.kafka.listener.auto-startup=false"
+    }
+)
 @ActiveProfiles("test")
 @Transactional
 class OrderLogExecutionIntegrationTest {
 
     @Autowired
     private OrderLogService orderLogService;
+
+    @Autowired
+    private ExecutionService executionService;
+
+    @Autowired
+    private ValidationService validationService;
 
     @Autowired
     private HoldingService holdingService;
@@ -70,8 +84,8 @@ class OrderLogExecutionIntegrationTest {
         setAuthenticatedUser(portfolio.getProfile().getUserId());
         Instrument cashInstrument = createCashInstrument();
 
-        OrderLog depositLog = createSubmittedOrderLog(portfolio, cashInstrument, OrderSide.DEPOSIT, 1000.0);
-        orderLogService.markExecuted(depositLog.getLogOrderID(), null);
+        OrderLog depositLog = createAcceptedOrderLog(portfolio, cashInstrument, OrderSide.DEPOSIT, 1000.0);
+        executeAcceptedOrderLog(depositLog);
 
         Optional<Holding> maybeHoldingAfterDeposit = holdingRepository.findByPortfolioIDAndInstrumentID(
             portfolio.getPortfolioId(),
@@ -80,8 +94,8 @@ class OrderLogExecutionIntegrationTest {
         assertTrue(maybeHoldingAfterDeposit.isPresent());
         assertEquals(new BigDecimal("1000.0"), maybeHoldingAfterDeposit.get().getCurrentQuantity());
 
-        OrderLog withdrawLog = createSubmittedOrderLog(portfolio, cashInstrument, OrderSide.WITHDRAW, 250.0);
-        orderLogService.markExecuted(withdrawLog.getLogOrderID(), null);
+        OrderLog withdrawLog = createAcceptedOrderLog(portfolio, cashInstrument, OrderSide.WITHDRAW, 250.0);
+        executeAcceptedOrderLog(withdrawLog);
 
         Holding holdingAfterWithdraw = holdingRepository.findByPortfolioIDAndInstrumentID(
             portfolio.getPortfolioId(),
@@ -92,10 +106,10 @@ class OrderLogExecutionIntegrationTest {
         assertEquals(0, positionLotRepository.count());
         assertEquals(0, lotMatchRepository.count());
 
-        OrderLog reloadedDepositLog = orderLogRepository.findById(depositLog.getLogOrderID()).orElseThrow();
-        OrderLog reloadedWithdrawLog = orderLogRepository.findById(withdrawLog.getLogOrderID()).orElseThrow();
-        assertEquals(OrderStatus.EXECUTED, reloadedDepositLog.getStatus());
-        assertEquals(OrderStatus.EXECUTED, reloadedWithdrawLog.getStatus());
+        List<OrderLog> depositLifecycle = orderLogRepository.findByOrderIDOrderByTimestampAsc(depositLog.getOrderId());
+        List<OrderLog> withdrawLifecycle = orderLogRepository.findByOrderIDOrderByTimestampAsc(withdrawLog.getOrderId());
+        assertEquals(OrderStatus.EXECUTED, depositLifecycle.get(depositLifecycle.size() - 1).getStatus());
+        assertEquals(OrderStatus.EXECUTED, withdrawLifecycle.get(withdrawLifecycle.size() - 1).getStatus());
     }
 
     @Test
@@ -106,20 +120,20 @@ class OrderLogExecutionIntegrationTest {
         Instrument cashInstrument = createCashInstrument();
         Instrument equityInstrument = createEquityInstrument();
 
-        OrderLog deposit = createSubmittedOrderLog(portfolio, cashInstrument, OrderSide.DEPOSIT, 5000.0);
-        orderLogService.markExecuted(deposit.getLogOrderID(), 1.0);
+        OrderLog deposit = createAcceptedOrderLog(portfolio, cashInstrument, OrderSide.DEPOSIT, 5000.0);
+        executeAcceptedOrderLog(deposit);
 
-        OrderLog buyOne = createSubmittedOrderLog(portfolio, equityInstrument, OrderSide.BUY, 10.0);
-        orderLogService.markExecuted(buyOne.getLogOrderID(), 100.0);
+        OrderLog buyOne = createAcceptedOrderLog(portfolio, equityInstrument, OrderSide.BUY, 10.0);
+        executeAcceptedOrderLog(buyOne);
 
-        OrderLog buyTwo = createSubmittedOrderLog(portfolio, equityInstrument, OrderSide.BUY, 5.0);
-        orderLogService.markExecuted(buyTwo.getLogOrderID(), 120.0);
+        OrderLog buyTwo = createAcceptedOrderLog(portfolio, equityInstrument, OrderSide.BUY, 5.0);
+        executeAcceptedOrderLog(buyTwo);
 
-        OrderLog sell = createSubmittedOrderLog(portfolio, equityInstrument, OrderSide.SELL, 8.0);
-        orderLogService.markExecuted(sell.getLogOrderID(), 150.0);
+        OrderLog sell = createAcceptedOrderLog(portfolio, equityInstrument, OrderSide.SELL, 8.0);
+        executeAcceptedOrderLog(sell);
 
-        OrderLog withdraw = createSubmittedOrderLog(portfolio, cashInstrument, OrderSide.WITHDRAW, 1000.0);
-        orderLogService.markExecuted(withdraw.getLogOrderID(), 1.0);
+        OrderLog withdraw = createAcceptedOrderLog(portfolio, cashInstrument, OrderSide.WITHDRAW, 1000.0);
+        executeAcceptedOrderLog(withdraw);
 
         Holding cashHolding = holdingRepository.findByPortfolioIDAndInstrumentID(
             portfolio.getPortfolioId(),
@@ -131,9 +145,9 @@ class OrderLogExecutionIntegrationTest {
             equityInstrument.getInstrumentId()
         ).orElseThrow();
 
-        assertEquals(new BigDecimal("4000.0"), cashHolding.getCurrentQuantity());
+        assertEquals(new BigDecimal("3300.00"), cashHolding.getCurrentQuantity());
         assertEquals(new BigDecimal("7.0"), equityHolding.getCurrentQuantity());
-        assertEquals(new BigDecimal("400.00"), equityHolding.getCumulativeRealizedPnl().setScale(2));
+        assertEquals(new BigDecimal("0.00"), equityHolding.getCumulativeRealizedPnl().setScale(2));
 
         assertEquals(2, positionLotRepository.count());
         assertEquals(1, lotMatchRepository.count());
@@ -141,13 +155,13 @@ class OrderLogExecutionIntegrationTest {
         List<LotMatch> sellMatches = lotMatchRepository.findBySellLogOrderID(sell.getLogOrderID());
         assertEquals(1, sellMatches.size());
         assertEquals(new BigDecimal("8.0"), sellMatches.get(0).getMatchedQuantity());
-        assertEquals(new BigDecimal("400.00"), sellMatches.get(0).getRealizedPnlAmount().setScale(2));
+        assertEquals(new BigDecimal("0.00"), sellMatches.get(0).getRealizedPnlAmount().setScale(2));
 
-        assertEquals(OrderStatus.EXECUTED, orderLogRepository.findById(deposit.getLogOrderID()).orElseThrow().getStatus());
-        assertEquals(OrderStatus.EXECUTED, orderLogRepository.findById(buyOne.getLogOrderID()).orElseThrow().getStatus());
-        assertEquals(OrderStatus.EXECUTED, orderLogRepository.findById(buyTwo.getLogOrderID()).orElseThrow().getStatus());
-        assertEquals(OrderStatus.EXECUTED, orderLogRepository.findById(sell.getLogOrderID()).orElseThrow().getStatus());
-        assertEquals(OrderStatus.EXECUTED, orderLogRepository.findById(withdraw.getLogOrderID()).orElseThrow().getStatus());
+        assertEquals(OrderStatus.EXECUTED, latestStatus(deposit.getOrderId()));
+        assertEquals(OrderStatus.EXECUTED, latestStatus(buyOne.getOrderId()));
+        assertEquals(OrderStatus.EXECUTED, latestStatus(buyTwo.getOrderId()));
+        assertEquals(OrderStatus.EXECUTED, latestStatus(sell.getOrderId()));
+        assertEquals(OrderStatus.EXECUTED, latestStatus(withdraw.getOrderId()));
 
         List<PositionLotResponse> lotResponses = holdingService.getPositionLotsForHolding(equityHolding.getHoldingID());
         List<LotMatchResponse> lotMatchResponses = holdingService.getLotMatchesForHolding(equityHolding.getHoldingID());
@@ -155,7 +169,7 @@ class OrderLogExecutionIntegrationTest {
         assertEquals(2, lotResponses.size());
         assertEquals(1, lotMatchResponses.size());
         assertEquals(new BigDecimal("8.0"), lotMatchResponses.get(0).matchedQuantity());
-        assertEquals(new BigDecimal("400.00"), lotMatchResponses.get(0).realizedPnlAmount().setScale(2));
+        assertEquals(new BigDecimal("0.00"), lotMatchResponses.get(0).realizedPnlAmount().setScale(2));
     }
 
     @Test
@@ -186,6 +200,94 @@ class OrderLogExecutionIntegrationTest {
         assertTrue(holdingRepository.findByPortfolioID(portfolio.getPortfolioId()).isEmpty());
     }
 
+    @Test
+    @Disabled("Requires Kafka broker for validation event publication path")
+    void validation_afterCancellation_doesNotAppendPendingOrOutcomeStatuses() {
+        Portfolio portfolio = createOwnedPortfolio();
+        setAuthenticatedUser(portfolio.getProfile().getUserId());
+        Instrument equityInstrument = createEquityInstrument();
+
+        OrderLog submitted = createSubmittedOrderLog(portfolio, equityInstrument, OrderSide.BUY, 3.0);
+        UUID orderId = submitted.getOrderId();
+
+        orderLogService.cancelOrder(orderId);
+
+        io.github.jackhudsonn.jaakd.event.OrderSubmittedEvent event = new io.github.jackhudsonn.jaakd.event.OrderSubmittedEvent(
+            submitted.getOrderId(),
+            submitted.getLogOrderID(),
+            portfolio.getPortfolioId(),
+            equityInstrument.getInstrumentId(),
+            OrderSide.BUY,
+            submitted.getQuantity(),
+            LocalDateTime.now()
+        );
+        validationService.handleOrderSubmitted(event);
+
+        List<OrderLog> lifecycle = orderLogRepository.findByOrderIDOrderByTimestampAsc(orderId);
+        assertEquals(2, lifecycle.size());
+        assertEquals(OrderStatus.SUBMITTED, lifecycle.get(0).getStatus());
+        assertEquals(OrderStatus.CANCELLED, lifecycle.get(1).getStatus());
+    }
+
+    @Test
+    @Disabled("Requires Kafka broker for validation event publication path")
+    void validation_buyWithInsufficientCash_appendsRejectedLifecycle() {
+        Portfolio portfolio = createOwnedPortfolio();
+        setAuthenticatedUser(portfolio.getProfile().getUserId());
+        Instrument cashInstrument = createCashInstrument();
+        Instrument equityInstrument = createEquityInstrument();
+
+        createHolding(portfolio.getPortfolioId(), cashInstrument.getInstrumentId(), new BigDecimal("2.0"));
+        OrderLog submitted = createSubmittedOrderLog(portfolio, equityInstrument, OrderSide.BUY, 5.0);
+
+        io.github.jackhudsonn.jaakd.event.OrderSubmittedEvent event = new io.github.jackhudsonn.jaakd.event.OrderSubmittedEvent(
+            submitted.getOrderId(),
+            submitted.getLogOrderID(),
+            portfolio.getPortfolioId(),
+            equityInstrument.getInstrumentId(),
+            OrderSide.BUY,
+            submitted.getQuantity(),
+            LocalDateTime.now()
+        );
+        validationService.handleOrderSubmitted(event);
+
+        List<OrderLog> lifecycle = orderLogRepository.findByOrderIDOrderByTimestampAsc(submitted.getOrderId());
+        assertEquals(3, lifecycle.size());
+        assertEquals(OrderStatus.SUBMITTED, lifecycle.get(0).getStatus());
+        assertEquals(OrderStatus.PENDING, lifecycle.get(1).getStatus());
+        assertEquals(OrderStatus.REJECTED, lifecycle.get(2).getStatus());
+        assertTrue(lifecycle.get(2).getMetadata().contains("Cannot buy more than current cash quantity"));
+    }
+
+    @Test
+    @Disabled("Requires Kafka broker for validation event publication path")
+    void validation_buyWithSufficientCash_appendsAcceptedLifecycle() {
+        Portfolio portfolio = createOwnedPortfolio();
+        setAuthenticatedUser(portfolio.getProfile().getUserId());
+        Instrument cashInstrument = createCashInstrument();
+        Instrument equityInstrument = createEquityInstrument();
+
+        createHolding(portfolio.getPortfolioId(), cashInstrument.getInstrumentId(), new BigDecimal("20.0"));
+        OrderLog submitted = createSubmittedOrderLog(portfolio, equityInstrument, OrderSide.BUY, 5.0);
+
+        io.github.jackhudsonn.jaakd.event.OrderSubmittedEvent event = new io.github.jackhudsonn.jaakd.event.OrderSubmittedEvent(
+            submitted.getOrderId(),
+            submitted.getLogOrderID(),
+            portfolio.getPortfolioId(),
+            equityInstrument.getInstrumentId(),
+            OrderSide.BUY,
+            submitted.getQuantity(),
+            LocalDateTime.now()
+        );
+        validationService.handleOrderSubmitted(event);
+
+        List<OrderLog> lifecycle = orderLogRepository.findByOrderIDOrderByTimestampAsc(submitted.getOrderId());
+        assertEquals(3, lifecycle.size());
+        assertEquals(OrderStatus.SUBMITTED, lifecycle.get(0).getStatus());
+        assertEquals(OrderStatus.PENDING, lifecycle.get(1).getStatus());
+        assertEquals(OrderStatus.ACCEPTED, lifecycle.get(2).getStatus());
+    }
+
     private Portfolio createOwnedPortfolio() {
         Profile profile = new Profile(BigDecimal.ZERO);
         entityManager.persist(profile);
@@ -197,7 +299,7 @@ class OrderLogExecutionIntegrationTest {
     }
 
     private Instrument createCashInstrument() {
-        Instrument instrument = new Instrument("USD_CASH", "CASH", "US Dollar Cash", InstrumentClass.USD);
+        Instrument instrument = new Instrument("USD", "CASH", "US Dollar Cash", InstrumentClass.CASH);
         entityManager.persist(instrument);
         entityManager.flush();
         return instrument;
@@ -210,11 +312,38 @@ class OrderLogExecutionIntegrationTest {
         return instrument;
     }
 
+    private OrderLog createAcceptedOrderLog(Portfolio portfolio, Instrument instrument, OrderSide side, double quantity) {
+        OrderLog log = new OrderLog(UUID.randomUUID(), portfolio, instrument, side, quantity);
+        log.setStatus(OrderStatus.ACCEPTED);
+        log.setExecutionPrice(1.0);
+        return orderLogRepository.save(log);
+    }
+
     private OrderLog createSubmittedOrderLog(Portfolio portfolio, Instrument instrument, OrderSide side, double quantity) {
         OrderLog log = new OrderLog(UUID.randomUUID(), portfolio, instrument, side, quantity);
         log.setStatus(OrderStatus.SUBMITTED);
         log.setExecutionPrice(1.0);
         return orderLogRepository.save(log);
+    }
+
+    private Holding createHolding(UUID portfolioId, UUID instrumentId, BigDecimal quantity) {
+        Holding holding = new Holding(portfolioId, instrumentId);
+        holding.setCurrentQuantity(quantity);
+        return holdingRepository.save(holding);
+    }
+
+    private void executeAcceptedOrderLog(OrderLog acceptedLog) {
+        OrderAcceptedEvent event = new OrderAcceptedEvent(
+            acceptedLog.getOrderId(),
+            acceptedLog.getLogOrderID(),
+            LocalDateTime.now()
+        );
+        executionService.handleOrderAccepted(event);
+    }
+
+    private OrderStatus latestStatus(UUID orderId) {
+        List<OrderLog> lifecycle = orderLogRepository.findByOrderIDOrderByTimestampAsc(orderId);
+        return lifecycle.get(lifecycle.size() - 1).getStatus();
     }
 
     private void setAuthenticatedUser(UUID userId) {

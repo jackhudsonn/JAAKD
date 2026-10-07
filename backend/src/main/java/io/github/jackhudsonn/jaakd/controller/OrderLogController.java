@@ -7,7 +7,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -70,26 +69,12 @@ public class OrderLogController {
 		return toResponse(created);
 	}
 
-	// TODO: Need to add perimission check for executing order logs (ONLY ADMIN)
-	// should we pass orderID instead of logOrderId for consistency with cancel endpoint?
-	@PostMapping("/{logOrderId}/execute")
-	@ResponseStatus(HttpStatus.OK)
-	public OrderLogResponse markOrderLogExecuted(
-			@PathVariable UUID logOrderId,
-			@RequestParam(required = false) Double executionPrice
-	) {
-		OrderLog updated = orderLogService.markExecuted(logOrderId, executionPrice);
-		return toResponse(updated);
-	}
-
 	@PostMapping("/{orderId}/cancel")
 	@ResponseStatus(HttpStatus.OK)
 	public OrderLogResponse cancelOrder(@PathVariable UUID orderId) {
 		OrderLog cancelled = orderLogService.cancelOrder(orderId);
 		return toResponse(cancelled);
 	}
-
-	
 
 	private OrderLogResponse toResponse(OrderLog orderLog) {
 		return new OrderLogResponse(
@@ -102,7 +87,8 @@ public class OrderLogController {
 				orderLog.getTimeStamp(),
 				orderLog.getMetadata(),
 				orderLog.getStatus(),
-				orderLog.getExecutionPrice()
+				orderLog.getExecutionPrice(),
+				orderLog.getQuotedPrice()
 		);
 	}
 }
