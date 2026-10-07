@@ -85,12 +85,12 @@ The containers keep running until you stop them. Run the same command again afte
 The frontend calls the backend at `http://localhost:8081`, so that port has to reach the Docker host. On the frontend machine, run this in its own terminal and leave it open:
 
 ```bash
-ssh -N -L 8081:localhost:8081 -L 5433:localhost:5433 <user>@<host>
+ssh -N -L 8081:localhost:8081 <user>@<host>
 ```
 
-It asks for a password if needed, then shows nothing while the tunnel is open. Port `5433` is only needed for pgAdmin.
+It asks for a password if needed, then shows nothing while the tunnel is open. Check its Ports tab for 8081.
 
-If you have a VS Code Remote-SSH window open to the Docker host, it forwards ports automatically and you can skip the tunnel. Check its Ports tab for `8081`, and add `5433` there for pgAdmin.
+If you have a VS Code Remote-SSH window open to the Docker host, it forwards ports automatically and you can skip the tunnel. Check its Ports tab for `8081`.
 
 Check: `http://localhost:8081/actuator/health` should return `{"status":"UP"}`.
 
@@ -127,16 +127,15 @@ Sign-in uses the development identity provider, so accounts exist only in your l
 
 ### Browse the database (pgAdmin)
 
-Forward port `5433` first (step 3). In pgAdmin: **Register > Server**, then on the Connection tab:
+pgAdmin opens its own SSH tunnel to the Docker host. In pgAdmin: **Register > Server**, then:
 
-- Host `localhost`, port `5433`, maintenance database `jaakd`
-- Username `jaakd_app`
+- **SSH Tunnel** tab: turn on **Use SSH tunneling**. Tunnel host `10.23.143.42`, port `22`, your SSH username and login.
+- **Connection** tab: Host `10.23.143.42`, port `5433`, maintenance database `jaakd`, username `jaakd_app`.
 - Password: the `JAAKD_APP_DB_PASSWORD` value from the Docker host's `.env`. Don't share it.
-
 Tables are under **Databases > jaakd > Schemas > public > Tables**. `jaakd_app` owns the application tables, so it can read them for inspection. Use pgAdmin to look, not to edit; change data through the app.
 
 ### Troubleshooting
 
-- **The app can't reach the backend, or pgAdmin shows "connection timeout":** the tunnel isn't running (step 3).
-- **pgAdmin shows "password authentication failed":** the password doesn't match the Docker host's `.env`. If that file was edited after the database was created, run `docker-compose down -v` and `docker-compose up -d --build`.
+- **The app can't reach the backend:** the tunnel isn't running (step 3).
+- **pgAdmin shows "server closed the connection unexpectedly":** on the Connection tab, use Host `10.23.143.42` and port `5433`, not `localhost` or `127.0.0.1`.
 - **`jaakd-backend` isn't "Up" in `docker-compose ps`:** check `docker-compose logs --tail=40 jaakd-backend`.
