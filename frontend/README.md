@@ -5,7 +5,7 @@ Angular frontend for JAAKD.
 ## Run
 
 ```bash
-npm ci
+npm install
 npx ng serve
 ```
 
