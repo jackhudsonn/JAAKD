@@ -16,7 +16,6 @@ public record OrderLogResponse(
         LocalDateTime timestamp,
         String metadata,
         OrderStatus status,
-        double executionPrice,
-        Double quotedPrice
+        double executionPrice
 ) {
 }

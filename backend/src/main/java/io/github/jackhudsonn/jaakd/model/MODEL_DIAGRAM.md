@@ -2,29 +2,22 @@
 
 ## Domain Model
 
-> **Architecture Note (2026-09-30):** `OrderLog` is the source of truth for order lifecycle state. `Holding` is a persisted projection keyed by `(portfolioID, instrumentID)` and FIFO accounting is captured by `PositionLot` and `LotMatch`.
+> **Architecture Note (2026-09-24):** `OrderLog` remains the source of truth. `Holding` is now a persisted projection keyed by `(portfolioID, instrumentID)` and updated by FIFO accounting using `PositionLot` and `LotMatch`.
 
 ```mermaid
 erDiagram
   PROFILE ||--o{ PORTFOLIO : owns
+  PORTFOLIO ||--o{ HOLDING : contains
   PORTFOLIO ||--o{ ORDER_LOG : logs
   PORTFOLIO ||--o{ WATCHLIST_ITEM : contains
-  PORTFOLIO ||--o{ HOLDING : projects
-
-  HOLDING }o--|| INSTRUMENT : "references instrumentID"
+  HOLDING }o--|| INSTRUMENT : "ref via UUID"
   ORDER_LOG }o--|| INSTRUMENT : "references"
   WATCHLIST_ITEM }o--|| INSTRUMENT : "references"
-
-  HOLDING ||--o{ POSITION_LOT : opens
-  ORDER_LOG ||--o{ POSITION_LOT : "buy sourceBuyLogOrderID"
-  ORDER_LOG ||--o{ LOT_MATCH : "sell sellLogOrderID"
-  POSITION_LOT ||--o{ LOT_MATCH : matched
-  HOLDING ||--o{ LOT_MATCH : realizes
 
   PROFILE {
     uuid userID PK
     string email
-    decimal userType "UserType numeric code"
+    decimal userType
     string firstName
     string lastName
     string city
@@ -44,8 +37,8 @@ erDiagram
 
   HOLDING {
     uuid holdingID PK
-    uuid portfolioID FK
-    uuid instrumentID FK
+    uuid portfolioID "UUID only"
+    uuid instrumentID "UUID only"
     decimal currentQuantity
     decimal cumulativeRealizedPnl
     datetime updatedAt
@@ -93,7 +86,6 @@ erDiagram
     string metadata
     enum status
     double executionPrice
-    double quotedPrice "nullable"
   }
 
   WATCHLIST_ITEM {
@@ -108,24 +100,21 @@ erDiagram
 
 ### Ownership Hierarchy
 - **Profile** → **Portfolio** (1:N)
-- **Portfolio** → **Holding** (1:N persisted projection)
+- **Portfolio** → **Holding** (1:N)
 - **Portfolio** → **WatchlistItem** (1:N)
 
 ### Reference Data
-- **Holding** → **Instrument** (N:1)
+- **Holding** → **Instrument** (N:1) by UUID
 - **OrderLog** → **Instrument** (N:1)
 - **WatchlistItem** → **Instrument** (N:1)
 
-### Execution / Accounting
+### Execution / Aggregation
 - **Portfolio** → **OrderLog** (1:N)
-- **Holding** → **PositionLot** (1:N)
-- **OrderLog (BUY)** → **PositionLot** via `sourceBuyLogOrderID` (1:0..1 per buy log)
-- **OrderLog (SELL)** → **LotMatch** via `sellLogOrderID` (1:N)
-- **PositionLot** → **LotMatch** (1:N)
-- **Holding** → **LotMatch** (1:N)
+- **Holding** is a persisted projection updated on each EXECUTED BUY/SELL
+- **PositionLot** stores FIFO buy lots
+- **LotMatch** stores sell-to-lot realization slices for audit and realized PnL
 
 ## Special Fields
 
-- **OrderLog.orderID**: Shared UUID for a logical order lifecycle (SUBMITTED → PENDING → ACCEPTED/REJECTED → EXECUTED/FAILED/CANCELLED).
-- **OrderLog.logOrderID**: Unique identifier for each lifecycle event row.
-- **Profile.userType**: Stored as numeric code mapped by `UserType` enum/converter.
+- **OrderLog.orderID**: Shared UUID for a logical order lifecycle (SUBMITTED → EXECUTED/FAILED).
+- **OrderLog.logOrderID**: Unique row identifier for each lifecycle event.
