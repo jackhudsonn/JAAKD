@@ -106,8 +106,7 @@ public class ValidationService {
                 rejected.getOrderId(),
                 rejected.getLogOrderID(),
                 rejectionReason,
-                LocalDateTime.now(),
-                event.version()
+                LocalDateTime.now()
             );
             String rejectedPartitionKey = rejected.getInstrument().getTicker();
             orderRejectedKafkaTemplate.send(KafkaTopics.ORDER_REJECTED, rejectedPartitionKey, rejectedEvent);
@@ -122,8 +121,7 @@ public class ValidationService {
         OrderAcceptedEvent acceptedEvent = new OrderAcceptedEvent(
             accepted.getOrderId(),
             accepted.getLogOrderID(),
-            LocalDateTime.now(),
-            event.version()
+            LocalDateTime.now()
         );
         String acceptedPartitionKey = accepted.getInstrument().getTicker();
         orderAcceptedKafkaTemplate.send(KafkaTopics.ORDER_ACCEPTED, acceptedPartitionKey, acceptedEvent);
