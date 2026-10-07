@@ -1,8 +1,5 @@
 package io.github.jackhudsonn.jaakd.service;
 
-import io.github.jackhudsonn.jaakd.dto.CreateOrderLogRequest;
-import io.github.jackhudsonn.jaakd.event.OrderSubmittedEvent;
-import io.github.jackhudsonn.jaakd.exception.InvalidTradeException;
 import io.github.jackhudsonn.jaakd.exception.OrderCancellationConflictException;
 import io.github.jackhudsonn.jaakd.exception.OrderLogNotFoundException;
 import io.github.jackhudsonn.jaakd.exception.PortfolioNotFoundException;
@@ -17,7 +14,6 @@ import io.github.jackhudsonn.jaakd.repository.InstrumentRepository;
 import io.github.jackhudsonn.jaakd.repository.OrderLogRepository;
 import io.github.jackhudsonn.jaakd.repository.PortfolioRepository;
 import io.github.jackhudsonn.jaakd.security.CurrentUserService;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -57,181 +53,155 @@ class OrderLogServiceTest {
     private CurrentUserService currentUserService;
 
     @Mock
-    private KafkaTemplate<String, OrderSubmittedEvent> orderSubmittedKafkaTemplate;
+    private FifoAccountingService fifoAccountingService;
 
     @Mock
     private PrivilegedAccessService privilegedAccessService;
-
-    @Mock
-    private MockQuoteService quoteService;
 
     @InjectMocks
     private OrderLogService orderLogService;
 
     @Test
-    void appendPendingFromSystem_submittedLatest_appendsPending() throws Exception {
-        UUID orderId = UUID.randomUUID();
-        UUID sourceLogOrderId = UUID.randomUUID();
-        UUID portfolioId = UUID.randomUUID();
-        UUID instrumentId = UUID.randomUUID();
-
-        OrderLog submitted = buildOrderLog(UUID.randomUUID(), portfolioId, instrumentId, OrderSide.BUY, 4, 99.0);
-        setField(submitted, "orderID", orderId);
-        submitted.setStatus(OrderStatus.SUBMITTED);
-
-        when(orderLogRepository.findByOrderIdNewestFirstForUpdate(orderId)).thenReturn(List.of(submitted));
-        when(orderLogRepository.save(any(OrderLog.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        OrderLog result = orderLogService.appendPendingFromSystem(orderId, sourceLogOrderId);
-
-        assertEquals(OrderStatus.PENDING, result.getStatus());
-        assertEquals(orderId, result.getOrderId());
-        verify(orderLogRepository, times(1)).save(any(OrderLog.class));
-    }
-
-    @Test
-    void appendPendingFromSystem_pendingLatest_returnsExistingWithoutAppending() throws Exception {
-        UUID orderId = UUID.randomUUID();
-        UUID sourceLogOrderId = UUID.randomUUID();
-        UUID portfolioId = UUID.randomUUID();
-        UUID instrumentId = UUID.randomUUID();
-
-        OrderLog pending = buildOrderLog(UUID.randomUUID(), portfolioId, instrumentId, OrderSide.BUY, 4, 99.0);
-        setField(pending, "orderID", orderId);
-        pending.setStatus(OrderStatus.PENDING);
-
-        when(orderLogRepository.findByOrderIdNewestFirstForUpdate(orderId)).thenReturn(List.of(pending));
-
-        OrderLog result = orderLogService.appendPendingFromSystem(orderId, sourceLogOrderId);
-
-        assertEquals(pending, result);
-        verify(orderLogRepository, never()).save(any(OrderLog.class));
-    }
-
-    @Test
-    void appendPendingFromSystem_cancelledLatest_returnsExistingWithoutAppending() throws Exception {
-        UUID orderId = UUID.randomUUID();
-        UUID sourceLogOrderId = UUID.randomUUID();
-        UUID portfolioId = UUID.randomUUID();
-        UUID instrumentId = UUID.randomUUID();
-
-        OrderLog cancelled = buildOrderLog(UUID.randomUUID(), portfolioId, instrumentId, OrderSide.BUY, 4, 99.0);
-        setField(cancelled, "orderID", orderId);
-        cancelled.setStatus(OrderStatus.CANCELLED);
-
-        when(orderLogRepository.findByOrderIdNewestFirstForUpdate(orderId)).thenReturn(List.of(cancelled));
-
-        OrderLog result = orderLogService.appendPendingFromSystem(orderId, sourceLogOrderId);
-
-        assertEquals(cancelled, result);
-        verify(orderLogRepository, never()).save(any(OrderLog.class));
-    }
-
-    @Test
-    void appendPendingFromSystem_executedLatest_throwsInvalidTrade() throws Exception {
-        UUID orderId = UUID.randomUUID();
-        UUID sourceLogOrderId = UUID.randomUUID();
-        UUID portfolioId = UUID.randomUUID();
-        UUID instrumentId = UUID.randomUUID();
-
-        OrderLog executed = buildOrderLog(UUID.randomUUID(), portfolioId, instrumentId, OrderSide.BUY, 4, 99.0);
-        setField(executed, "orderID", orderId);
-        executed.setStatus(OrderStatus.EXECUTED);
-
-        when(orderLogRepository.findByOrderIdNewestFirstForUpdate(orderId)).thenReturn(List.of(executed));
-
-        assertThrows(InvalidTradeException.class, () -> orderLogService.appendPendingFromSystem(orderId, sourceLogOrderId));
-        verify(orderLogRepository, never()).save(any(OrderLog.class));
-    }
-
-    @Test
-    void appendPendingFromSystem_notFound_throwsNotFound() {
-        UUID orderId = UUID.randomUUID();
-        UUID sourceLogOrderId = UUID.randomUUID();
-
-        when(orderLogRepository.findByOrderIdNewestFirstForUpdate(orderId)).thenReturn(List.of());
-
-        assertThrows(OrderLogNotFoundException.class, () -> orderLogService.appendPendingFromSystem(orderId, sourceLogOrderId));
-        verify(orderLogRepository, never()).save(any(OrderLog.class));
-    }
-
-    @Test
-    void appendAcceptedFromSystem_cancelledLatest_returnsExistingWithoutAppending() throws Exception {
-        UUID orderId = UUID.randomUUID();
-        UUID sourceLogOrderId = UUID.randomUUID();
-        UUID portfolioId = UUID.randomUUID();
-        UUID instrumentId = UUID.randomUUID();
-
-        OrderLog cancelled = buildOrderLog(UUID.randomUUID(), portfolioId, instrumentId, OrderSide.BUY, 4, 99.0);
-        setField(cancelled, "orderID", orderId);
-        cancelled.setStatus(OrderStatus.CANCELLED);
-
-        when(orderLogRepository.findByOrderIdNewestFirstForUpdate(orderId)).thenReturn(List.of(cancelled));
-
-        OrderLog result = orderLogService.appendAcceptedFromSystem(orderId, sourceLogOrderId);
-
-        assertEquals(cancelled, result);
-        verify(orderLogRepository, never()).save(any(OrderLog.class));
-    }
-
-    @Test
-    void appendRejectedFromSystem_cancelledLatest_returnsExistingWithoutAppending() throws Exception {
-        UUID orderId = UUID.randomUUID();
-        UUID sourceLogOrderId = UUID.randomUUID();
-        UUID portfolioId = UUID.randomUUID();
-        UUID instrumentId = UUID.randomUUID();
-
-        OrderLog cancelled = buildOrderLog(UUID.randomUUID(), portfolioId, instrumentId, OrderSide.SELL, 4, 99.0);
-        setField(cancelled, "orderID", orderId);
-        cancelled.setStatus(OrderStatus.CANCELLED);
-
-        when(orderLogRepository.findByOrderIdNewestFirstForUpdate(orderId)).thenReturn(List.of(cancelled));
-
-        OrderLog result = orderLogService.appendRejectedFromSystem(orderId, sourceLogOrderId, "test reject");
-
-        assertEquals(cancelled, result);
-        verify(orderLogRepository, never()).save(any(OrderLog.class));
-    }
-
-    @Test
-    void createOrderLog_setsQuotedPriceFromQuoteService() throws Exception {
+    void markExecuted_setsExecutedStatus_savesAndCallsFifo() throws Exception {
         UUID userId = UUID.randomUUID();
-        UUID orderId = UUID.randomUUID();
+        UUID logOrderId = UUID.randomUUID();
         UUID portfolioId = UUID.randomUUID();
         UUID instrumentId = UUID.randomUUID();
 
-        Profile profile = new Profile(UUID.randomUUID(), BigDecimal.ZERO);
-        setField(profile, "userId", userId);
-
-        Portfolio portfolio = new Portfolio(profile);
-        setField(portfolio, "portfolioId", portfolioId);
-
-        Instrument instrument = new Instrument("AAPL", "NASDAQ", "Apple", InstrumentClass.EQUITY);
-        setField(instrument, "instrumentId", instrumentId);
-
-        CreateOrderLogRequest request = new CreateOrderLogRequest(
-            orderId,
-            portfolioId,
-            instrumentId,
-            OrderSide.BUY,
-            3.0,
-            null,
-            null
-        );
+        OrderLog orderLog = buildOrderLog(logOrderId, portfolioId, instrumentId, OrderSide.BUY, 10, 100);
 
         when(currentUserService.getUserId()).thenReturn(userId);
-        when(portfolioRepository.findOwnedByPortfolioId(portfolioId, userId)).thenReturn(Optional.of(portfolio));
-        when(instrumentRepository.findById(instrumentId)).thenReturn(Optional.of(instrument));
-        when(quoteService.getExecutionPrice(instrumentId)).thenReturn(123.45);
-        when(orderLogRepository.save(any(OrderLog.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(orderLogRepository.findOwnedByLogOrderIdForUpdate(logOrderId, userId)).thenReturn(Optional.of(orderLog));
+        when(orderLogRepository.save(orderLog)).thenReturn(orderLog);
 
-        OrderLog created = orderLogService.createOrderLog(request);
+        OrderLog result = orderLogService.markExecuted(logOrderId, 120.0);
 
-        assertEquals(123.45, created.getQuotedPrice());
+        assertEquals(OrderStatus.EXECUTED, result.getStatus());
+        assertEquals(120.0, result.getExecutionPrice());
 
         ArgumentCaptor<OrderLog> saveCaptor = ArgumentCaptor.forClass(OrderLog.class);
         verify(orderLogRepository, times(1)).save(saveCaptor.capture());
-        assertEquals(123.45, saveCaptor.getValue().getQuotedPrice());
+        assertEquals(OrderStatus.EXECUTED, saveCaptor.getValue().getStatus());
+        assertEquals(120.0, saveCaptor.getValue().getExecutionPrice());
+
+        verify(fifoAccountingService, times(1)).applyExecution(orderLog);
+    }
+
+    @Test
+    void markExecuted_withNullPriceKeepsExistingPriceAndCallsFifo() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID logOrderId = UUID.randomUUID();
+        UUID portfolioId = UUID.randomUUID();
+        UUID instrumentId = UUID.randomUUID();
+
+        OrderLog orderLog = buildOrderLog(logOrderId, portfolioId, instrumentId, OrderSide.SELL, 5, 111.5);
+
+        when(currentUserService.getUserId()).thenReturn(userId);
+        when(orderLogRepository.findOwnedByLogOrderIdForUpdate(logOrderId, userId)).thenReturn(Optional.of(orderLog));
+        when(orderLogRepository.save(orderLog)).thenReturn(orderLog);
+
+        OrderLog result = orderLogService.markExecuted(logOrderId, null);
+
+        assertEquals(OrderStatus.EXECUTED, result.getStatus());
+        assertEquals(111.5, result.getExecutionPrice());
+        verify(fifoAccountingService, times(1)).applyExecution(orderLog);
+    }
+
+    @Test
+    void markExecuted_notFoundThrowsAndDoesNotSaveOrApplyFifo() {
+        UUID userId = UUID.randomUUID();
+        UUID logOrderId = UUID.randomUUID();
+
+        when(currentUserService.getUserId()).thenReturn(userId);
+        when(orderLogRepository.findOwnedByLogOrderIdForUpdate(logOrderId, userId)).thenReturn(Optional.empty());
+
+        assertThrows(OrderLogNotFoundException.class, () -> orderLogService.markExecuted(logOrderId, 100.0));
+
+        verify(orderLogRepository, never()).save(org.mockito.ArgumentMatchers.any(OrderLog.class));
+        verify(fifoAccountingService, never()).applyExecution(org.mockito.ArgumentMatchers.any(OrderLog.class));
+    }
+
+    @Test
+    void markExecuted_alreadyExecutedWithNoNewPrice_skipsSaveAndFifo() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID logOrderId = UUID.randomUUID();
+        UUID portfolioId = UUID.randomUUID();
+        UUID instrumentId = UUID.randomUUID();
+
+        OrderLog orderLog = buildOrderLog(logOrderId, portfolioId, instrumentId, OrderSide.BUY, 10, 101.0);
+        orderLog.setStatus(OrderStatus.EXECUTED);
+
+        when(currentUserService.getUserId()).thenReturn(userId);
+        when(orderLogRepository.findOwnedByLogOrderIdForUpdate(logOrderId, userId)).thenReturn(Optional.of(orderLog));
+
+        OrderLog result = orderLogService.markExecuted(logOrderId, null);
+
+        assertEquals(OrderStatus.EXECUTED, result.getStatus());
+        assertEquals(101.0, result.getExecutionPrice());
+        verify(orderLogRepository, never()).save(any(OrderLog.class));
+        verify(fifoAccountingService, never()).applyExecution(any(OrderLog.class));
+    }
+
+    @Test
+    void markExecuted_alreadyExecutedWithNewPrice_updatesPriceWithoutFifo() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID logOrderId = UUID.randomUUID();
+        UUID portfolioId = UUID.randomUUID();
+        UUID instrumentId = UUID.randomUUID();
+
+        OrderLog orderLog = buildOrderLog(logOrderId, portfolioId, instrumentId, OrderSide.BUY, 10, 101.0);
+        orderLog.setStatus(OrderStatus.EXECUTED);
+
+        when(currentUserService.getUserId()).thenReturn(userId);
+        when(orderLogRepository.findOwnedByLogOrderIdForUpdate(logOrderId, userId)).thenReturn(Optional.of(orderLog));
+        when(orderLogRepository.save(orderLog)).thenReturn(orderLog);
+
+        OrderLog result = orderLogService.markExecuted(logOrderId, 102.5);
+
+        assertEquals(OrderStatus.EXECUTED, result.getStatus());
+        assertEquals(102.5, result.getExecutionPrice());
+        verify(orderLogRepository, times(1)).save(orderLog);
+        verify(fifoAccountingService, never()).applyExecution(any(OrderLog.class));
+    }
+
+    @Test
+    void markExecuted_depositCalledTwice_appliesAccountingOnlyOnce() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID logOrderId = UUID.randomUUID();
+        UUID portfolioId = UUID.randomUUID();
+        UUID instrumentId = UUID.randomUUID();
+
+        OrderLog orderLog = buildOrderLog(logOrderId, portfolioId, instrumentId, OrderSide.DEPOSIT, 500, 1.0);
+
+        when(currentUserService.getUserId()).thenReturn(userId);
+        when(orderLogRepository.findOwnedByLogOrderIdForUpdate(logOrderId, userId)).thenReturn(Optional.of(orderLog));
+        when(orderLogRepository.save(orderLog)).thenReturn(orderLog);
+
+        orderLogService.markExecuted(logOrderId, null);
+        orderLogService.markExecuted(logOrderId, null);
+
+        verify(orderLogRepository, times(1)).save(orderLog);
+        verify(fifoAccountingService, times(1)).applyExecution(orderLog);
+    }
+
+    @Test
+    void markExecuted_withdrawCalledTwice_appliesAccountingOnlyOnce() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID logOrderId = UUID.randomUUID();
+        UUID portfolioId = UUID.randomUUID();
+        UUID instrumentId = UUID.randomUUID();
+
+        OrderLog orderLog = buildOrderLog(logOrderId, portfolioId, instrumentId, OrderSide.WITHDRAW, 200, 1.0);
+
+        when(currentUserService.getUserId()).thenReturn(userId);
+        when(orderLogRepository.findOwnedByLogOrderIdForUpdate(logOrderId, userId)).thenReturn(Optional.of(orderLog));
+        when(orderLogRepository.save(orderLog)).thenReturn(orderLog);
+
+        orderLogService.markExecuted(logOrderId, null);
+        orderLogService.markExecuted(logOrderId, null);
+
+        verify(orderLogRepository, times(1)).save(orderLog);
+        verify(fifoAccountingService, times(1)).applyExecution(orderLog);
     }
 
     @Test

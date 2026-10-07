@@ -4,13 +4,10 @@ import io.github.jackhudsonn.jaakd.dto.PortfolioReconciliationResponse;
 import io.github.jackhudsonn.jaakd.dto.ReconciliationMismatchResponse;
 import io.github.jackhudsonn.jaakd.exception.PortfolioNotFoundException;
 import io.github.jackhudsonn.jaakd.model.Holding;
-import io.github.jackhudsonn.jaakd.model.Instrument;
-import io.github.jackhudsonn.jaakd.model.InstrumentClass;
 import io.github.jackhudsonn.jaakd.model.OrderLog;
 import io.github.jackhudsonn.jaakd.model.OrderSide;
 import io.github.jackhudsonn.jaakd.model.OrderStatus;
 import io.github.jackhudsonn.jaakd.repository.HoldingRepository;
-import io.github.jackhudsonn.jaakd.repository.InstrumentRepository;
 import io.github.jackhudsonn.jaakd.repository.OrderLogRepository;
 import io.github.jackhudsonn.jaakd.repository.PortfolioRepository;
 import org.springframework.stereotype.Service;
@@ -23,32 +20,26 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
 @Service
 public class PortfolioReconciliationService {
 
-    private static final String[] CASH_TICKER_PRIORITY = {"USD", "GBP", "RUP"};
-
     private final PortfolioRepository portfolioRepository;
     private final OrderLogRepository orderLogRepository;
     private final HoldingRepository holdingRepository;
-    private final InstrumentRepository instrumentRepository;
     private final PrivilegedAccessService privilegedAccessService;
 
     public PortfolioReconciliationService(
         PortfolioRepository portfolioRepository,
         OrderLogRepository orderLogRepository,
         HoldingRepository holdingRepository,
-        InstrumentRepository instrumentRepository,
         PrivilegedAccessService privilegedAccessService
     ) {
         this.portfolioRepository = portfolioRepository;
         this.orderLogRepository = orderLogRepository;
         this.holdingRepository = holdingRepository;
-        this.instrumentRepository = instrumentRepository;
         this.privilegedAccessService = privilegedAccessService;
     }
 
@@ -61,7 +52,6 @@ public class PortfolioReconciliationService {
         List<OrderLog> executedLogs = orderLogRepository
             .findByPortfolioPortfolioIdAndStatusOrderByTimestampAsc(portfolioId, OrderStatus.EXECUTED);
         List<Holding> holdings = holdingRepository.findByPortfolioID(portfolioId);
-        Optional<UUID> cashInstrumentId = resolveCashInstrumentId();
 
         Map<UUID, ReplayState> replay = new HashMap<>();
         List<ReconciliationMismatchResponse> mismatches = new ArrayList<>();
@@ -81,11 +71,6 @@ public class PortfolioReconciliationService {
             if (log.getSide() == OrderSide.BUY) {
                 state.quantity = state.quantity.add(quantity);
                 state.openLots.addLast(new ReplayLot(quantity, executionPrice));
-
-                if (cashInstrumentId.isPresent()) {
-                    ReplayState cashState = replay.computeIfAbsent(cashInstrumentId.get(), k -> new ReplayState());
-                    cashState.quantity = cashState.quantity.subtract(quantity.multiply(executionPrice));
-                }
                 continue;
             }
 
@@ -109,11 +94,6 @@ public class PortfolioReconciliationService {
                 }
 
                 state.realizedPnl = state.realizedPnl.add(realized);
-
-                if (cashInstrumentId.isPresent()) {
-                    ReplayState cashState = replay.computeIfAbsent(cashInstrumentId.get(), k -> new ReplayState());
-                    cashState.quantity = cashState.quantity.add(quantity.multiply(executionPrice));
-                }
 
                 if (remaining.compareTo(BigDecimal.ZERO) > 0) {
                     mismatches.add(new ReconciliationMismatchResponse(
@@ -190,18 +170,6 @@ public class PortfolioReconciliationService {
 
     private BigDecimal safe(BigDecimal value) {
         return value == null ? BigDecimal.ZERO : value;
-    }
-
-    private Optional<UUID> resolveCashInstrumentId() {
-        for (String ticker : CASH_TICKER_PRIORITY) {
-            Optional<Instrument> found = instrumentRepository
-                .findByTickerIgnoreCaseAndInstrumentClass(ticker, InstrumentClass.CASH);
-            if (found.isPresent()) {
-                return Optional.of(found.get().getInstrumentId());
-            }
-        }
-
-        return Optional.empty();
     }
 
     private static final class ReplayState {

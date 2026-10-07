@@ -17,8 +17,6 @@ import java.util.UUID;
 public interface OrderLogRepository extends JpaRepository<OrderLog, UUID> {
     List<OrderLog> findByOrderIDOrderByTimestampAsc(UUID orderId);
 
-    List<OrderLog> findByOrderIDOrderByTimestampDesc(UUID orderId);
-
     List<OrderLog> findByPortfolioPortfolioId(UUID portfolioId);
 
     List<OrderLog> findByPortfolioPortfolioIdOrderByTimestampDesc(UUID portfolioId);
@@ -105,8 +103,4 @@ public interface OrderLogRepository extends JpaRepository<OrderLog, UUID> {
             @Param("orderId") UUID orderId,
             @Param("userId") UUID userId
         );
-
-        @Lock(LockModeType.PESSIMISTIC_WRITE)
-        @Query("SELECT o FROM OrderLog o WHERE o.orderID = :orderId ORDER BY o.timestamp DESC, o.logOrderID DESC")
-        List<OrderLog> findByOrderIdNewestFirstForUpdate(@Param("orderId") UUID orderId);
 }
