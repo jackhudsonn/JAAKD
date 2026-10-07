@@ -129,13 +129,13 @@ Sign-in uses the development identity provider, so accounts exist only in your l
 
 pgAdmin opens its own SSH tunnel to the Docker host. In pgAdmin: **Register > Server**, then:
 
-- **SSH Tunnel** tab: turn on **Use SSH tunneling**. Tunnel host `10.23.143.42`, port `22`, your SSH username and login.
-- **Connection** tab: Host `10.23.143.42`, port `5433`, maintenance database `jaakd`, username `jaakd_app`.
+- **SSH Tunnel** tab: turn on **Use SSH tunneling**. Use your tunnel host, port `22`, your SSH username and login.
+- **Connection** tab: Host (ex: `10.23.143.42`), port `5433`, maintenance database `jaakd`, username `jaakd_app`.
 - Password: the `JAAKD_APP_DB_PASSWORD` value from the Docker host's `.env`. Don't share it.
 Tables are under **Databases > jaakd > Schemas > public > Tables**. `jaakd_app` owns the application tables, so it can read them for inspection. Use pgAdmin to look, not to edit; change data through the app.
 
 ### Troubleshooting
 
 - **The app can't reach the backend:** the tunnel isn't running (step 3).
-- **pgAdmin shows "server closed the connection unexpectedly":** on the Connection tab, use Host `10.23.143.42` and port `5433`, not `localhost` or `127.0.0.1`.
+- **pgAdmin shows "server closed the connection unexpectedly":** on the Connection tab, use Host (ex: `10.23.143.42`) and port `5433`
 - **`jaakd-backend` isn't "Up" in `docker-compose ps`:** check `docker-compose logs --tail=40 jaakd-backend`.
