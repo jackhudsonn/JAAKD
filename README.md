@@ -72,13 +72,9 @@ docker-compose up -d --build
 
 This starts:
 
-- `jaakd-postgres` on `127.0.0.1:5433`
-- `jaakd-backend` on `:8081`
-- `jaakd-kafka` on `:9092`
-
-### 3) Run integration checks (optional)
 - `jaakd-postgres` on `127.0.0.1:5433` (reachable only from the Docker host itself)
 - `jaakd-backend` on port `8081`
+- `jaakd-kafka` on `:9092`
 
 The containers keep running until you stop them. Run the same command again after pulling backend changes.
 
@@ -95,12 +91,15 @@ ssh -N -L 8081:localhost:8081 <user>@<host>
 
 It asks for a password if needed, then shows nothing while the tunnel is open. Check its Ports tab for 8081.
 
-
-### 4) Start frontend
-
 If you have a VS Code Remote-SSH window open to the Docker host, it forwards ports automatically and you can skip the tunnel. Check its Ports tab for `8081`.
 
 Check: `http://localhost:8081/actuator/health` should return `{"status":"UP"}`.
+
+Notes for Linux VM + Windows frontend setup:
+
+- No Kafka tunnel is required for normal app usage or lifecycle-page Kafka validation.
+- Backend reaches Kafka through Docker networking (`jaakd-kafka:9092`) inside the VM.
+- Add `-L 9092:localhost:9092` only if you want host-side Kafka diagnostics tools from Windows.ß
 
 ### 4) Start the frontend
 
@@ -123,12 +122,6 @@ bash scripts/integration-test.sh
 ```
 
 The script registers a test user, checks the auth and backend endpoints, and confirms the matching rows in Postgres.
-
-Notes for Linux VM + Windows frontend setup:
-
-- No Kafka tunnel is required for normal app usage or lifecycle-page Kafka validation.
-- Backend reaches Kafka through Docker networking (`jaakd-kafka:9092`) inside the VM.
-- Add `-L 9092:localhost:9092` only if you want host-side Kafka diagnostics tools from Windows.
 
 ### Accounts
 
