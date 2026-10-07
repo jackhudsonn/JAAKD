@@ -67,18 +67,9 @@ public class FifoAccountingService {
         Double effectiveExecutionPrice = null;
         if (orderLog.getSide() == OrderSide.BUY || orderLog.getSide() == OrderSide.SELL) {
             effectiveExecutionPrice = quoteService.getExecutionPrice(orderLog.getInstrument().getInstrumentId());
-        }
-
-        if ((orderLog.getSide() == OrderSide.BUY || orderLog.getSide() == OrderSide.SELL)
-            && effectiveExecutionPrice == null) {
-            return ExecutionOutcome.failed("Execution price is required for BUY/SELL execution");
-        }
-
-        // Simulate processing delay of 2-3 seconds during execution by sleeping for a random duration
-        try {
-            sleep(2000 + (int)(Math.random() * 1000));
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+            if (effectiveExecutionPrice == null) {
+                return ExecutionOutcome.failed("Failed to retrieve execution price for BUY/SELL order");
+            }
         }
 
         try {
@@ -107,11 +98,12 @@ public class FifoAccountingService {
 
         BigDecimal quantity = BigDecimal.valueOf(orderLog.getQuantity());
         BigDecimal unitCost = BigDecimal.valueOf(executionPrice);
+        LocalDateTime now = LocalDateTime.now();
 
         PositionLot lot = new PositionLot(
             holding.getHoldingID(),
             buyLogId,
-            orderLog.getTimeStamp(),
+            now,
             quantity,
             quantity,
             unitCost
@@ -120,7 +112,7 @@ public class FifoAccountingService {
 
         BigDecimal currentQuantity = safe(holding.getCurrentQuantity());
         holding.setCurrentQuantity(currentQuantity.add(quantity));
-        holding.setUpdatedAt(LocalDateTime.now());
+        holding.setUpdatedAt(now);
         holdingRepository.save(holding);
 
         Holding cashHolding = resolveOrCreateCashHolding(orderLog);
@@ -131,7 +123,7 @@ public class FifoAccountingService {
         }
 
         cashHolding.setCurrentQuantity(currentCash.subtract(tradeNotional));
-        cashHolding.setUpdatedAt(LocalDateTime.now());
+        cashHolding.setUpdatedAt(now);
         holdingRepository.save(cashHolding);
     }
 
@@ -159,6 +151,7 @@ public class FifoAccountingService {
 
         BigDecimal remainingToSell = sellQuantity;
         BigDecimal realizedTotal = BigDecimal.ZERO;
+        LocalDateTime now = LocalDateTime.now();
 
         for (PositionLot lot : openLots) {
             if (remainingToSell.compareTo(BigDecimal.ZERO) == 0) {
@@ -180,7 +173,7 @@ public class FifoAccountingService {
                 matched,
                 sellUnitPrice,
                 realized,
-                orderLog.getTimeStamp()
+                now
             );
             lotMatchRepository.save(lotMatch);
 
@@ -197,14 +190,14 @@ public class FifoAccountingService {
 
         holding.setCurrentQuantity(currentQuantity.subtract(sellQuantity));
         holding.setCumulativeRealizedPnl(safe(holding.getCumulativeRealizedPnl()).add(realizedTotal));
-        holding.setUpdatedAt(LocalDateTime.now());
+        holding.setUpdatedAt(now);
         holdingRepository.save(holding);
 
         Holding cashHolding = resolveOrCreateCashHolding(orderLog);
         BigDecimal currentCash = safe(cashHolding.getCurrentQuantity());
         BigDecimal tradeNotional = sellQuantity.multiply(sellUnitPrice);
         cashHolding.setCurrentQuantity(currentCash.add(tradeNotional));
-        cashHolding.setUpdatedAt(LocalDateTime.now());
+        cashHolding.setUpdatedAt(now);
         holdingRepository.save(cashHolding);
     }
 

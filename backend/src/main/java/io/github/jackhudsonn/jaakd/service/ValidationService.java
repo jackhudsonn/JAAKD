@@ -14,13 +14,13 @@ import io.github.jackhudsonn.jaakd.repository.HoldingRepository;
 import io.github.jackhudsonn.jaakd.repository.InstrumentRepository;
 import io.github.jackhudsonn.jaakd.repository.LotMatchRepository;
 import io.github.jackhudsonn.jaakd.repository.PositionLotRepository;
+import io.github.jackhudsonn.jaakd.util.SimulateDelay;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Optional;
-import static java.lang.Thread.sleep;
 
 @Service
 /**
@@ -51,6 +51,7 @@ public class ValidationService {
     private final ValidationLifecycleTxService validationLifecycleTxService;
     private final KafkaTemplate<String, OrderAcceptedEvent> orderAcceptedKafkaTemplate;
     private final KafkaTemplate<String, OrderRejectedEvent> orderRejectedKafkaTemplate;
+    private final SimulateDelay simulateDelay;
 
     public ValidationService(
         HoldingRepository holdingRepository,
@@ -59,7 +60,8 @@ public class ValidationService {
         LotMatchRepository lotMatchRepository,
         ValidationLifecycleTxService validationLifecycleTxService,
         KafkaTemplate<String, OrderAcceptedEvent> orderAcceptedKafkaTemplate,
-        KafkaTemplate<String, OrderRejectedEvent> orderRejectedKafkaTemplate
+        KafkaTemplate<String, OrderRejectedEvent> orderRejectedKafkaTemplate,
+        SimulateDelay simulateDelay
     ) {
         this.holdingRepository = holdingRepository;
         this.instrumentRepository = instrumentRepository;
@@ -68,6 +70,7 @@ public class ValidationService {
         this.validationLifecycleTxService = validationLifecycleTxService;
         this.orderAcceptedKafkaTemplate = orderAcceptedKafkaTemplate;
         this.orderRejectedKafkaTemplate = orderRejectedKafkaTemplate;
+        this.simulateDelay = simulateDelay;
     }
 
     public void handleOrderSubmitted(OrderSubmittedEvent event) {
@@ -80,11 +83,12 @@ public class ValidationService {
             return;
         }
 
-        // Simulate processing delay of 2-3 seconds during validation by sleeping for a random duration
+        // Simulate Processing Delay
         try {
-            sleep(2000 + (int)(Math.random() * 1000));
+            simulateDelay.simulateMarketActivityDelay();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+            throw new IllegalStateException("Validation delay interrupted", e);
         }
 
         String rejectionReason = validateTrade(event, pending);
