@@ -42,6 +42,19 @@ public class OrderLogController {
 		return responses;
 	}
 
+	@GetMapping("/portfolio/{portfolioId}/fx")
+	@ResponseStatus(HttpStatus.OK)
+	public List<OrderLogResponse> getFxOrderLogsByPortfolio(@PathVariable UUID portfolioId) {
+		List<OrderLog> orderLogs = orderLogService.getFxOrderLogsForPortfolio(portfolioId);
+		List<OrderLogResponse> responses = new ArrayList<>();
+
+		for (int i = 0; i < orderLogs.size(); i++) {
+			responses.add(toResponse(orderLogs.get(i)));
+		}
+
+		return responses;
+	}
+
 	@GetMapping("/diagnostics/portfolio/{portfolioId}")
 	@ResponseStatus(HttpStatus.OK)
 	public List<OrderLogResponse> getOrderLogsByPortfolioForDiagnostics(@PathVariable UUID portfolioId) {

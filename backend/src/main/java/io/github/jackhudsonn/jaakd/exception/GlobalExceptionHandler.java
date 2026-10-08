@@ -60,6 +60,12 @@ public class GlobalExceptionHandler {
         return new ErrorResponse(Instant.now(), ex.getMessage(), null);
     }
 
+    @ExceptionHandler(FauxnanceClientException.class)
+    @ResponseStatus(HttpStatus.BAD_GATEWAY)
+    public ErrorResponse handleFauxnanceClient(FauxnanceClientException ex) {
+        return new ErrorResponse(Instant.now(), ex.getMessage(), null);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorResponse handleMethodArgumentNotValid(MethodArgumentNotValidException ex) {

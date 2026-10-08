@@ -8,9 +8,24 @@ WHERE table_schema = 'public'
 ORDER BY table_name;
 
 -- 1b) Ensure the canonical cash instrument exists
-SELECT "instrumentID", ticker, market, name, "instrumentClass"
+SELECT "instrumentID", ticker, market, name, "instrumentClass", "tradingCurrency"
 FROM instruments
 WHERE UPPER(ticker) = 'USD';
+
+-- 1c) Ensure trading currency column and allowed values are in place
+SELECT column_name, data_type, is_nullable, column_default
+FROM information_schema.columns
+WHERE table_schema = 'public'
+  AND table_name = 'instruments'
+  AND column_name = 'tradingCurrency';
+
+SELECT
+  conname,
+  conrelid::regclass AS source_table,
+  pg_get_constraintdef(oid) AS definition
+FROM pg_constraint
+WHERE conname IN ('chk_instruments_trading_currency', 'chk_orderlogs_side')
+ORDER BY conname;
 
 -- 2) Foreign key index checks
 SELECT schemaname, tablename, indexname

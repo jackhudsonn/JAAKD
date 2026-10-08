@@ -11,6 +11,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class ExecutionService {
 
+    private static final String REASON_INTERNAL_EXECUTION_ERROR = "Execution processing error";
+
     private final OrderLogService orderLogService;
     private final FifoAccountingService fifoAccountingService;
     private final SimulateDelay simulateDelay;
@@ -31,8 +33,20 @@ public class ExecutionService {
             return;
         }
 
-        OrderLog latestOrderLog = orderLogService.getLatestOrderLogByOrderIdForUpdate(event.orderId());
-        executeLatestAcceptedLifecycle(event, latestOrderLog);
+        try {
+            OrderLog latestOrderLog = orderLogService.getLatestOrderLogByOrderIdForUpdate(event.orderId());
+            executeLatestAcceptedLifecycle(event, latestOrderLog);
+        } catch (RuntimeException ex) {
+            String reason = ex.getMessage() == null || ex.getMessage().isBlank()
+                ? REASON_INTERNAL_EXECUTION_ERROR
+                : ex.getMessage();
+            orderLogService.appendFailedFromSystem(
+                event.orderId(),
+                event.sourceLogOrderId(),
+                reason,
+                null
+            );
+        }
     }
 
     private OrderLog executeLatestAcceptedLifecycle(OrderAcceptedEvent event, OrderLog latestOrderLog) {

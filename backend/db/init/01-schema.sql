@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS instruments (
   market TEXT NOT NULL,
   name TEXT NOT NULL,
   "instrumentClass" TEXT NOT NULL,
+  "tradingCurrency" TEXT NOT NULL DEFAULT 'USD',
   "logoUrl" TEXT,
   description TEXT
 );
@@ -151,7 +152,11 @@ ALTER TABLE "orderLogs"
 
 ALTER TABLE "orderLogs"
   ADD CONSTRAINT chk_orderlogs_side
-  CHECK (side IN ('BUY', 'SELL', 'DEPOSIT', 'WITHDRAW'));
+  CHECK (side IN ('BUY', 'SELL', 'DEPOSIT', 'WITHDRAW', 'FX'));
+
+ALTER TABLE instruments
+  ADD CONSTRAINT chk_instruments_trading_currency
+  CHECK ("tradingCurrency" IN ('USD', 'INR', 'GBP', 'EUR'));
 
 ALTER TABLE "orderLogs"
   ADD CONSTRAINT chk_orderlogs_status
@@ -248,6 +253,7 @@ INSERT INTO instruments (
   market,
   name,
   "instrumentClass",
+  "tradingCurrency",
   "logoUrl",
   description
 )
@@ -257,6 +263,7 @@ SELECT
   'INTERNAL',
   'US Dollar Cash Balance',
   'CASH',
+  'USD',
   NULL,
   'Synthetic cash instrument used to represent portfolio cash balance in holdings.'
 WHERE NOT EXISTS (

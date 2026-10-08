@@ -72,7 +72,7 @@ class FifoAccountingServiceTest {
         Instrument cashInstrument = buildCashInstrument(cashInstrumentId, "USD");
         OrderLog buyLog = buildExecutedOrderLog(buyLogId, portfolioId, instrumentId, OrderSide.BUY, 100, 110);
 
-        when(quoteService.getExecutionPrice(instrumentId)).thenReturn(110.0);
+        when(quoteService.getExecutionPrice(instrumentId, OrderSide.BUY)).thenReturn(110.0);
         when(positionLotRepository.existsBySourceBuyLogOrderID(buyLogId)).thenReturn(false);
         when(holdingRepository.findByPortfolioIDAndInstrumentID(portfolioId, instrumentId)).thenReturn(Optional.of(holding));
         when(instrumentRepository.findByTickerIgnoreCaseAndInstrumentClass("USD", InstrumentClass.CASH))
@@ -135,7 +135,7 @@ class FifoAccountingServiceTest {
 
         OrderLog sellLog = buildExecutedOrderLog(sellLogId, portfolioId, instrumentId, OrderSide.SELL, 130, 120);
 
-        when(quoteService.getExecutionPrice(instrumentId)).thenReturn(120.0);
+        when(quoteService.getExecutionPrice(instrumentId, OrderSide.SELL)).thenReturn(120.0);
         when(lotMatchRepository.existsBySellLogOrderID(sellLogId)).thenReturn(false);
         when(holdingRepository.findByPortfolioIDAndInstrumentID(portfolioId, instrumentId)).thenReturn(Optional.of(holding));
         when(instrumentRepository.findByTickerIgnoreCaseAndInstrumentClass("USD", InstrumentClass.CASH))
@@ -203,7 +203,7 @@ class FifoAccountingServiceTest {
 
         OrderLog sellLog = buildExecutedOrderLog(sellLogId, portfolioId, instrumentId, OrderSide.SELL, 60, 120);
 
-        when(quoteService.getExecutionPrice(instrumentId)).thenReturn(120.0);
+        when(quoteService.getExecutionPrice(instrumentId, OrderSide.SELL)).thenReturn(120.0);
         when(lotMatchRepository.existsBySellLogOrderID(sellLogId)).thenReturn(false);
         when(holdingRepository.findByPortfolioIDAndInstrumentID(portfolioId, instrumentId)).thenReturn(Optional.of(holding));
 
@@ -341,7 +341,7 @@ class FifoAccountingServiceTest {
 
         OrderLog buyLog = buildExecutedOrderLog(buyLogId, portfolioId, instrumentId, OrderSide.BUY, 25, 111);
 
-        when(quoteService.getExecutionPrice(instrumentId)).thenReturn(111.0);
+        when(quoteService.getExecutionPrice(instrumentId, OrderSide.BUY)).thenReturn(111.0);
         when(positionLotRepository.existsBySourceBuyLogOrderID(buyLogId)).thenReturn(true);
 
         FifoAccountingService.ExecutionOutcome outcome = fifoAccountingService.applyExecution(buyLog);
@@ -361,7 +361,7 @@ class FifoAccountingServiceTest {
 
         OrderLog sellLog = buildExecutedOrderLog(sellLogId, portfolioId, instrumentId, OrderSide.SELL, 10, 120);
 
-        when(quoteService.getExecutionPrice(instrumentId)).thenReturn(120.0);
+        when(quoteService.getExecutionPrice(instrumentId, OrderSide.SELL)).thenReturn(120.0);
         when(lotMatchRepository.existsBySellLogOrderID(sellLogId)).thenReturn(true);
 
         FifoAccountingService.ExecutionOutcome outcome = fifoAccountingService.applyExecution(sellLog);

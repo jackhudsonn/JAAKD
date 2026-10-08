@@ -63,7 +63,7 @@ class OrderLogServiceTest {
     private PrivilegedAccessService privilegedAccessService;
 
     @Mock
-    private MockQuoteService quoteService;
+    private QuoteService quoteService;
 
     @InjectMocks
     private OrderLogService orderLogService;
@@ -222,7 +222,7 @@ class OrderLogServiceTest {
         when(currentUserService.getUserId()).thenReturn(userId);
         when(portfolioRepository.findOwnedByPortfolioId(portfolioId, userId)).thenReturn(Optional.of(portfolio));
         when(instrumentRepository.findById(instrumentId)).thenReturn(Optional.of(instrument));
-        when(quoteService.getExecutionPrice(instrumentId)).thenReturn(123.45);
+        when(quoteService.getExecutionPrice(instrumentId, OrderSide.BUY)).thenReturn(123.45);
         when(orderLogRepository.save(any(OrderLog.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         OrderLog created = orderLogService.createOrderLog(request);
@@ -232,6 +232,45 @@ class OrderLogServiceTest {
         ArgumentCaptor<OrderLog> saveCaptor = ArgumentCaptor.forClass(OrderLog.class);
         verify(orderLogRepository, times(1)).save(saveCaptor.capture());
         assertEquals(123.45, saveCaptor.getValue().getQuotedPrice());
+    }
+
+    @Test
+    void createOrderLog_quoteFailureAfterRetries_throwsAndDoesNotPersist() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID orderId = UUID.randomUUID();
+        UUID portfolioId = UUID.randomUUID();
+        UUID instrumentId = UUID.randomUUID();
+
+        Profile profile = new Profile(UUID.randomUUID(), BigDecimal.ZERO);
+        setField(profile, "userId", userId);
+
+        Portfolio portfolio = new Portfolio(profile);
+        setField(portfolio, "portfolioId", portfolioId);
+
+        Instrument instrument = new Instrument("AAPL", "NASDAQ", "Apple", InstrumentClass.EQUITY);
+        setField(instrument, "instrumentId", instrumentId);
+
+        CreateOrderLogRequest request = new CreateOrderLogRequest(
+            orderId,
+            portfolioId,
+            instrumentId,
+            OrderSide.BUY,
+            3.0,
+            null,
+            null
+        );
+
+        when(currentUserService.getUserId()).thenReturn(userId);
+        when(portfolioRepository.findOwnedByPortfolioId(portfolioId, userId)).thenReturn(Optional.of(portfolio));
+        when(instrumentRepository.findById(instrumentId)).thenReturn(Optional.of(instrument));
+        when(quoteService.getExecutionPrice(instrumentId, OrderSide.BUY)).thenThrow(new RuntimeException("quote down"));
+
+        InvalidTradeException ex = assertThrows(InvalidTradeException.class, () -> orderLogService.createOrderLog(request));
+        assertTrue(ex.getMessage().contains("Unable to retrieve a valid quote price for order submission"));
+
+        verify(quoteService, times(3)).getExecutionPrice(instrumentId, OrderSide.BUY);
+        verify(orderLogRepository, never()).save(any(OrderLog.class));
+        verify(orderSubmittedKafkaTemplate, never()).send(any(), any(), any());
     }
 
     @Test
@@ -264,6 +303,31 @@ class OrderLogServiceTest {
 
         verify(privilegedAccessService, times(1)).ensureAdminOrAuditor();
         verify(orderLogRepository, never()).findByPortfolioPortfolioIdOrderByTimestampDesc(portfolioId);
+    }
+
+    @Test
+    void getFxOrderLogsForPortfolio_filtersByFxSide() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID portfolioId = UUID.randomUUID();
+        UUID instrumentId = UUID.randomUUID();
+
+        OrderLog fxOne = buildOrderLog(UUID.randomUUID(), portfolioId, instrumentId, OrderSide.FX, 10, 1.25);
+        fxOne.setStatus(OrderStatus.EXECUTED);
+        OrderLog fxTwo = buildOrderLog(UUID.randomUUID(), portfolioId, instrumentId, OrderSide.FX, 4, 1.10);
+        fxTwo.setStatus(OrderStatus.EXECUTED);
+
+        when(currentUserService.getUserId()).thenReturn(userId);
+        when(orderLogRepository.findOwnedByPortfolioAndSideNewestFirst(portfolioId, userId, OrderSide.FX))
+            .thenReturn(List.of(fxOne, fxTwo));
+
+        List<OrderLog> result = orderLogService.getFxOrderLogsForPortfolio(portfolioId);
+
+        assertIterableEquals(List.of(fxOne, fxTwo), result);
+        verify(orderLogRepository, times(1)).findOwnedByPortfolioAndSideNewestFirst(
+            portfolioId,
+            userId,
+            OrderSide.FX
+        );
     }
 
     @Test

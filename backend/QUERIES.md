@@ -247,6 +247,16 @@ WHERE o."portfolioID" = :portfolioId AND p."userID" = :userId
 ORDER BY o."timestamp" DESC;
 ```
 
+**getFxOrderLogsByPortfolio** (`GET /api/order-logs/portfolio/{portfolioId}/fx`): FX conversion history only, newest first.
+```sql
+SELECT o.* FROM "orderLogs" o
+JOIN portfolios p ON p."portfolioID" = o."portfolioID"
+WHERE o."portfolioID" = :portfolioId
+  AND p."userID" = :userId
+  AND o.side = 'FX'
+ORDER BY o."timestamp" DESC;
+```
+
 **getOrderLogById** (`GET /api/order-logs/{logOrderId}`): one order log entry.
 ```sql
 SELECT o.* FROM "orderLogs" o

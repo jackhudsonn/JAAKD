@@ -34,6 +34,10 @@ public class Instrument {
     @Enumerated(EnumType.STRING)
     private InstrumentClass instrumentClass;
 
+    @Column(name = "tradingCurrency", nullable = false)
+    @Enumerated(EnumType.STRING)
+    private CashCurrency tradingCurrency;
+
     @Column(name = "logoUrl")
     private String logoUrl;
 
@@ -44,17 +48,27 @@ public class Instrument {
     }
 
     public Instrument(String ticker, String market, String name, InstrumentClass instrumentClass) {
-        this.ticker = ticker;
-        this.market = market;
-        this.name = name;
-        this.instrumentClass = instrumentClass;
+        this(ticker, market, name, instrumentClass, inferTradingCurrency(instrumentClass, ticker), null, null);
     }
 
     public Instrument(String ticker, String market, String name, InstrumentClass instrumentClass, String logoUrl, String description) {
+        this(ticker, market, name, instrumentClass, inferTradingCurrency(instrumentClass, ticker), logoUrl, description);
+    }
+
+    public Instrument(
+        String ticker,
+        String market,
+        String name,
+        InstrumentClass instrumentClass,
+        CashCurrency tradingCurrency,
+        String logoUrl,
+        String description
+    ) {
         this.ticker = ticker;
         this.market = market;
         this.name = name;
         this.instrumentClass = instrumentClass;
+        this.tradingCurrency = tradingCurrency;
         this.logoUrl = logoUrl;
         this.description = description;
     }
@@ -80,6 +94,10 @@ public class Instrument {
         return instrumentClass;
     }
 
+    public CashCurrency getTradingCurrency() {
+        return tradingCurrency;
+    }
+
     public String getLogoUrl() {
         return logoUrl;
     }
@@ -92,11 +110,34 @@ public class Instrument {
         this.name = name;
     }
 
+    public void setMarket(String market) {
+        this.market = market;
+    }
+
+    public void setInstrumentClass(InstrumentClass instrumentClass) {
+        this.instrumentClass = instrumentClass;
+    }
+
+    public void setTradingCurrency(CashCurrency tradingCurrency) {
+        this.tradingCurrency = tradingCurrency;
+    }
+
     public void setLogoUrl(String logoUrl) {
         this.logoUrl = logoUrl;
     }
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    private static CashCurrency inferTradingCurrency(InstrumentClass instrumentClass, String ticker) {
+        if (instrumentClass == InstrumentClass.CASH) {
+            CashCurrency byTicker = CashCurrency.fromCodeOrNull(ticker);
+            if (byTicker != null) {
+                return byTicker;
+            }
+        }
+
+        return CashCurrency.USD;
     }
 }

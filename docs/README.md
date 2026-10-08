@@ -137,6 +137,22 @@ java -jar target\backend-0.0.1-SNAPSHOT.jar
 - The authenticated user's ID, resolved from the session, maps directly to `profiles.userID`.
 - `/actuator/**` is public; `/api/**` requires authentication.
 - Schema source of truth is `backend/db/init/` and the JPA model.
+- For existing databases, apply incremental SQL migrations from `tools/supabase-sql/` in order.
+
+### Order lifecycle and Kafka events
+
+- Sequence source: `backend/OrderSequenceDiagram.mmd`.
+- Submit intake for BUY/SELL now requires a valid quote at submission time:
+	- Calls `QuoteService.getExecutionPrice(instrumentId, side)`.
+	- Retries up to 3 times when quote is null/non-positive or provider errors.
+	- If retries are exhausted, submission fails with `InvalidTradeException` and no order row is saved/published.
+- DEPOSIT/WITHDRAW still submit without quote lookup.
+- Kafka topology is unchanged:
+	- `order-submitted` -> validation -> `order-accepted` or `order-rejected`.
+	- `order-accepted` -> execution -> append `EXECUTED` or `FAILED`.
+- Runtime faults are handled deterministically in lifecycle services:
+	- Validation runtime errors map to `REJECTED` append/publish path.
+	- Execution runtime errors append `FAILED`.
 
 ## Needs improvement
 

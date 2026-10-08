@@ -1,7 +1,6 @@
 package io.github.jackhudsonn.jaakd.service;
 
 import io.github.jackhudsonn.jaakd.event.OrderAcceptedEvent;
-import io.github.jackhudsonn.jaakd.exception.InvalidTradeException;
 import io.github.jackhudsonn.jaakd.model.Instrument;
 import io.github.jackhudsonn.jaakd.model.InstrumentClass;
 import io.github.jackhudsonn.jaakd.model.OrderLog;
@@ -9,6 +8,7 @@ import io.github.jackhudsonn.jaakd.model.OrderSide;
 import io.github.jackhudsonn.jaakd.model.OrderStatus;
 import io.github.jackhudsonn.jaakd.model.Portfolio;
 import io.github.jackhudsonn.jaakd.model.Profile;
+import io.github.jackhudsonn.jaakd.util.SimulateDelay;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -21,7 +21,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -35,6 +34,9 @@ class ExecutionServiceTest {
 
     @Mock
     private FifoAccountingService fifoAccountingService;
+
+    @Mock
+    private SimulateDelay simulateDelay;
 
     @InjectMocks
     private ExecutionService executionService;
@@ -96,15 +98,23 @@ class ExecutionServiceTest {
     }
 
     @Test
-    void handleOrderAccepted_latestNotAccepted_throws() throws Exception {
+    void handleOrderAccepted_latestNotAccepted_appendsFailed() throws Exception {
         UUID orderId = UUID.randomUUID();
-        OrderAcceptedEvent event = new OrderAcceptedEvent(orderId, UUID.randomUUID(), LocalDateTime.now());
+        UUID sourceLogOrderId = UUID.randomUUID();
+        OrderAcceptedEvent event = new OrderAcceptedEvent(orderId, sourceLogOrderId, LocalDateTime.now());
         OrderLog latest = buildOrderLog(orderId, OrderStatus.SUBMITTED);
 
         when(orderLogService.getLatestOrderLogByOrderIdForUpdate(orderId)).thenReturn(latest);
 
-        assertThrows(InvalidTradeException.class, () -> executionService.handleOrderAccepted(event));
+        executionService.handleOrderAccepted(event);
+
         verify(fifoAccountingService, never()).applyExecution(org.mockito.ArgumentMatchers.any());
+        verify(orderLogService, times(1)).appendFailedFromSystem(
+            org.mockito.ArgumentMatchers.eq(orderId),
+            org.mockito.ArgumentMatchers.eq(sourceLogOrderId),
+            org.mockito.ArgumentMatchers.contains("latest status must be ACCEPTED"),
+            org.mockito.ArgumentMatchers.isNull()
+        );
     }
 
     @Test

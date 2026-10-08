@@ -92,6 +92,7 @@ public class InstrumentController {
 				instrument.getMarket(),
 				instrument.getName(),
 				instrument.getInstrumentClass(),
+				instrument.getTradingCurrency(),
 				instrument.getLogoUrl(),
 				instrument.getDescription()
 		);

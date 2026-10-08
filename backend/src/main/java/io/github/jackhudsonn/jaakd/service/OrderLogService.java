@@ -14,6 +14,7 @@ import io.github.jackhudsonn.jaakd.exception.OrderLogNotFoundException;
 import io.github.jackhudsonn.jaakd.exception.PortfolioNotFoundException;
 import io.github.jackhudsonn.jaakd.model.Instrument;
 import io.github.jackhudsonn.jaakd.model.OrderLog;
+import io.github.jackhudsonn.jaakd.model.OrderSide;
 import io.github.jackhudsonn.jaakd.model.OrderStatus;
 import io.github.jackhudsonn.jaakd.model.Portfolio;
 import io.github.jackhudsonn.jaakd.repository.InstrumentRepository;
@@ -27,12 +28,16 @@ import java.util.UUID;
 
 @Service
 public class OrderLogService {
+    private static final int SUBMIT_QUOTE_MAX_ATTEMPTS = 3;
+    private static final String REASON_SUBMIT_PRICE_UNAVAILABLE =
+        "Unable to retrieve a valid quote price for order submission";
+
     private final OrderLogRepository orderLogRepository;
     private final PortfolioRepository portfolioRepository;
     private final InstrumentRepository instrumentRepository;
     private final CurrentUserService currentUserService;
     private final PrivilegedAccessService privilegedAccessService;
-    private final MockQuoteService quoteService;
+    private final QuoteService quoteService;
     private final KafkaTemplate<String, OrderSubmittedEvent> orderSubmittedKafkaTemplate;
 
     public OrderLogService(
@@ -41,7 +46,7 @@ public class OrderLogService {
         InstrumentRepository instrumentRepository,
         CurrentUserService currentUserService,
         PrivilegedAccessService privilegedAccessService,
-        MockQuoteService quoteService,
+        QuoteService quoteService,
         KafkaTemplate<String, OrderSubmittedEvent> orderSubmittedKafkaTemplate
     ) {
         this.orderLogRepository = orderLogRepository;
@@ -57,6 +62,16 @@ public class OrderLogService {
         UUID userId = currentUserService.getUserId();
         
         return orderLogRepository.findOwnedByPortfolioNewestFirst(portfolioId, userId);
+    }
+
+    public List<OrderLog> getFxOrderLogsForPortfolio(UUID portfolioId) {
+        UUID userId = currentUserService.getUserId();
+
+        return orderLogRepository.findOwnedByPortfolioAndSideNewestFirst(
+            portfolioId,
+            userId,
+            OrderSide.FX
+        );
     }
 
     public List<OrderLog> getOrderLogsForPortfolioDiagnostics(UUID portfolioId) {
@@ -118,7 +133,10 @@ public class OrderLogService {
             orderLog.setMetadata(request.metadata());
         }
 
-        orderLog.setQuotedPrice(quoteService.getExecutionPrice(instrument.getInstrumentId()));
+        if (request.side() == OrderSide.BUY || request.side() == OrderSide.SELL) {
+            Double quotedPrice = resolveQuotedPriceOrThrow(instrument.getInstrumentId(), request.side());
+            orderLog.setQuotedPrice(quotedPrice);
+        }
 
         if (request.executionPrice() != null) {
             orderLog.setExecutionPrice(request.executionPrice());
@@ -141,6 +159,27 @@ public class OrderLogService {
         orderSubmittedKafkaTemplate.send(KafkaTopics.ORDER_SUBMITTED, partitionKey, event);
 
         return saved;
+    }
+
+    private Double resolveQuotedPriceOrThrow(UUID instrumentId, OrderSide side) {
+        RuntimeException lastException = null;
+
+        for (int attempt = 1; attempt <= SUBMIT_QUOTE_MAX_ATTEMPTS; attempt++) {
+            try {
+                Double quotedPrice = quoteService.getExecutionPrice(instrumentId, side);
+                if (quotedPrice != null && quotedPrice > 0) {
+                    return quotedPrice;
+                }
+            } catch (RuntimeException ex) {
+                lastException = ex;
+            }
+        }
+
+        if (lastException != null) {
+            throw new InvalidTradeException(REASON_SUBMIT_PRICE_UNAVAILABLE + ": " + lastException.getMessage());
+        }
+
+        throw new InvalidTradeException(REASON_SUBMIT_PRICE_UNAVAILABLE);
     }
 
     @Transactional
@@ -215,6 +254,16 @@ public class OrderLogService {
 
     @Transactional
     public OrderLog appendRejectedFromSystem(UUID orderId, UUID sourceLogOrderId, String reason) {
+        return appendRejectedFromSystem(orderId, sourceLogOrderId, reason, null);
+    }
+
+    @Transactional
+    public OrderLog appendRejectedFromSystem(
+        UUID orderId,
+        UUID sourceLogOrderId,
+        String reason,
+        String rejectionMetadataDetails
+    ) {
         List<OrderLog> orderLogs = orderLogRepository.findByOrderIdNewestFirstForUpdate(orderId);
         if (orderLogs.isEmpty()) {
             throw new OrderLogNotFoundException(orderId);
@@ -244,9 +293,20 @@ public class OrderLogService {
 
         String existingMetadata = latestOrderLog.getMetadata();
         String rejectionReason = reason == null || reason.isBlank() ? "Validation rejected" : reason;
-        String rejectionMetadata = existingMetadata == null || existingMetadata.isBlank()
-            ? "rejectionReason=" + rejectionReason
-            : existingMetadata + " | rejectionReason=" + rejectionReason;
+        String rejectionReasonMetadata = "rejectionReason=" + rejectionReason;
+        String rejectionDetailsMetadata = rejectionMetadataDetails == null || rejectionMetadataDetails.isBlank()
+            ? null
+            : "rejectionDetails=" + rejectionMetadataDetails;
+        String rejectionMetadata;
+        if (existingMetadata == null || existingMetadata.isBlank()) {
+            rejectionMetadata = rejectionDetailsMetadata == null
+                ? rejectionReasonMetadata
+                : rejectionReasonMetadata + " | " + rejectionDetailsMetadata;
+        } else {
+            rejectionMetadata = rejectionDetailsMetadata == null
+                ? existingMetadata + " | " + rejectionReasonMetadata
+                : existingMetadata + " | " + rejectionReasonMetadata + " | " + rejectionDetailsMetadata;
+        }
         rejectedOrderLog.setMetadata(rejectionMetadata);
         rejectedOrderLog.setExecutionPrice(latestOrderLog.getExecutionPrice());
         rejectedOrderLog.setQuotedPrice(latestOrderLog.getQuotedPrice());

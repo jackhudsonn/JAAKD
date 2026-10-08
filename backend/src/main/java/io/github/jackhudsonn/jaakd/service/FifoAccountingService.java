@@ -1,6 +1,7 @@
 package io.github.jackhudsonn.jaakd.service;
 
 import io.github.jackhudsonn.jaakd.exception.InvalidTradeException;
+import io.github.jackhudsonn.jaakd.model.CashCurrency;
 import io.github.jackhudsonn.jaakd.model.Holding;
 import io.github.jackhudsonn.jaakd.model.Instrument;
 import io.github.jackhudsonn.jaakd.model.InstrumentClass;
@@ -24,8 +25,8 @@ import static java.lang.Thread.sleep;
 @Service
 public class FifoAccountingService {
 
-    private static final String[] CASH_TICKER_PRIORITY = {"USD", "GBP", "RUP"};
-    private static final String REASON_CASH_INSTRUMENT_NOT_CONFIGURED = "Cash instrument is not configured";
+    private static final String REASON_CASH_INSTRUMENT_NOT_CONFIGURED = "Cash instrument is not configured for required currency";
+    private static final String REASON_TRADING_CURRENCY_MISSING = "Instrument trading currency is missing";
     private static final String REASON_INSUFFICIENT_BUY_CASH = "Cannot buy more than current cash quantity";
 
     public record ExecutionOutcome(boolean succeeded, String failureReason, Double executionPriceUsed) {
@@ -66,7 +67,10 @@ public class FifoAccountingService {
 
         Double effectiveExecutionPrice = null;
         if (orderLog.getSide() == OrderSide.BUY || orderLog.getSide() == OrderSide.SELL) {
-            effectiveExecutionPrice = quoteService.getExecutionPrice(orderLog.getInstrument().getInstrumentId());
+            effectiveExecutionPrice = quoteService.getExecutionPrice(
+                orderLog.getInstrument().getInstrumentId(),
+                orderLog.getSide()
+            );
             if (effectiveExecutionPrice == null) {
                 return ExecutionOutcome.failed("Failed to retrieve execution price for BUY/SELL order");
             }
@@ -242,23 +246,24 @@ public class FifoAccountingService {
 
     private Holding resolveOrCreateCashHolding(OrderLog orderLog) {
         UUID portfolioId = orderLog.getPortfolio().getPortfolioId();
-        Instrument cashInstrument = resolveCashInstrument();
+        Instrument cashInstrument = resolveCashInstrument(resolveTradingCurrency(orderLog.getInstrument()));
 
         return holdingRepository.findByPortfolioIDAndInstrumentID(portfolioId, cashInstrument.getInstrumentId())
             .orElseGet(() -> holdingRepository.save(new Holding(portfolioId, cashInstrument.getInstrumentId())));
     }
 
-    private Instrument resolveCashInstrument() {
-        for (String ticker : CASH_TICKER_PRIORITY) {
-            Instrument found = instrumentRepository
-                .findByTickerIgnoreCaseAndInstrumentClass(ticker, InstrumentClass.CASH)
-                .orElse(null);
-            if (found != null) {
-                return found;
-            }
+    private CashCurrency resolveTradingCurrency(Instrument instrument) {
+        if (instrument == null || instrument.getTradingCurrency() == null) {
+            throw new InvalidTradeException(REASON_TRADING_CURRENCY_MISSING);
         }
 
-        throw new InvalidTradeException(REASON_CASH_INSTRUMENT_NOT_CONFIGURED);
+        return instrument.getTradingCurrency();
+    }
+
+    private Instrument resolveCashInstrument(CashCurrency requiredCurrency) {
+        return instrumentRepository
+            .findByTickerIgnoreCaseAndInstrumentClass(requiredCurrency.name(), InstrumentClass.CASH)
+            .orElseThrow(() -> new InvalidTradeException(REASON_CASH_INSTRUMENT_NOT_CONFIGURED + ": " + requiredCurrency));
     }
 
     private BigDecimal safe(BigDecimal value) {
