@@ -1,6 +1,7 @@
 import { InjectionToken, WritableSignal } from '@angular/core';
 import { Holding, Order } from '@core/models';
-import { MOCK_STATE, WATCHLIST_CONSTRAINTS } from '@core/mocks/mock-data';
+import { MOCK_STATE } from '@core/mocks/state.mock';
+import { WATCHLIST_CONSTRAINTS } from '@core/mocks/watchlist.mock';
 
 export interface TradeWatchlist {
   id: string;

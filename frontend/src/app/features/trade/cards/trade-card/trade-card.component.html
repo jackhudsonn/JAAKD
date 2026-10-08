@@ -29,6 +29,8 @@
       <app-scrollable-list
         [items]="filteredTickers()"
         [trackBy]="trackByTicker"
+        [minHeight]="marketListMinHeight"
+        [maxHeight]="marketListMaxHeight"
         emptyMessage="No tickers match your search."
       >
         <ng-template let-row>

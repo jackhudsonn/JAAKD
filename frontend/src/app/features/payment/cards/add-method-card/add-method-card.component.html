@@ -1,0 +1,153 @@
+<section class="card payment-editor">
+  <div class="payment-editor-heading">
+    <h2>Add Method</h2>
+    <p>Select a method type, fill details, and save it to your account.</p>
+  </div>
+
+  <app-payment-method-tabs [activeType]="activeType()" (typeChanged)="setType($event)" />
+
+  @if (activeType() === 'bank') {
+    <div class="form-layout">
+      <div class="form-field">
+        <label for="bankNickname">Nickname <span class="required-indicator">*</span></label>
+        <input id="bankNickname" type="text" [(ngModel)]="bankNickname" placeholder="Primary checking" />
+      </div>
+
+      <div class="form-field">
+        <label for="bankName">Bank Name <span class="required-indicator">*</span></label>
+        <input id="bankName" type="text" [(ngModel)]="bankName" placeholder="Example National Bank" />
+      </div>
+
+      <div class="form-field">
+        <label for="bankAccountType">Account Type</label>
+        <select id="bankAccountType" [(ngModel)]="bankAccountType">
+          <option value="checking">Checking</option>
+          <option value="savings">Savings</option>
+        </select>
+      </div>
+
+      <div class="form-field">
+        <label for="routingNumber">Routing Number <span class="required-indicator">*</span></label>
+        <input
+          id="routingNumber"
+          type="text"
+          inputmode="numeric"
+          autocomplete="off"
+          [(ngModel)]="bankRoutingNumber"
+          placeholder="9 digits"
+        />
+      </div>
+
+      <div class="form-field">
+        <label for="accountNumber">Account Number <span class="required-indicator">*</span></label>
+        <input
+          id="accountNumber"
+          type="text"
+          inputmode="numeric"
+          autocomplete="off"
+          [(ngModel)]="bankAccountNumber"
+          placeholder="8-17 digits"
+        />
+      </div>
+    </div>
+  }
+
+  @if (activeType() === 'debit_card') {
+    <div class="form-layout">
+      <div class="form-field">
+        <label for="cardNickname">Nickname <span class="required-indicator">*</span></label>
+        <input
+          id="cardNickname"
+          type="text"
+          autocomplete="off"
+          [(ngModel)]="cardNickname"
+          placeholder="Everyday debit"
+        />
+      </div>
+
+      <div class="form-field">
+        <label for="cardNumber">Debit Card Number <span class="required-indicator">*</span></label>
+        <input
+          id="cardNumber"
+          type="text"
+          inputmode="numeric"
+          autocomplete="cc-number"
+          [(ngModel)]="cardNumber"
+          placeholder="16 digits"
+        />
+      </div>
+
+      <div class="form-field">
+        <label for="expMonth">Expiration Month <span class="required-indicator">*</span></label>
+        <input
+          id="expMonth"
+          type="text"
+          inputmode="numeric"
+          autocomplete="cc-exp-month"
+          [(ngModel)]="expMonth"
+          placeholder="MM"
+        />
+      </div>
+
+      <div class="form-field">
+        <label for="expYear">Expiration Year <span class="required-indicator">*</span></label>
+        <input
+          id="expYear"
+          type="text"
+          inputmode="numeric"
+          autocomplete="cc-exp-year"
+          [(ngModel)]="expYear"
+          placeholder="YYYY"
+        />
+      </div>
+    </div>
+  }
+
+  @if (activeType() === 'crypto_wallet') {
+    <div class="form-layout">
+      <div class="form-field">
+        <label for="cryptoNickname">Nickname <span class="required-indicator">*</span></label>
+        <input
+          id="cryptoNickname"
+          type="text"
+          autocomplete="off"
+          [(ngModel)]="cryptoNickname"
+          placeholder="Long-term BTC vault"
+        />
+      </div>
+
+      <div class="form-field">
+        <label for="cryptoNetwork">Network</label>
+        <select id="cryptoNetwork" [(ngModel)]="cryptoNetwork">
+          <option value="Ethereum">Ethereum</option>
+          <option value="Bitcoin">Bitcoin</option>
+          <option value="Solana">Solana</option>
+          <option value="Polygon">Polygon</option>
+        </select>
+      </div>
+
+      <div class="form-field">
+        <label for="walletAddress">Wallet Address <span class="required-indicator">*</span></label>
+        <input
+          id="walletAddress"
+          type="text"
+          autocomplete="off"
+          [(ngModel)]="walletAddress"
+          placeholder="Paste wallet address"
+        />
+      </div>
+    </div>
+  }
+
+  @if (formError()) {
+    <p class="form-error">{{ formError() }}</p>
+  }
+
+  @if (statusMessage()) {
+    <p class="status-message">{{ statusMessage() }}</p>
+  }
+
+  <div class="payment-actions">
+    <button type="button" class="btn btn-primary" (click)="addActiveMethod()">Add Method</button>
+  </div>
+</section>

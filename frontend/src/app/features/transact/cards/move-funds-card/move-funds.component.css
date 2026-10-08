@@ -1,0 +1,22 @@
+.action-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+.action-row .btn {
+  width: 100%;
+}
+
+.confirm-copy {
+  margin: 0 0 var(--space-md);
+
+  color: var(--text-secondary);
+}
+
+@media (max-width: 560px) {
+  .action-row {
+    grid-template-columns: 1fr;
+  }
+}

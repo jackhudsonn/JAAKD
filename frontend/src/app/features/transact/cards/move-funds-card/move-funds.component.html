@@ -1,0 +1,60 @@
+<app-widget-card title="Move Funds" subtitle="Deposit or withdraw with one payment method selection">
+  <div class="form-field">
+    <label for="funds-currency">Currency</label>
+    <select id="funds-currency" [(ngModel)]="selectedCurrency">
+      <option value="USD">USD</option>
+      <option value="EUR">EUR</option>
+      <option value="INR">INR</option>
+    </select>
+  </div>
+
+  <div class="form-field">
+    <label for="funds-amount">Amount</label>
+    <input
+      id="funds-amount"
+      type="number"
+      min="0"
+      step="0.01"
+      placeholder="0.00"
+      [(ngModel)]="amount"
+    />
+  </div>
+
+  <div class="form-field">
+    <label for="funds-method">Payment Method</label>
+
+    <select id="funds-method" [(ngModel)]="selectedMethodId" (ngModelChange)="onMethodSelectionChange()">
+      <option value="" disabled>Select a payment method</option>
+
+      @for (option of paymentOptions(); track option.id) {
+        <option [value]="option.id">{{ option.label }}</option>
+      }
+
+      <option value="__add_method__">Add +</option>
+    </select>
+  </div>
+
+  @if (error()) {
+    <p class="form-error">{{ error() }}</p>
+  }
+
+  <div class="action-row">
+    <button type="button" class="btn btn-secondary" (click)="submit('withdrawal')">Withdraw</button>
+
+    <button type="button" class="btn btn-primary" (click)="submit('deposit')">Deposit</button>
+  </div>
+</app-widget-card>
+
+@if (pendingAction(); as pendingAction) {
+  <app-modal [title]="pendingAction.action === 'deposit' ? 'Confirm Deposit' : 'Confirm Withdrawal'" (closed)="cancelAction()">
+    <p class="confirm-copy">
+      @if (pendingAction.action === 'deposit') {
+        Deposit {{ pendingAction.amount }} {{ selectedCurrency }} into your account?
+      } @else {
+        Withdraw {{ pendingAction.amount }} {{ selectedCurrency }} from your account?
+      }
+    </p>
+
+    <app-confirm-actions (cancelled)="cancelAction()" (confirmed)="confirmAction()" />
+  </app-modal>
+}

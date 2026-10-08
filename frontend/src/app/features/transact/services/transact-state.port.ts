@@ -1,5 +1,5 @@
 import { InjectionToken, WritableSignal } from '@angular/core';
-import { MOCK_STATE } from '@core/mocks/mock-data';
+import { MOCK_STATE } from '@core/mocks/state.mock';
 import { Transaction } from '@core/models';
 
 export interface TransactStatePort {
