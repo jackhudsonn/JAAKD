@@ -1,0 +1,34 @@
+<div class="method-tabs" role="tablist" aria-label="Payment method types">
+  <button
+    type="button"
+    class="tab-btn"
+    role="tab"
+    [class.active]="activeType() === 'bank'"
+    [attr.aria-selected]="activeType() === 'bank'"
+    (click)="setType('bank')"
+  >
+    Bank Account
+  </button>
+
+  <button
+    type="button"
+    class="tab-btn"
+    role="tab"
+    [class.active]="activeType() === 'debit_card'"
+    [attr.aria-selected]="activeType() === 'debit_card'"
+    (click)="setType('debit_card')"
+  >
+    Debit Card
+  </button>
+
+  <button
+    type="button"
+    class="tab-btn"
+    role="tab"
+    [class.active]="activeType() === 'crypto_wallet'"
+    [attr.aria-selected]="activeType() === 'crypto_wallet'"
+    (click)="setType('crypto_wallet')"
+  >
+    Crypto Wallet
+  </button>
+</div>

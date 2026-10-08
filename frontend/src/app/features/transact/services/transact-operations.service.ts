@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { addMockTransaction } from '@core/mocks/mock-data';
+import { addMockExchangeTransaction, addMockTransaction } from '@core/mocks/state.mock';
 import { PaymentMethod } from '@core/models';
 
 @Injectable({
@@ -12,5 +12,9 @@ export class TransactOperationsService {
 
   withdraw(amount: number, method: PaymentMethod) {
     addMockTransaction('withdrawal', amount, method);
+  }
+
+  exchange(amount: number, fromCurrency: string, toCurrency: string, method: PaymentMethod) {
+    addMockExchangeTransaction(amount, `${fromCurrency} → ${toCurrency}`, method);
   }
 }

@@ -1,0 +1,62 @@
+<section class="card payment-listing">
+  <div class="payment-editor-heading">
+    <h2>Saved {{ formatMethodType(activeType()) }}s</h2>
+    <p>Methods saved here are local-only for now and not yet wired to backend APIs.</p>
+  </div>
+
+  @if (statusMessage()) {
+    <p class="status-message">{{ statusMessage() }}</p>
+  }
+
+  @if (activeMethods().length === 0) {
+    <div class="empty-page payment-empty">
+      <p>No {{ formatMethodType(activeType()).toLowerCase() }} added yet.</p>
+    </div>
+  } @else {
+    <ul class="methods-list">
+      @for (method of activeMethods(); track method.id) {
+        <li class="method-row">
+          <div class="method-main">
+            <div class="method-title-row">
+              <strong>{{ method.nickname }}</strong>
+
+              @if (method.isDefault) {
+                <span class="default-pill">Default</span>
+              }
+            </div>
+
+            @if (method.type === 'bank') {
+              <p>
+                {{ method.bankName }} • {{ method.accountType | titlecase }} • Account ••••
+                {{ method.accountLast4 }} • Routing •••• {{ method.routingLast4 }}
+              </p>
+            }
+
+            @if (method.type === 'debit_card') {
+              <p>
+                {{ method.cardBrand }} •••• {{ method.cardLast4 }} • Expires
+                {{ method.expMonth }}/{{ method.expYear }}
+              </p>
+            }
+
+            @if (method.type === 'crypto_wallet') {
+              <p>{{ method.network }} • {{ method.walletPreview }}</p>
+            }
+          </div>
+
+          <div class="method-actions">
+            @if (!method.isDefault) {
+              <button type="button" class="btn btn-secondary" (click)="setDefault(method.id)">
+                Set Default
+              </button>
+            }
+
+            <button type="button" class="btn btn-secondary" (click)="removeMethod(method.id)">
+              Remove
+            </button>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+</section>

@@ -38,6 +38,9 @@ const HOLDINGS_FILTER_OPTIONS: { id: HoldingsFilter; label: string }[] = [
 })
 export class HoldingsCardComponent implements OnInit, OnDestroy {
   private readonly marketData = inject(TRADE_MARKET_DATA_PORT);
+  
+  readonly holdingsListMinHeight = '255px';
+  readonly holdingsListMaxHeight = '255px';
 
   holdings = input.required<readonly Holding[]>();
   accountCash = input.required<number>();

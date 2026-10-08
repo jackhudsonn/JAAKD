@@ -3,6 +3,12 @@ import { Deposit, Withdrawal } from '@core/models';
 import { TransactOperationsService } from './transact-operations.service';
 import { TRANSACT_STATE_PORT } from './transact-state.port';
 
+export interface ExchangeRequest {
+  amount: number;
+  fromCurrency: string;
+  toCurrency: string;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -18,5 +24,9 @@ export class TransactFacadeService {
 
   submitWithdrawal(withdrawal: Withdrawal) {
     this.operations.withdraw(withdrawal.amount, withdrawal.method);
+  }
+
+  submitExchange(request: ExchangeRequest) {
+    this.operations.exchange(request.amount, request.fromCurrency, request.toCurrency, 'bank_transfer');
   }
 }

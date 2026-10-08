@@ -17,8 +17,8 @@ import { PerformanceGraphWidgetComponent } from './widgets/performance-graph/per
 import { ToBeDeletedWidgetComponent } from './widgets/to-be-deleted/to-be-deleted.component';
 import { DashboardOverlaysComponent } from './components/overlays/dashboard-overlays.component';
 import { WidgetId, WIDGET_CATALOGUE } from './components/widget-selector/widget-selector.component';
-import { DASHBOARD_STATE_PORT } from './services/dashboard-state.port';
-import { BackendDashboardStateService } from './services/backend-dashboard-state.service';
+import { DASHBOARD_STATE_PORT } from '@features/dashboard/services/dashboard-state.port';
+import { BackendDashboardStateService } from '@features/dashboard/services/backend-dashboard-state.service';
 
 @Component({
   selector: 'app-dashboard',

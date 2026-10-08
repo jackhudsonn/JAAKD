@@ -61,6 +61,11 @@ export const routes: Routes = [
             (m) => m.OrderLifecycleLabComponent,
           ),
       },
+      {
+        path: 'payment-methods',
+        loadComponent: () =>
+          import('./features/payment/payment.component').then((m) => m.PaymentComponent),
+      },
     ],
   },
   { path: '**', redirectTo: '' },

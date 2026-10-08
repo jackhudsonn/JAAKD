@@ -34,6 +34,8 @@ const INSTRUMENT_OPTIONS: { id: InstrumentFilter; label: string }[] = [
 })
 export class TradeCardComponent implements OnInit, OnDestroy {
   private readonly marketData = inject(TRADE_MARKET_DATA_PORT);
+  readonly marketListMinHeight = '255px';
+  readonly marketListMaxHeight = '255px';
 
   selectSymbol = output<string>();
 
