@@ -9,7 +9,7 @@
   margin-bottom: var(--space-xl);
 }
 
-app-deposit-form,
+app-move-funds-form,
 app-currency-exchange,
 app-transaction-history {
   display: block;

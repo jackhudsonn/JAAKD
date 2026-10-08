@@ -1,5 +1,5 @@
 import { Component, inject } from '@angular/core';
-import { DepositFormComponent } from './cards/move-funds-card/deposit-form.component';
+import { MoveFundsFormComponent } from './cards/move-funds-card/move-funds.component';
 import { TransactionHistoryComponent } from './cards/transaction-history-card/transaction-history.component';
 import { CurrencyExchangeComponent } from './cards/currency-exchange-card/currency-exchange.component';
 import { Deposit, Withdrawal } from '@core/models';
@@ -8,7 +8,7 @@ import { ExchangeRequest, TransactFacadeService } from '@features/transact/servi
 @Component({
   selector: 'app-transact',
   standalone: true,
-  imports: [DepositFormComponent, CurrencyExchangeComponent, TransactionHistoryComponent],
+  imports: [MoveFundsFormComponent, CurrencyExchangeComponent, TransactionHistoryComponent],
   templateUrl: './transact.component.html',
   styleUrl: './transact.component.css',
 })

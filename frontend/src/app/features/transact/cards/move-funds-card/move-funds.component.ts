@@ -16,13 +16,13 @@ interface PendingFundsAction {
 }
 
 @Component({
-  selector: 'app-deposit-form',
+  selector: 'app-move-funds-form',
   standalone: true,
   imports: [FormsModule, WidgetCardComponent, ModalComponent, ConfirmActionsComponent],
-  templateUrl: './deposit-form.component.html',
-  styleUrl: './deposit-form.component.css',
+  templateUrl: './move-funds.component.html',
+  styleUrl: './move-funds.component.css',
 })
-export class DepositFormComponent {
+export class MoveFundsFormComponent {
   private static readonly ADD_METHOD_OPTION_VALUE = '__add_method__';
 
   private readonly paymentMethodsStore = inject(PaymentMethodsStore);
@@ -41,7 +41,7 @@ export class DepositFormComponent {
   withdrawalSubmitted = output<Withdrawal>();
 
   onMethodSelectionChange() {
-    if (this.selectedMethodId !== DepositFormComponent.ADD_METHOD_OPTION_VALUE) {
+    if (this.selectedMethodId !== MoveFundsFormComponent.ADD_METHOD_OPTION_VALUE) {
       return;
     }
 
@@ -109,7 +109,7 @@ export class DepositFormComponent {
       return null;
     }
 
-    if (this.selectedMethodId === DepositFormComponent.ADD_METHOD_OPTION_VALUE) {
+    if (this.selectedMethodId === MoveFundsFormComponent.ADD_METHOD_OPTION_VALUE) {
       return null;
     }
 
