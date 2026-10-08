@@ -32,14 +32,16 @@
         Market
       </button>
 
-      <button
-        type="button"
-        class="kind-tab"
-        [class.active]="kind() === 'limit'"
-        (click)="setKind('limit')"
-      >
-        Limit
-      </button>
+      @if (!backendDataMode()) {
+        <button
+          type="button"
+          class="kind-tab"
+          [class.active]="kind() === 'limit'"
+          (click)="setKind('limit')"
+        >
+          Limit
+        </button>
+      }
     </div>
   </div>
 
@@ -78,6 +80,10 @@
       Owned: {{ ownedQuantity() }} share(s)
     }
   </p>
+
+  @if (showPriceUnavailableHint()) {
+    <p class="order-hint">Indicative price unavailable. The order fills at the current quote.</p>
+  }
 
   @if (error()) {
     <p class="form-error">{{ error() }}</p>

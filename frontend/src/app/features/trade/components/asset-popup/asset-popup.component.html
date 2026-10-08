@@ -94,9 +94,10 @@
             [currentPrice]="currentPrice()"
             [ownedQuantity]="ownedQuantity()"
             [accountCash]="accountCash()"
-              [showBackButton]="true"
-              backLabel="← Back"
-              (backPressed)="openAnalysisView()"
+            [backendDataMode]="backendDataMode()"
+            [showBackButton]="true"
+            backLabel="← Back"
+            (backPressed)="openAnalysisView()"
             (placed)="onOrderPlaced($event)"
           />
         }

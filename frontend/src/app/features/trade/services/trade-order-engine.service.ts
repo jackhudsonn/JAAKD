@@ -54,7 +54,12 @@ export class TradeOrderEngineService {
     return this.holdingsState().find((holding) => holding.symbol === symbol)?.quantity ?? 0;
   }
 
-  placeOrder(request: TradePlaceOrderRequest) {
+  async placeOrder(request: TradePlaceOrderRequest) {
+    if (this.state.backendDataMode && this.state.submitOrder) {
+      await this.state.submitOrder(request);
+      return;
+    }
+
     const asset = this.marketData.getAsset(request.symbol);
     if (!asset) {
       return;
@@ -75,7 +80,12 @@ export class TradeOrderEngineService {
     this.ordersState.update((current) => [order, ...current]);
   }
 
-  cancelOrder(orderId: string) {
+  async cancelOrder(orderId: string) {
+    if (this.state.backendDataMode && this.state.cancelOrder) {
+      await this.state.cancelOrder(orderId);
+      return;
+    }
+
     this.ordersState.update((current) =>
       current.map((order) =>
         order.id === orderId
@@ -86,6 +96,10 @@ export class TradeOrderEngineService {
   }
 
   processOrders() {
+    if (this.state.backendDataMode) {
+      return;
+    }
+
     const now = Date.now();
 
     for (const order of this.ordersState()) {

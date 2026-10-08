@@ -50,7 +50,16 @@ export class TradeWatchlistService {
     });
   }
 
-  setWatchlistMembership(request: TradeSetWatchlistMembershipRequest) {
+  async setWatchlistMembership(request: TradeSetWatchlistMembershipRequest) {
+    if (this.state.backendDataMode && this.state.setWatchlistMembership) {
+      if (request.watchlistId !== 'watchlist') {
+        return;
+      }
+
+      await this.state.setWatchlistMembership(request.symbol, request.included);
+      return;
+    }
+
     const target = this.watchlistsState().find((watchlist) => watchlist.id === request.watchlistId);
     if (!target) {
       return;
@@ -77,6 +86,5 @@ export class TradeWatchlistService {
           : watchlist,
       ),
     );
-
   }
 }
