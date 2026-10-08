@@ -2,16 +2,15 @@
   <header class="hero">
     <div>
       <p class="eyebrow">Testing only</p>
-      <h1>Order Lifecycle + Kafka Lab</h1>
+      <h1>Dev Testing</h1>
       <p class="subtitle">
-        Submit order logs, add instruments/watchlist entries, and watch status movement in real time to
-        verify event flow.
+        API-driven instrument lookup, quote refresh, holdings diagnostics, FX conversion, and Kafka lifecycle checks.
       </p>
     </div>
 
     <div class="hero-meta">
       <button type="button" class="ghost" (click)="refreshLifecycleData()" [disabled]="loading()">
-        Refresh now
+        Refresh holdings + lifecycle
       </button>
       <button type="button" class="ghost" (click)="toggleAutoRefresh()">
         Auto refresh: {{ autoRefresh() ? 'On' : 'Off' }}
@@ -29,6 +28,7 @@
 
   <section class="panel context-panel">
     <h2>Context</h2>
+
     <div class="context-grid">
       <label>
         Portfolio
@@ -72,17 +72,81 @@
           }
         </select>
       </label>
+
+      <label>
+        Inspect Holding
+        <select [ngModel]="selectedHoldingId()" (ngModelChange)="onHoldingChange($event)">
+          @for (holding of holdingsWithInstruments(); track holding.holdingId) {
+            <option [value]="holding.holdingId">{{ holding.ticker }} ({{ holding.holdingId }})</option>
+          } @empty {
+            <option value="">No holdings</option>
+          }
+        </select>
+      </label>
     </div>
 
     <div class="quick-context">
       <span>Active portfolio: {{ selectedPortfolioName() }}</span>
       <span>Active instrument: {{ selectedInstrumentTicker() }} - {{ selectedInstrumentName() }}</span>
       <span>Order log rows: {{ orderLogs().length }}</span>
-      <span>Watchlist rows: {{ watchlistItems().length }}</span>
+      <span>Holdings rows: {{ holdings().length }}</span>
     </div>
   </section>
 
   <section class="grid-two">
+    <article class="panel">
+      <h2>Instrument + Quote</h2>
+      <p class="panel-help">No manual create. Enter a ticker and pull instrument data from API.</p>
+
+      <div class="inline-form">
+        <label>
+          Ticker
+          <input
+            type="text"
+            maxlength="20"
+            [ngModel]="tickerLookupForm().ticker"
+            (ngModelChange)="tickerLookupForm.set({ ticker: $event })"
+            placeholder="AAPL"
+          />
+        </label>
+
+        <button type="button" class="primary" [disabled]="syncingInstrument()" (click)="syncInstrumentByTicker()">
+          {{ syncingInstrument() ? 'Fetching...' : 'Fetch Instrument' }}
+        </button>
+      </div>
+
+      @if (selectedInstrumentDetails(); as instrument) {
+        <div class="details-grid">
+          <p><strong>Ticker:</strong> {{ instrument.ticker }}</p>
+          <p><strong>Name:</strong> {{ instrument.name }}</p>
+          <p><strong>Market:</strong> {{ instrument.market }}</p>
+          <p><strong>Class:</strong> {{ instrument.instrumentClass }}</p>
+          <p><strong>Currency:</strong> {{ instrument.tradingCurrency || 'N/A' }}</p>
+          <p><strong>Instrument ID:</strong> {{ instrument.instrumentId }}</p>
+        </div>
+      }
+
+      <div class="quote-box">
+        <div class="button-row">
+          <button type="button" class="ghost" [disabled]="refreshingQuote()" (click)="refreshQuote()">
+            {{ refreshingQuote() ? 'Refreshing...' : 'Refresh Quote (Bid/Ask/Price)' }}
+          </button>
+        </div>
+
+        @if (quote(); as q) {
+          <div class="quote-grid">
+            <p><strong>Symbol:</strong> {{ q.symbol }}</p>
+            <p><strong>Price:</strong> {{ q.price | number: '1.2-6' }}</p>
+            <p><strong>Bid:</strong> {{ q.bid === null ? 'N/A' : (q.bid | number: '1.2-6') }}</p>
+            <p><strong>Ask:</strong> {{ q.ask === null ? 'N/A' : (q.ask | number: '1.2-6') }}</p>
+            <p><strong>As Of:</strong> {{ q.asOf ? (q.asOf | date: 'short') : 'N/A' }}</p>
+          </div>
+        } @else {
+          <p class="muted">No quote loaded yet.</p>
+        }
+      </div>
+    </article>
+
     <article class="panel">
       <h2>Create portfolio</h2>
       <p class="panel-help">Calls PortfolioController: POST /api/portfolios.</p>
@@ -102,7 +166,9 @@
         {{ creatingPortfolio() ? 'Creating...' : 'Create Portfolio' }}
       </button>
     </article>
+  </section>
 
+  <section class="grid-two">
     <article class="panel">
       <h2>Deposit CASH</h2>
       <p class="panel-help">Calls OrderLogController: POST /api/order-logs with side DEPOSIT.</p>
@@ -145,82 +211,10 @@
         {{ depositingCash() ? 'Submitting...' : 'Deposit Cash' }}
       </button>
     </article>
-  </section>
-
-  <section class="grid-two">
-    <article class="panel">
-      <h2>Create instrument manually</h2>
-      <p class="panel-help">Useful when testing ingestion for symbols that do not exist yet.</p>
-
-      <div class="form-grid">
-        <label>
-          Ticker
-          <input
-            type="text"
-            maxlength="20"
-            [ngModel]="instrumentForm().ticker"
-            (ngModelChange)="instrumentForm.set({ ...instrumentForm(), ticker: $event })"
-            placeholder="AAPL"
-          />
-        </label>
-
-        <label>
-          Market
-          <input
-            type="text"
-            maxlength="50"
-            [ngModel]="instrumentForm().market"
-            (ngModelChange)="instrumentForm.set({ ...instrumentForm(), market: $event })"
-            placeholder="NASDAQ"
-          />
-        </label>
-
-        <label>
-          Name
-          <input
-            type="text"
-            maxlength="255"
-            [ngModel]="instrumentForm().name"
-            (ngModelChange)="instrumentForm.set({ ...instrumentForm(), name: $event })"
-            placeholder="Apple Inc."
-          />
-        </label>
-
-        <label>
-          Class
-          <select
-            [ngModel]="instrumentForm().instrumentClass"
-            (ngModelChange)="instrumentForm.set({ ...instrumentForm(), instrumentClass: $event })"
-          >
-            <option value="EQUITY">EQUITY</option>
-            <option value="STOCK">STOCK</option>
-            <option value="ETF">ETF</option>
-            <option value="BOND">BOND</option>
-            <option value="CRYPTO">CRYPTO</option>
-            <option value="CASH">CASH</option>
-          </select>
-        </label>
-      </div>
-
-      <label>
-        Description
-        <textarea
-          rows="2"
-          maxlength="4000"
-          [ngModel]="instrumentForm().description"
-          (ngModelChange)="instrumentForm.set({ ...instrumentForm(), description: $event })"
-          placeholder="Optional notes"
-        ></textarea>
-      </label>
-
-      <button type="button" class="primary" [disabled]="creatingInstrument()" (click)="createInstrument()">
-        {{ creatingInstrument() ? 'Creating...' : 'Create Instrument' }}
-      </button>
-    </article>
 
     <article class="panel">
       <h2>Place order (order-log submit)</h2>
-      <p class="panel-help">Creates SUBMITTED entries that should move through lifecycle states via Kafka consumers.</p>
+      <p class="panel-help">Creates SUBMITTED entries that move through lifecycle states via Kafka consumers.</p>
 
       <div class="form-grid">
         <label>
@@ -288,8 +282,136 @@
 
   <section class="grid-two">
     <article class="panel">
+      <h2>Foreign Exchange</h2>
+      <p class="panel-help">Convert cash with FROM and TO currencies. Holdings refreshes after submit.</p>
+
+      <div class="form-grid">
+        <label>
+          From
+          <select
+            [ngModel]="cashConversionForm().sourceCurrency"
+            (ngModelChange)="cashConversionForm.set({ ...cashConversionForm(), sourceCurrency: $event })"
+          >
+            <option value="USD">USD</option>
+            <option value="INR">INR</option>
+            <option value="GBP">GBP</option>
+            <option value="EUR">EUR</option>
+          </select>
+        </label>
+
+        <label>
+          To
+          <select
+            [ngModel]="cashConversionForm().targetCurrency"
+            (ngModelChange)="cashConversionForm.set({ ...cashConversionForm(), targetCurrency: $event })"
+          >
+            <option value="USD">USD</option>
+            <option value="INR">INR</option>
+            <option value="GBP">GBP</option>
+            <option value="EUR">EUR</option>
+          </select>
+        </label>
+
+        <label>
+          Source Amount
+          <input
+            type="number"
+            min="0.000001"
+            step="0.000001"
+            [ngModel]="cashConversionForm().sourceAmount"
+            (ngModelChange)="cashConversionForm.set({ ...cashConversionForm(), sourceAmount: +$event })"
+          />
+        </label>
+      </div>
+
+      <label>
+        Metadata
+        <input
+          type="text"
+          maxlength="4000"
+          [ngModel]="cashConversionForm().metadata"
+          (ngModelChange)="cashConversionForm.set({ ...cashConversionForm(), metadata: $event })"
+          placeholder="FX test run"
+        />
+      </label>
+
+      <button type="button" class="primary" [disabled]="convertingCash()" (click)="convertCash()">
+        {{ convertingCash() ? 'Converting...' : 'Convert Cash' }}
+      </button>
+
+      @if (lastConversion(); as conversion) {
+        <div class="fx-result">
+          <p>
+            <strong>{{ conversion.sourceAmount | number: '1.2-6' }} {{ conversion.sourceCurrency }}</strong>
+            to
+            <strong>{{ conversion.targetAmount | number: '1.2-6' }} {{ conversion.targetCurrency }}</strong>
+          </p>
+          <p>Rate: 1 {{ conversion.sourceCurrency }} = {{ conversion.conversionRate | number: '1.2-6' }} {{ conversion.targetCurrency }}</p>
+          <p>Source balance after: {{ conversion.sourceBalanceAfter | number: '1.2-6' }}</p>
+          <p>Target balance after: {{ conversion.targetBalanceAfter | number: '1.2-6' }}</p>
+          <p>Converted at: {{ conversion.convertedAt | date: 'short' }}</p>
+        </div>
+      }
+    </article>
+
+    <article class="panel">
+      <h2>Holdings and lots</h2>
+      <p class="panel-help">See holdings, position lots, and lot matches for FIFO verification.</p>
+
+      <div class="holdings-list">
+        @for (row of holdingsWithInstruments(); track row.holdingId) {
+          <button
+            type="button"
+            class="holding-row"
+            [class.active]="row.holdingId === selectedHoldingId()"
+            (click)="onHoldingChange(row.holdingId)"
+          >
+            <span class="holding-main">{{ row.ticker }} · {{ row.quantity | number: '1.2-6' }}</span>
+            <span class="muted">{{ row.instrumentClass }} · PnL {{ row.realizedPnl | number: '1.2-6' }}</span>
+          </button>
+        } @empty {
+          <p class="muted">No holdings yet for this portfolio.</p>
+        }
+      </div>
+
+      @if (selectedHolding(); as selected) {
+        <div class="lot-sections">
+          <h3>Position lots for {{ selected.ticker }}</h3>
+          @for (lot of selectedHoldingLots(); track lot.positionLotId) {
+            <div class="lot-card">
+              <p>Lot: {{ lot.positionLotId }}</p>
+              <p>Buy log: {{ lot.sourceBuyLogOrderId }}</p>
+              <p>Opened: {{ lot.openedAt | date: 'short' }}</p>
+              <p>Original qty: {{ lot.originalQuantity | number: '1.2-6' }}</p>
+              <p>Remaining qty: {{ lot.remainingQuantity | number: '1.2-6' }}</p>
+              <p>Unit cost: {{ lot.unitCost | number: '1.2-6' }}</p>
+            </div>
+          } @empty {
+            <p class="muted">No position lots for this holding.</p>
+          }
+
+          <h3>Lot matches for {{ selected.ticker }}</h3>
+          @for (match of selectedHoldingMatches(); track match.lotMatchId) {
+            <div class="lot-card">
+              <p>Match: {{ match.lotMatchId }}</p>
+              <p>Sell log: {{ match.sellLogOrderId }}</p>
+              <p>Matched qty: {{ match.matchedQuantity | number: '1.2-6' }}</p>
+              <p>Sell unit price: {{ match.sellUnitPrice | number: '1.2-6' }}</p>
+              <p>Realized PnL: {{ match.realizedPnlAmount | number: '1.2-6' }}</p>
+              <p>Matched at: {{ match.matchedAt | date: 'short' }}</p>
+            </div>
+          } @empty {
+            <p class="muted">No lot matches for this holding.</p>
+          }
+        </div>
+      }
+    </article>
+  </section>
+
+  <section class="grid-two">
+    <article class="panel">
       <h2>Add watchlist item</h2>
-      <p class="panel-help">Confirms manual watchlist updates while sharing the same selected context.</p>
+      <p class="panel-help">Optional watchlist checks under selected context.</p>
 
       <label>
         Display Name
@@ -318,8 +440,8 @@
     </article>
 
     <article class="panel timeline-panel">
-      <h2>Lifecycle timeline</h2>
-      <p class="panel-help">Each card represents one logical order ID and all status transitions observed.</p>
+      <h2>Kafka lifecycle timeline</h2>
+      <p class="panel-help">Shows quoted price and executed price at each observed stage.</p>
 
       <div class="timeline-list">
         @for (order of lifecycleOrders(); track order.orderId) {
@@ -328,7 +450,7 @@
               <div>
                 <strong>{{ order.orderId }}</strong>
                 <p class="muted compact">
-                  {{ order.side }} {{ order.quantity }} Â· Instrument {{ order.instrumentId }}
+                  {{ order.side }} {{ order.quantity }} · Instrument {{ order.instrumentId }}
                 </p>
               </div>
               <span class="status-chip status-{{ order.latestStatus.toLowerCase() }}">{{ order.latestStatus }}</span>
@@ -338,7 +460,13 @@
               @for (step of order.statuses; track $index) {
                 <div class="status-step">
                   <span class="dot status-{{ step.status.toLowerCase() }}"></span>
-                  <span>{{ step.status }}</span>
+                  <span>
+                    {{ step.status }}
+                    <small class="price-tags">
+                      quoted: {{ step.quotedPrice === null ? 'N/A' : (step.quotedPrice | number: '1.2-6') }} ·
+                      exec: {{ step.executionPrice > 0 ? (step.executionPrice | number: '1.2-6') : 'N/A' }}
+                    </small>
+                  </span>
                   <time>{{ step.timestamp | date: 'short' }}</time>
                 </div>
               }
