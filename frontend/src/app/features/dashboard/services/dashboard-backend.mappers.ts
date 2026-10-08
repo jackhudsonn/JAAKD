@@ -62,8 +62,7 @@ export const toInstrumentType = (instrumentClass: InstrumentClass): InstrumentTy
       return 'bond';
     case 'CRYPTO':
       return 'crypto';
-    case 'USD':
-    case 'GBP':
+    case 'CASH':
       return null;
   }
 };
@@ -73,7 +72,7 @@ export const toCash = (holdings: HoldingResponse[], instruments: InstrumentRespo
 
   for (const holding of holdings) {
     const instrument = instrumentsById.get(holding.instrumentID);
-    if (instrument && instrument.ticker.toUpperCase() === 'USD_CASH') {
+    if (instrument && instrument.instrumentClass === 'CASH') {
       return holding.currentQuantity;
     }
   }

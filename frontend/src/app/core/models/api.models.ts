@@ -1,4 +1,4 @@
-export type InstrumentClass = 'ETF' | 'EQUITY' | 'STOCK' | 'BOND' | 'USD' | 'GBP' | 'CRYPTO';
+export type InstrumentClass = 'ETF' | 'EQUITY' | 'STOCK' | 'BOND' | 'CASH' | 'CRYPTO';
 
 export type OrderSide = 'BUY' | 'SELL' | 'DEPOSIT' | 'WITHDRAW';
 
