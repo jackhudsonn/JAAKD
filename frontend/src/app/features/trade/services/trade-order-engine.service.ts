@@ -31,7 +31,7 @@ export class TradeOrderEngineService {
   );
 
   readonly historyOrders = computed(() =>
-    this.ordersState().filter((order) => order.status === 'filled' || order.status === 'cancelled'),
+    this.ordersState().filter((order) => order.status === 'filled' || order.status === 'cancelled' || order.status === 'rejected'),
   );
 
   isKnownAssetSymbol(symbol: string): boolean {
