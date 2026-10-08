@@ -23,7 +23,7 @@
       @if (row.kind === 'cash') {
         <button type="button" class="listing-row selectable" (click)="goToTransact()">
           <div class="listing-info">
-            <span class="symbol">USD</span>
+            <span class="symbol">{{ row.currency }}</span>
             <span class="name">Cash</span>
           </div>
 
