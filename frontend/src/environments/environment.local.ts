@@ -1,5 +1,7 @@
 export const environment = {
   production: false,
-  apiUrl: 'http://localhost:8081',
-  authUrl: 'http://localhost:8081',
+  // Relative. The dev server proxies /api and /auth (frontend/proxy.conf.js);
+  // a deployed build is fronted by a reverse proxy. No host is compiled in.
+  apiUrl: '',
+  authUrl: '',
 };

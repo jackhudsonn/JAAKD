@@ -115,10 +115,10 @@ The backend loads `backend/.env` via `spring.config.import`; container environme
 
 ### Frontend environment
 
-Frontend environment files define:
+Every environment file sets `apiUrl` and `authUrl` to empty, so the frontend calls its own origin. Routing to the backend is the job of whatever serves the frontend:
 
-- `apiUrl` (backend)
-- `authUrl` (backend auth endpoints)
+- `ng serve` uses `frontend/proxy.conf.js`, which forwards `/api` and `/auth` to `BACKEND_TARGET` (default `http://localhost:8081`; Docker Compose sets it to the backend service name).
+- A deployed build is fronted by a reverse proxy. The nginx image in `frontend/Dockerfile` proxies to `BACKEND_UPSTREAM`.
 
 ## Backend
 
