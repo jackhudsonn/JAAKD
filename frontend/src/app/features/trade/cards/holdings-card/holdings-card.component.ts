@@ -9,7 +9,7 @@ import { Holding, InstrumentType } from '@core/models';
 import { TRADE_MARKET_DATA_PORT } from '@features/trade/services/trade-market-data.port';
 
 type HoldingsRow =
-  | { kind: 'cash'; amount: number }
+  | { kind: 'cash'; currency: string; amount: number }
   | {
       kind: 'holding';
       holding: Holding;
@@ -20,6 +20,11 @@ type HoldingsRow =
     };
 
 type HoldingsFilter = InstrumentType | 'all' | 'cash';
+
+interface CashBalance {
+  currency: string;
+  amount: number;
+}
 
 const HOLDINGS_FILTER_OPTIONS: { id: HoldingsFilter; label: string }[] = [
   { id: 'all', label: 'All' },
@@ -38,12 +43,16 @@ const HOLDINGS_FILTER_OPTIONS: { id: HoldingsFilter; label: string }[] = [
 })
 export class HoldingsCardComponent implements OnInit, OnDestroy {
   private readonly marketData = inject(TRADE_MARKET_DATA_PORT);
+  private readonly cashDisplayOrder = ['USD', 'EUR', 'INR'];
   
   readonly holdingsListMinHeight = '255px';
   readonly holdingsListMaxHeight = '255px';
 
   holdings = input.required<readonly Holding[]>();
   accountCash = input.required<number>();
+  // TODO(next sprint/backend): replace this UI input with API-backed wallet balances.
+  // Keeping accountCash as fallback for current mock-based state wiring.
+  cashBalances = input<readonly CashBalance[] | null>(null);
 
   selectSymbol = output<string>();
 
@@ -61,7 +70,12 @@ export class HoldingsCardComponent implements OnInit, OnDestroy {
     const rows: HoldingsRow[] = [];
 
     if (selectedFilter === 'all' || selectedFilter === 'cash') {
-      rows.push({ kind: 'cash', amount: this.accountCash() });
+      const cashRows = this.resolveVisibleCashBalances().map(({ currency, amount }) => ({
+        kind: 'cash' as const,
+        currency,
+        amount,
+      }));
+      rows.push(...cashRows);
     }
 
     for (const holding of this.holdings()) {
@@ -86,7 +100,41 @@ export class HoldingsCardComponent implements OnInit, OnDestroy {
     return rows;
   });
 
-  trackByRow = (row: HoldingsRow) => (row.kind === 'cash' ? 'cash' : row.holding.symbol);
+  trackByRow = (row: HoldingsRow) =>
+    row.kind === 'cash' ? `cash:${row.currency}` : row.holding.symbol;
+
+  private resolveVisibleCashBalances(): CashBalance[] {
+    const rawBalances = this.cashBalances();
+    const balances =
+      rawBalances && rawBalances.length > 0
+        ? rawBalances
+        : [
+            // TODO(next sprint/backend): remove once backend provides per-currency balances.
+            { currency: 'USD', amount: this.accountCash() },
+          ];
+
+    return balances
+      .filter(({ amount }) => Math.abs(amount) > Number.EPSILON)
+      .slice()
+      .sort((left, right) => this.compareCashBalances(left, right));
+  }
+
+  private compareCashBalances(left: CashBalance, right: CashBalance) {
+    const leftPriority = this.cashDisplayOrder.indexOf(left.currency.toUpperCase());
+    const rightPriority = this.cashDisplayOrder.indexOf(right.currency.toUpperCase());
+
+    if (leftPriority !== -1 || rightPriority !== -1) {
+      if (leftPriority === -1) {
+        return 1;
+      }
+      if (rightPriority === -1) {
+        return -1;
+      }
+      return leftPriority - rightPriority;
+    }
+
+    return left.currency.localeCompare(right.currency);
+  }
 
   setInstrument(type: HoldingsFilter) {
     this.instrument.set(type);
