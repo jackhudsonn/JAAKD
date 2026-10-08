@@ -187,6 +187,7 @@ describe('BackendTradeStateService', () => {
     });
 
     await service.load();
+    expect(service.loadState()).toBe('ready');
     await service.submitOrder({ symbol: 'AAPL', kind: 'market', type: 'buy', quantity: 3 });
 
     expect(orderLogApiService.submit).toHaveBeenCalledWith({
@@ -199,6 +200,7 @@ describe('BackendTradeStateService', () => {
     expect(service.orders().some((order) => order.id === '11111111-1111-1111-1111-111111111111')).toBe(
       true,
     );
+    expect(service.loadState()).toBe('ready');
 
     randomUuidSpy.mockRestore();
   });
@@ -207,13 +209,16 @@ describe('BackendTradeStateService', () => {
     orderLogApiService.cancel.mockRejectedValueOnce(new HttpErrorResponse({ status: 409 }));
 
     await service.load();
+    expect(service.loadState()).toBe('ready');
 
     await expect(service.cancelOrder('ord-1')).resolves.toBeUndefined();
     expect(orderLogApiService.cancel).toHaveBeenCalledWith('ord-1');
+    expect(service.loadState()).toBe('ready');
   });
 
   it('adds and removes watchlist membership through API calls', async () => {
     await service.load();
+    expect(service.loadState()).toBe('ready');
 
     await service.setWatchlistMembership('AAPL', true);
     expect(watchlistApiService.add).toHaveBeenCalledWith({
@@ -221,8 +226,10 @@ describe('BackendTradeStateService', () => {
       instrumentId: 'inst-aapl',
       name: 'Watchlist',
     });
+    expect(service.loadState()).toBe('ready');
 
     await service.setWatchlistMembership('AAPL', false);
     expect(watchlistApiService.remove).toHaveBeenCalledWith('wl-1');
+    expect(service.loadState()).toBe('ready');
   });
 });

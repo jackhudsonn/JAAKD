@@ -56,30 +56,7 @@ export class BackendTradeStateService implements TradeStatePort {
     this.watchlists.set([]);
 
     try {
-      const portfolio = await this.portfolioApiService.ensureDefault();
-
-      const [holdings, instruments, orderLogs, watchlistItems] = await Promise.all([
-        this.holdingApiService.listByPortfolio(portfolio.portfolioId),
-        this.instrumentApiService.list(),
-        this.orderLogApiService.listByPortfolio(portfolio.portfolioId),
-        this.watchlistApiService.listByPortfolio(portfolio.portfolioId),
-      ]);
-
-      this.portfolioId.set(portfolio.portfolioId);
-      this.instrumentsData.set(instruments);
-      this.orderLogsData.set(orderLogs);
-      this.watchlistItemsData.set(watchlistItems);
-      this.latestPriceBySymbolData.set(toLatestPriceBySymbol(orderLogs, instruments));
-
-      this.accountCash.set(toCash(holdings, instruments));
-      this.holdings.set(
-        toHoldings(holdings, instruments, orderLogs, {
-          isKnownSymbol: () => false,
-          getPrice: () => 0,
-        }),
-      );
-      this.orders.set(toOrders(orderLogs, instruments));
-      this.watchlists.set([toWatchlist(watchlistItems, instruments)]);
+      await this.refresh();
 
       this.loadState.set('ready');
     } catch (error) {
@@ -115,7 +92,7 @@ export class BackendTradeStateService implements TradeStatePort {
       quantity: request.quantity,
     });
 
-    await this.load();
+    await this.refresh();
 
     for (let attempt = 0; attempt < 30; attempt += 1) {
       const order = this.orders().find((entry) => entry.id === orderId);
@@ -124,17 +101,17 @@ export class BackendTradeStateService implements TradeStatePort {
       }
 
       await this.delay(1000);
-      await this.load();
+      await this.refresh();
     }
   }
 
   async cancelOrder(orderId: string): Promise<void> {
     try {
       await this.orderLogApiService.cancel(orderId);
-      await this.load();
+      await this.refresh();
     } catch (error) {
       if (error instanceof HttpErrorResponse && error.status === 409) {
-        await this.load();
+        await this.refresh();
         return;
       }
 
@@ -156,7 +133,7 @@ export class BackendTradeStateService implements TradeStatePort {
         instrumentId: instrument.instrumentId,
         name: 'Watchlist',
       });
-      await this.load();
+      await this.refresh();
       return;
     }
 
@@ -169,7 +146,34 @@ export class BackendTradeStateService implements TradeStatePort {
     }
 
     await this.watchlistApiService.remove(existingItem.listItemId);
-    await this.load();
+    await this.refresh();
+  }
+
+  private async refresh(): Promise<void> {
+    const portfolio = await this.portfolioApiService.ensureDefault();
+
+    const [holdings, instruments, orderLogs, watchlistItems] = await Promise.all([
+      this.holdingApiService.listByPortfolio(portfolio.portfolioId),
+      this.instrumentApiService.list(),
+      this.orderLogApiService.listByPortfolio(portfolio.portfolioId),
+      this.watchlistApiService.listByPortfolio(portfolio.portfolioId),
+    ]);
+
+    this.portfolioId.set(portfolio.portfolioId);
+    this.instrumentsData.set(instruments);
+    this.orderLogsData.set(orderLogs);
+    this.watchlistItemsData.set(watchlistItems);
+    this.latestPriceBySymbolData.set(toLatestPriceBySymbol(orderLogs, instruments));
+
+    this.accountCash.set(toCash(holdings, instruments));
+    this.holdings.set(
+      toHoldings(holdings, instruments, orderLogs, {
+        isKnownSymbol: () => false,
+        getPrice: () => 0,
+      }),
+    );
+    this.orders.set(toOrders(orderLogs, instruments));
+    this.watchlists.set([toWatchlist(watchlistItems, instruments)]);
   }
 
   private findInstrumentBySymbol(symbol: string): InstrumentResponse | undefined {
