@@ -1,4 +1,4 @@
-import { Component, computed, inject, output, signal } from '@angular/core';
+import { Component, computed, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
@@ -33,6 +33,9 @@ export class MoveFundsFormComponent {
   selectedMethodId = '';
   error = signal('');
   pendingAction = signal<PendingFundsAction | null>(null);
+  backendDataMode = input(false);
+  submitting = input(false);
+  backendError = input('');
 
   paymentOptions = this.paymentMethodsStore.transactOptions;
   hasPaymentOptions = computed(() => this.paymentOptions().length > 0);
@@ -52,6 +55,14 @@ export class MoveFundsFormComponent {
   }
 
   submit(action: FundsAction) {
+    if (this.submitting()) {
+      return;
+    }
+
+    if (this.backendDataMode()) {
+      this.selectedCurrency = 'USD';
+    }
+
     if (!this.hasPaymentOptions()) {
       this.error.set('Select Add + from Payment Method to create one first.');
       return;
@@ -78,6 +89,10 @@ export class MoveFundsFormComponent {
   }
 
   confirmAction() {
+    if (this.submitting()) {
+      return;
+    }
+
     const pendingAction = this.pendingAction();
     if (!pendingAction) {
       return;
