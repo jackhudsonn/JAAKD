@@ -40,6 +40,8 @@ services:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: jaakd-kafka:9092
       IDENTITY_PROVIDER: development
       AUTH_COOKIE_SECURE: "false"
+      FAUXNANCE_BASE_URL: ${FAUXNANCE_BASE_URL}
+      FAUXNANCE_API_KEY: ${FAUXNANCE_API_KEY}
     ports:
       - "8081:8081"
 
