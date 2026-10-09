@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -16,6 +17,7 @@ import io.github.jackhudsonn.jaakd.dto.InstrumentResponse;
 import io.github.jackhudsonn.jaakd.dto.UpdateInstrumentRequest;
 import io.github.jackhudsonn.jaakd.model.Instrument;
 import io.github.jackhudsonn.jaakd.service.InstrumentService;
+import io.github.jackhudsonn.jaakd.service.fauxnance.FauxnanceQuoteResponse;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -83,6 +85,18 @@ public class InstrumentController {
 		// TODO: Once data provider API is ready, service will fetch and upsert data.
 		Instrument synced = instrumentService.createOrUpdateFromExternalData(ticker);
 		return toResponse(synced);
+	}
+
+	@GetMapping("/quotes/{ticker}")
+	@ResponseStatus(HttpStatus.OK)
+	public FauxnanceQuoteResponse getQuoteByTicker(@PathVariable String ticker) {
+		return instrumentService.getQuoteByTicker(ticker);
+	}
+
+	@GetMapping("/quotes")
+	@ResponseStatus(HttpStatus.OK)
+	public List<FauxnanceQuoteResponse> getQuotesByTickers(@RequestParam List<String> symbols) {
+		return instrumentService.getQuotesByTickers(symbols);
 	}
 
 	private InstrumentResponse toResponse(Instrument instrument) {

@@ -837,10 +837,8 @@ export class OrderLifecycleLabComponent implements OnInit, OnDestroy {
     const encoded = encodeURIComponent(symbol);
 
     const endpointCandidates = [
-      `${environment.apiUrl}/api/quotes/${encoded}`,
       `${environment.apiUrl}/api/instruments/quotes/${encoded}`,
-      `${environment.apiUrl}/quotes/${encoded}`,
-      `${environment.apiUrl}/api/instruments/prices?name=${encoded}&at=${encodeURIComponent(new Date().toISOString())}`,
+      `${environment.apiUrl}/api/instruments/quotes?symbols=${encoded}`,
     ];
 
     for (const endpoint of endpointCandidates) {

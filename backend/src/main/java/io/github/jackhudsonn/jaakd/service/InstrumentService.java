@@ -5,7 +5,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import io.github.jackhudsonn.jaakd.dto.CreateInstrumentRequest;
 import io.github.jackhudsonn.jaakd.dto.UpdateInstrumentRequest;
-import io.github.jackhudsonn.jaakd.exception.FauxnanceClientException;
 import io.github.jackhudsonn.jaakd.exception.InstrumentConflictException;
 import io.github.jackhudsonn.jaakd.exception.InstrumentNotFoundException;
 import io.github.jackhudsonn.jaakd.exception.InvalidInstrumentException;
@@ -14,13 +13,17 @@ import io.github.jackhudsonn.jaakd.model.Instrument;
 import io.github.jackhudsonn.jaakd.model.InstrumentClass;
 import io.github.jackhudsonn.jaakd.repository.InstrumentRepository;
 import io.github.jackhudsonn.jaakd.service.fauxnance.FauxnanceCandleResponse;
+import io.github.jackhudsonn.jaakd.service.fauxnance.FauxnanceQuoteResponse;
 import io.github.jackhudsonn.jaakd.service.fauxnance.FauxnanceSymbolResponse;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 @Service
 public class InstrumentService {
+
+    private static final int MAX_QUOTES_BATCH_SIZE = 25;
 
     private final InstrumentRepository instrumentRepository;
     private final FauxnanceService fauxnanceService;
@@ -119,6 +122,45 @@ public class InstrumentService {
     public FauxnanceCandleResponse getCandlesFromExternalData(String ticker) {
         String normalizedTicker = normalizeTicker(ticker);
         return fauxnanceService.getCandles(normalizedTicker);
+    }
+
+    public FauxnanceQuoteResponse getQuoteByTicker(String ticker) {
+        List<FauxnanceQuoteResponse> quotes = getQuotesByTickers(List.of(ticker));
+        return quotes.get(0);
+    }
+
+    public List<FauxnanceQuoteResponse> getQuotesByTickers(List<String> tickers) {
+        if (tickers == null || tickers.isEmpty()) {
+            throw new InvalidInstrumentException("At least one ticker is required");
+        }
+
+        List<String> normalizedTickers = new ArrayList<>();
+        for (int i = 0; i < tickers.size(); i++) {
+            String rawTicker = tickers.get(i);
+            if (rawTicker == null || rawTicker.isBlank()) {
+                continue;
+            }
+
+            String[] fragments = rawTicker.split(",");
+            for (int j = 0; j < fragments.length; j++) {
+                String fragment = fragments[j];
+                if (fragment != null && !fragment.isBlank()) {
+                    normalizedTickers.add(normalizeTicker(fragment));
+                }
+            }
+        }
+
+        if (normalizedTickers.isEmpty()) {
+            throw new InvalidInstrumentException("At least one ticker is required");
+        }
+
+        if (normalizedTickers.size() > MAX_QUOTES_BATCH_SIZE) {
+            throw new InvalidInstrumentException(
+                "A maximum of " + MAX_QUOTES_BATCH_SIZE + " tickers is allowed per quote request"
+            );
+        }
+
+        return fauxnanceService.getQuotes(normalizedTickers);
     }
 
     private String normalizeTicker(String ticker) {
