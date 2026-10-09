@@ -62,7 +62,7 @@ export class WatchlistWidgetComponent implements OnInit, OnDestroy {
     const symbols = active?.symbols ?? [];
 
     return symbols.map((symbol): WatchlistRow | null => {
-      const asset = this.marketData.getAsset(symbol);
+      const asset = this.backendDataMode ? undefined : this.marketData.getAsset(symbol);
 
       if (!asset && this.backendDataMode) {
         return {
