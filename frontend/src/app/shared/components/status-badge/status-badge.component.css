@@ -37,7 +37,8 @@
   background: rgba(198, 201, 199, 0.14);
 }
 
-.status-failed {
+.status-failed,
+.status-rejected {
   color: var(--fail);
   background: rgba(228, 91, 101, 0.14);
 }

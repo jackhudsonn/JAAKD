@@ -1,4 +1,4 @@
-import { Component, computed, input, output, signal } from '@angular/core';
+import { Component, computed, effect, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { OrderKind, OrderType } from '@core/models';
 
@@ -24,6 +24,7 @@ export class OrderFormComponent {
   currentPrice = input.required<number>();
   ownedQuantity = input(0);
   accountCash = input(0);
+  backendDataMode = input(false);
   showBackButton = input(false);
   backLabel = input('Back');
 
@@ -36,6 +37,17 @@ export class OrderFormComponent {
   limitPrice = signal<number | null>(null);
 
   canSell = computed(() => this.ownedQuantity() > 0);
+  readonly showPriceUnavailableHint = computed(
+    () => this.backendDataMode() && this.currentPrice() <= 0,
+  );
+
+  constructor() {
+    effect(() => {
+      if (this.backendDataMode() && this.kind() !== 'market') {
+        this.kind.set('market');
+      }
+    });
+  }
 
   // Whole-share cap for buy orders, based on the price that would actually
   // be charged (limit price for limit orders, current mock price for market).
@@ -60,7 +72,10 @@ export class OrderFormComponent {
       return `You only own ${this.ownedQuantity()} share(s).`;
     }
 
-    if (this.type() === 'buy' && quantity > this.maxBuyQuantity()) {
+    const backendPriceUnavailableForBuy =
+      this.backendDataMode() && this.type() === 'buy' && this.currentPrice() <= 0;
+
+    if (!backendPriceUnavailableForBuy && this.type() === 'buy' && quantity > this.maxBuyQuantity()) {
       return 'Insufficient account cash for this quantity.';
     }
 
@@ -75,6 +90,10 @@ export class OrderFormComponent {
   }
 
   setKind(kind: OrderKind) {
+    if (this.backendDataMode() && kind === 'limit') {
+      return;
+    }
+
     this.kind.set(kind);
   }
 

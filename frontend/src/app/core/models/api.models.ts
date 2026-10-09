@@ -1,4 +1,4 @@
-export type InstrumentClass = 'ETF' | 'EQUITY' | 'STOCK' | 'BOND' | 'USD' | 'GBP' | 'CRYPTO';
+export type InstrumentClass = 'ETF' | 'EQUITY' | 'STOCK' | 'BOND' | 'CASH' | 'CRYPTO';
 
 export type OrderSide = 'BUY' | 'SELL' | 'DEPOSIT' | 'WITHDRAW';
 
@@ -40,4 +40,28 @@ export interface OrderLogResponse {
   metadata: string | null;
   status: OrderStatus;
   executionPrice: number;
+  quotedPrice: number | null;
+
+}
+
+export interface CreateOrderLogRequest {
+  orderId: string;
+  portfolioId: string;
+  instrumentId: string;
+  side: OrderSide;
+  quantity: number;
+  metadata?: string;
+}
+
+export interface WatchlistItemResponse {
+  listItemId: string;
+  portfolioId: string;
+  instrumentId: string;
+  name: string | null;
+}
+
+export interface CreateWatchlistItemRequest {
+  portfolioId: string;
+  instrumentId: string;
+  name?: string;
 }
