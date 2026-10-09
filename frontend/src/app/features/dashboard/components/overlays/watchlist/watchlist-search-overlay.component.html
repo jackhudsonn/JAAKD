@@ -51,14 +51,21 @@
               <span class="name">{{ row.asset.name }}</span>
             </div>
             <div class="price-stack">
-              <span class="price">{{ row.price | number: '1.2-2' }}</span>
-              <span
-                class="change"
-                [class.positive]="row.changePct >= 0"
-                [class.negative]="row.changePct < 0"
-              >
-                {{ row.changePct >= 0 ? '+' : '' }}{{ row.changePct | number: '1.2-2' }}%
-              </span>
+              @if (row.price === null) {
+                <span class="price">Price unavailable</span>
+              } @else {
+                <span class="price">{{ row.price | number: '1.2-2' }}</span>
+              }
+
+              @if (row.changePct !== null) {
+                <span
+                  class="change"
+                  [class.positive]="row.changePct >= 0"
+                  [class.negative]="row.changePct < 0"
+                >
+                  {{ row.changePct >= 0 ? '+' : '' }}{{ row.changePct | number: '1.2-2' }}%
+                </span>
+              }
             </div>
           </button>
         </ng-template>

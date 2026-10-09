@@ -9,14 +9,14 @@ import { DASHBOARD_STATE_PORT } from '@features/dashboard/services/dashboard-sta
 export interface DashboardWatchlistAssetSummary {
   symbol: string;
   name: string;
-  price: number;
-  changePct: number;
+  price: number | null;
+  changePct: number | null;
 }
 
 export interface DashboardWatchlistSearchRow {
   asset: DashboardMarketAsset;
-  price: number;
-  changePct: number;
+  price: number | null;
+  changePct: number | null;
 }
 
 export type DashboardInstrumentFilter = InstrumentType | 'all';
@@ -42,6 +42,7 @@ export class DashboardWatchlistOverlayFacade {
 
   private readonly watchlists = this.state.watchlists;
   private readonly activeWatchlistId = this.state.activeWatchlistId;
+  private readonly backendDataMode = this.state.backendDataMode ?? false;
 
   readonly watchlistDialogMode = signal<'create' | 'edit' | null>(null);
   readonly watchlistNameDraft = signal('');
@@ -81,8 +82,16 @@ export class DashboardWatchlistOverlayFacade {
     const query = this.watchlistSearch().trim().toLowerCase();
     const activeSymbols = new Set(active.symbols);
 
-    return this.marketData
-      .listAssets()
+    const sourceAssets: ReadonlyArray<DashboardMarketAsset> = this.backendDataMode
+      ? (this.state.backendWatchlistInstrumentOptions?.() ?? []).map((instrument) => ({
+          symbol: instrument.symbol,
+          name: instrument.name,
+          instrumentType: instrument.instrumentType,
+          basePrice: 0,
+        }))
+      : this.marketData.listAssets();
+
+    return sourceAssets
       .filter(
         (asset) => selectedInstrument === 'all' || asset.instrumentType === selectedInstrument,
       )
@@ -94,11 +103,17 @@ export class DashboardWatchlistOverlayFacade {
           asset.name.toLowerCase().includes(query),
       )
       .map((asset) => {
-        const price = this.marketData.getPrice(asset.symbol);
+        const knownAsset = this.marketData.getAsset(asset.symbol);
+        const numericPrice = knownAsset ? this.marketData.getPrice(asset.symbol) : null;
+        const changePct =
+          knownAsset && numericPrice !== null && knownAsset.basePrice > 0
+            ? ((numericPrice - knownAsset.basePrice) / knownAsset.basePrice) * 100
+            : null;
+
         return {
           asset,
-          price,
-          changePct: ((price - asset.basePrice) / asset.basePrice) * 100,
+          price: numericPrice,
+          changePct,
         };
       });
   });
@@ -122,16 +137,26 @@ export class DashboardWatchlistOverlayFacade {
     }
 
     const asset = this.marketData.getAsset(symbol);
+    if (!asset && this.backendDataMode) {
+      return {
+        symbol,
+        name: symbol,
+        price: null,
+        changePct: null,
+      };
+    }
+
     if (!asset) {
       return null;
     }
 
     const price = this.marketData.getPrice(symbol);
+    const changePct = asset.basePrice > 0 ? ((price - asset.basePrice) / asset.basePrice) * 100 : null;
     return {
       symbol,
       name: asset.name,
       price,
-      changePct: ((price - asset.basePrice) / asset.basePrice) * 100,
+      changePct,
     };
   });
 
@@ -264,7 +289,14 @@ export class DashboardWatchlistOverlayFacade {
     this.closeWatchlistDialog();
   }
 
-  addSymbolToActiveWatchlist(symbol: string) {
+  async addSymbolToActiveWatchlist(symbol: string): Promise<void> {
+    if (this.backendDataMode && this.state.setWatchlistMembership) {
+      this.watchlistSearchError.set(null);
+      await this.state.setWatchlistMembership(symbol, true);
+      this.closeWatchlistSearchPopup();
+      return;
+    }
+
     const active = this.activeWatchlist();
     if (!active) {
       this.watchlistSearchError.set('Select a watchlist first.');
@@ -294,10 +326,16 @@ export class DashboardWatchlistOverlayFacade {
     this.watchlistSearchError.set(null);
   }
 
-  removeSelectedWatchlistAsset() {
+  async removeSelectedWatchlistAsset(): Promise<void> {
     const selected = this.selectedWatchlistAsset();
     const active = this.activeWatchlist();
     if (!selected || !active) {
+      return;
+    }
+
+    if (this.backendDataMode && this.state.setWatchlistMembership) {
+      await this.state.setWatchlistMembership(selected.symbol, false);
+      this.closeWatchlistAssetPopup();
       return;
     }
 

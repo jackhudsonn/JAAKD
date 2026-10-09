@@ -74,11 +74,11 @@ export class DashboardOverlaysComponent {
   }
 
   protected addSymbolToActiveWatchlist(symbol: string) {
-    this.watchlistFacade.addSymbolToActiveWatchlist(symbol);
+    void this.watchlistFacade.addSymbolToActiveWatchlist(symbol);
   }
 
   protected removeSelectedWatchlistAsset() {
-    this.watchlistFacade.removeSelectedWatchlistAsset();
+    void this.watchlistFacade.removeSelectedWatchlistAsset();
   }
 
   protected closeWatchlistAssetPopup() {

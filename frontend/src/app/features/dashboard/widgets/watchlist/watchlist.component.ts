@@ -9,8 +9,8 @@ import { DASHBOARD_STATE_PORT } from '@features/dashboard/services/dashboard-sta
 interface WatchlistRow {
   symbol: string;
   name: string;
-  price: number;
-  changePct: number;
+  price: number | null;
+  changePct: number | null;
 }
 
 @Component({
@@ -29,6 +29,7 @@ export class WatchlistWidgetComponent implements OnInit, OnDestroy {
 
   watchlists = this.state.watchlists;
   activeWatchlistId = this.state.activeWatchlistId;
+  readonly backendDataMode = this.state.backendDataMode ?? false;
 
   createWatchlistRequested = output<void>();
   editWatchlistRequested = output<void>();
@@ -60,22 +61,31 @@ export class WatchlistWidgetComponent implements OnInit, OnDestroy {
     const active = this.activeWatchlist();
     const symbols = active?.symbols ?? [];
 
-    return symbols.flatMap((symbol) => {
+    return symbols.map((symbol): WatchlistRow | null => {
       const asset = this.marketData.getAsset(symbol);
+
+      if (!asset && this.backendDataMode) {
+        return {
+          symbol,
+          name: symbol,
+          price: null,
+          changePct: null,
+        };
+      }
+
       if (!asset) {
-        return [];
+        return null;
       }
 
       const price = this.marketData.getPrice(symbol);
-      return [
-        {
-          symbol,
-          name: asset.name,
-          price,
-          changePct: ((price - asset.basePrice) / asset.basePrice) * 100,
-        },
-      ];
-    });
+      const hasBasePrice = asset.basePrice > 0;
+      return {
+        symbol,
+        name: asset.name,
+        price,
+        changePct: hasBasePrice ? ((price - asset.basePrice) / asset.basePrice) * 100 : null,
+      };
+    }).filter((row): row is WatchlistRow => row !== null);
   });
 
   trackBySymbol = (row: WatchlistRow) => row.symbol;
