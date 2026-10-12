@@ -81,8 +81,6 @@ public class InstrumentController {
 	@PostMapping("/sync/{ticker}")
 	@ResponseStatus(HttpStatus.OK)
 	public InstrumentResponse syncInstrumentFromExternalApi(@PathVariable String ticker) {
-		// TODO: Keep this endpoint wired so frontend can call it later.
-		// TODO: Once data provider API is ready, service will fetch and upsert data.
 		Instrument synced = instrumentService.createOrUpdateFromExternalData(ticker);
 		return toResponse(synced);
 	}

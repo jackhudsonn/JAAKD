@@ -244,9 +244,7 @@ TO jaakd_app;
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE users, sessions TO jaakd_app;
 
--- 5) Seed data
--- Seed canonical cash instrument used for cash-balance holdings projection
--- Stable lookup key: ticker = 'USD_CASH' (case-insensitive)
+-- 5) Seed Cash Instruments
 INSERT INTO instruments (
   "instrumentID",
   ticker,
@@ -261,13 +259,89 @@ SELECT
   gen_random_uuid(),
   'USD',
   'INTERNAL',
-  'US Dollar Cash Balance',
+  'United States Dollar',
   'CASH',
   'USD',
   NULL,
-  'Synthetic cash instrument used to represent portfolio cash balance in holdings.'
+  'Seeded cash instrument for USD.'
 WHERE NOT EXISTS (
   SELECT 1
   FROM instruments i
   WHERE UPPER(i.ticker) = 'USD'
 );
+
+INSERT INTO instruments (
+  "instrumentID",
+  ticker,
+  market,
+  name,
+  "instrumentClass",
+  "tradingCurrency",
+  "logoUrl",
+  description
+)
+SELECT
+  gen_random_uuid(),
+  'EUR',
+  'INTERNAL',
+  'Euro',
+  'CASH',
+  'EUR',
+  NULL,
+  'Seeded cash instrument for EUR.'
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM instruments i
+  WHERE UPPER(i.ticker) = 'EUR'
+);
+
+INSERT INTO instruments (
+  "instrumentID",
+  ticker,
+  market,
+  name,
+  "instrumentClass",
+  "tradingCurrency",
+  "logoUrl",
+  description
+)
+SELECT
+  gen_random_uuid(),
+  'GBP',
+  'INTERNAL',
+  'Great British Pound',
+  'CASH',
+  'GBP',
+  NULL,
+  'Seeded cash instrument for GBP.'
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM instruments i
+  WHERE UPPER(i.ticker) = 'GBP'
+);
+
+INSERT INTO instruments (
+  "instrumentID",
+  ticker,
+  market,
+  name,
+  "instrumentClass",
+  "tradingCurrency",
+  "logoUrl",
+  description
+)
+SELECT
+  gen_random_uuid(),
+  'INR',
+  'INTERNAL',
+  'Indian Rupee',
+  'CASH',
+  'INR',
+  NULL,
+  'Seeded cash instrument for INR.'
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM instruments i
+  WHERE UPPER(i.ticker) = 'INR'
+);
+
