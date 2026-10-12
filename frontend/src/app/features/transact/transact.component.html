@@ -3,20 +3,32 @@
 
   <p class="page-description">Deposit or withdraw funds and review your transaction history.</p>
 
-  <section class="transact-forms">
-    <div class="top-slot">
-      <app-move-funds-form
-        (depositSubmitted)="onDeposit($event)"
-        (withdrawalSubmitted)="onWithdrawal($event)"
-      />
-    </div>
+  @if (backendDataMode && loadState() === 'loading') {
+    <p class="page-description">Loading transact data...</p>
+  } @else if (backendDataMode && loadState() === 'error') {
+    <p class="page-description">We couldn't load your transact data. Try again.</p>
+    <button type="button" class="btn btn-secondary" (click)="retryLoad()">Retry</button>
+  } @else {
+    <section class="transact-forms">
+      <div class="top-slot">
+        <app-move-funds-form
+          [backendDataMode]="backendDataMode"
+          [submitting]="submittingAction()"
+          [backendError]="actionError()"
+          (depositSubmitted)="onDeposit($event)"
+          (withdrawalSubmitted)="onWithdrawal($event)"
+        />
+      </div>
 
-    <div class="top-slot">
-      <app-currency-exchange (exchangeSubmitted)="onExchange($event)" />
-    </div>
+      @if (!backendDataMode) {
+        <div class="top-slot">
+          <app-currency-exchange (exchangeSubmitted)="onExchange($event)" />
+        </div>
+      }
 
-    <div class="history-slot">
-      <app-transaction-history [transactions]="transactions()" />
-    </div>
-  </section>
+      <div class="history-slot">
+        <app-transaction-history [transactions]="transactions()" />
+      </div>
+    </section>
+  }
 </main>

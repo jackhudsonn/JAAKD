@@ -2,8 +2,9 @@ import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
 import { startCycleTimer } from '@shared/utils/cycle-timer';
+import { formatPercentageChange } from '@shared/utils/format-percentage-change';
 import { DASHBOARD_MARKET_DATA_PORT } from '@features/dashboard/services/dashboard-market-data.port';
-
+import { DASHBOARD_STATE_PORT } from '@features/dashboard/services/dashboard-state.port';
 const MODES: { label: string; positive: boolean }[] = [
   { label: 'Top Winners', positive: true },
   { label: 'Top Losers', positive: false },
@@ -18,8 +19,9 @@ const MODES: { label: string; positive: boolean }[] = [
 })
 export class TopMoversWidgetComponent implements OnInit, OnDestroy {
   private readonly marketData = inject(DASHBOARD_MARKET_DATA_PORT);
-
+  readonly backendDataMode = inject(DASHBOARD_STATE_PORT).backendDataMode ?? false;
   private stopCycle?: () => void;
+  readonly formatChange = formatPercentageChange;
 
   // TODO: replace with a market-wide movers endpoint scoped to holdings/watchlist.
   private readonly winners = this.marketData.getTopWinners();

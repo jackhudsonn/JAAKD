@@ -1,11 +1,16 @@
 <app-widget-card title="Move Funds" subtitle="Deposit or withdraw with one payment method selection">
   <div class="form-field">
     <label for="funds-currency">Currency</label>
-    <select id="funds-currency" [(ngModel)]="selectedCurrency">
-      <option value="USD">USD</option>
-      <option value="EUR">EUR</option>
-      <option value="INR">INR</option>
-    </select>
+
+    @if (backendDataMode()) {
+      <p id="funds-currency" class="fixed-value">USD</p>
+    } @else {
+      <select id="funds-currency" [(ngModel)]="selectedCurrency">
+        <option value="USD">USD</option>
+        <option value="EUR">EUR</option>
+        <option value="INR">INR</option>
+      </select>
+    }
   </div>
 
   <div class="form-field">
@@ -17,13 +22,19 @@
       step="0.01"
       placeholder="0.00"
       [(ngModel)]="amount"
+      [disabled]="submitting()"
     />
   </div>
 
   <div class="form-field">
     <label for="funds-method">Payment Method</label>
 
-    <select id="funds-method" [(ngModel)]="selectedMethodId" (ngModelChange)="onMethodSelectionChange()">
+    <select
+      id="funds-method"
+      [(ngModel)]="selectedMethodId"
+      (ngModelChange)="onMethodSelectionChange()"
+      [disabled]="submitting()"
+    >
       <option value="" disabled>Select a payment method</option>
 
       @for (option of paymentOptions(); track option.id) {
@@ -38,10 +49,18 @@
     <p class="form-error">{{ error() }}</p>
   }
 
-  <div class="action-row">
-    <button type="button" class="btn btn-secondary" (click)="submit('withdrawal')">Withdraw</button>
+  @if (backendError()) {
+    <p class="form-error">{{ backendError() }}</p>
+  }
 
-    <button type="button" class="btn btn-primary" (click)="submit('deposit')">Deposit</button>
+  <div class="action-row">
+    <button type="button" class="btn btn-secondary" [disabled]="submitting()" (click)="submit('withdrawal')">
+      Withdraw
+    </button>
+
+    <button type="button" class="btn btn-primary" [disabled]="submitting()" (click)="submit('deposit')">
+      Deposit
+    </button>
   </div>
 </app-widget-card>
 
@@ -55,6 +74,10 @@
       }
     </p>
 
-    <app-confirm-actions (cancelled)="cancelAction()" (confirmed)="confirmAction()" />
+    <app-confirm-actions
+      [confirmLabel]="submitting() ? 'Submitting...' : 'Confirm'"
+      (cancelled)="cancelAction()"
+      (confirmed)="confirmAction()"
+    />
   </app-modal>
 }

@@ -165,8 +165,8 @@ export class AllocationByAssetWidgetComponent {
       void this.router.navigate(['/transact']);
       return;
     }
-
-    const price = this.marketData.getPrice(slice.label);
+    const holding = this.holdings().find((entry) => entry.symbol === slice.label);
+    const price = holding?.indicativePrice ?? this.marketData.getPrice(slice.label);
     this.assetSelected.emit({
       symbol: slice.label,
       price,
