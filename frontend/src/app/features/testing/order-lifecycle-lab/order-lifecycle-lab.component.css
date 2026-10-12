@@ -5,10 +5,10 @@
 .lab-page {
   display: flex;
   flex-direction: column;
-  gap: 1.1rem;
+  gap: 0.9rem;
   max-width: 1240px;
   margin: 0 auto;
-  padding: 1rem 1rem 3rem;
+  padding: 0.9rem 0.9rem 1.4rem;
 }
 
 .hero {
@@ -68,8 +68,8 @@
 .panel {
   display: flex;
   flex-direction: column;
-  gap: 0.8rem;
-  padding: 1rem;
+  gap: 0.68rem;
+  padding: 0.9rem;
   border: 1px solid var(--tertiary-bg-border);
   border-radius: 12px;
   background: color-mix(in srgb, var(--secondary-bg) 94%, black 6%);
@@ -97,7 +97,13 @@
 .grid-two {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
+  gap: 0.9rem;
+}
+
+.grid-three {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.9rem;
 }
 
 .form-grid,
@@ -192,7 +198,7 @@ button:disabled {
 }
 
 .holdings-list {
-  max-height: 230px;
+  max-height: 170px;
   overflow: auto;
   display: flex;
   flex-direction: column;
@@ -223,6 +229,9 @@ button:disabled {
   display: flex;
   flex-direction: column;
   gap: 0.55rem;
+  max-height: 430px;
+  overflow: auto;
+  padding-right: 0.2rem;
 }
 
 .lot-card {
@@ -254,7 +263,7 @@ button:disabled {
 }
 
 .timeline-list {
-  max-height: 560px;
+  max-height: 430px;
 }
 
 .watchlist-item,
@@ -353,12 +362,17 @@ button:disabled {
 }
 
 @media (max-width: 1020px) {
+  .grid-three {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .grid-two {
     grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 780px) {
+  .grid-three,
   .form-grid,
   .context-grid,
   .quick-context,

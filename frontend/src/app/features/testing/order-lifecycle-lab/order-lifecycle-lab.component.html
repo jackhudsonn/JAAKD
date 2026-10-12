@@ -93,7 +93,7 @@
     </div>
   </section>
 
-  <section class="grid-two">
+  <section class="grid-three">
     <article class="panel">
       <h2>Instrument + Quote</h2>
       <p class="panel-help">No manual create. Enter a ticker and pull instrument data from API.</p>
@@ -145,51 +145,6 @@
           <p class="muted">No quote loaded yet.</p>
         }
       </div>
-    </article>
-  </section>
-
-  <section class="grid-two">
-    <article class="panel">
-      <h2>Deposit CASH</h2>
-      <p class="panel-help">Calls OrderLogController: POST /api/order-logs with side DEPOSIT.</p>
-
-      <div class="form-grid">
-        <label>
-          Amount
-          <input
-            type="number"
-            min="0.000001"
-            step="0.01"
-            [ngModel]="depositForm().amount"
-            (ngModelChange)="depositForm.set({ ...depositForm(), amount: +$event })"
-          />
-        </label>
-
-        <label>
-          Order ID (optional)
-          <input
-            type="text"
-            [ngModel]="depositForm().orderId"
-            (ngModelChange)="depositForm.set({ ...depositForm(), orderId: $event })"
-            placeholder="Leave blank for generated UUID"
-          />
-        </label>
-      </div>
-
-      <label>
-        Metadata
-        <input
-          type="text"
-          maxlength="4000"
-          [ngModel]="depositForm().metadata"
-          (ngModelChange)="depositForm.set({ ...depositForm(), metadata: $event })"
-          placeholder="initial funding"
-        />
-      </label>
-
-      <button type="button" class="primary" [disabled]="depositingCash()" (click)="depositCash()">
-        {{ depositingCash() ? 'Submitting...' : 'Deposit Cash' }}
-      </button>
     </article>
 
     <article class="panel">
@@ -291,9 +246,7 @@
         {{ submittingCryptoOrder() ? 'Submitting...' : 'Submit Crypto Order' }}
       </button>
     </article>
-  </section>
 
-  <section class="grid-two">
     <article class="panel">
       <h2>Place order (order-log submit)</h2>
       <p class="panel-help">Creates SUBMITTED entries that move through lifecycle states via Kafka consumers.</p>
@@ -363,6 +316,49 @@
   </section>
 
   <section class="grid-two">
+    <article class="panel">
+      <h2>Deposit CASH</h2>
+      <p class="panel-help">Calls OrderLogController: POST /api/order-logs with side DEPOSIT.</p>
+
+      <div class="form-grid">
+        <label>
+          Amount
+          <input
+            type="number"
+            min="0.000001"
+            step="0.01"
+            [ngModel]="depositForm().amount"
+            (ngModelChange)="depositForm.set({ ...depositForm(), amount: +$event })"
+          />
+        </label>
+
+        <label>
+          Order ID (optional)
+          <input
+            type="text"
+            [ngModel]="depositForm().orderId"
+            (ngModelChange)="depositForm.set({ ...depositForm(), orderId: $event })"
+            placeholder="Leave blank for generated UUID"
+          />
+        </label>
+      </div>
+
+      <label>
+        Metadata
+        <input
+          type="text"
+          maxlength="4000"
+          [ngModel]="depositForm().metadata"
+          (ngModelChange)="depositForm.set({ ...depositForm(), metadata: $event })"
+          placeholder="initial funding"
+        />
+      </label>
+
+      <button type="button" class="primary" [disabled]="depositingCash()" (click)="depositCash()">
+        {{ depositingCash() ? 'Submitting...' : 'Deposit Cash' }}
+      </button>
+    </article>
+
     <article class="panel">
       <h2>Foreign Exchange</h2>
       <p class="panel-help">Convert cash with FROM and TO currencies. Holdings refreshes after submit.</p>
@@ -435,7 +431,9 @@
         </div>
       }
     </article>
+  </section>
 
+  <section class="grid-two">
     <article class="panel">
       <h2>Holdings and lots</h2>
       <p class="panel-help">See holdings, position lots, and lot matches for FIFO verification.</p>
@@ -448,8 +446,8 @@
             [class.active]="row.holdingId === selectedHoldingId()"
             (click)="onHoldingChange(row.holdingId)"
           >
-            <span class="holding-main">{{ row.ticker }} � {{ row.quantity | number: '1.2-6' }}</span>
-            <span class="muted">{{ row.instrumentClass }} � PnL {{ row.realizedPnl | number: '1.2-6' }}</span>
+            <span class="holding-main">{{ row.ticker }} - {{ row.quantity | number: '1.2-6' }}</span>
+            <span class="muted">{{ row.instrumentClass }} - PnL {{ row.realizedPnl | number: '1.2-6' }}</span>
           </button>
         } @empty {
           <p class="muted">No holdings yet for this portfolio.</p>
@@ -488,9 +486,7 @@
         </div>
       }
     </article>
-  </section>
 
-  <section>
     <article class="panel timeline-panel">
       <h2>Kafka lifecycle timeline</h2>
       <p class="panel-help">Shows quoted price and executed price at each observed stage.</p>
@@ -502,7 +498,7 @@
               <div>
                 <strong>{{ order.orderId }}</strong>
                 <p class="muted compact">
-                  {{ order.side }} {{ order.quantity }} � Instrument {{ order.instrumentId }}
+                  {{ order.side }} {{ order.quantity }} - Instrument {{ order.instrumentId }}
                 </p>
               </div>
               <span class="status-chip status-{{ order.latestStatus.toLowerCase() }}">{{ order.latestStatus }}</span>
@@ -515,7 +511,7 @@
                   <span>
                     {{ step.status }}
                     <small class="price-tags">
-                      quoted: {{ step.quotedPrice === null ? 'N/A' : (step.quotedPrice | number: '1.2-6') }} �
+                      quoted: {{ step.quotedPrice === null ? 'N/A' : (step.quotedPrice | number: '1.2-6') }} -
                       exec: {{ step.executionPrice > 0 ? (step.executionPrice | number: '1.2-6') : 'N/A' }}
                     </small>
                   </span>
