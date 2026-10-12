@@ -15,6 +15,7 @@ import io.github.jackhudsonn.jaakd.repository.HoldingRepository;
 import io.github.jackhudsonn.jaakd.repository.InstrumentRepository;
 import io.github.jackhudsonn.jaakd.repository.LotMatchRepository;
 import io.github.jackhudsonn.jaakd.repository.PositionLotRepository;
+import io.github.jackhudsonn.jaakd.util.MarketHoursValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,6 +35,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 class ValidationServiceTest {
@@ -54,6 +56,9 @@ class ValidationServiceTest {
     private LotMatchRepository lotMatchRepository;
 
     @Mock
+    private QuoteService quoteService;
+
+    @Mock
     private KafkaTemplate<String, OrderAcceptedEvent> orderAcceptedKafkaTemplate;
 
     @Mock
@@ -64,18 +69,28 @@ class ValidationServiceTest {
     @Mock
     private SimulateDelay simulateDelay;
 
+    private MarketHoursValidator marketHoursValidator;
+
     @BeforeEach
     void setUp() {
+        marketHoursValidator = new MarketHoursValidator();
+
         validationService = new ValidationService(
             holdingRepository,
             instrumentRepository,
             positionLotRepository,
             lotMatchRepository,
+            quoteService,
+            marketHoursValidator,
             validationLifecycleTxService,
             orderAcceptedKafkaTemplate,
             orderRejectedKafkaTemplate,
             simulateDelay
         );
+
+        lenient()
+            .when(quoteService.getQuote(ArgumentMatchers.any(UUID.class)))
+            .thenReturn(new MarketQuote("AAPL", 100.0, 99.5, 100.5, "USD", "", "open"));
     }
 
     @Test
@@ -178,6 +193,118 @@ class ValidationServiceTest {
             ArgumentMatchers.anyString(),
             ArgumentMatchers.any(OrderAcceptedEvent.class)
         );
+    }
+
+    @Test
+    void handleOrderSubmitted_buyMarketClosed_rejects() throws Exception {
+        UUID orderId = UUID.randomUUID();
+        UUID logOrderId = UUID.randomUUID();
+        UUID portfolioId = UUID.randomUUID();
+        UUID instrumentId = UUID.randomUUID();
+
+        OrderSubmittedEvent event = new OrderSubmittedEvent(
+            orderId,
+            logOrderId,
+            portfolioId,
+            instrumentId,
+            OrderSide.BUY,
+            1.0,
+            LocalDateTime.now()
+        );
+
+        OrderLog pending = buildOrderLog(orderId, logOrderId, OrderStatus.PENDING);
+
+        when(validationLifecycleTxService.appendPending(orderId, logOrderId)).thenReturn(pending);
+        when(quoteService.getQuote(instrumentId)).thenReturn(
+            new MarketQuote("AAPL", 100.0, 99.0, 101.0, "USD", "", "closed")
+        );
+        when(validationLifecycleTxService.appendRejected(
+            orderId,
+            logOrderId,
+            "Market is closed. After/pre-market and pending orders will be implemented soon.",
+            "reasonCode=MARKET_CLOSED"
+        )).thenReturn(buildOrderLog(orderId, logOrderId, OrderStatus.REJECTED));
+
+        validationService.handleOrderSubmitted(event);
+
+        verify(validationLifecycleTxService, times(1)).appendRejected(
+            orderId,
+            logOrderId,
+            "Market is closed. After/pre-market and pending orders will be implemented soon.",
+            "reasonCode=MARKET_CLOSED"
+        );
+        verify(orderAcceptedKafkaTemplate, never()).send(
+            ArgumentMatchers.anyString(),
+            ArgumentMatchers.anyString(),
+            ArgumentMatchers.any(OrderAcceptedEvent.class)
+        );
+    }
+
+    @Test
+    void handleOrderSubmitted_buyUnknownMarketStateUnsupportedFallbackCurrency_rejects() throws Exception {
+        UUID orderId = UUID.randomUUID();
+        UUID logOrderId = UUID.randomUUID();
+        UUID portfolioId = UUID.randomUUID();
+        UUID instrumentId = UUID.randomUUID();
+
+        OrderSubmittedEvent event = new OrderSubmittedEvent(
+            orderId,
+            logOrderId,
+            portfolioId,
+            instrumentId,
+            OrderSide.BUY,
+            1.0,
+            LocalDateTime.now()
+        );
+
+        OrderLog pending = buildOrderLog(orderId, logOrderId, OrderStatus.PENDING);
+        pending.getInstrument().setTradingCurrency(CashCurrency.EUR);
+
+        when(validationLifecycleTxService.appendPending(orderId, logOrderId)).thenReturn(pending);
+        when(quoteService.getQuote(instrumentId)).thenReturn(
+            new MarketQuote("AAPL", 100.0, 99.0, 101.0, "EUR", "", "unknown")
+        );
+        when(validationLifecycleTxService.appendRejected(
+            orderId,
+            logOrderId,
+            "Market hours fallback is unavailable for the instrument trading currency: EUR",
+            "reasonCode=MARKET_HOURS_UNAVAILABLE"
+        )).thenReturn(buildOrderLog(orderId, logOrderId, OrderStatus.REJECTED));
+
+        validationService.handleOrderSubmitted(event);
+
+        verify(validationLifecycleTxService, times(1)).appendRejected(
+            orderId,
+            logOrderId,
+            "Market hours fallback is unavailable for the instrument trading currency: EUR",
+            "reasonCode=MARKET_HOURS_UNAVAILABLE"
+        );
+    }
+
+    @Test
+    void handleOrderSubmitted_depositBypassesMarketGate_acceptsWithoutQuoteCheck() throws Exception {
+        UUID orderId = UUID.randomUUID();
+        UUID logOrderId = UUID.randomUUID();
+
+        OrderSubmittedEvent event = new OrderSubmittedEvent(
+            orderId,
+            logOrderId,
+            UUID.randomUUID(),
+            UUID.randomUUID(),
+            OrderSide.DEPOSIT,
+            1.0,
+            LocalDateTime.now()
+        );
+
+        when(validationLifecycleTxService.appendPending(orderId, logOrderId))
+            .thenReturn(buildOrderLog(orderId, logOrderId, OrderStatus.PENDING));
+        when(validationLifecycleTxService.appendAccepted(orderId, logOrderId))
+            .thenReturn(buildOrderLog(orderId, logOrderId, OrderStatus.ACCEPTED));
+
+        validationService.handleOrderSubmitted(event);
+
+        verify(quoteService, never()).getQuote(ArgumentMatchers.any(UUID.class));
+        verify(validationLifecycleTxService, times(1)).appendAccepted(orderId, logOrderId);
     }
 
     @Test

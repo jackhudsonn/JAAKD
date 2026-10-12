@@ -15,12 +15,15 @@ import io.github.jackhudsonn.jaakd.repository.HoldingRepository;
 import io.github.jackhudsonn.jaakd.repository.InstrumentRepository;
 import io.github.jackhudsonn.jaakd.repository.LotMatchRepository;
 import io.github.jackhudsonn.jaakd.repository.PositionLotRepository;
+import io.github.jackhudsonn.jaakd.util.MarketHoursValidator;
 import io.github.jackhudsonn.jaakd.util.SimulateDelay;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.Optional;
 
 @Service
@@ -45,6 +48,10 @@ public class ValidationService {
     private static final String REASON_INSUFFICIENT_WITHDRAW_QUANTITY = "Cannot withdraw more than current cash quantity";
     private static final String REASON_DUPLICATE_MATCHED_SELL = "Sell order has already been lot-matched";
     private static final String REASON_FX_NOT_ENABLED = "FX orders are not enabled yet";
+    private static final String REASON_MARKET_CLOSED =
+        "Market is closed. After/pre-market and pending orders will be implemented soon.";
+    private static final String REASON_MARKET_HOURS_UNAVAILABLE =
+        "Market hours fallback is unavailable for the instrument trading currency";
     private static final String REASON_INTERNAL_VALIDATION_ERROR = "Validation processing error";
     private static final String CODE_NON_POSITIVE_QUANTITY = "NON_POSITIVE_QUANTITY";
     private static final String CODE_CASH_INSTRUMENT_NOT_CONFIGURED = "CASH_INSTRUMENT_NOT_CONFIGURED";
@@ -58,6 +65,8 @@ public class ValidationService {
     private static final String CODE_INSUFFICIENT_WITHDRAW_QUANTITY = "INSUFFICIENT_WITHDRAW_QUANTITY";
     private static final String CODE_DUPLICATE_MATCHED_SELL = "DUPLICATE_MATCHED_SELL";
     private static final String CODE_FX_NOT_ENABLED = "FX_NOT_ENABLED";
+    private static final String CODE_MARKET_CLOSED = "MARKET_CLOSED";
+    private static final String CODE_MARKET_HOURS_UNAVAILABLE = "MARKET_HOURS_UNAVAILABLE";
     private static final String CODE_TRADING_CURRENCY_MISSING = "TRADING_CURRENCY_MISSING";
     private static final String CODE_INTERNAL_VALIDATION_ERROR = "INTERNAL_VALIDATION_ERROR";
 
@@ -65,6 +74,8 @@ public class ValidationService {
     private final InstrumentRepository instrumentRepository;
     private final PositionLotRepository positionLotRepository;
     private final LotMatchRepository lotMatchRepository;
+    private final QuoteService quoteService;
+    private final MarketHoursValidator marketHoursValidator;
     private final ValidationLifecycleTxService validationLifecycleTxService;
     private final KafkaTemplate<String, OrderAcceptedEvent> orderAcceptedKafkaTemplate;
     private final KafkaTemplate<String, OrderRejectedEvent> orderRejectedKafkaTemplate;
@@ -75,6 +86,8 @@ public class ValidationService {
         InstrumentRepository instrumentRepository,
         PositionLotRepository positionLotRepository,
         LotMatchRepository lotMatchRepository,
+        QuoteService quoteService,
+        MarketHoursValidator marketHoursValidator,
         ValidationLifecycleTxService validationLifecycleTxService,
         KafkaTemplate<String, OrderAcceptedEvent> orderAcceptedKafkaTemplate,
         KafkaTemplate<String, OrderRejectedEvent> orderRejectedKafkaTemplate,
@@ -84,6 +97,8 @@ public class ValidationService {
         this.instrumentRepository = instrumentRepository;
         this.positionLotRepository = positionLotRepository;
         this.lotMatchRepository = lotMatchRepository;
+        this.quoteService = quoteService;
+        this.marketHoursValidator = marketHoursValidator;
         this.validationLifecycleTxService = validationLifecycleTxService;
         this.orderAcceptedKafkaTemplate = orderAcceptedKafkaTemplate;
         this.orderRejectedKafkaTemplate = orderRejectedKafkaTemplate;
@@ -168,12 +183,56 @@ public class ValidationService {
         }
 
         return switch (event.side()) {
-            case BUY -> validateBuy(event, pendingOrderLog);
+            case BUY -> {
+                RejectionDecision marketGate = validateMarketOpenForTradableSide(event, pendingOrderLog);
+                yield marketGate != null ? marketGate : validateBuy(event, pendingOrderLog);
+            }
             case DEPOSIT -> null;
             case WITHDRAW -> validateWithdraw(event);
-            case SELL -> validateSell(event);
+            case SELL -> {
+                RejectionDecision marketGate = validateMarketOpenForTradableSide(event, pendingOrderLog);
+                yield marketGate != null ? marketGate : validateSell(event);
+            }
             case FX -> RejectionDecision.simple(REASON_FX_NOT_ENABLED, CODE_FX_NOT_ENABLED);
         };
+    }
+
+    private RejectionDecision validateMarketOpenForTradableSide(OrderSubmittedEvent event, OrderLog pendingOrderLog) {
+        MarketQuote quote = quoteService.getQuote(event.instrumentId());
+        if (quote == null) {
+            return RejectionDecision.simple(REASON_MARKET_HOURS_UNAVAILABLE, CODE_MARKET_HOURS_UNAVAILABLE);
+        }
+
+        String marketState = quote.marketState();
+        if (marketState != null) {
+            String normalized = marketState.trim().toLowerCase();
+            if ("open".equals(normalized)) {
+                return null;
+            }
+
+            if ("closed".equals(normalized)) {
+                return RejectionDecision.simple(REASON_MARKET_CLOSED, CODE_MARKET_CLOSED);
+            }
+        }
+
+        CashCurrency tradingCurrency = resolveRequiredTradingCurrency(event, pendingOrderLog);
+        if (tradingCurrency == null) {
+            return RejectionDecision.simple(REASON_TRADING_CURRENCY_MISSING, CODE_TRADING_CURRENCY_MISSING);
+        }
+
+        if (!marketHoursValidator.supportsMarketHoursFallback(tradingCurrency)) {
+            return RejectionDecision.simple(
+                REASON_MARKET_HOURS_UNAVAILABLE + ": " + tradingCurrency,
+                CODE_MARKET_HOURS_UNAVAILABLE
+            );
+        }
+
+        ZonedDateTime utcNow = ZonedDateTime.now(ZoneOffset.UTC);
+        if (marketHoursValidator.isMarketOpen(tradingCurrency, utcNow)) {
+            return null;
+        }
+
+        return RejectionDecision.simple(REASON_MARKET_CLOSED, CODE_MARKET_CLOSED);
     }
 
     private RejectionDecision validateBuy(OrderSubmittedEvent event, OrderLog pendingOrderLog) {
