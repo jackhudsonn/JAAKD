@@ -5,6 +5,7 @@ import { ProfileService } from '@features/profile/services/profile.service';
 import { NavbarComponent } from '@shared/components/navbar/navbar.component';
 import { MarketTickerItem, MarketTickerService } from '@core/services/market-ticker.service';
 import { NgTemplateOutlet } from '@angular/common';
+import { formatPercentageChange } from '@shared/utils/format-percentage-change';
 @Component({
   selector: 'app-shell',
   standalone: true,
@@ -17,6 +18,7 @@ export class ShellComponent implements OnInit {
   displayName = signal<string | null>(null);
   marketTicker: MarketTickerItem[] = [];
   tickerLoopItems: MarketTickerItem[] = [];
+  readonly formatChange = formatPercentageChange;
 
   constructor(
     protected authService: AuthService,
@@ -43,17 +45,5 @@ export class ShellComponent implements OnInit {
   async logout() {
     await this.authService.logout();
     await this.router.navigate(['/auth/login']);
-  }
-
-  formatChange(changePct: number): string {
-    if (changePct > 0) {
-      return `+${changePct}% ↑`;
-    }
-
-    if (changePct < 0) {
-      return `${changePct}% ↓`;
-    }
-
-    return `${changePct}%`;
   }
 }
