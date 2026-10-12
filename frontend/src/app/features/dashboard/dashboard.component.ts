@@ -19,11 +19,12 @@ import { DashboardOverlaysComponent } from './components/overlays/dashboard-over
 import { WidgetId, WIDGET_CATALOGUE } from './components/widget-selector/widget-selector.component';
 import { DASHBOARD_STATE_PORT } from '@features/dashboard/services/dashboard-state.port';
 import { BackendDashboardStateService } from '@features/dashboard/services/backend-dashboard-state.service';
+import { DashboardWatchlistOverlayFacade } from './components/overlays/watchlist/dashboard-watchlist-overlay.facade';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  providers: [{ provide: DASHBOARD_STATE_PORT, useExisting: BackendDashboardStateService }],
+  providers: [{ provide: DASHBOARD_STATE_PORT, useExisting: BackendDashboardStateService }, DashboardWatchlistOverlayFacade,],
   imports: [
     WidgetSelectorComponent,
     PortfolioValueWidgetComponent,
