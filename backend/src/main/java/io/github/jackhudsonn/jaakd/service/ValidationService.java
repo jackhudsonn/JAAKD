@@ -203,6 +203,11 @@ public class ValidationService {
             return RejectionDecision.simple(REASON_MARKET_HOURS_UNAVAILABLE, CODE_MARKET_HOURS_UNAVAILABLE);
         }
 
+        // Skip market hours validation for cryptocurrencies
+        if (quote.symbol().startsWith("X:")) {
+            return null;
+        }
+
         String marketState = quote.marketState();
         if (marketState != null) {
             String normalized = marketState.trim().toLowerCase();
