@@ -17,10 +17,25 @@ The whole application runs in Docker: the frontend dev server, backend, database
 cp .env.example .env
 ```
 
-Set both values in `.env`, using a different long random value for each (generate one with `openssl rand -hex 32`):
+Set these values in `.env`:
 
 - `POSTGRES_PASSWORD`
 - `JAAKD_APP_DB_PASSWORD`
+- `FAUXNANCE_BASE_URL`
+- `FAUXNANCE_API_KEY`
+
+Generate different long random values for the local database passwords:
+
+- `POSTGRES_PASSWORD`
+- `JAAKD_APP_DB_PASSWORD`
+
+You can generate each password with:
+
+```bash
+openssl rand -hex 32
+```
+
+`FAUXNANCE_BASE_URL` and `FAUXNANCE_API_KEY` are provider values. Do not generate random placeholders for them; use the real URL and API key issued for your environment, and keep the API key secret.
 
 Never commit `.env`. After pulling, compare it with `.env.example` and add any new settings.
 

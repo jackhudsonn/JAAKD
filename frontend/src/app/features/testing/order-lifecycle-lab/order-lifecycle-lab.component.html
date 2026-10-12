@@ -213,6 +213,108 @@
     </article>
 
     <article class="panel">
+      <h2>Crypto buy/sell</h2>
+      <p class="panel-help">
+        Enter crypto ticker and settlement currency. Backend formats provider symbol (example: X:BTC-USD).
+      </p>
+
+      <div class="form-grid">
+        <label>
+          Side
+          <select
+            [ngModel]="cryptoOrderForm().side"
+            (ngModelChange)="cryptoOrderForm.set({ ...cryptoOrderForm(), side: $event })"
+          >
+            <option value="BUY">BUY</option>
+            <option value="SELL">SELL</option>
+          </select>
+        </label>
+
+        <label>
+          Crypto Ticker
+          <input
+            type="text"
+            maxlength="20"
+            [ngModel]="cryptoOrderForm().baseTicker"
+            (ngModelChange)="cryptoOrderForm.set({ ...cryptoOrderForm(), baseTicker: $event }); cryptoQuote.set(null)"
+            placeholder="BTC"
+          />
+        </label>
+
+        <label>
+          Buy/Sell In
+          <select
+            [ngModel]="cryptoOrderForm().quoteCurrency"
+            (ngModelChange)="cryptoOrderForm.set({ ...cryptoOrderForm(), quoteCurrency: $event }); cryptoQuote.set(null)"
+          >
+            <option value="USD">USD</option>
+            <option value="INR">INR</option>
+            <option value="GBP">GBP</option>
+            <option value="EUR">EUR</option>
+          </select>
+        </label>
+
+        <label>
+          Quantity
+          <input
+            type="number"
+            min="0.000001"
+            step="0.000001"
+            [ngModel]="cryptoOrderForm().quantity"
+            (ngModelChange)="cryptoOrderForm.set({ ...cryptoOrderForm(), quantity: +$event })"
+          />
+        </label>
+
+        <label>
+          Order ID (optional)
+          <input
+            type="text"
+            [ngModel]="cryptoOrderForm().orderId"
+            (ngModelChange)="cryptoOrderForm.set({ ...cryptoOrderForm(), orderId: $event })"
+            placeholder="Leave blank for generated UUID"
+          />
+        </label>
+      </div>
+
+      <label>
+        Metadata
+        <input
+          type="text"
+          maxlength="4000"
+          [ngModel]="cryptoOrderForm().metadata"
+          (ngModelChange)="cryptoOrderForm.set({ ...cryptoOrderForm(), metadata: $event })"
+          placeholder="crypto smoke test"
+        />
+      </label>
+
+      <div class="quote-box">
+        <div class="button-row">
+          <button type="button" class="ghost" [disabled]="refreshingCryptoQuote()" (click)="refreshCryptoQuote()">
+            {{ refreshingCryptoQuote() ? 'Refreshing...' : 'Refresh Crypto Quote' }}
+          </button>
+        </div>
+
+        @if (cryptoQuote(); as cq) {
+          <div class="quote-grid">
+            <p><strong>Symbol:</strong> {{ cq.symbol }}</p>
+            <p><strong>Initial Price:</strong> {{ cq.price | number: '1.2-6' }}</p>
+            <p><strong>Bid:</strong> {{ cq.bid === null ? 'N/A' : (cq.bid | number: '1.2-6') }}</p>
+            <p><strong>Ask:</strong> {{ cq.ask === null ? 'N/A' : (cq.ask | number: '1.2-6') }}</p>
+            <p><strong>As Of:</strong> {{ cq.asOf ? (cq.asOf | date: 'short') : 'N/A' }}</p>
+          </div>
+        } @else {
+          <p class="muted">No crypto quote loaded yet.</p>
+        }
+      </div>
+
+      <button type="button" class="primary" [disabled]="submittingCryptoOrder() || refreshingCryptoQuote()" (click)="placeCryptoOrder()">
+        {{ submittingCryptoOrder() ? 'Submitting...' : 'Submit Crypto Order' }}
+      </button>
+    </article>
+  </section>
+
+  <section class="grid-two">
+    <article class="panel">
       <h2>Place order (order-log submit)</h2>
       <p class="panel-help">Creates SUBMITTED entries that move through lifecycle states via Kafka consumers.</p>
 
@@ -366,8 +468,8 @@
             [class.active]="row.holdingId === selectedHoldingId()"
             (click)="onHoldingChange(row.holdingId)"
           >
-            <span class="holding-main">{{ row.ticker }} · {{ row.quantity | number: '1.2-6' }}</span>
-            <span class="muted">{{ row.instrumentClass }} · PnL {{ row.realizedPnl | number: '1.2-6' }}</span>
+            <span class="holding-main">{{ row.ticker }} ï¿½ {{ row.quantity | number: '1.2-6' }}</span>
+            <span class="muted">{{ row.instrumentClass }} ï¿½ PnL {{ row.realizedPnl | number: '1.2-6' }}</span>
           </button>
         } @empty {
           <p class="muted">No holdings yet for this portfolio.</p>
@@ -450,7 +552,7 @@
               <div>
                 <strong>{{ order.orderId }}</strong>
                 <p class="muted compact">
-                  {{ order.side }} {{ order.quantity }} · Instrument {{ order.instrumentId }}
+                  {{ order.side }} {{ order.quantity }} ï¿½ Instrument {{ order.instrumentId }}
                 </p>
               </div>
               <span class="status-chip status-{{ order.latestStatus.toLowerCase() }}">{{ order.latestStatus }}</span>
@@ -463,7 +565,7 @@
                   <span>
                     {{ step.status }}
                     <small class="price-tags">
-                      quoted: {{ step.quotedPrice === null ? 'N/A' : (step.quotedPrice | number: '1.2-6') }} ·
+                      quoted: {{ step.quotedPrice === null ? 'N/A' : (step.quotedPrice | number: '1.2-6') }} ï¿½
                       exec: {{ step.executionPrice > 0 ? (step.executionPrice | number: '1.2-6') : 'N/A' }}
                     </small>
                   </span>

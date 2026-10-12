@@ -153,17 +153,29 @@ export class OrderLifecycleLabComponent implements OnInit, OnDestroy {
   readonly depositingCash = signal(false);
   readonly addingWatchlist = signal(false);
   readonly convertingCash = signal(false);
+  readonly submittingCryptoOrder = signal(false);
+  readonly refreshingCryptoQuote = signal(false);
 
   readonly autoRefresh = signal(true);
   readonly statusMessage = signal<string | null>(null);
   readonly errorMessage = signal<string | null>(null);
   readonly quote = signal<InstrumentQuote | null>(null);
+  readonly cryptoQuote = signal<InstrumentQuote | null>(null);
   readonly lastConversion = signal<CashConversionResponse | null>(null);
 
   readonly orderForm = signal({
     side: 'BUY' as OrderLogResponse['side'],
     quantity: 1,
     metadata: '',
+    orderId: '',
+  });
+
+  readonly cryptoOrderForm = signal({
+    side: 'BUY' as 'BUY' | 'SELL',
+    baseTicker: 'BTC',
+    quoteCurrency: 'USD' as 'USD' | 'INR' | 'GBP' | 'EUR',
+    quantity: 0.01,
+    metadata: 'Crypto order from Dev Testing page',
     orderId: '',
   });
 
@@ -550,6 +562,111 @@ export class OrderLifecycleLabComponent implements OnInit, OnDestroy {
       this.handleError(error, 'Failed to submit order log.');
     } finally {
       this.submittingOrder.set(false);
+    }
+  }
+
+  async placeCryptoOrder() {
+    const portfolioId = this.selectedPortfolioId();
+    const payload = this.cryptoOrderForm();
+
+    if (!portfolioId) {
+      this.errorMessage.set('Select a portfolio before submitting a crypto order.');
+      return;
+    }
+
+    if (!payload.baseTicker.trim()) {
+      this.errorMessage.set('Crypto ticker is required.');
+      return;
+    }
+
+    if (payload.quantity <= 0) {
+      this.errorMessage.set('Crypto quantity must be greater than 0.');
+      return;
+    }
+
+    this.clearMessages();
+    this.submittingCryptoOrder.set(true);
+
+    try {
+      const synced = await firstValueFrom(
+        this.http.post<InstrumentResponse>(`${environment.apiUrl}/api/instruments/sync/crypto`, {
+          baseTicker: payload.baseTicker.trim().toUpperCase(),
+          quoteCurrency: payload.quoteCurrency,
+        }),
+      );
+
+      try {
+        const initialCryptoQuote = await this.resolveQuote(synced.ticker);
+        this.cryptoQuote.set(initialCryptoQuote);
+      } catch {
+        this.cryptoQuote.set(null);
+      }
+
+      const orderId = payload.orderId.trim() || crypto.randomUUID();
+      await firstValueFrom(
+        this.http.post<OrderLogResponse>(`${environment.apiUrl}/api/order-logs`, {
+          orderId,
+          portfolioId,
+          instrumentId: synced.instrumentId,
+          side: payload.side,
+          quantity: payload.quantity,
+          metadata: payload.metadata.trim() || null,
+          executionPrice: null,
+        }),
+      );
+
+      this.cryptoOrderForm.set({
+        side: payload.side,
+        baseTicker: payload.baseTicker,
+        quoteCurrency: payload.quoteCurrency,
+        quantity: payload.quantity,
+        metadata: payload.metadata,
+        orderId,
+      });
+
+      await this.loadInstruments();
+      this.selectedInstrumentId.set(synced.instrumentId);
+      await this.refreshLifecycleData();
+      await this.refreshQuote();
+
+      this.statusMessage.set(
+        `Submitted ${payload.side} crypto order ${orderId} for ${synced.ticker}.`,
+      );
+    } catch (error) {
+      this.handleError(error, 'Failed to submit crypto order.');
+    } finally {
+      this.submittingCryptoOrder.set(false);
+    }
+  }
+
+  async refreshCryptoQuote() {
+    const payload = this.cryptoOrderForm();
+    const baseTicker = payload.baseTicker.trim().toUpperCase();
+
+    if (!baseTicker) {
+      this.errorMessage.set('Crypto ticker is required to refresh crypto quote.');
+      return;
+    }
+
+    this.clearMessages();
+    this.refreshingCryptoQuote.set(true);
+
+    try {
+      const synced = await firstValueFrom(
+        this.http.post<InstrumentResponse>(`${environment.apiUrl}/api/instruments/sync/crypto`, {
+          baseTicker,
+          quoteCurrency: payload.quoteCurrency,
+        }),
+      );
+
+      const resolved = await this.resolveQuote(synced.ticker);
+      this.cryptoQuote.set(resolved);
+      this.statusMessage.set(`Crypto quote refreshed for ${resolved.symbol}.`);
+    } catch (error) {
+      this.cryptoQuote.set(null);
+      this.handleError(error, 'Unable to refresh crypto quote data.');
+    } finally {
+      this.refreshingCryptoQuote.set(false);
     }
   }
 

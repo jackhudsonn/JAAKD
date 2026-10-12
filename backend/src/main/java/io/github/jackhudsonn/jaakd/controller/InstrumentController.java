@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import io.github.jackhudsonn.jaakd.dto.CreateInstrumentRequest;
 import io.github.jackhudsonn.jaakd.dto.InstrumentResponse;
+import io.github.jackhudsonn.jaakd.dto.SyncCryptoInstrumentRequest;
 import io.github.jackhudsonn.jaakd.dto.UpdateInstrumentRequest;
 import io.github.jackhudsonn.jaakd.model.Instrument;
 import io.github.jackhudsonn.jaakd.service.InstrumentService;
@@ -82,6 +83,18 @@ public class InstrumentController {
 	@ResponseStatus(HttpStatus.OK)
 	public InstrumentResponse syncInstrumentFromExternalApi(@PathVariable String ticker) {
 		Instrument synced = instrumentService.createOrUpdateFromExternalData(ticker);
+		return toResponse(synced);
+	}
+
+	@PostMapping("/sync/crypto")
+	@ResponseStatus(HttpStatus.OK)
+	public InstrumentResponse syncCryptoInstrumentFromExternalApi(
+		@Valid @RequestBody SyncCryptoInstrumentRequest request
+	) {
+		Instrument synced = instrumentService.createOrUpdateCryptoFromExternalData(
+			request.baseTicker(),
+			request.quoteCurrency()
+		);
 		return toResponse(synced);
 	}
 

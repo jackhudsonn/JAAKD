@@ -119,6 +119,17 @@ public class InstrumentService {
         return instrumentRepository.save(instrument);
     }
 
+    @Transactional
+    public Instrument createOrUpdateCryptoFromExternalData(String baseTicker, CashCurrency quoteCurrency) {
+        if (quoteCurrency == null) {
+            throw new InvalidInstrumentException("Quote currency is required");
+        }
+
+        String normalizedBaseTicker = normalizeTicker(baseTicker);
+        String providerTicker = "X:" + normalizedBaseTicker + "-" + quoteCurrency.name();
+        return createOrUpdateFromExternalData(providerTicker);
+    }
+
     public FauxnanceCandleResponse getCandlesFromExternalData(String ticker) {
         String normalizedTicker = normalizeTicker(ticker);
         return fauxnanceService.getCandles(normalizedTicker);

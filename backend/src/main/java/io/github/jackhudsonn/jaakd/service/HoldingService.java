@@ -228,8 +228,8 @@ public class HoldingService {
     }
 
     private BigDecimal resolveFxRate(CashCurrency sourceCurrency, CashCurrency targetCurrency) {
-        String directSymbol = sourceCurrency.name() + targetCurrency.name();
-        String inverseSymbol = targetCurrency.name() + sourceCurrency.name();
+        String directSymbol = toFxSymbol(sourceCurrency, targetCurrency);
+        String inverseSymbol = toFxSymbol(targetCurrency, sourceCurrency);
 
         BigDecimal directRate = resolvePositiveRate(directSymbol);
         if (directRate != null) {
@@ -244,6 +244,10 @@ public class HoldingService {
         throw new InvalidTradeException(
             "Unable to resolve FX conversion rate for pair " + directSymbol + " (or inverse " + inverseSymbol + ")"
         );
+    }
+
+    private String toFxSymbol(CashCurrency baseCurrency, CashCurrency quoteCurrency) {
+        return "FX:" + baseCurrency.name() + quoteCurrency.name();
     }
 
     private BigDecimal resolvePositiveRate(String symbol) {
