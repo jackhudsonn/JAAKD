@@ -41,7 +41,31 @@ services:
       IDENTITY_PROVIDER: development
       AUTH_COOKIE_SECURE: "false"
     ports:
+      # Bound to all interfaces on purpose: the backend is reached directly by
+      # IP from other machines (a remote frontend, pgAdmin, a peer's browser),
+      # not only through an SSH tunnel. Development cookies are not Secure, so
+      # run this only on a trusted network.
       - "8081:8081"
+
+  jaakd-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: development
+    container_name: jaakd-frontend
+    restart: unless-stopped
+    depends_on:
+      - jaakd-backend
+    environment:
+      # proxy.conf.js target; the backend is reached by service name.
+      BACKEND_TARGET: http://jaakd-backend:8081
+    ports:
+      - "4200:4200"
+    volumes:
+      # Edits on the host are picked up by the dev server.
+      - ./frontend:/app
+      # Keeps the image's Linux node_modules from being shadowed by the host's.
+      - jaakd-frontend-node-modules:/app/node_modules
 
   jaakd-kafka:
     image: apache/kafka:3.8.0
@@ -74,3 +98,5 @@ services:
 volumes:
   jaakd-postgres-data:
     name: jaakd-postgres-data
+  jaakd-frontend-node-modules:
+    name: jaakd-frontend-node-modules

@@ -38,13 +38,13 @@ tags:
 
 paths:
   # ------------------------------------------------------------------- Auth
-  /auth/register:
+  /api/auth/register:
     post:
       tags: [Auth]
       summary: Register a new account
       description: |
         Creates a credential with the configured identity provider. No session is
-        created; sign in afterwards with `POST /auth/login`.
+        created; sign in afterwards with `POST /api/auth/login`.
       operationId: register
       security: []
       requestBody:
@@ -66,7 +66,7 @@ paths:
         "500":
           $ref: "#/components/responses/ServerError"
 
-  /auth/login:
+  /api/auth/login:
     post:
       tags: [Auth]
       summary: Sign in and start a session
@@ -106,7 +106,7 @@ paths:
         "500":
           $ref: "#/components/responses/ServerError"
 
-  /auth/session:
+  /api/auth/session:
     get:
       tags: [Auth]
       summary: Get the signed-in user
@@ -124,7 +124,7 @@ paths:
         "500":
           $ref: "#/components/responses/ServerError"
 
-  /auth/logout:
+  /api/auth/logout:
     post:
       tags: [Auth]
       summary: End the session
@@ -143,7 +143,7 @@ paths:
         "500":
           $ref: "#/components/responses/ServerError"
 
-  /auth/change-password:
+  /api/auth/change-password:
     post:
       tags: [Auth]
       summary: Change the signed-in user's password
@@ -1126,7 +1126,7 @@ components:
       type: apiKey
       in: cookie
       name: jaakd_session
-      description: Opaque session cookie issued by POST /auth/login; the browser never holds a token
+      description: Opaque session cookie issued by POST /api/auth/login; the browser never holds a token
 
   parameters:
     HoldingId:
