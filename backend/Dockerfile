@@ -1,5 +1,5 @@
 # Starts build stage from image with maven and temurin jdk
-FROM maven:3.9-eclipse-temurin-21 as build
+FROM maven:3.10-eclipse-temurin-21 as build
 # Sets the working directory
 WORKDIR /app
 # Copies the Maven project files to the working directory
