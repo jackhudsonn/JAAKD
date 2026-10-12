@@ -23,7 +23,7 @@ COPY . .
 RUN npm run build -- --configuration=${CONFIGURATION}
 
 # ---- Runtime stage ----
-FROM nginx:1.27-alpine
+FROM nginx:1.31-alpine
 # Upstream for /api and /auth. Overridden per environment; the default matches
 # the compose service name.
 ENV BACKEND_UPSTREAM=http://jaakd-backend:8081
