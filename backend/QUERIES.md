@@ -46,7 +46,7 @@ production the provider owns its credentials outside this schema. The
 application queries only `users` and `sessions`, and only after the provider has
 authenticated the caller. `:userId` is the provider's identity claim (a UUID).
 
-**register** (`POST /auth/register`): no application query. The provider creates
+**register** (`POST /api/auth/register`): no application query. The provider creates
 the credential; the application `users` row is not created until the first sign
 in.
 ```sql
@@ -56,7 +56,7 @@ VALUES (:userId, :email, :passwordHash);
 ```
 A duplicate email surfaces as `409` (`development_credentials.email` is unique).
 
-**signIn** (`POST /auth/login`): the provider verifies the credential, then the
+**signIn** (`POST /api/auth/login`): the provider verifies the credential, then the
 application provisions its identity anchor and opens the session.
 ```sql
 -- provider half (development): look up the credential and compare the password hash
@@ -72,7 +72,7 @@ INSERT INTO sessions ("sessionID", "userID", "refreshToken", "createdAt", "expir
 VALUES (:sessionId, :userId, :refreshToken, :createdAt, :expiresAt);
 ```
 
-**getSession** (`GET /auth/session`): resolve the session cookie to the signed-in
+**getSession** (`GET /api/auth/session`): resolve the session cookie to the signed-in
 user.
 ```sql
 SELECT u."userID", u.email
@@ -82,12 +82,12 @@ WHERE s."sessionID" = :sessionId
   AND s."expiresAt" > :now;
 ```
 
-**logout** (`POST /auth/logout`): delete the session.
+**logout** (`POST /api/auth/logout`): delete the session.
 ```sql
 DELETE FROM sessions WHERE "sessionID" = :sessionId;
 ```
 
-**changePassword** (`POST /auth/change-password`): the provider updates the
+**changePassword** (`POST /api/auth/change-password`): the provider updates the
 credential; the application then revokes the user's other sessions, so a
 password change signs out other devices without ending the caller's.
 ```sql

@@ -13,10 +13,25 @@ import { OrderDetailsPopupComponent } from './components/order-details-popup/ord
 import { startCycleTimer } from '@shared/utils/cycle-timer';
 import { TradeFacadeService } from '@features/trade/services/trade-facade.service';
 import { TradeDeepLinkService } from '@features/trade/services/trade-deep-link.service';
+import { TRADE_MARKET_DATA_PORT } from './services/trade-market-data.port';
+import { TRADE_STATE_PORT } from './services/trade-state.port';
+import { BackendTradeStateService } from './services/backend-trade-state.service';
+import { BackendTradeMarketDataService } from './services/backend-trade-market-data.service';
+import { TradeOrderEngineService } from './services/trade-order-engine.service';
+import { TradeWatchlistService } from './services/trade-watchlist.service';
 
 @Component({
   selector: 'app-trade',
   standalone: true,
+  providers: [
+    BackendTradeStateService,
+    BackendTradeMarketDataService,
+    TradeFacadeService,
+    TradeOrderEngineService,
+    TradeWatchlistService,
+    { provide: TRADE_STATE_PORT, useExisting: BackendTradeStateService },
+    { provide: TRADE_MARKET_DATA_PORT, useExisting: BackendTradeMarketDataService },
+  ],
   imports: [
     TradeCardComponent,
     HoldingsCardComponent,
@@ -39,6 +54,8 @@ export class TradeComponent implements OnInit, OnDestroy {
 
   openOrders = this.tradeFacade.openOrders;
   historyOrders = this.tradeFacade.historyOrders;
+  readonly backendDataMode = this.tradeFacade.backendDataMode;
+  readonly loadState = computed(() => this.tradeFacade.loadState?.() ?? 'ready');
 
   // Only one popup is ever open at a time.
   activeAssetSymbol = signal<string | null>(null);
@@ -57,6 +74,7 @@ export class TradeComponent implements OnInit, OnDestroy {
   private routeQuerySubscription?: Subscription;
 
   ngOnInit() {
+    void this.tradeFacade.load();
     this.stopTicking = startCycleTimer(1, 1000, () => this.tradeFacade.processOrders());
     this.routeQuerySubscription = this.tradeDeepLinkService.subscribeToSymbolQueryParam(
       this.route,
@@ -87,15 +105,19 @@ export class TradeComponent implements OnInit, OnDestroy {
   }
 
   placeOrder(request: AssetOrderPlaced) {
-    this.tradeFacade.placeOrder(request);
+    void this.tradeFacade.placeOrder(request);
   }
 
   setWatchlistMembership(request: AssetSetWatchlistMembershipRequest) {
-    this.tradeFacade.setWatchlistMembership(request);
+    void this.tradeFacade.setWatchlistMembership(request);
   }
 
   cancelOrder(orderId: string) {
-    this.tradeFacade.cancelOrder(orderId);
+    void this.tradeFacade.cancelOrder(orderId);
     this.closeOrderPopup();
+  }
+
+  retryLoad() {
+    void this.tradeFacade.load();
   }
 }

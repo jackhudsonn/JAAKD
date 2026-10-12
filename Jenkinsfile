@@ -155,6 +155,7 @@ pipeline {
                         --network jaakd-dev-net \
                         --restart unless-stopped \
                         -p 8082:80 \
+                        -e BACKEND_UPSTREAM=http://jaakd-backend-dev:8081 \
                         ${FRONTEND_IMAGE}:${IMAGE_TAG}
 
                     sleep 10

@@ -3,22 +3,30 @@
 
   <p class="page-description">Perform trades and view your orders.</p>
 
-  <section class="trade-grid">
-    <app-trade-card (selectSymbol)="openAsset($event, false)" />
+  @if (backendDataMode && loadState() === 'loading') {
+    <p class="page-description">Loading trade data...</p>
+  } @else if (backendDataMode && loadState() === 'error') {
+    <p class="page-description">We couldn't load your trade data. Try again.</p>
+    <button type="button" class="btn btn-secondary" (click)="retryLoad()">Retry</button>
+  } @else {
 
-    <app-holdings-card
-      [holdings]="holdings()"
-      [accountCash]="accountCash()"
-      (selectSymbol)="openAsset($event, false)"
-    />
+    <section class="trade-grid">
+      <app-trade-card (selectSymbol)="openAsset($event, false)" />
 
-    <app-orders-card
-      class="orders-card-slot"
-      [openOrders]="openOrders()"
-      [historyOrders]="historyOrders()"
-      (selectOrder)="openOrderDetails($event)"
-    />
-  </section>
+      <app-holdings-card
+        [holdings]="holdings()"
+        [accountCash]="accountCash()"
+        (selectSymbol)="openAsset($event, false)"
+      />
+
+      <app-orders-card
+        class="orders-card-slot"
+        [openOrders]="openOrders()"
+        [historyOrders]="historyOrders()"
+        (selectOrder)="openOrderDetails($event)"
+      />
+    </section>
+  }
 
   @if (activeAssetSymbol(); as symbol) {
     <app-asset-popup
@@ -26,6 +34,7 @@
       [showChart]="activeAssetShowChart()"
       [ownedQuantity]="activeAssetOwnedQuantity()"
       [accountCash]="accountCash()"
+      [backendDataMode]="backendDataMode"
       [watchlists]="watchlistOptionsForActiveAsset()"
       [maxWatchlistHoldings]="maxWatchlistHoldings"
       (closed)="closeAssetPopup()"

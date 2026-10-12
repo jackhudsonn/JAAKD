@@ -54,6 +54,9 @@
           <span class="order-qty">{{ row.order.quantity }}</span>
           <app-status-badge [status]="row.order.status" />
         </div>
+        @if (row.order.status === 'rejected' && row.order.statusReason) {
+          <div class="orders-row-reason">{{ row.order.statusReason }}</div>
+        }
       }
     </ng-template>
   </app-scrollable-list>

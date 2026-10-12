@@ -26,7 +26,7 @@ export class AuthService {
   async register(email: string, password: string): Promise<void> {
     await firstValueFrom(
       this.httpClient.post(
-        `${environment.authUrl}/auth/register`,
+        `${environment.apiUrl}/api/auth/register`,
         { email, password },
         { context: this.credentialFlow },
       ),
@@ -36,7 +36,7 @@ export class AuthService {
   async login(email: string, password: string): Promise<void> {
     const response = await firstValueFrom(
       this.httpClient.post<SessionResponse>(
-        `${environment.authUrl}/auth/login`,
+        `${environment.apiUrl}/api/auth/login`,
         { email, password },
         { context: this.credentialFlow },
       ),
@@ -48,7 +48,7 @@ export class AuthService {
   async logout(): Promise<void> {
     try {
       await firstValueFrom(
-        this.httpClient.post(`${environment.authUrl}/auth/logout`, null, { context: this.credentialFlow }),
+        this.httpClient.post(`${environment.apiUrl}/api/auth/logout`, null, { context: this.credentialFlow }),
       );
     } finally {
       this.clearSession();
@@ -58,7 +58,7 @@ export class AuthService {
   async changePassword(currentPassword: string, newPassword: string): Promise<void> {
     await firstValueFrom(
       this.httpClient.post(
-        `${environment.authUrl}/auth/change-password`,
+        `${environment.apiUrl}/api/auth/change-password`,
         { currentPassword, newPassword },
         { context: this.credentialFlow },
       ),
@@ -73,7 +73,7 @@ export class AuthService {
 
     try {
       const response = await firstValueFrom(
-        this.httpClient.get<SessionResponse>(`${environment.authUrl}/auth/session`, {
+        this.httpClient.get<SessionResponse>(`${environment.apiUrl}/api/auth/session`, {
           context: this.credentialFlow,
         }),
       );

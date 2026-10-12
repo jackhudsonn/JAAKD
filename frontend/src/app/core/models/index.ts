@@ -3,8 +3,7 @@
 export type InstrumentType = 'crypto' | 'stock' | 'bond';
 export type OrderKind = 'market' | 'limit';
 export type OrderType = 'buy' | 'sell';
-export type OrderStatus = 'pending' | 'open' | 'filled' | 'cancelled';
-
+export type OrderStatus = 'pending' | 'open' | 'filled' | 'cancelled' | 'rejected';
 export interface Holding {
   symbol: string;
   instrumentType: InstrumentType;
@@ -28,6 +27,8 @@ export interface Order {
   createdAt: string;
   filledAt?: string;
   cancelledAt?: string;
+  /** Why the backend rejected or failed the order, in plain . */
+  statusReason?: string;
 }
 
 export interface MarketQuote {

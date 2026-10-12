@@ -1,5 +1,7 @@
 export const environment = {
   production: false,
-  apiUrl: 'http://10.23.135.30:8081',
-  authUrl: 'http://10.23.135.30:8081',
+  // Relative. The server in front of the frontend (the dev-server proxy or
+  // nginx) forwards /api to the backend; no host is compiled in, so the same
+  // build works with or without the VM.
+  apiUrl: '',
 };

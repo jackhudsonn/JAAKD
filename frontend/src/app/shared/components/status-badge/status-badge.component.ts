@@ -4,7 +4,14 @@ import { formatLabel } from '@shared/utils/format-label';
 // Covers both transaction and order lifecycle states so the badge can be
 // reused across the transact and trade pages.
 export type StatusBadgeStatus =
-  'pending' | 'open' | 'completed' | 'filled' | 'partially_filled' | 'cancelled' | 'failed';
+  | 'pending'
+  | 'open'
+  | 'completed'
+  | 'filled'
+  | 'partially_filled'
+  | 'cancelled'
+  | 'failed'
+  | 'rejected';
 
 @Component({
   selector: 'app-status-badge',

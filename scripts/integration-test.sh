@@ -72,19 +72,19 @@ fi
 TEST_EMAIL="integration.$(date +%s)@example.com"
 TEST_PASSWORD="Password123!"
 REGISTER_BODY="{\"email\":\"$TEST_EMAIL\",\"password\":\"$TEST_PASSWORD\"}"
-REGISTER_CODE="$(status_code POST "$BACKEND/auth/register" "$REGISTER_BODY")"
+REGISTER_CODE="$(status_code POST "$BACKEND/api/auth/register" "$REGISTER_BODY")"
 if [[ "$REGISTER_CODE" == "201" ]]; then
-  PASS "POST /auth/register returns 201"
+  PASS "POST /api/auth/register returns 201"
 else
-  FAIL "POST /auth/register expected 201 got $REGISTER_CODE"
+  FAIL "POST /api/auth/register expected 201 got $REGISTER_CODE"
 fi
 
 LOGIN_BODY="{\"email\":\"$TEST_EMAIL\",\"password\":\"$TEST_PASSWORD\"}"
-LOGIN_CODE="$(status_code POST "$BACKEND/auth/login" "$LOGIN_BODY")"
+LOGIN_CODE="$(status_code POST "$BACKEND/api/auth/login" "$LOGIN_BODY")"
 if [[ "$LOGIN_CODE" == "200" ]]; then
-  PASS "POST /auth/login returns 200"
+  PASS "POST /api/auth/login returns 200"
 else
-  FAIL "POST /auth/login expected 200 got $LOGIN_CODE"
+  FAIL "POST /api/auth/login expected 200 got $LOGIN_CODE"
 fi
 
 if grep -q "jaakd_session" "$COOKIE_JAR" 2>/dev/null; then
@@ -93,11 +93,11 @@ else
   FAIL "login did not set the jaakd_session cookie"
 fi
 
-SESSION_CODE="$(status_code GET "$BACKEND/auth/session")"
+SESSION_CODE="$(status_code GET "$BACKEND/api/auth/session")"
 if [[ "$SESSION_CODE" == "200" ]]; then
-  PASS "GET /auth/session returns 200 with the session cookie"
+  PASS "GET /api/auth/session returns 200 with the session cookie"
 else
-  FAIL "GET /auth/session expected 200 got $SESSION_CODE"
+  FAIL "GET /api/auth/session expected 200 got $SESSION_CODE"
 fi
 
 PROFILE_BODY='{"firstName":"Joanna","lastName":"Investor","dob":"1990-04-12","city":"Boston","state":"Massachusetts","country":"United States","zipCode":"02110"}'
@@ -148,7 +148,7 @@ COOKIE_JAR_SECOND="/tmp/jaakd-cookies-second.txt"
 NEW_PASSWORD="NewPassword456!"
 
 rm -f "$COOKIE_JAR_SECOND"
-SECOND_LOGIN_CODE="$(curl -s -o "$RESPONSE_FILE" -w "%{http_code}" -X POST "$BACKEND/auth/login" \
+SECOND_LOGIN_CODE="$(curl -s -o "$RESPONSE_FILE" -w "%{http_code}" -X POST "$BACKEND/api/auth/login" \
   -H "Content-Type: application/json" -c "$COOKIE_JAR_SECOND" -d "$LOGIN_BODY")"
 if [[ "$SECOND_LOGIN_CODE" == "200" ]]; then
   PASS "second login returns 200"
@@ -156,7 +156,7 @@ else
   FAIL "second login expected 200 got $SECOND_LOGIN_CODE"
 fi
 
-SECOND_SESSION_CODE="$(curl -s -o "$RESPONSE_FILE" -w "%{http_code}" -b "$COOKIE_JAR_SECOND" "$BACKEND/auth/session")"
+SECOND_SESSION_CODE="$(curl -s -o "$RESPONSE_FILE" -w "%{http_code}" -b "$COOKIE_JAR_SECOND" "$BACKEND/api/auth/session")"
 if [[ "$SECOND_SESSION_CODE" == "200" ]]; then
   PASS "second session is authenticated"
 else
@@ -164,11 +164,11 @@ else
 fi
 
 CHANGE_BODY="{\"currentPassword\":\"$TEST_PASSWORD\",\"newPassword\":\"$NEW_PASSWORD\"}"
-CHANGE_CODE="$(status_code POST "$BACKEND/auth/change-password" "$CHANGE_BODY")"
+CHANGE_CODE="$(status_code POST "$BACKEND/api/auth/change-password" "$CHANGE_BODY")"
 if [[ "$CHANGE_CODE" == "204" ]]; then
-  PASS "POST /auth/change-password returns 204"
+  PASS "POST /api/auth/change-password returns 204"
 else
-  FAIL "POST /auth/change-password expected 204 got $CHANGE_CODE"
+  FAIL "POST /api/auth/change-password expected 204 got $CHANGE_CODE"
 fi
 
 REVOKED_CODE="$(curl -s -o "$RESPONSE_FILE" -w "%{http_code}" -b "$COOKIE_JAR_SECOND" "$BACKEND/api/profile")"
@@ -192,18 +192,18 @@ else
   FAIL "Expected 1 session row after change-password, got $SESSION_ROW_COUNT"
 fi
 
-OLD_PASSWORD_CODE="$(curl -s -o "$RESPONSE_FILE" -w "%{http_code}" -X POST "$BACKEND/auth/login" -H "Content-Type: application/json" -d "$LOGIN_BODY")"
+OLD_PASSWORD_CODE="$(curl -s -o "$RESPONSE_FILE" -w "%{http_code}" -X POST "$BACKEND/api/auth/login" -H "Content-Type: application/json" -d "$LOGIN_BODY")"
 if [[ "$OLD_PASSWORD_CODE" == "401" ]]; then
   PASS "the old password no longer signs in"
 else
   FAIL "old password login expected 401 got $OLD_PASSWORD_CODE"
 fi
 
-LOGOUT_CODE="$(status_code POST "$BACKEND/auth/logout")"
+LOGOUT_CODE="$(status_code POST "$BACKEND/api/auth/logout")"
 if [[ "$LOGOUT_CODE" == "204" ]]; then
-  PASS "POST /auth/logout returns 204"
+  PASS "POST /api/auth/logout returns 204"
 else
-  FAIL "POST /auth/logout expected 204 got $LOGOUT_CODE"
+  FAIL "POST /api/auth/logout expected 204 got $LOGOUT_CODE"
 fi
 
 AFTER_LOGOUT_CODE="$(status_code GET "$BACKEND/api/profile")"
