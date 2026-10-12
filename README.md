@@ -49,7 +49,7 @@ The containers keep running until you stop them. Run the same command again afte
 
 ### 3) Forward the frontend port (only if Docker runs on another machine)
 
-The frontend calls the backend at the same origin, and the dev server proxies `/api` and `/auth` to the backend container. So the browser only needs the frontend port. Forward it from your machine and leave the terminal open:
+The frontend calls the backend at the same origin, and the dev server proxies `/api` to the backend container. So the browser only needs the frontend port. Forward it from your machine and leave the terminal open:
 
 ```bash
 ssh -N -L 4200:localhost:4200 <user>@<host>
