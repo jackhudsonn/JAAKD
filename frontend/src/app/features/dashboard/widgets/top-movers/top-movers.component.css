@@ -42,6 +42,10 @@
   color: var(--fail);
 }
 
+.amount.neutral {
+  color: var(--text-muted);
+}
+
 .indicative-note {
   margin: var(--space-sm) 0 0;
 
