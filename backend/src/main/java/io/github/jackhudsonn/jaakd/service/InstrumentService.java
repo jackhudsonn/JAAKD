@@ -125,7 +125,7 @@ public class InstrumentService {
             throw new InvalidInstrumentException("Quote currency is required");
         }
 
-        String normalizedBaseTicker = normalizeTicker(baseTicker);
+        String normalizedBaseTicker = normalizeCryptoBaseTicker(baseTicker);
         String providerTicker = "X:" + normalizedBaseTicker + "-" + quoteCurrency.name();
         return createOrUpdateFromExternalData(providerTicker);
     }
@@ -181,6 +181,31 @@ public class InstrumentService {
 
         return ticker.trim().toUpperCase();
     }
+
+    private String normalizeCryptoBaseTicker(String baseTicker) {
+        String normalized = normalizeTicker(baseTicker);
+
+        if (normalized.startsWith("X:")) {
+            normalized = normalized.substring(2);
+        }
+
+        int separatorIndex = normalized.indexOf('-');
+        if (separatorIndex > 0) {
+            normalized = normalized.substring(0, separatorIndex);
+        }
+
+        separatorIndex = normalized.indexOf('/');
+        if (separatorIndex > 0) {
+            normalized = normalized.substring(0, separatorIndex);
+        }
+
+        if (normalized.isBlank()) {
+            throw new InvalidInstrumentException("Crypto ticker cannot be blank");
+        }
+
+        return normalized;
+    }
+
 
     private String requireNonBlank(String value, String errorMessage) {
         if (value == null || value.isBlank()) {

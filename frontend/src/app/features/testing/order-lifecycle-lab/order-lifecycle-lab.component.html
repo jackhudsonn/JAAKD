@@ -146,26 +146,6 @@
         }
       </div>
     </article>
-
-    <article class="panel">
-      <h2>Create portfolio</h2>
-      <p class="panel-help">Calls PortfolioController: POST /api/portfolios.</p>
-
-      <label>
-        Portfolio Name
-        <input
-          type="text"
-          maxlength="100"
-          [ngModel]="portfolioForm().portfolioName"
-          (ngModelChange)="portfolioForm.set({ ...portfolioForm(), portfolioName: $event })"
-          placeholder="Kafka Test Portfolio"
-        />
-      </label>
-
-      <button type="button" class="primary" [disabled]="creatingPortfolio()" (click)="createPortfolio()">
-        {{ creatingPortfolio() ? 'Creating...' : 'Create Portfolio' }}
-      </button>
-    </article>
   </section>
 
   <section class="grid-two">
@@ -510,37 +490,7 @@
     </article>
   </section>
 
-  <section class="grid-two">
-    <article class="panel">
-      <h2>Add watchlist item</h2>
-      <p class="panel-help">Optional watchlist checks under selected context.</p>
-
-      <label>
-        Display Name
-        <input
-          type="text"
-          maxlength="255"
-          [ngModel]="watchlistForm().name"
-          (ngModelChange)="watchlistForm.set({ ...watchlistForm(), name: $event })"
-        />
-      </label>
-
-      <button type="button" class="primary" [disabled]="addingWatchlist()" (click)="addWatchlistItem()">
-        {{ addingWatchlist() ? 'Adding...' : 'Add Instrument To Watchlist' }}
-      </button>
-
-      <div class="watchlist-list">
-        @for (item of watchlistItems(); track item.listItemId) {
-          <div class="watchlist-item">
-            <span>{{ item.name || '(Unnamed item)' }}</span>
-            <span class="muted">{{ item.instrumentId }}</span>
-          </div>
-        } @empty {
-          <p class="muted">No watchlist items yet for this portfolio.</p>
-        }
-      </div>
-    </article>
-
+  <section>
     <article class="panel timeline-panel">
       <h2>Kafka lifecycle timeline</h2>
       <p class="panel-help">Shows quoted price and executed price at each observed stage.</p>

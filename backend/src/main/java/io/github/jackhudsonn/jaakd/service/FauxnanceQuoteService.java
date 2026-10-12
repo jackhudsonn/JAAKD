@@ -2,6 +2,8 @@ package io.github.jackhudsonn.jaakd.service;
 
 import io.github.jackhudsonn.jaakd.exception.FauxnanceClientException;
 import io.github.jackhudsonn.jaakd.exception.InstrumentNotFoundException;
+import io.github.jackhudsonn.jaakd.model.Instrument;
+import io.github.jackhudsonn.jaakd.model.InstrumentClass;
 import io.github.jackhudsonn.jaakd.model.OrderSide;
 import io.github.jackhudsonn.jaakd.repository.InstrumentRepository;
 import io.github.jackhudsonn.jaakd.service.fauxnance.FauxnanceQuoteResponse;
@@ -91,11 +93,15 @@ public class FauxnanceQuoteService implements QuoteService {
     }
 
     private String resolveSymbol(UUID instrumentId) {
-        return instrumentRepository.findById(instrumentId)
-            .orElseThrow(() -> new InstrumentNotFoundException(instrumentId))
-            .getTicker()
-            .trim()
-            .toUpperCase();
+        Instrument instrument = instrumentRepository.findById(instrumentId)
+            .orElseThrow(() -> new InstrumentNotFoundException(instrumentId));
+
+        String normalizedTicker = instrument.getTicker().trim().toUpperCase();
+        if (instrument.getInstrumentClass() == InstrumentClass.FX && !normalizedTicker.startsWith("FX:")) {
+            return "FX:" + normalizedTicker;
+        }
+
+        return normalizedTicker;
     }
 
     private MarketQuote normalizeResponse(FauxnanceQuoteResponse response, String fallbackSymbol) {
