@@ -52,8 +52,9 @@ Spring Boot API backend for JAAKD.
 
 Angular frontend for JAAKD.
 
-- Authentication calls the backend (`http://localhost:8081`).
-- Trading/profile APIs call the same backend.
+- Authentication calls the backend under `/api/auth`.
+- Trading/profile APIs call the backend under `/api`.
+- The browser calls its own origin; the server in front (the dev-server proxy, or nginx for a deployed build) forwards `/api` to the backend. See "Frontend environment".
 - The interceptor sends requests with credentials; the backend session cookie authorizes them. No token is held in the browser.
 - Some dashboard widgets still read from `src/app/core/mocks/mock-data.ts` and are replaced incrementally.
 
@@ -115,10 +116,10 @@ The backend loads `backend/.env` via `spring.config.import`; container environme
 
 ### Frontend environment
 
-Frontend environment files define:
+Every environment file sets `apiUrl` to empty, so the frontend calls its own origin. Routing to the backend is the job of whatever serves the frontend, and no host is compiled in. The backend owns `/api/**`; the SPA owns every other path.
 
-- `apiUrl` (backend)
-- `authUrl` (backend auth endpoints)
+- `ng serve` uses `frontend/proxy.conf.js`, which forwards `/api` to `BACKEND_TARGET` (default `http://localhost:8081`; Docker Compose sets it to the backend service name).
+- A deployed build is fronted by a reverse proxy. The nginx image in `frontend/Dockerfile` forwards `/api` to `BACKEND_UPSTREAM`.
 
 ## Backend
 
@@ -135,7 +136,7 @@ java -jar target\backend-0.0.1-SNAPSHOT.jar
 ### Notes
 
 - The authenticated user's ID, resolved from the session, maps directly to `profiles.userID`.
-- `/actuator/**` is public; `/api/**` requires authentication.
+- `/actuator/**` is public, as are `/api/auth/register` and `/api/auth/login`; the rest of `/api/**` requires authentication.
 - Schema source of truth is `backend/db/init/` and the JPA model.
 
 ## Needs improvement

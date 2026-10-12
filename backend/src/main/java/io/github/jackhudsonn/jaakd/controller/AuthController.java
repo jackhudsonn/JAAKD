@@ -33,7 +33,7 @@ import jakarta.validation.Valid;
 // Session auth endpoints. The caller gets an HttpOnly cookie; no route returns
 // a token.
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/api/auth")
 public class AuthController {
 
     private final AuthService authService;
