@@ -68,7 +68,7 @@ services:
       - jaakd-frontend-node-modules:/app/node_modules
 
   jaakd-kafka:
-    image: apache/kafka:3.9.2
+    image: apache/kafka:4.3.1
     container_name: jaakd-kafka
     restart: unless-stopped
     healthcheck:
