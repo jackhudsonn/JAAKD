@@ -6,9 +6,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -17,8 +17,9 @@ import io.github.jackhudsonn.jaakd.dto.InstrumentResponse;
 import io.github.jackhudsonn.jaakd.dto.SyncCryptoInstrumentRequest;
 import io.github.jackhudsonn.jaakd.dto.UpdateInstrumentRequest;
 import io.github.jackhudsonn.jaakd.model.Instrument;
+import io.github.jackhudsonn.jaakd.model.InstrumentClass;
 import io.github.jackhudsonn.jaakd.service.InstrumentService;
-import io.github.jackhudsonn.jaakd.service.fauxnance.FauxnanceQuoteResponse;
+import io.github.jackhudsonn.jaakd.model.fauxnance.FauxnanceQuoteResponse;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,8 +37,13 @@ public class InstrumentController {
 
 	@GetMapping
 	@ResponseStatus(HttpStatus.OK)
-	public List<InstrumentResponse> getAllInstruments() {
-		List<Instrument> instruments = instrumentService.getAllInstruments();
+	public List<InstrumentResponse> getAllInstruments(
+			@RequestParam(required = false) InstrumentClass instrumentType,
+			@RequestParam(required = false) String query,
+			@RequestParam(required = false) Integer page,
+			@RequestParam(required = false) Integer size
+	) {
+		List<Instrument> instruments = instrumentService.getAllInstruments(instrumentType, query, page, size);
 		List<InstrumentResponse> responses = new ArrayList<>();
 
 		for (int i = 0; i < instruments.size(); i++) {

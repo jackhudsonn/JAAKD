@@ -2,6 +2,8 @@ package io.github.jackhudsonn.jaakd.repository;
 
 import io.github.jackhudsonn.jaakd.model.PositionLot;
 import jakarta.persistence.LockModeType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -35,6 +37,17 @@ public interface PositionLotRepository extends JpaRepository<PositionLot, UUID> 
         AND pl.remainingQuantity > 0
       """)
     BigDecimal sumOpenRemainingQuantityByHoldingID(@Param("holdingID") UUID holdingID);
+
+    @Query("""
+      SELECT pl
+      FROM PositionLot pl
+      WHERE pl.holdingID = :holdingId
+      ORDER BY pl.openedAt ASC, pl.positionLotID ASC
+      """)
+    Page<PositionLot> findByHoldingIdOldestFirst(
+      @Param("holdingId") UUID holdingId,
+      Pageable pageable
+    );
 
     @Query("""
         SELECT pl

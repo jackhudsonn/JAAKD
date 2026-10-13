@@ -3,6 +3,8 @@ package io.github.jackhudsonn.jaakd.repository;
 import io.github.jackhudsonn.jaakd.model.Holding;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -15,6 +17,24 @@ public interface HoldingRepository extends JpaRepository<Holding, UUID> {
   List<Holding> findByPortfolioID(UUID portfolioID);
 
     Optional<Holding> findByPortfolioIDAndInstrumentID(UUID portfolioID, UUID instrumentID);
+
+    @Query("""
+      SELECT h
+      FROM Holding h
+      WHERE EXISTS (
+        SELECT 1
+        FROM Portfolio p
+        WHERE p.portfolioId = h.portfolioID
+          AND p.profile.userId = :userId
+          AND (:portfolioId IS NULL OR p.portfolioId = :portfolioId)
+      )
+      ORDER BY h.holdingID ASC
+      """)
+    Page<Holding> findByAuditUserIdAndOptionalPortfolioId(
+      @Param("userId") UUID userId,
+      @Param("portfolioId") UUID portfolioId,
+      Pageable pageable
+    );
 
     @Query("""
         SELECT h

@@ -23,9 +23,7 @@ public class PrivilegedAccessService {
     }
 
     public void ensureAdminOrAuditor() {
-        BigDecimal userType = profileRepository.findById(currentUserService.getUserId())
-            .map(profile -> profile.getUserType())
-            .orElseThrow(() -> new ForbiddenException("Admin or auditor user type is required"));
+        BigDecimal userType = getCurrentUserType();
 
         boolean isAdmin = UserType.ADMIN.getCode().compareTo(userType) == 0;
         boolean isAuditor = UserType.AUDITOR.getCode().compareTo(userType) == 0;
@@ -33,5 +31,20 @@ public class PrivilegedAccessService {
         if (!isAdmin && !isAuditor) {
             throw new ForbiddenException("Admin or auditor user type is required");
         }
+    }
+
+    public void ensureAdmin() {
+        BigDecimal userType = getCurrentUserType();
+        boolean isAdmin = UserType.ADMIN.getCode().compareTo(userType) == 0;
+
+        if (!isAdmin) {
+            throw new ForbiddenException("Admin user type is required");
+        }
+    }
+
+    private BigDecimal getCurrentUserType() {
+        return profileRepository.findById(currentUserService.getUserId())
+            .map(profile -> profile.getUserType())
+            .orElseThrow(() -> new ForbiddenException("Admin or auditor user type is required"));
     }
 }

@@ -77,6 +77,52 @@ class PrivilegedAccessServiceTest {
         assertThrows(ForbiddenException.class, () -> privilegedAccessService.ensureAdminOrAuditor());
     }
 
+    @Test
+    void ensureAdmin_allowsAdmin() throws Exception {
+        UUID userId = UUID.randomUUID();
+        Profile profile = new Profile(UserType.ADMIN.getCode());
+        setField(profile, "userId", userId);
+
+        when(currentUserService.getUserId()).thenReturn(userId);
+        when(profileRepository.findById(userId)).thenReturn(Optional.of(profile));
+
+        assertDoesNotThrow(() -> privilegedAccessService.ensureAdmin());
+    }
+
+    @Test
+    void ensureAdmin_blocksAuditor() throws Exception {
+        UUID userId = UUID.randomUUID();
+        Profile profile = new Profile(UserType.AUDITOR.getCode());
+        setField(profile, "userId", userId);
+
+        when(currentUserService.getUserId()).thenReturn(userId);
+        when(profileRepository.findById(userId)).thenReturn(Optional.of(profile));
+
+        assertThrows(ForbiddenException.class, () -> privilegedAccessService.ensureAdmin());
+    }
+
+    @Test
+    void ensureAdmin_blocksRetailClient() throws Exception {
+        UUID userId = UUID.randomUUID();
+        Profile profile = new Profile(UserType.RETAIL_CLIENT.getCode());
+        setField(profile, "userId", userId);
+
+        when(currentUserService.getUserId()).thenReturn(userId);
+        when(profileRepository.findById(userId)).thenReturn(Optional.of(profile));
+
+        assertThrows(ForbiddenException.class, () -> privilegedAccessService.ensureAdmin());
+    }
+
+    @Test
+    void ensureAdmin_blocksMissingProfile() {
+        UUID userId = UUID.randomUUID();
+
+        when(currentUserService.getUserId()).thenReturn(userId);
+        when(profileRepository.findById(userId)).thenReturn(Optional.empty());
+
+        assertThrows(ForbiddenException.class, () -> privilegedAccessService.ensureAdmin());
+    }
+
     private void setField(Object target, String fieldName, Object value) throws Exception {
         Field field = target.getClass().getDeclaredField(fieldName);
         field.setAccessible(true);
