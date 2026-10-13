@@ -20,6 +20,7 @@ import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
+import io.github.jackhudsonn.jaakd.util.SimulateDelay;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.never;
@@ -32,6 +33,9 @@ class ExecutionServiceTest {
 
     @Mock
     private OrderLogService orderLogService;
+
+    @Mock
+    private SimulateDelay simulateDelay;
 
     @Mock
     private FifoAccountingService fifoAccountingService;
