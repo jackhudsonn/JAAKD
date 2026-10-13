@@ -78,16 +78,25 @@
     <div class="watchlist-details">
       <div class="watchlist-details-header">
         <span class="symbol">{{ asset.symbol }}</span>
-        <span
-          class="change"
-          [class.positive]="asset.changePct >= 0"
-          [class.negative]="asset.changePct < 0"
-        >
-          {{ asset.changePct >= 0 ? '+' : '' }}{{ asset.changePct | number: '1.2-2' }}%
-        </span>
+        @if (asset.changePct !== null) {
+          <span
+            class="change"
+            [class.positive]="asset.changePct >= 0"
+            [class.negative]="asset.changePct < 0"
+          >
+            {{ asset.changePct >= 0 ? '+' : '' }}{{ asset.changePct | number: '1.2-2' }}%
+          </span>
+        }
       </div>
 
-      <p class="watchlist-details-price">Current Price: {{ asset.price | number: '1.2-2' }}</p>
+      <p class="watchlist-details-price">
+        Current Price:
+        @if (asset.price === null) {
+          Price unavailable
+        } @else {
+          {{ asset.price | number: '1.2-2' }}
+        }
+      </p>
 
       <div class="watchlist-details-actions">
         <button
