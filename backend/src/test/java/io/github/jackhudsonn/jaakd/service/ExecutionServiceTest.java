@@ -15,6 +15,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import io.github.jackhudsonn.jaakd.util.SimulateDelay;
 
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
@@ -32,6 +33,9 @@ class ExecutionServiceTest {
 
     @Mock
     private OrderLogService orderLogService;
+
+    @Mock
+    private SimulateDelay simulateDelay;
 
     @Mock
     private FifoAccountingService fifoAccountingService;

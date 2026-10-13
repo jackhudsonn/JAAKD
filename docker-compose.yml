@@ -1,3 +1,5 @@
+x-jaakd-app-db-password: &jaakd-app-db-password ${JAAKD_APP_DB_PASSWORD:?JAAKD_APP_DB_PASSWORD is required}
+
 services:
   jaakd-postgres:
     image: postgres:16
@@ -6,8 +8,8 @@ services:
     environment:
       POSTGRES_DB: jaakd
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      JAAKD_APP_DB_PASSWORD: ${JAAKD_APP_DB_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      JAAKD_APP_DB_PASSWORD: *jaakd-app-db-password
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d jaakd"]
       interval: 5s
@@ -36,10 +38,10 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://jaakd-postgres:5432/jaakd
       SPRING_DATASOURCE_USERNAME: jaakd_app
-      SPRING_DATASOURCE_PASSWORD: ${JAAKD_APP_DB_PASSWORD}
+      SPRING_DATASOURCE_PASSWORD: *jaakd-app-db-password
       SPRING_KAFKA_BOOTSTRAP_SERVERS: jaakd-kafka:9092
-      IDENTITY_PROVIDER: development
-      AUTH_COOKIE_SECURE: "false"
+      IDENTITY_PROVIDER: ${IDENTITY_PROVIDER:?IDENTITY_PROVIDER is required}
+      AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:?AUTH_COOKIE_SECURE is required}
     ports:
       # Bound to all interfaces on purpose: the backend is reached directly by
       # IP from other machines (a remote frontend, pgAdmin, a peer's browser),
