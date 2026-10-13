@@ -2,5 +2,19 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:recommended"
+  ],
+  "vulnerabilityAlerts": {
+    "enabled": true
+  },
+  "osvVulnerabilityAlerts": true,
+  "packageRules": [
+    {
+      "matchPackageNames": ["*"],
+      "enabled": false
+    },
+    {
+      "matchUpdateTypes": ["major"],
+      "enabled": true
+    }
   ]
 }
