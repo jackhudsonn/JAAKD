@@ -16,7 +16,14 @@ pipeline {
     }
 
     stages {
-        stage('Checkout') {
+
+        stage('Checkout for Parameters') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Checkout for Branch') {
             steps {
                 checkout([$class: 'GitSCM', branches: [[name: "*/${params.BRANCH}"]], userRemoteConfigs: [[url: 'git@github.com:jackhudsonn/JAAKD.git']]])
             }
