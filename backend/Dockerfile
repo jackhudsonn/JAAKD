@@ -17,7 +17,7 @@ COPY src src
 RUN ./mvnw -B clean package -DskipTests
 
 # Starts the runtime stage from an image with the Temurin JRE
-FROM eclipse-temurin:21-jre
+FROM eclipse-temurin:25-jre
 # Sets the working directory
 WORKDIR /app
 # Creates a non-root user and group for running the application
