@@ -1,7 +1,7 @@
 import { Component, input, output } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { ModalComponent } from '@shared/components/modal/modal.component';
-import { AllocationAssetSelection } from '@features/dashboard/widgets/allocation-by-asset/allocation-by-asset.component';
+import { AllocationAssetSelection } from '@features/dashboard/cards/allocation-by-asset/allocation-by-asset.component';
 
 @Component({
   selector: 'app-allocation-asset-overlay',
