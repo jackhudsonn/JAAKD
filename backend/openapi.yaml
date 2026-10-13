@@ -1194,6 +1194,64 @@ paths:
           $ref: "#/components/responses/Conflict"
         "500":
           $ref: "#/components/responses/ServerError"
+    get:
+      tags: [Profile]
+      summary: Get the signed-in user's profile
+      operationId: getCurrentProfile
+      responses:
+        "200":
+          description: The user's profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfileResponse"
+              example:
+                userId: 0f1e2d3c-4b5a-4968-8776-655443322110
+                userType: 0
+                firstName: Joanna
+                lastName: Smith
+                username: joanna
+                city: Boston
+                state: MA
+                country: USA
+                zipCode: "02110"
+                dob: "1990-04-12"
+                avatar: null
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    put:
+      tags: [Profile]
+      summary: Update the signed-in user's profile
+      description: Only fields that are present are changed. Email comes from authentication and cannot be changed here.
+      operationId: updateProfile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileRequest"
+            example:
+              city: Chicago
+              state: IL
+      responses:
+        "200":
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfileResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
 
   # ------------------------------------------------------------------- Audit
   /api/audit/users:
@@ -1315,64 +1373,6 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
-        "500":
-          $ref: "#/components/responses/ServerError"
-    get:
-      tags: [Profile]
-      summary: Get the signed-in user's profile
-      operationId: getCurrentProfile
-      responses:
-        "200":
-          description: The user's profile
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ProfileResponse"
-              example:
-                userId: 0f1e2d3c-4b5a-4968-8776-655443322110
-                userType: 0
-                firstName: Joanna
-                lastName: Smith
-                username: joanna
-                city: Boston
-                state: MA
-                country: USA
-                zipCode: "02110"
-                dob: "1990-04-12"
-                avatar: null
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/ServerError"
-    put:
-      tags: [Profile]
-      summary: Update the signed-in user's profile
-      description: Only fields that are present are changed. Email comes from authentication and cannot be changed here.
-      operationId: updateProfile
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UpdateProfileRequest"
-            example:
-              city: Chicago
-              state: IL
-      responses:
-        "200":
-          description: Profile updated
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ProfileResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
         "500":
           $ref: "#/components/responses/ServerError"
 
