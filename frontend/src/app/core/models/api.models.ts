@@ -65,3 +65,15 @@ export interface CreateWatchlistItemRequest {
   instrumentId: string;
   name?: string;
 }
+
+export interface UpdatePreferencesRequest {
+  dashboardWidgets: string[];
+}
+
+export interface PreferencesResponse {
+  preferenceId: string;
+  portfolioId: string;
+  dashboardWidgets: string[];
+  createdAt: string;
+  updatedAt: string;
+}

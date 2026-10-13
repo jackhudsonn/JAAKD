@@ -7,6 +7,7 @@ import { InstrumentApiService } from '@core/services/instrument-api.service';
 import { OrderLogApiService } from '@core/services/order-log-api.service';
 import { PortfolioApiService } from '@core/services/portfolio-api.service';
 import { WatchlistApiService } from '@core/services/watchlist-api.service';
+import { DashboardPreferencesSyncService } from './dashboard-preferences-sync.service';
 import {
   DashboardStatePort,
   DashboardWatchlistInstrumentOption,
@@ -35,6 +36,7 @@ export class BackendDashboardStateService implements DashboardStatePort {
   readonly activeWatchlistId = signal('watchlist');
   readonly dashboardOpenOrders = signal<MockOrder[]>([]);
   readonly backendWatchlistInstrumentOptions = signal<DashboardWatchlistInstrumentOption[]>([]);
+  readonly dashboardWidgets = signal<readonly string[] | null>(null);
   readonly returns = { ...MOCK_RETURNS, allTime: 0, daily: 0 };
   readonly watchlistConstraints = WATCHLIST_CONSTRAINTS;
   readonly backendDataMode = true;
@@ -49,6 +51,7 @@ export class BackendDashboardStateService implements DashboardStatePort {
     private instrumentApiService: InstrumentApiService,
     private orderLogApiService: OrderLogApiService,
     private watchlistApiService: WatchlistApiService,
+    private dashboardPreferencesSyncService: DashboardPreferencesSyncService,
   ) {}
 
   async load(): Promise<void> {
@@ -61,11 +64,19 @@ export class BackendDashboardStateService implements DashboardStatePort {
     this.activeWatchlistId.set('watchlist');
     this.dashboardOpenOrders.set([]);
     this.backendWatchlistInstrumentOptions.set([]);
+    this.dashboardWidgets.set(null);
     this.portfolioId.set(null);
     this.watchlistItemIdByInstrumentId.set(new Map());
 
     try {
       const portfolio = await this.portfolioApiService.ensureDefault();
+
+      const initialWidgets = await this.dashboardPreferencesSyncService.getInitialWidgets(
+        portfolio.portfolioId,
+      );
+      if (initialWidgets) {
+        this.dashboardWidgets.set([...initialWidgets]);
+      }
 
       const [holdings, instruments, orderLogs, watchlistItems] = await Promise.all([
         this.holdingApiService.listByPortfolio(portfolio.portfolioId),
@@ -103,6 +114,11 @@ export class BackendDashboardStateService implements DashboardStatePort {
           })
           .filter((instrument): instrument is DashboardWatchlistInstrumentOption => !!instrument),
       );
+
+      void this.dashboardPreferencesSyncService.reconcile(portfolio.portfolioId, (widgets) => {
+        this.dashboardWidgets.set([...widgets]);
+      });
+
       this.watchlistItemIdByInstrumentId.set(
         new Map(watchlistItems.map((item) => [item.instrumentId, item.listItemId])),
       );
@@ -117,6 +133,7 @@ export class BackendDashboardStateService implements DashboardStatePort {
       this.activeWatchlistId.set('watchlist');
       this.dashboardOpenOrders.set([]);
       this.backendWatchlistInstrumentOptions.set([]);
+      this.dashboardWidgets.set(null);
       this.portfolioId.set(null);
       this.watchlistItemIdByInstrumentId.set(new Map());
       this.loadState.set('error');
@@ -167,5 +184,19 @@ export class BackendDashboardStateService implements DashboardStatePort {
 
     await this.watchlistApiService.remove(matchingItemId);
     await this.load();
+  }
+
+  async setDashboardWidgets(dashboardWidgets: readonly string[]): Promise<void> {
+    const portfolioId = this.portfolioId();
+    if (!portfolioId) {
+      return;
+    }
+
+    this.dashboardWidgets.set([...dashboardWidgets]);
+    const syncedWidgets = await this.dashboardPreferencesSyncService.persistWidgets(
+      portfolioId,
+      dashboardWidgets,
+    );
+    this.dashboardWidgets.set([...syncedWidgets]);
   }
 }

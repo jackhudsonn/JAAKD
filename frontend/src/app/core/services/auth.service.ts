@@ -15,6 +15,9 @@ interface SessionResponse {
   providedIn: 'root',
 })
 export class AuthService {
+  private static readonly DASHBOARD_PREFERENCES_CACHE_PREFIX =
+    'jaakd.dashboard.preferences.v1.';
+
   private readonly emailSignal = signal<string | null>(null);
   private readonly credentialFlow = new HttpContext().set(AUTH_FLOW, true);
 
@@ -87,5 +90,29 @@ export class AuthService {
 
   clearSession(): void {
     this.emailSignal.set(null);
+    this.clearDashboardPreferencesSessionCache();
+  }
+
+  private clearDashboardPreferencesSessionCache(): void {
+    try {
+      if (typeof globalThis === 'undefined' || !('sessionStorage' in globalThis)) {
+        return;
+      }
+
+      const keysToDelete: string[] = [];
+
+      for (let i = 0; i < globalThis.sessionStorage.length; i++) {
+        const key = globalThis.sessionStorage.key(i);
+        if (key?.startsWith(AuthService.DASHBOARD_PREFERENCES_CACHE_PREFIX)) {
+          keysToDelete.push(key);
+        }
+      }
+
+      for (const key of keysToDelete) {
+        globalThis.sessionStorage.removeItem(key);
+      }
+    } catch {
+      // Best effort cleanup; avoid throwing during logout/session expiry.
+    }
   }
 }
