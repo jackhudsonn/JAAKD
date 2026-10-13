@@ -7,17 +7,8 @@ pipeline {
     }
 
     parameters {
-        // Environment and branch selection for the deployment
         choice(name: 'DEPLOY_ENVIRONMENT', choices: ['dev', 'prod'], description: 'Select the environment')
-
-        if (params.DEPLOY_ENVIRONMENT == 'dev') {
-            // For dev, allow selecting the branch
-            properties([parameters([string(name: 'BRANCH', defaultValue: 'main', description: 'Branch to deploy')])])
-        } else {
-            // For prod, the branch is always main, so we can disable the BRANCH parameter
-            properties([parameters([string(name: 'BRANCH', defaultValue: 'main', description: 'Branch to deploy', readonly: true)])])
-        }
-
+        string(name: 'BRANCH', defaultValue: 'main', description: 'Branch to deploy')
     }
 
     environment {
