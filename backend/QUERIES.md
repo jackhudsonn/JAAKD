@@ -41,8 +41,6 @@ WHERE o."logOrderID" = :logOrderId
 ## Auth
 
 Credentials belong to the identity provider, not the application schema. The
-development provider owns `development_credentials` (development-only); in
-production the provider owns its credentials outside this schema. The
 application queries only `users` and `sessions`, and only after the provider has
 authenticated the caller. `:userId` is the provider's identity claim (a UUID).
 
@@ -151,9 +149,17 @@ WHERE "holdingID" = :holdingId
 
 ## Instruments
 
-**getAllInstruments** (`GET /api/instruments`): every tradable instrument.
+**getAllInstruments** (`GET /api/instruments`): every tradable instrument, with optional `query` (ticker/name contains), optional `instrumentType`, and optional paging (`page`, `size`).
 ```sql
-SELECT * FROM instruments;
+SELECT *
+FROM instruments
+WHERE (:instrumentType IS NULL OR "instrumentClass" = :instrumentType)
+  AND (
+    :query IS NULL
+    OR UPPER(ticker) LIKE UPPER('%' || :query || '%')
+    OR UPPER(name) LIKE UPPER('%' || :query || '%')
+  )
+ORDER BY ticker ASC, "instrumentID" ASC;
 ```
 
 **getInstrumentById** (`GET /api/instruments/{instrumentId}`): one instrument.
@@ -182,14 +188,6 @@ WHERE "instrumentID" = :instrumentId;
 **deleteInstrument** (`DELETE /api/instruments/{instrumentId}`): removes an instrument.
 ```sql
 DELETE FROM instruments WHERE "instrumentID" = :instrumentId;
-```
-
-**syncInstrumentFromExternalApi** (`POST /api/instruments/sync/{ticker}`) *(not implemented)*: inserts or refreshes an instrument from a market-data provider.
-```sql
-INSERT INTO instruments ("instrumentID", ticker, market, name, "instrumentClass", "logoUrl", description)
-VALUES (gen_random_uuid(), :ticker, :market, :name, :instrumentClass, :logoUrl, :description)
-ON CONFLICT (ticker) DO UPDATE
-SET name = EXCLUDED.name, "logoUrl" = EXCLUDED."logoUrl", description = EXCLUDED.description;
 ```
 
 ## Portfolios
@@ -235,6 +233,74 @@ BEGIN;
 INSERT INTO "orderLogs" ("logOrderID", "orderID", "portfolioID", "instrumentID", side, quantity, "timestamp", status)
 VALUES (gen_random_uuid(), :orderId, :portfolioId, :instrumentId, :side, :quantity, now(), 'ACCEPTED');
 COMMIT;
+```
+
+## Audit
+
+**searchAuditUsers** (`GET /api/audit/users`): case-insensitive search across user email and profile identity fields for admin/auditor users.
+```sql
+SELECT
+  u."userID" AS userId,
+  u.email,
+  p.username,
+  p."firstName" AS firstName,
+  p."lastName" AS lastName
+FROM users u
+LEFT JOIN profiles p ON p."userID" = u."userID"
+WHERE UPPER(u.email) LIKE UPPER('%' || :query || '%')
+   OR UPPER(COALESCE(p.username, '')) LIKE UPPER('%' || :query || '%')
+   OR UPPER(COALESCE(p."firstName", '')) LIKE UPPER('%' || :query || '%')
+   OR UPPER(COALESCE(p."lastName", '')) LIKE UPPER('%' || :query || '%')
+ORDER BY u."userID" ASC;
+```
+
+**searchAuditOrderLogs** (`GET /api/audit/order-logs`): day-scoped audit log filtering with optional user/status/ticker/instrumentType filters for admin/auditor users.
+```sql
+SELECT o.*
+FROM "orderLogs" o
+JOIN portfolios p ON p."portfolioID" = o."portfolioID"
+JOIN instruments i ON i."instrumentID" = o."instrumentID"
+WHERE o."timestamp" >= :start
+  AND o."timestamp" < :end
+  AND (:userId IS NULL OR p."userID" = :userId)
+  AND (:status IS NULL OR o.status = :status)
+  AND (:ticker IS NULL OR UPPER(i.ticker) = UPPER(:ticker))
+  AND (:instrumentType IS NULL OR i."instrumentClass" = :instrumentType)
+ORDER BY o."timestamp" DESC, o."logOrderID" DESC;
+```
+
+**getAuditUserPortfolios** (`GET /api/audit/users/{userId}/portfolios`): paged cross-user portfolio list for admin/auditor users.
+```sql
+SELECT p.*
+FROM portfolios p
+WHERE p."userID" = :userId
+ORDER BY p."portfolioID" ASC;
+```
+
+**getAuditUserHoldings** (`GET /api/audit/users/{userId}/holdings`): paged cross-user holding list with optional portfolio filter for admin/auditor users.
+```sql
+SELECT h.*
+FROM holdings h
+JOIN portfolios p ON p."portfolioID" = h."portfolioID"
+WHERE p."userID" = :userId
+  AND (:portfolioId IS NULL OR p."portfolioID" = :portfolioId)
+ORDER BY h."holdingID" ASC;
+```
+
+**getAuditHoldingPositionLots** (`GET /api/audit/holdings/{holdingId}/position-lots`): paged lot list for a holding (cross-user) for admin/auditor users.
+```sql
+SELECT pl.*
+FROM position_lots pl
+WHERE pl."holdingID" = :holdingId
+ORDER BY pl."openedAt" ASC, pl."positionLotID" ASC;
+```
+
+**getAuditHoldingLotMatches** (`GET /api/audit/holdings/{holdingId}/lot-matches`): paged match list for a holding (cross-user) for admin/auditor users.
+```sql
+SELECT lm.*
+FROM lot_matches lm
+WHERE lm."holdingID" = :holdingId
+ORDER BY lm."matchedAt" ASC, lm."lotMatchID" ASC;
 ```
 
 ## Order logs

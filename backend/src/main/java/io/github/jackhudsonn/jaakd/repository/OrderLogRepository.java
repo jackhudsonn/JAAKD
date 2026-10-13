@@ -1,14 +1,18 @@
 package io.github.jackhudsonn.jaakd.repository;
 
 import jakarta.persistence.LockModeType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import io.github.jackhudsonn.jaakd.model.InstrumentClass;
 import io.github.jackhudsonn.jaakd.model.OrderLog;
 import io.github.jackhudsonn.jaakd.model.OrderStatus;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.Collection;
@@ -109,4 +113,25 @@ public interface OrderLogRepository extends JpaRepository<OrderLog, UUID> {
         @Lock(LockModeType.PESSIMISTIC_WRITE)
         @Query("SELECT o FROM OrderLog o WHERE o.orderID = :orderId ORDER BY o.timestamp DESC, o.logOrderID DESC")
         List<OrderLog> findByOrderIdNewestFirstForUpdate(@Param("orderId") UUID orderId);
+
+        @Query("""
+            SELECT o
+            FROM OrderLog o
+            WHERE o.timestamp >= :start
+                AND o.timestamp < :end
+                AND (:userId IS NULL OR o.portfolio.profile.userId = :userId)
+                AND (:status IS NULL OR o.status = :status)
+                AND (:ticker IS NULL OR UPPER(o.instrument.ticker) = UPPER(:ticker))
+                AND (:instrumentType IS NULL OR o.instrument.instrumentClass = :instrumentType)
+            ORDER BY o.timestamp DESC, o.logOrderID DESC
+            """)
+        Page<OrderLog> findByAuditFiltersWithinTimestampRange(
+            @Param("userId") UUID userId,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end,
+            @Param("status") OrderStatus status,
+            @Param("ticker") String ticker,
+            @Param("instrumentType") InstrumentClass instrumentType,
+            Pageable pageable
+        );
 }

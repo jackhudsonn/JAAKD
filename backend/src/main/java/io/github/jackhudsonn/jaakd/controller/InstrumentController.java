@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -15,6 +16,7 @@ import io.github.jackhudsonn.jaakd.dto.CreateInstrumentRequest;
 import io.github.jackhudsonn.jaakd.dto.InstrumentResponse;
 import io.github.jackhudsonn.jaakd.dto.UpdateInstrumentRequest;
 import io.github.jackhudsonn.jaakd.model.Instrument;
+import io.github.jackhudsonn.jaakd.model.InstrumentClass;
 import io.github.jackhudsonn.jaakd.service.InstrumentService;
 
 import java.util.ArrayList;
@@ -33,8 +35,13 @@ public class InstrumentController {
 
 	@GetMapping
 	@ResponseStatus(HttpStatus.OK)
-	public List<InstrumentResponse> getAllInstruments() {
-		List<Instrument> instruments = instrumentService.getAllInstruments();
+	public List<InstrumentResponse> getAllInstruments(
+			@RequestParam(required = false) InstrumentClass instrumentType,
+			@RequestParam(required = false) String query,
+			@RequestParam(required = false) Integer page,
+			@RequestParam(required = false) Integer size
+	) {
+		List<Instrument> instruments = instrumentService.getAllInstruments(instrumentType, query, page, size);
 		List<InstrumentResponse> responses = new ArrayList<>();
 
 		for (int i = 0; i < instruments.size(); i++) {
@@ -74,15 +81,6 @@ public class InstrumentController {
 	) {
 		Instrument updated = instrumentService.updateInstrument(instrumentId, request);
 		return toResponse(updated);
-	}
-
-	@PostMapping("/sync/{ticker}")
-	@ResponseStatus(HttpStatus.OK)
-	public InstrumentResponse syncInstrumentFromExternalApi(@PathVariable String ticker) {
-		// TODO: Keep this endpoint wired so frontend can call it later.
-		// TODO: Once data provider API is ready, service will fetch and upsert data.
-		Instrument synced = instrumentService.createOrUpdateFromExternalData(ticker);
-		return toResponse(synced);
 	}
 
 	private InstrumentResponse toResponse(Instrument instrument) {

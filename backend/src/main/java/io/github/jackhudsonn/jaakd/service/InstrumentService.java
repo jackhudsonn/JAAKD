@@ -2,13 +2,17 @@ package io.github.jackhudsonn.jaakd.service;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import io.github.jackhudsonn.jaakd.dto.CreateInstrumentRequest;
 import io.github.jackhudsonn.jaakd.dto.UpdateInstrumentRequest;
 import io.github.jackhudsonn.jaakd.exception.InstrumentConflictException;
 import io.github.jackhudsonn.jaakd.exception.InstrumentNotFoundException;
 import io.github.jackhudsonn.jaakd.exception.InvalidInstrumentException;
+import io.github.jackhudsonn.jaakd.exception.ValidationException;
 import io.github.jackhudsonn.jaakd.model.Instrument;
+import io.github.jackhudsonn.jaakd.model.InstrumentClass;
 import io.github.jackhudsonn.jaakd.repository.InstrumentRepository;
 
 import java.util.List;
@@ -17,14 +21,43 @@ import java.util.UUID;
 @Service
 public class InstrumentService {
 
-    private final InstrumentRepository instrumentRepository;
+    private static final int DEFAULT_PAGE = 0;
+    private static final int DEFAULT_SIZE = 25;
+    private static final int MAX_SIZE = 100;
 
-    public InstrumentService(InstrumentRepository instrumentRepository) {
+    private final InstrumentRepository instrumentRepository;
+    private final PrivilegedAccessService privilegedAccessService;
+
+    public InstrumentService(
+        InstrumentRepository instrumentRepository,
+        PrivilegedAccessService privilegedAccessService
+    ) {
         this.instrumentRepository = instrumentRepository;
+        this.privilegedAccessService = privilegedAccessService;
     }
 
     public List<Instrument> getAllInstruments() {
-        return instrumentRepository.findAll();
+        return getAllInstruments(null, null, null, null);
+    }
+
+    public List<Instrument> getAllInstruments(
+        InstrumentClass instrumentType,
+        String query,
+        Integer page,
+        Integer size
+    ) {
+        String normalizedQuery = normalizeQuery(query);
+
+        if (page == null && size == null) {
+            return instrumentRepository.searchByFilters(instrumentType, normalizedQuery);
+        }
+
+        int resolvedPage = page == null ? DEFAULT_PAGE : page;
+        int resolvedSize = size == null ? DEFAULT_SIZE : size;
+        validatePaging(resolvedPage, resolvedSize);
+
+        Pageable pageable = PageRequest.of(resolvedPage, resolvedSize);
+        return instrumentRepository.searchByFilters(instrumentType, normalizedQuery, pageable).getContent();
     }
 
     public Instrument getInstrumentById(UUID instrumentId) {
@@ -39,6 +72,8 @@ public class InstrumentService {
 
     @Transactional
     public Instrument createInstrument(CreateInstrumentRequest request) {
+        privilegedAccessService.ensureAdmin();
+
         // 1. Prevent duplicate tickers
         if (instrumentRepository.existsByTickerIgnoreCase(request.ticker())) {
             throw new InstrumentConflictException(request.ticker());
@@ -60,6 +95,8 @@ public class InstrumentService {
 
     @Transactional
     public Instrument updateInstrument(UUID instrumentId, UpdateInstrumentRequest request) {
+        privilegedAccessService.ensureAdmin();
+
         // 1. Fetch existing entity
         Instrument instrument = instrumentRepository.findById(instrumentId)
             .orElseThrow(() -> new InstrumentNotFoundException(instrumentId));
@@ -84,11 +121,23 @@ public class InstrumentService {
         return instrumentRepository.save(instrument);
     }
 
-    @Transactional
-    public Instrument createOrUpdateFromExternalData(String ticker) {
-        // TODO: Integrate market-data provider API once available.
-        // TODO: Fetch instrument metadata by ticker and map fields.
-        // TODO: Upsert instrument in local database.
-        throw new UnsupportedOperationException("External instrument API is not integrated yet for ticker: " + ticker);
+    private String normalizeQuery(String query) {
+        if (query == null) {
+            return null;
+        }
+
+        String trimmed = query.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
+
+    private void validatePaging(int page, int size) {
+        if (page < 0) {
+            throw new ValidationException("Page must be greater than or equal to 0");
+        }
+
+        if (size < 1 || size > MAX_SIZE) {
+            throw new ValidationException("Size must be between 1 and 100");
+        }
+    }
+
 }
