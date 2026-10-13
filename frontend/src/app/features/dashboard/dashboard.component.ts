@@ -24,7 +24,10 @@ import { DashboardWatchlistOverlayFacade } from './components/overlays/watchlist
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  providers: [{ provide: DASHBOARD_STATE_PORT, useExisting: BackendDashboardStateService }, DashboardWatchlistOverlayFacade,],
+  providers: [
+    { provide: DASHBOARD_STATE_PORT, useExisting: BackendDashboardStateService },
+    DashboardWatchlistOverlayFacade,
+  ],
   imports: [
     WidgetSelectorComponent,
     PortfolioValueWidgetComponent,

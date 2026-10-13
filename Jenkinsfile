@@ -1,6 +1,11 @@
 pipeline {
     agent any
 
+    tools {
+        sonarqube 'SonarQube'
+        nodejs 'NodeJS'
+    }
+
     parameters {
         // Environment and branch selection for the deployment
         choice(name: 'DEPLOY_ENVIRONMENT', choices: ['dev', 'prod'], description: 'Select the environment')
@@ -28,7 +33,9 @@ pipeline {
 
         stage('Backend: Static Code Analysis') {
             steps {
-                // TODO: SonarQube static code analysis
+                withSonarQubeEnv('SonarQube') {
+                    sh 'sonar-scanner'
+                }
             }
         }
 

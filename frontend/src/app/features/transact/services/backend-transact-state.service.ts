@@ -46,7 +46,9 @@ export class BackendTransactStateService implements TransactStatePort {
 
   async submitCashMovement(side: 'DEPOSIT' | 'WITHDRAW', amount: number): Promise<void> {
     const portfolioId = this.portfolioId();
-    const cashInstrument = this.instrumentsData().find((instrument) => instrument.instrumentClass === 'CASH');
+    const cashInstrument = this.instrumentsData().find(
+      (instrument) => instrument.instrumentClass === 'CASH',
+    );
 
     if (!portfolioId || !cashInstrument) {
       return;
@@ -66,7 +68,12 @@ export class BackendTransactStateService implements TransactStatePort {
 
     for (let attempt = 0; attempt < 30; attempt += 1) {
       const transaction = this.transactions().find((entry) => entry.id === orderId);
-      if (transaction && (transaction.status === 'completed' || transaction.status === 'failed' || transaction.status === 'cancelled')) {
+      if (
+        transaction &&
+        (transaction.status === 'completed' ||
+          transaction.status === 'failed' ||
+          transaction.status === 'cancelled')
+      ) {
         if (transaction.status === 'failed') {
           throw new Error(this.resolveFailureReason(orderId, side));
         }
@@ -122,7 +129,8 @@ export class BackendTransactStateService implements TransactStatePort {
 
       const valueStart = start + key.length;
       const separator = metadata.indexOf(' | ', valueStart);
-      const rawValue = separator >= 0 ? metadata.slice(valueStart, separator) : metadata.slice(valueStart);
+      const rawValue =
+        separator >= 0 ? metadata.slice(valueStart, separator) : metadata.slice(valueStart);
       const trimmedValue = rawValue.trim();
 
       if (trimmedValue.length > 0) {

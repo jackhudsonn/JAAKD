@@ -48,7 +48,9 @@ export class AuthService {
   async logout(): Promise<void> {
     try {
       await firstValueFrom(
-        this.httpClient.post(`${environment.apiUrl}/api/auth/logout`, null, { context: this.credentialFlow }),
+        this.httpClient.post(`${environment.apiUrl}/api/auth/logout`, null, {
+          context: this.credentialFlow,
+        }),
       );
     } finally {
       this.clearSession();

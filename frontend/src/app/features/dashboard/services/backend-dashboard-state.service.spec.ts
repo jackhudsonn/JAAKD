@@ -165,7 +165,9 @@ describe('BackendDashboardStateService', () => {
       },
     ]);
 
-    expect(service.watchlists()).toEqual([{ id: 'watchlist', name: 'Watchlist', symbols: ['AAPL'] }]);
+    expect(service.watchlists()).toEqual([
+      { id: 'watchlist', name: 'Watchlist', symbols: ['AAPL'] },
+    ]);
     expect(service.activeWatchlistId()).toBe('watchlist');
     expect(service.dashboardOpenOrders()).toEqual([]);
     expect(service.backendWatchlistInstrumentOptions()).toEqual([
@@ -184,7 +186,7 @@ describe('BackendDashboardStateService', () => {
     ]);
   });
 
-  it("sets loadState to error and clears fields when load fails", async () => {
+  it('sets loadState to error and clears fields when load fails', async () => {
     instrumentApiService.list.mockRejectedValueOnce(new Error('boom'));
 
     await service.load();

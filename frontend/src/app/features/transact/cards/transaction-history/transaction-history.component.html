@@ -66,7 +66,11 @@
 
         <span class="transaction-amount">${{ transaction.amount | number: '1.2-2' }}</span>
         <span class="transaction-method">
-          {{ transaction.type === 'exchange' ? transaction.typeLabel : formatLabel(transaction.method) }}
+          {{
+            transaction.type === 'exchange'
+              ? transaction.typeLabel
+              : formatLabel(transaction.method)
+          }}
         </span>
         <app-status-badge [status]="transaction.status" />
       </div>

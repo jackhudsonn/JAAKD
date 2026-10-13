@@ -52,9 +52,7 @@ export class TradeCardComponent implements OnInit, OnDestroy {
 
     return this.marketData
       .listAssets()
-      .filter(
-        (asset) => this.instrument() === 'all' || asset.instrumentType === this.instrument(),
-      )
+      .filter((asset) => this.instrument() === 'all' || asset.instrumentType === this.instrument())
       .filter(
         (asset) =>
           !query ||

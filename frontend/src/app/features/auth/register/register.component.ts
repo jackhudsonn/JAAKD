@@ -3,7 +3,10 @@ import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '@core/services/auth.service';
-import { LocationDataService, CountryOption } from '@features/profile/services/location-data.service';
+import {
+  LocationDataService,
+  CountryOption,
+} from '@features/profile/services/location-data.service';
 import { ProfileService } from '@features/profile/services/profile.service';
 import { ErrorResponse, toUserFacingErrorMessage } from '@core/models/profile.model';
 
@@ -130,7 +133,11 @@ export class RegisterComponent {
     try {
       await this.authService.login(this.email, this.password);
     } catch (error) {
-      this.message.set(registered ? this.mapErrorToMessage(error) : 'An account with this email already exists. Please sign in with your existing password.');
+      this.message.set(
+        registered
+          ? this.mapErrorToMessage(error)
+          : 'An account with this email already exists. Please sign in with your existing password.',
+      );
       return;
     }
 

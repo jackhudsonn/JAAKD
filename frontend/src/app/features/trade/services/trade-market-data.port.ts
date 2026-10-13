@@ -24,10 +24,7 @@ export interface TradeMarketDataPort {
   listAssets(): readonly TradeMarketAsset[];
   getAsset(symbol: string): TradeMarketAsset | undefined;
   getPrice(symbol: string): number;
-  getPerformanceSeries(
-    symbol: string,
-    interval: TradeAssetPerformanceInterval,
-  ): LineChartPoint[];
+  getPerformanceSeries(symbol: string, interval: TradeAssetPerformanceInterval): LineChartPoint[];
   isKnownSymbol(symbol: string): boolean;
 }
 

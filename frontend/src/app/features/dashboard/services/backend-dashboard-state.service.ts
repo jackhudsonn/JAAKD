@@ -7,10 +7,7 @@ import { InstrumentApiService } from '@core/services/instrument-api.service';
 import { OrderLogApiService } from '@core/services/order-log-api.service';
 import { PortfolioApiService } from '@core/services/portfolio-api.service';
 import { WatchlistApiService } from '@core/services/watchlist-api.service';
-import {
-  DashboardStatePort,
-  DashboardWatchlistInstrumentOption,
-} from './dashboard-state.port';
+import { DashboardStatePort, DashboardWatchlistInstrumentOption } from './dashboard-state.port';
 import {
   toCash,
   toHoldings,
@@ -159,7 +156,9 @@ export class BackendDashboardStateService implements DashboardStatePort {
       return;
     }
 
-    const matchingItemId = this.watchlistItemIdByInstrumentId().get(selectedInstrument.instrumentId);
+    const matchingItemId = this.watchlistItemIdByInstrumentId().get(
+      selectedInstrument.instrumentId,
+    );
 
     if (!matchingItemId) {
       return;

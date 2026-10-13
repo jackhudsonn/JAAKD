@@ -27,7 +27,7 @@ export class CurrencyExchangeComponent {
     INR: 83.2,
   };
 
-  amount = signal<number | null>(0.00);
+  amount = signal<number | null>(0.0);
   fromCurrency = signal<SupportedCurrency>('USD');
   toCurrency = signal<SupportedCurrency>('EUR');
   pendingExchange = signal<ExchangeRequest | null>(null);
