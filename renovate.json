@@ -1,20 +1,20 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:recommended"
-  ],
+  "extends": ["config:recommended"],
+  "osvVulnerabilityAlerts": true,
   "vulnerabilityAlerts": {
     "enabled": true
   },
-  "osvVulnerabilityAlerts": true,
   "packageRules": [
     {
-      "matchPackageNames": ["*"],
+      "description": "Only major and security updates",
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "pin",
+        "digest"
+      ],
       "enabled": false
-    },
-    {
-      "matchUpdateTypes": ["major"],
-      "enabled": true
     }
   ]
 }
