@@ -118,6 +118,11 @@ public class GlobalExceptionHandler {
         } else if (normalized.contains("connection refused") || normalized.contains("connect timed out") || normalized.contains("timeout") || normalized.contains("could not connect")) {
             errorType = "db_connectivity";
             hint = "Backend cannot reach the database host/port. Verify network, host, and port from the backend runtime.";
+        } else if (normalized.contains("function upper(bytea) does not exist")
+            || normalized.contains("operator does not exist: bytea")
+            || normalized.contains("bytea")) {
+            errorType = "db_schema_mismatch";
+            hint = "Database schema has binary (bytea) columns where text search is expected. Convert affected columns to TEXT (for example instruments.ticker/name and audit-search text fields).";
         } else if (normalized.contains("illegal path") || normalized.contains("can't add file system") || normalized.contains("cannot add file system")) {
             errorType = "db_path_config";
             hint = "Datasource/JDBC path config is invalid for this OS. Check backend-side JDBC URL options such as ssl cert paths.";
