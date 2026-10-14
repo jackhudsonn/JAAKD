@@ -128,17 +128,6 @@ public class PreferenceService {
             return null;
         }
 
-        if (trimmed.chars().allMatch(Character::isDigit)) {
-            try {
-                int oneBasedIndex = Integer.parseInt(trimmed);
-                if (oneBasedIndex >= 1 && oneBasedIndex <= ALLOWED_WIDGET_IDS.size()) {
-                    return ALLOWED_WIDGET_IDS.get(oneBasedIndex - 1);
-                }
-            } catch (NumberFormatException ignored) {
-                return null;
-            }
-        }
-
         return trimmed;
     }
 }

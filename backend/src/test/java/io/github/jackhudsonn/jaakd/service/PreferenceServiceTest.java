@@ -84,7 +84,7 @@ class PreferenceServiceTest {
 
         Preference preference = preferenceService.getByPortfolio(portfolioId);
 
-        assertEquals(List.of("performance-graph", "portfolio-value", "open-orders", "watchlist"), preference.getDashboardWidgets());
+        assertEquals(List.of("performance-graph", "watchlist"), preference.getDashboardWidgets());
         verify(preferenceRepository).save(existing);
     }
 
@@ -102,7 +102,7 @@ class PreferenceServiceTest {
 
         Preference updated = preferenceService.updateByPortfolio(
             portfolioId,
-            new UpdatePreferencesRequest(List.of("3", "3", "2", "999", "not-a-widget"))
+            new UpdatePreferencesRequest(List.of("portfolio-value", "portfolio-value", "watchlist", "not-a-widget"))
         );
 
         assertEquals(List.of("portfolio-value", "watchlist"), updated.getDashboardWidgets());
