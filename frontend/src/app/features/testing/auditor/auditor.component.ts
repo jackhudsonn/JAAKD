@@ -466,7 +466,8 @@ export class AuditorComponent {
 
     const details = this.extractErrorDetails(error.error);
     if (error.status === 503 && details?.type && details?.hint) {
-      return `Database error (${details.type}): ${details.hint}`;
+      const rootCause = details.cause ? ` Cause: ${details.cause}` : '';
+      return `Database error (${details.type}): ${details.hint}${rootCause}`;
     }
 
     if (typeof error.error === 'object' && error.error?.message) {
@@ -488,7 +489,7 @@ export class AuditorComponent {
     return error.message || null;
   }
 
-  private extractErrorDetails(payload: unknown): { type?: string; hint?: string } | null {
+  private extractErrorDetails(payload: unknown): { type?: string; hint?: string; cause?: string } | null {
     if (!payload || typeof payload !== 'object') {
       return null;
     }
@@ -498,10 +499,11 @@ export class AuditorComponent {
       return null;
     }
 
-    const typedDetails = details as { type?: unknown; hint?: unknown };
+    const typedDetails = details as { type?: unknown; hint?: unknown; cause?: unknown };
     return {
       type: typeof typedDetails.type === 'string' ? typedDetails.type : undefined,
       hint: typeof typedDetails.hint === 'string' ? typedDetails.hint : undefined,
+      cause: typeof typedDetails.cause === 'string' ? typedDetails.cause : undefined,
     };
   }
 }

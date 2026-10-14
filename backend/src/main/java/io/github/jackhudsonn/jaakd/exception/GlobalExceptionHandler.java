@@ -22,6 +22,7 @@ import java.util.Map;
 public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+    private static final int MAX_CAUSE_LENGTH = 240;
 
     @ExceptionHandler(UnauthorizedException.class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
@@ -118,11 +119,21 @@ public class GlobalExceptionHandler {
         } else if (normalized.contains("connection refused") || normalized.contains("connect timed out") || normalized.contains("timeout") || normalized.contains("could not connect")) {
             errorType = "db_connectivity";
             hint = "Backend cannot reach the database host/port. Verify network, host, and port from the backend runtime.";
+        } else if (normalized.contains("could not determine data type of parameter")
+            || normalized.contains("bind")
+            || normalized.contains("parameter") && normalized.contains("type")) {
+            errorType = "db_param_binding";
+            hint = "Database parameter binding failed. Check nullable query parameters used in text functions (UPPER/LIKE) and normalize them in service layer.";
         } else if (normalized.contains("function upper(bytea) does not exist")
             || normalized.contains("operator does not exist: bytea")
             || normalized.contains("bytea")) {
             errorType = "db_schema_mismatch";
             hint = "Database schema has binary (bytea) columns where text search is expected. Convert affected columns to TEXT (for example instruments.ticker/name and audit-search text fields).";
+        } else if ((normalized.contains("function") && normalized.contains("does not exist"))
+            || normalized.contains("operator does not exist")
+            || normalized.contains("sqlstate: 42883")) {
+            errorType = "db_sql_grammar";
+            hint = "Database rejected generated SQL (function/operator mismatch). Check query function usage and parameter types for this endpoint.";
         } else if (normalized.contains("illegal path") || normalized.contains("can't add file system") || normalized.contains("cannot add file system")) {
             errorType = "db_path_config";
             hint = "Datasource/JDBC path config is invalid for this OS. Check backend-side JDBC URL options such as ssl cert paths.";
@@ -131,8 +142,22 @@ public class GlobalExceptionHandler {
         Map<String, String> details = new LinkedHashMap<>();
         details.put("type", errorType);
         details.put("hint", hint);
+        details.put("cause", truncateForResponse(rootMessage));
 
         return new ErrorResponse(Instant.now(), "Database error", details);
+    }
+
+    private String truncateForResponse(String message) {
+        if (message == null || message.isBlank()) {
+            return "unknown";
+        }
+
+        String singleLine = message.replace('\n', ' ').replace('\r', ' ').trim();
+        if (singleLine.length() <= MAX_CAUSE_LENGTH) {
+            return singleLine;
+        }
+
+        return singleLine.substring(0, MAX_CAUSE_LENGTH) + "...";
     }
 
     @ExceptionHandler(ForbiddenException.class)
