@@ -3,6 +3,7 @@ import { HttpContext, HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '@environments/environment.local';
 import { AUTH_FLOW } from '@core/http/auth-flow.token';
+import { DASHBOARD_PREFERENCES_CACHE_PREFIX } from '@core/constants/dashboard-preferences.constants';
 
 interface SessionResponse {
   email: string;
@@ -15,9 +16,6 @@ interface SessionResponse {
   providedIn: 'root',
 })
 export class AuthService {
-  private static readonly DASHBOARD_PREFERENCES_CACHE_PREFIX =
-    'jaakd.dashboard.preferences.v1.';
-
   private readonly emailSignal = signal<string | null>(null);
   private readonly credentialFlow = new HttpContext().set(AUTH_FLOW, true);
 
