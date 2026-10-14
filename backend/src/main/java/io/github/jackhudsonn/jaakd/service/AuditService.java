@@ -95,23 +95,20 @@ public class AuditService {
         LocalDate date,
         OrderStatus status,
         String ticker,
+        UUID instrumentId,
         InstrumentClass instrumentType,
         Integer page,
         Integer size
     ) {
         privilegedAccessService.ensureAdminOrAuditor();
 
-        if (date == null) {
-            throw new ValidationException("Date is required");
-        }
-
         int resolvedPage = page == null ? DEFAULT_PAGE : page;
         int resolvedSize = size == null ? DEFAULT_SIZE : size;
         validatePaging(resolvedPage, resolvedSize);
 
         String normalizedTicker = normalizeOptionalText(ticker);
-        LocalDateTime start = date.atStartOfDay();
-        LocalDateTime end = date.plusDays(1).atStartOfDay();
+        LocalDateTime start = date == null ? null : date.atStartOfDay();
+        LocalDateTime end = date == null ? null : date.plusDays(1).atStartOfDay();
         Pageable pageable = PageRequest.of(resolvedPage, resolvedSize);
 
         List<OrderLog> rows = orderLogRepository.findByAuditFiltersWithinTimestampRange(
@@ -120,6 +117,7 @@ public class AuditService {
             end,
             status,
             normalizedTicker,
+            instrumentId,
             instrumentType,
             pageable
         ).getContent();

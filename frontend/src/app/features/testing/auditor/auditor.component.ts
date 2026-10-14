@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import {
   HoldingResponse,
   InstrumentClass,
+  InstrumentResponse,
   OrderLogResponse,
   OrderStatus,
   PortfolioResponse,
@@ -15,6 +16,7 @@ import {
   LotMatchResponse,
   PositionLotResponse,
 } from '@core/services/audit-api.service';
+import { InstrumentApiService } from '@core/services/instrument-api.service';
 
 interface LifecycleOrder {
   orderId: string;
@@ -41,8 +43,10 @@ interface RequestDiagnostics {
 })
 export class AuditorComponent {
   private readonly auditApi = inject(AuditApiService);
+  private readonly instrumentApi = inject(InstrumentApiService);
 
   readonly users = signal<AuditUserSearchResponse[]>([]);
+  readonly instruments = signal<InstrumentResponse[]>([]);
   readonly portfolios = signal<PortfolioResponse[]>([]);
   readonly holdings = signal<HoldingResponse[]>([]);
   readonly positionLots = signal<PositionLotResponse[]>([]);
@@ -52,8 +56,13 @@ export class AuditorComponent {
   readonly selectedUserId = signal('');
   readonly selectedPortfolioId = signal('');
   readonly selectedHoldingId = signal('');
+  readonly userPickerQuery = signal('');
+  readonly portfolioPickerQuery = signal('');
+  readonly holdingPickerQuery = signal('');
+  readonly instrumentPickerQuery = signal('');
 
   readonly loadingUsers = signal(false);
+  readonly loadingInstruments = signal(false);
   readonly loadingDrilldown = signal(false);
   readonly loadingOrderLogs = signal(false);
 
@@ -75,10 +84,11 @@ export class AuditorComponent {
   });
 
   readonly orderLogForm = signal({
-    date: this.todayString(),
+    date: '',
     userId: '',
     status: '' as '' | OrderStatus,
     ticker: '',
+    instrumentId: '',
     instrumentType: '' as '' | InstrumentClass,
     page: 0,
     size: 25,
@@ -87,6 +97,70 @@ export class AuditorComponent {
   readonly selectedUser = computed(() =>
     this.users().find((user) => user.userId === this.selectedUserId()) ?? null,
   );
+
+  readonly filteredUsers = computed(() => {
+    const query = this.userPickerQuery().trim().toLowerCase();
+    if (!query) {
+      return this.users();
+    }
+
+    return this.users().filter((user) => {
+      const email = user.email.toLowerCase();
+      const username = (user.username ?? '').toLowerCase();
+      const firstName = (user.firstName ?? '').toLowerCase();
+      const lastName = (user.lastName ?? '').toLowerCase();
+      return (
+        email.includes(query)
+        || username.includes(query)
+        || firstName.includes(query)
+        || lastName.includes(query)
+      );
+    });
+  });
+
+  readonly filteredPortfolios = computed(() => {
+    const query = this.portfolioPickerQuery().trim().toLowerCase();
+    if (!query) {
+      return this.portfolios();
+    }
+
+    return this.portfolios().filter((portfolio) => {
+      const name = portfolio.portfolioName.toLowerCase();
+      const id = portfolio.portfolioId.toLowerCase();
+      return name.includes(query) || id.includes(query);
+    });
+  });
+
+  readonly filteredHoldings = computed(() => {
+    const query = this.holdingPickerQuery().trim().toLowerCase();
+    if (!query) {
+      return this.holdings();
+    }
+
+    return this.holdings().filter((holding) => {
+      const holdingId = holding.holdingID.toLowerCase();
+      const portfolioId = holding.portfolioID.toLowerCase();
+      const instrumentId = holding.instrumentID.toLowerCase();
+      return (
+        holdingId.includes(query)
+        || portfolioId.includes(query)
+        || instrumentId.includes(query)
+      );
+    });
+  });
+
+  readonly filteredInstruments = computed(() => {
+    const query = this.instrumentPickerQuery().trim().toLowerCase();
+    if (!query) {
+      return this.instruments();
+    }
+
+    return this.instruments().filter((instrument) => {
+      const ticker = instrument.ticker.toLowerCase();
+      const name = instrument.name.toLowerCase();
+      return ticker.includes(query) || name.includes(query);
+    });
+  });
 
   readonly lifecycleOrders = computed<LifecycleOrder[]>(() => {
     const grouped = new Map<string, OrderLogResponse[]>();
@@ -116,6 +190,23 @@ export class AuditorComponent {
       })
       .sort((a, b) => new Date(b.latestTimestamp).getTime() - new Date(a.latestTimestamp).getTime());
   });
+
+  constructor() {
+    void this.loadInstruments();
+  }
+
+  async loadInstruments() {
+    this.loadingInstruments.set(true);
+
+    try {
+      const instruments = await this.instrumentApi.list();
+      this.instruments.set(instruments);
+    } catch {
+      this.instruments.set([]);
+    } finally {
+      this.loadingInstruments.set(false);
+    }
+  }
 
   async searchUsers() {
     const form = this.userSearchForm();
@@ -159,6 +250,11 @@ export class AuditorComponent {
   }
 
   async selectUser(userId: string) {
+    if (!userId) {
+      this.resetDrilldownState();
+      return;
+    }
+
     this.selectedUserId.set(userId);
     this.selectedPortfolioId.set('');
     this.selectedHoldingId.set('');
@@ -245,6 +341,13 @@ export class AuditorComponent {
   }
 
   async selectHolding(holdingId: string) {
+    if (!holdingId) {
+      this.selectedHoldingId.set('');
+      this.positionLots.set([]);
+      this.lotMatches.set([]);
+      return;
+    }
+
     this.selectedHoldingId.set(holdingId);
 
     const paging = this.drilldownForm();
@@ -298,11 +401,6 @@ export class AuditorComponent {
   async searchOrderLogs() {
     const form = this.orderLogForm();
 
-    if (!form.date) {
-      this.errorMessage.set('Date is required for order-log search.');
-      return;
-    }
-
     if (!this.validatePaging(form.page, form.size)) {
       return;
     }
@@ -312,10 +410,11 @@ export class AuditorComponent {
 
     try {
       const orderLogs = await this.auditApi.searchOrderLogs({
-        date: form.date,
+        date: form.date.trim() || undefined,
         userId: form.userId.trim() || undefined,
         status: form.status || undefined,
         ticker: form.ticker.trim() || undefined,
+        instrumentId: form.instrumentId.trim() || undefined,
         instrumentType: form.instrumentType || undefined,
         page: form.page,
         size: form.size,
@@ -323,10 +422,11 @@ export class AuditorComponent {
 
       this.orderLogs.set(orderLogs);
       this.recordRequest('searchOrderLogs', '/api/audit/order-logs', {
-        date: form.date,
+        date: form.date.trim() || undefined,
         userId: form.userId.trim() || undefined,
         status: form.status || undefined,
         ticker: form.ticker.trim() || undefined,
+        instrumentId: form.instrumentId.trim() || undefined,
         instrumentType: form.instrumentType || undefined,
         page: form.page,
         size: form.size,
@@ -334,10 +434,11 @@ export class AuditorComponent {
       this.statusMessage.set(`Loaded ${orderLogs.length} order-log rows.`);
     } catch (error) {
       this.recordRequest('searchOrderLogs', '/api/audit/order-logs', {
-        date: form.date,
+        date: form.date.trim() || undefined,
         userId: form.userId.trim() || undefined,
         status: form.status || undefined,
         ticker: form.ticker.trim() || undefined,
+        instrumentId: form.instrumentId.trim() || undefined,
         instrumentType: form.instrumentType || undefined,
         page: form.page,
         size: form.size,
@@ -362,6 +463,23 @@ export class AuditorComponent {
 
   getInstrumentId(holding: HoldingResponse): string {
     return holding.instrumentID;
+  }
+
+  formatInstrumentOption(instrument: InstrumentResponse): string {
+    return `${instrument.ticker} - ${instrument.name} (${instrument.instrumentClass})`;
+  }
+
+  formatUserOption(user: AuditUserSearchResponse): string {
+    const fullName = `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim();
+    return fullName ? `${user.email} (${fullName})` : user.email;
+  }
+
+  formatPortfolioOption(portfolio: PortfolioResponse): string {
+    return `${portfolio.portfolioName} (${portfolio.portfolioId})`;
+  }
+
+  formatHoldingOption(holding: HoldingResponse): string {
+    return `${holding.holdingID} | Instrument ${holding.instrumentID} | Qty ${holding.currentQuantity}`;
   }
 
   getPositionLotId(lot: PositionLotResponse): string {

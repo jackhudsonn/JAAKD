@@ -1309,10 +1309,10 @@ paths:
       summary: Search order logs for audit workflows
       description: |
         Restricted to ADMIN or AUDITOR user types.
-        `date` is required and uses day boundaries:
+        If `date` is provided, filtering uses day boundaries:
         - start = date at 00:00 (inclusive)
         - end = next day at 00:00 (exclusive)
-        Optional filters: userId, status, ticker, instrumentType.
+        Optional filters: userId, status, ticker, instrumentId, instrumentType.
       operationId: searchAuditOrderLogs
       parameters:
         - name: userId
@@ -1323,7 +1323,7 @@ paths:
             format: uuid
         - name: date
           in: query
-          required: true
+          required: false
           schema:
             type: string
             format: date
@@ -1338,6 +1338,12 @@ paths:
           schema:
             type: string
             maxLength: 20
+        - name: instrumentId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
         - name: instrumentType
           in: query
           required: false

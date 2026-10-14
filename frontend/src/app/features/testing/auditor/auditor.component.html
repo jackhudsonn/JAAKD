@@ -96,22 +96,31 @@
     <div class="grid-two">
       <article class="subpanel">
         <h3>Search Results</h3>
-        <div class="list">
-          @for (user of users(); track user.userId) {
-            <button
-              type="button"
-              class="list-item"
-              [class.selected]="selectedUserId() === user.userId"
-              (click)="selectUser(user.userId)"
-            >
-              <strong>{{ user.email }}</strong>
-              <span>{{ user.firstName || '-' }} {{ user.lastName || '-' }}</span>
-              <span class="muted">{{ user.userId }}</span>
-            </button>
-          } @empty {
-            <p class="muted">No users loaded.</p>
-          }
-        </div>
+        <label>
+          Filter Users
+          <input
+            type="text"
+            [ngModel]="userPickerQuery()"
+            (ngModelChange)="userPickerQuery.set($event)"
+            placeholder="Filter by email, username, or name"
+          />
+        </label>
+
+        <label>
+          User
+          <select
+            [ngModel]="selectedUserId()"
+            (ngModelChange)="selectUser($event)"
+            [disabled]="loadingDrilldown()"
+          >
+            <option value="">Select User</option>
+            @for (user of filteredUsers(); track user.userId) {
+              <option [value]="user.userId">{{ formatUserOption(user) }}</option>
+            }
+          </select>
+        </label>
+
+        <p class="muted">Showing {{ filteredUsers().length }} of {{ users().length }} users.</p>
       </article>
 
       <article class="subpanel">
@@ -125,6 +134,16 @@
         }
 
         <label>
+          Filter Portfolios
+          <input
+            type="text"
+            [ngModel]="portfolioPickerQuery()"
+            (ngModelChange)="portfolioPickerQuery.set($event)"
+            placeholder="Filter by portfolio name or ID"
+          />
+        </label>
+
+        <label>
           Portfolio Filter
           <select
             [ngModel]="selectedPortfolioId()"
@@ -132,9 +151,9 @@
             [disabled]="!selectedUserId() || loadingDrilldown()"
           >
             <option value="">All Portfolios</option>
-            @for (portfolio of portfolios(); track portfolio.portfolioId) {
+            @for (portfolio of filteredPortfolios(); track portfolio.portfolioId) {
               <option [value]="portfolio.portfolioId">
-                {{ portfolio.portfolioName }} ({{ portfolio.portfolioId }})
+                {{ formatPortfolioOption(portfolio) }}
               </option>
             }
           </select>
@@ -150,23 +169,31 @@
     <div class="grid-two">
       <article class="subpanel">
         <h3>Holdings</h3>
-        <div class="list">
-          @for (holding of holdings(); track getHoldingId(holding)) {
-            <button
-              type="button"
-              class="list-item"
-              [class.selected]="selectedHoldingId() === getHoldingId(holding)"
-              (click)="selectHolding(getHoldingId(holding))"
-            >
-              <strong>Holding {{ getHoldingId(holding) }}</strong>
-              <span class="muted">Portfolio: {{ getPortfolioId(holding) }}</span>
-              <span class="muted">Instrument: {{ getInstrumentId(holding) }}</span>
-              <span>Qty: {{ holding.currentQuantity }}</span>
-            </button>
-          } @empty {
-            <p class="muted">No holdings found.</p>
-          }
-        </div>
+        <label>
+          Filter Holdings
+          <input
+            type="text"
+            [ngModel]="holdingPickerQuery()"
+            (ngModelChange)="holdingPickerQuery.set($event)"
+            placeholder="Filter by holding, portfolio, or instrument ID"
+          />
+        </label>
+
+        <label>
+          Holding
+          <select
+            [ngModel]="selectedHoldingId()"
+            (ngModelChange)="selectHolding($event)"
+            [disabled]="loadingDrilldown() || filteredHoldings().length === 0"
+          >
+            <option value="">Select Holding</option>
+            @for (holding of filteredHoldings(); track getHoldingId(holding)) {
+              <option [value]="getHoldingId(holding)">{{ formatHoldingOption(holding) }}</option>
+            }
+          </select>
+        </label>
+
+        <p class="muted">Showing {{ filteredHoldings().length }} of {{ holdings().length }} holdings.</p>
       </article>
 
       <article class="subpanel">
@@ -249,12 +276,12 @@
   <section class="panel">
     <h2>Order Log Timeline</h2>
     <p class="panel-help">
-      Day-based search with optional filters. Timeline is grouped by order ID and sorted by latest event.
+      Optional date filter plus additional filters. Timeline is grouped by order ID and sorted by latest event.
     </p>
 
     <div class="form-grid form-grid-wide">
       <label>
-        Date (required)
+        Date (optional)
         <input
           type="date"
           [ngModel]="orderLogForm().date"
@@ -297,6 +324,36 @@
           (ngModelChange)="orderLogForm.set({ ...orderLogForm(), ticker: $event })"
           placeholder="optional"
         />
+      </label>
+
+      <label>
+        Instrument ID
+        <input
+          type="text"
+          [ngModel]="instrumentPickerQuery()"
+          (ngModelChange)="instrumentPickerQuery.set($event)"
+          placeholder="Filter instruments by ticker or name"
+        />
+        <select
+          [ngModel]="orderLogForm().instrumentId"
+          (ngModelChange)="orderLogForm.set({ ...orderLogForm(), instrumentId: $event })"
+        >
+          <option value="">All Instruments</option>
+          @for (instrument of filteredInstruments(); track instrument.instrumentId) {
+            <option [value]="instrument.instrumentId">
+              {{ formatInstrumentOption(instrument) }}
+            </option>
+          }
+        </select>
+        <span class="muted">
+          Showing {{ filteredInstruments().length }} of {{ instruments().length }} instruments
+          @if (loadingInstruments()) {
+            (loading...)
+          }
+        </span>
+        <button type="button" class="ghost" [disabled]="loadingInstruments()" (click)="loadInstruments()">
+          Reload Instruments
+        </button>
       </label>
 
       <label>

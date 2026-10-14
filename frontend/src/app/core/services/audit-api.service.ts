@@ -53,9 +53,10 @@ export interface AuditPaging {
 
 export interface AuditOrderLogSearchRequest extends AuditPaging {
   userId?: string;
-  date: string;
+  date?: string;
   status?: OrderStatus;
   ticker?: string;
+  instrumentId?: string;
   instrumentType?: InstrumentClass;
 }
 
@@ -84,7 +85,11 @@ export class AuditApiService {
   }
 
   searchOrderLogs(request: AuditOrderLogSearchRequest): Promise<OrderLogResponse[]> {
-    let params = new HttpParams().set('date', request.date);
+    let params = new HttpParams();
+
+    if (request.date?.trim()) {
+      params = params.set('date', request.date.trim());
+    }
 
     if (request.userId) {
       params = params.set('userId', request.userId);
@@ -96,6 +101,10 @@ export class AuditApiService {
 
     if (request.ticker?.trim()) {
       params = params.set('ticker', request.ticker.trim());
+    }
+
+    if (request.instrumentId?.trim()) {
+      params = params.set('instrumentId', request.instrumentId.trim());
     }
 
     if (request.instrumentType) {

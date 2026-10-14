@@ -132,11 +132,12 @@ public interface OrderLogRepository extends JpaRepository<OrderLog, UUID> {
         @Query("""
             SELECT o
             FROM OrderLog o
-            WHERE o.timestamp >= :start
-                AND o.timestamp < :end
+            WHERE (:start IS NULL OR o.timestamp >= :start)
+                AND (:end IS NULL OR o.timestamp < :end)
                 AND (:userId IS NULL OR o.portfolio.profile.userId = :userId)
                 AND (:status IS NULL OR o.status = :status)
                 AND (:ticker IS NULL OR UPPER(o.instrument.ticker) = UPPER(:ticker))
+                AND (:instrumentId IS NULL OR o.instrument.instrumentId = :instrumentId)
                 AND (:instrumentType IS NULL OR o.instrument.instrumentClass = :instrumentType)
             ORDER BY o.timestamp DESC, o.logOrderID DESC
             """)
@@ -146,6 +147,7 @@ public interface OrderLogRepository extends JpaRepository<OrderLog, UUID> {
             @Param("end") LocalDateTime end,
             @Param("status") OrderStatus status,
             @Param("ticker") String ticker,
+            @Param("instrumentId") UUID instrumentId,
             @Param("instrumentType") InstrumentClass instrumentType,
             Pageable pageable
         );
