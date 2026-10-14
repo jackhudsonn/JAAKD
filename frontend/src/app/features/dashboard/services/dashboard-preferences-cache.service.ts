@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { DASHBOARD_PREFERENCES_CACHE_PREFIX } from '@core/constants/dashboard-preferences.constants';
 
 export interface DashboardPreferencesCacheEntry {
   version: 1;
@@ -14,8 +15,7 @@ export interface DashboardPreferencesCacheEntry {
 export class DashboardPreferencesCacheService {
   private static readonly CACHE_VERSION = 1;
   private static readonly TTL_MS = 30 * 60 * 1000;
-  private static readonly CACHE_PREFIX = 'jaakd.dashboard.preferences.v1.';
-
+  
   read(portfolioId: string): DashboardPreferencesCacheEntry | null {
     const storage = this.getSessionStorage();
     if (!storage) {
