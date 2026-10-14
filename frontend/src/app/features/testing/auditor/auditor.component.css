@@ -101,6 +101,11 @@ select {
   color: var(--text-primary);
 }
 
+select option {
+  color: #111827;
+  background: #ffffff;
+}
+
 input::placeholder {
   color: #c4c9c7;
 }
