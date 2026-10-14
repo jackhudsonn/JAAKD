@@ -7,7 +7,7 @@ pipeline {
 
     parameters {
         choice(name: 'DEPLOY_ENVIRONMENT', choices: ['dev', 'prod'], description: 'Select the environment')
-        string(name: 'BRANCH', defaultValue: 'main', description: 'Branch to deploy. Prod will deploy from main only.')
+        string(name: 'BRANCH', description: 'Branch to deploy. Prod must deploy from main only.')
     }
 
     environment {
