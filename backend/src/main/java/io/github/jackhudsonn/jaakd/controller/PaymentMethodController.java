@@ -65,10 +65,12 @@ public class PaymentMethodController {
     }
 
     private String maskLast4(String value) {
-        if (value == null || value.length() < 4) {
+        final int NON_MASKED_LENGTH = 4;
+        
+        if (value == null || value.length() < NON_MASKED_LENGTH) {
             return "";
         }
 
-        return value.substring(value.length() - 4);
+        return value.substring(value.length() - NON_MASKED_LENGTH);
     }
 }
