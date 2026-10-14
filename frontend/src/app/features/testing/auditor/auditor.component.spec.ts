@@ -222,6 +222,7 @@ describe('AuditorComponent', () => {
         details: {
           type: 'db_schema_mismatch',
           hint: 'Convert affected columns to TEXT.',
+          cause: 'function upper(bytea) does not exist',
         },
       },
     }));
@@ -229,6 +230,6 @@ describe('AuditorComponent', () => {
 
     await component.refreshSummaries();
 
-    expect(component.errorMessage()).toContain('Database error (db_schema_mismatch): Convert affected columns to TEXT.');
+    expect(component.errorMessage()).toContain('Database error (db_schema_mismatch): Convert affected columns to TEXT. Cause: function upper(bytea) does not exist');
   });
 });
