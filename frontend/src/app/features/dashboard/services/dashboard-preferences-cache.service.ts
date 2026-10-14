@@ -48,7 +48,11 @@ export class DashboardPreferencesCacheService {
         savedAt: parsed.savedAt,
         dirty: parsed.dirty,
       };
-    } catch {
+    } catch (error) {
+      console.warn('DashboardPreferencesCacheService.read failed to parse cached preferences', {
+        portfolioId,
+        error,
+      });
       return null;
     }
   }
@@ -61,7 +65,11 @@ export class DashboardPreferencesCacheService {
 
     try {
       storage.setItem(this.cacheKey(entry.portfolioId), JSON.stringify(entry));
-    } catch {
+    } catch (error) {
+      console.warn('DashboardPreferencesCacheService.write failed to persist cache entry', {
+        portfolioId: entry.portfolioId,
+        error,
+      });
       // Non-fatal: persistence is best effort.
     }
   }
@@ -106,7 +114,8 @@ export class DashboardPreferencesCacheService {
       }
 
       return globalThis.sessionStorage;
-    } catch {
+    } catch (error) {
+      console.warn('DashboardPreferencesCacheService.getSessionStorage unavailable', { error });
       return null;
     }
   }
