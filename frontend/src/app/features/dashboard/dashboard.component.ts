@@ -8,13 +8,13 @@ import {
   viewChildren,
 } from '@angular/core';
 import { WidgetSelectorComponent } from './components/widget-selector/widget-selector.component';
-import { PortfolioValueWidgetComponent } from './widgets/portfolio-value/portfolio-value.component';
-import { OpenOrdersWidgetComponent } from './widgets/open-orders/open-orders.component';
-import { WatchlistWidgetComponent } from './widgets/watchlist/watchlist.component';
-import { TopMoversWidgetComponent } from './widgets/top-movers/top-movers.component';
-import { AllocationByAssetWidgetComponent } from './widgets/allocation-by-asset/allocation-by-asset.component';
-import { PerformanceGraphWidgetComponent } from './widgets/performance-graph/performance-graph.component';
-import { ToBeDeletedWidgetComponent } from './widgets/to-be-deleted/to-be-deleted.component';
+import { PortfolioValueWidgetComponent } from './cards/portfolio-value/portfolio-value.component';
+import { OpenOrdersWidgetComponent } from './cards/open-orders/open-orders.component';
+import { WatchlistWidgetComponent } from './cards/watchlist/watchlist.component';
+import { TopMoversWidgetComponent } from './cards/top-movers/top-movers.component';
+import { AllocationByAssetWidgetComponent } from './cards/allocation-by-asset/allocation-by-asset.component';
+import { PerformanceGraphWidgetComponent } from './cards/performance-graph/performance-graph.component';
+import { ToBeDeletedWidgetComponent } from './cards/to-be-deleted/to-be-deleted.component';
 import { DashboardOverlaysComponent } from './components/overlays/dashboard-overlays.component';
 import { WidgetId, WIDGET_CATALOGUE } from './components/widget-selector/widget-selector.component';
 import { DASHBOARD_STATE_PORT } from '@features/dashboard/services/dashboard-state.port';

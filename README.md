@@ -17,16 +17,16 @@ The whole application runs in Docker: the frontend dev server, backend, database
 cp .env.example .env
 ```
 
-Set both values in `.env`, using a different long random value for each (generate one with `openssl rand -hex 32`):
+`.env` is the single values file:
 
-- `POSTGRES_PASSWORD`
-- `JAAKD_APP_DB_PASSWORD`
+- `POSTGRES_PASSWORD` — the Postgres superuser password.
+- `JAAKD_APP_DB_PASSWORD` — the application-role password.
+- `IDENTITY_PROVIDER` — the identity provider adapter. Only `development` is implemented today.
+- `AUTH_COOKIE_SECURE` — whether the session cookie is sent only over HTTPS.
 
-Never commit `.env`. After pulling, compare it with `.env.example` and add any new settings.
+Generate each password with `openssl rand -hex 32` and never commit `.env`. After pulling, compare it with `.env.example` and add any new settings.
 
 Postgres reads these passwords only when it first creates the database. If you change them later, run `docker-compose down -v` and start again (see "Stop or reset").
-
-`backend/.env` is only used when running the backend outside Docker (for example from an IDE). Docker Compose does not read it. To use it, copy `backend/.env.example` and set `SPRING_DATASOURCE_PASSWORD` to the same value as `JAAKD_APP_DB_PASSWORD`.
 
 ### 2) Start the stack (on the Docker host)
 

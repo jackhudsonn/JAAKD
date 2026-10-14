@@ -1,6 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { AllocationAssetSelection } from '@features/dashboard/widgets/allocation-by-asset/allocation-by-asset.component';
+import { AllocationAssetSelection } from '@features/dashboard/cards/allocation-by-asset/allocation-by-asset.component';
 import { AllocationAssetOverlayComponent } from './allocation-by-asset/allocation-asset-overlay.component';
 import { DashboardWatchlistOverlayFacade } from './watchlist/dashboard-watchlist-overlay.facade';
 import { WatchlistDialogOverlaysComponent } from './watchlist/watchlist-dialog-overlays.component';
