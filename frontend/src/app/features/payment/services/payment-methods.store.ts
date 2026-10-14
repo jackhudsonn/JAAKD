@@ -83,12 +83,7 @@ export class PaymentMethodsStore {
     this.methodState.update((methods) => [nextMethod, ...methods]);
   }
 
-  addDebitCard(input: {
-    nickname: string;
-    cardNumber: string;
-    expMonth: string;
-    expYear: string;
-  }) {
+  addDebitCard(input: { nickname: string; cardNumber: string; expMonth: string; expYear: string }) {
     const cardDigits = input.cardNumber.replace(/\D/g, '');
     const cardBrand = this.detectCardBrand(cardDigits);
 
@@ -107,11 +102,7 @@ export class PaymentMethodsStore {
     this.methodState.update((methods) => [nextMethod, ...methods]);
   }
 
-  addCryptoWallet(input: {
-    nickname: string;
-    network: string;
-    walletAddress: string;
-  }) {
+  addCryptoWallet(input: { nickname: string; network: string; walletAddress: string }) {
     const walletAddress = input.walletAddress.trim();
 
     const nextMethod: StoredCryptoWallet = {

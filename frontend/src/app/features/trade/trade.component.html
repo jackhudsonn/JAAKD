@@ -9,7 +9,6 @@
     <p class="page-description">We couldn't load your trade data. Try again.</p>
     <button type="button" class="btn btn-secondary" (click)="retryLoad()">Retry</button>
   } @else {
-
     <section class="trade-grid">
       <app-trade-card (selectSymbol)="openAsset($event, false)" />
 

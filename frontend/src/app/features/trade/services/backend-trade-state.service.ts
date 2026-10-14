@@ -1,6 +1,10 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Injectable, signal } from '@angular/core';
-import { InstrumentResponse, OrderLogResponse, WatchlistItemResponse } from '@core/models/api.models';
+import {
+  InstrumentResponse,
+  OrderLogResponse,
+  WatchlistItemResponse,
+} from '@core/models/api.models';
 import { Holding, Order } from '@core/models';
 import { WATCHLIST_CONSTRAINTS } from '@core/mocks/watchlist.mock';
 import { HoldingApiService } from '@core/services/holding-api.service';
@@ -96,7 +100,10 @@ export class BackendTradeStateService implements TradeStatePort {
 
     for (let attempt = 0; attempt < 30; attempt += 1) {
       const order = this.orders().find((entry) => entry.id === orderId);
-      if (order && (order.status === 'filled' || order.status === 'cancelled' || order.status === 'rejected')) {
+      if (
+        order &&
+        (order.status === 'filled' || order.status === 'cancelled' || order.status === 'rejected')
+      ) {
         return;
       }
 

@@ -1,3 +1,5 @@
+x-jaakd-app-db-password: &jaakd-app-db-password ${JAAKD_APP_DB_PASSWORD:?JAAKD_APP_DB_PASSWORD is required}
+
 services:
   jaakd-postgres:
     image: postgres:16
@@ -6,8 +8,8 @@ services:
     environment:
       POSTGRES_DB: jaakd
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      JAAKD_APP_DB_PASSWORD: ${JAAKD_APP_DB_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      JAAKD_APP_DB_PASSWORD: *jaakd-app-db-password
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d jaakd"]
       interval: 5s
@@ -36,12 +38,12 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://jaakd-postgres:5432/jaakd
       SPRING_DATASOURCE_USERNAME: jaakd_app
-      SPRING_DATASOURCE_PASSWORD: ${JAAKD_APP_DB_PASSWORD}
+      SPRING_DATASOURCE_PASSWORD: *jaakd-app-db-password
       SPRING_KAFKA_BOOTSTRAP_SERVERS: jaakd-kafka:9092
-      IDENTITY_PROVIDER: development
-      AUTH_COOKIE_SECURE: "false"
-      FAUXNANCE_BASE_URL: ${FAUXNANCE_BASE_URL}
-      FAUXNANCE_API_KEY: ${FAUXNANCE_API_KEY}
+      IDENTITY_PROVIDER: ${IDENTITY_PROVIDER:?IDENTITY_PROVIDER is required}
+      AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:?AUTH_COOKIE_SECURE is required}
+      FAUXNANCE_BASE_URL: ${FAUXNANCE_BASE_URL:?FAUXNANCE_BASE_URL is required}
+      FAUXNANCE_API_KEY: ${FAUXNANCE_API_KEY:?FAUXNANCE_API_KEY is required}
     ports:
       # Bound to all interfaces on purpose: the backend is reached directly by
       # IP from other machines (a remote frontend, pgAdmin, a peer's browser),
@@ -74,7 +76,11 @@ services:
     container_name: jaakd-kafka
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1"]
+      test:
+        [
+          "CMD-SHELL",
+          "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1",
+        ]
       interval: 10s
       timeout: 10s
       retries: 12

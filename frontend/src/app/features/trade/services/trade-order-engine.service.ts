@@ -31,7 +31,10 @@ export class TradeOrderEngineService {
   );
 
   readonly historyOrders = computed(() =>
-    this.ordersState().filter((order) => order.status === 'filled' || order.status === 'cancelled' || order.status === 'rejected'),
+    this.ordersState().filter(
+      (order) =>
+        order.status === 'filled' || order.status === 'cancelled' || order.status === 'rejected',
+    ),
   );
 
   isKnownAssetSymbol(symbol: string): boolean {
@@ -109,7 +112,8 @@ export class TradeOrderEngineService {
         }
       } else if (order.status === 'open' && order.limitPrice !== undefined) {
         const price = this.marketData.getPrice(order.symbol);
-        const crossed = order.type === 'buy' ? price <= order.limitPrice : price >= order.limitPrice;
+        const crossed =
+          order.type === 'buy' ? price <= order.limitPrice : price >= order.limitPrice;
         if (crossed) {
           this.fillOrder(order.id, order.limitPrice);
         }

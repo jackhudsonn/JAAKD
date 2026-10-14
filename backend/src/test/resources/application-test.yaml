@@ -1,19 +1,24 @@
 spring:
-    datasource:
-        url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1
-        driver-class-name: org.h2.Driver
-        username: sa
-        password:
-    jpa:
-        hibernate:
-            ddl-auto: create-drop
-        properties:
-            hibernate:
-                default_schema: PUBLIC
-                globally_quoted_identifiers: true
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        default_schema: PUBLIC
+        globally_quoted_identifiers: true
+  kafka:
+    listener:
+      auto-startup: false
+    admin:
+      auto-create: false
 identity:
-    provider: development
+  provider: development
 auth:
-    session:
-        cookie:
-            secure: false
+  session:
+    cookie:
+      secure: false

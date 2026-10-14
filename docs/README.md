@@ -60,12 +60,13 @@ Angular frontend for JAAKD.
 
 ## Development setup
 
-Running the backend outside Docker uses a separate `backend/.env` (loaded by `spring.config.import`), because a host process reaches Postgres on `localhost:5433` rather than the compose service name.
+The backend is expected to run in Docker, where Compose supplies its configuration as environment variables. Running it on the host is a convenience: `spring.config.import` reads the `.env` in the project directory for `IDENTITY_PROVIDER` and `AUTH_COOKIE_SECURE`, and the run environment supplies the datasource, because a host process reaches Postgres on `localhost:5433` rather than the compose service name.
 
 ### Backend (without Docker)
 
+The `.env` in the project directory must exist. `spring-boot:run` reads it for `IDENTITY_PROVIDER` and `AUTH_COOKIE_SECURE`; set `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, and `SPRING_DATASOURCE_PASSWORD` in the run environment (`jdbc:postgresql://localhost:5433/jaakd`, `jaakd_app`, and the `JAAKD_APP_DB_PASSWORD` value).
+
 ```powershell
-copy .env.example .env
 ./mvnw spring-boot:run
 ```
 
@@ -97,22 +98,24 @@ Tables are under **Databases > jaakd > Schemas > public > Tables**. `jaakd_app` 
 
 ### Docker (compose)
 
-`docker-compose.yml` reads the two secrets from the root `.env`:
+`.env` is the single values file:
 
-- `POSTGRES_PASSWORD` — Postgres superuser password.
-- `JAAKD_APP_DB_PASSWORD` — application-role password.
+- `POSTGRES_PASSWORD` — the Postgres superuser password.
+- `JAAKD_APP_DB_PASSWORD` — the application-role password.
+- `IDENTITY_PROVIDER` — the identity provider adapter. Only `development` is implemented today.
+- `AUTH_COOKIE_SECURE` — whether the session cookie is sent only over HTTPS.
 
-Everything else is fixed in `docker-compose.yml` and can't be set from `.env`: the database `jaakd`, the role `jaakd_app`, the published Postgres port `5433`, the backend's datasource URL on the internal network, and `IDENTITY_PROVIDER` / `AUTH_COOKIE_SECURE`.
+Everything else is fixed in `docker-compose.yml` and can't be set from `.env`: the database `jaakd`, the role `jaakd_app`, the published Postgres port `5433`, and the backend's datasource URL and username on the internal network.
 
 ### Local (backend without Docker)
 
-The backend loads `backend/.env` via `spring.config.import`; container environment variables override it. Because the process runs on the host, it must be told where Postgres is:
+The backend loads the `.env` in the project directory via `spring.config.import`; container environment variables override it. Because the process runs on the host, the datasource must be supplied in the run environment:
 
 - `SPRING_DATASOURCE_URL` (e.g. `jdbc:postgresql://localhost:5433/jaakd`)
-- `SPRING_DATASOURCE_USERNAME`
-- `SPRING_DATASOURCE_PASSWORD`
-- `IDENTITY_PROVIDER` (only `development` is implemented)
-- `AUTH_COOKIE_SECURE` (required; `true` behind HTTPS, `false` for local HTTP)
+- `SPRING_DATASOURCE_USERNAME` (`jaakd_app`)
+- `SPRING_DATASOURCE_PASSWORD` (the `JAAKD_APP_DB_PASSWORD` value)
+
+`IDENTITY_PROVIDER` and `AUTH_COOKIE_SECURE` are read from `.env`.
 
 ### Frontend environment
 
@@ -124,6 +127,13 @@ Every environment file sets `apiUrl` to empty, so the frontend calls its own ori
 ## Backend
 
 API docs: `http://localhost:8081/swagger-ui.html`.
+
+### Demo user creation
+To avoid manually setting up a user account (signing in, adding bank accounts, adding funds, buying/selling instruments, etc) when spinning up a fresh db, run the command below in root. Copy any of the three credentials from your terminal directly. There is a newbie, intermediate, and pro user; the newbie user has a couple of trades and pro has more of a history (many trades, multiple watchlists, etc). 
+
+```bash
+node scripts/seed-demo-users.js
+```
 
 ### Useful commands
 
@@ -157,4 +167,4 @@ java -jar target\backend-0.0.1-SNAPSHOT.jar
 
 ## Needs improvement
 
-- The datasource is configured differently per path. On the host, `backend/.env` supplies `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, and `SPRING_DATASOURCE_PASSWORD`. In the compose path those same values are literals in `docker-compose.yml`, so `.env` can only change the passwords. Interpolating them with defaults (`${POSTGRES_DB:-jaakd}`, `${JAAKD_DB_PORT:-5433}`) would let both paths read from one place; until then, changing them means editing `docker-compose.yml`.
+- `application.yaml` does not distinguish configurable from fixed values: `IDENTITY_PROVIDER` and `AUTH_COOKIE_SECURE` are genuine deployment choices, while `server.port`, the session TTL, and the CORS default are assumed by the frontend and by source. Separating the two is a follow-up.

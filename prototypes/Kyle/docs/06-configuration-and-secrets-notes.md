@@ -6,10 +6,9 @@ This note covers how the stack's configuration is supplied — the datasource in
 particular — and how secrets should be handled once the project moves past
 local development.
 
-Status: documented only. `docker-compose.yml` is deliberately unchanged; the
-gap is recorded under "Needs improvement" in `docs/README.md` so it can be
-resolved later. An incoming pull request touches the same area, so this note
-holds the reasoning rather than the edit.
+Status: superseded. The environment files were consolidated into a single
+`.env` in the project directory; the sections below are kept for the reasoning
+that preceded that change.
 
 ## The problem
 

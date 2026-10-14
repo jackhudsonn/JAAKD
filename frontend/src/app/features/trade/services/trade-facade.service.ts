@@ -1,9 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { Order } from '@core/models';
-import {
-  TradeOrderEngineService,
-  TradePlaceOrderRequest,
-} from './trade-order-engine.service';
+import { TradeOrderEngineService, TradePlaceOrderRequest } from './trade-order-engine.service';
 import {
   TradeSetWatchlistMembershipRequest,
   TradeWatchlistOption,

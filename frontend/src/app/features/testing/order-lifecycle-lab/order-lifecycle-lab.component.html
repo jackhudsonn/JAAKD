@@ -62,7 +62,10 @@
 
       <label>
         Cash Instrument
-        <select [ngModel]="selectedCashInstrumentId()" (ngModelChange)="selectedCashInstrumentId.set($event)">
+        <select
+          [ngModel]="selectedCashInstrumentId()"
+          (ngModelChange)="selectedCashInstrumentId.set($event)"
+        >
           @for (instrument of cashInstruments(); track instrument.instrumentId) {
             <option [value]="instrument.instrumentId">
               {{ instrument.ticker }} - {{ instrument.name }}
@@ -87,7 +90,9 @@
 
     <div class="quick-context">
       <span>Active portfolio: {{ selectedPortfolioName() }}</span>
-      <span>Active instrument: {{ selectedInstrumentTicker() }} - {{ selectedInstrumentName() }}</span>
+      <span
+        >Active instrument: {{ selectedInstrumentTicker() }} - {{ selectedInstrumentName() }}</span
+      >
       <span>Order log rows: {{ orderLogs().length }}</span>
       <span>Holdings rows: {{ holdings().length }}</span>
     </div>
@@ -299,7 +304,12 @@
       </label>
 
       <div class="button-row">
-        <button type="button" class="primary" [disabled]="submittingOrder()" (click)="placeOrderLog()">
+        <button
+          type="button"
+          class="primary"
+          [disabled]="submittingOrder()"
+          (click)="placeOrderLog()"
+        >
           {{ submittingOrder() ? 'Submitting...' : 'Submit Order Log' }}
         </button>
 
@@ -501,7 +511,9 @@
                   {{ order.side }} {{ order.quantity }} - Instrument {{ order.instrumentId }}
                 </p>
               </div>
-              <span class="status-chip status-{{ order.latestStatus.toLowerCase() }}">{{ order.latestStatus }}</span>
+              <span class="status-chip status-{{ order.latestStatus.toLowerCase() }}">{{
+                order.latestStatus
+              }}</span>
             </div>
 
             <div class="status-steps">

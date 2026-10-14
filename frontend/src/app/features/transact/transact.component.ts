@@ -1,9 +1,12 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { MoveFundsFormComponent } from './cards/move-funds-card/move-funds.component';
-import { TransactionHistoryComponent } from './cards/transaction-history-card/transaction-history.component';
-import { CurrencyExchangeComponent } from './cards/currency-exchange-card/currency-exchange.component';
+import { MoveFundsFormComponent } from './cards/move-funds/move-funds.component';
+import { TransactionHistoryComponent } from './cards/transaction-history/transaction-history.component';
+import { CurrencyExchangeComponent } from './cards/currency-exchange/currency-exchange.component';
 import { Deposit, Withdrawal } from '@core/models';
-import { ExchangeRequest, TransactFacadeService } from '@features/transact/services/transact-facade.service';
+import {
+  ExchangeRequest,
+  TransactFacadeService,
+} from '@features/transact/services/transact-facade.service';
 import { TRANSACT_STATE_PORT } from './services/transact-state.port';
 import { BackendTransactStateService } from './services/backend-transact-state.service';
 import { TransactOperationsService } from './services/transact-operations.service';

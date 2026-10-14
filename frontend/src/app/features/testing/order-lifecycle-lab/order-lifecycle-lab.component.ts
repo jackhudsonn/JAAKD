@@ -238,7 +238,9 @@ export class OrderLifecycleLabComponent implements OnInit, OnDestroy {
           latestTimestamp: latest.timestamp,
         };
       })
-      .sort((a, b) => new Date(b.latestTimestamp).getTime() - new Date(a.latestTimestamp).getTime());
+      .sort(
+        (a, b) => new Date(b.latestTimestamp).getTime() - new Date(a.latestTimestamp).getTime(),
+      );
   });
 
   readonly selectedPortfolioName = computed(() => {
@@ -710,7 +712,10 @@ export class OrderLifecycleLabComponent implements OnInit, OnDestroy {
 
     try {
       await firstValueFrom(
-        this.http.post<OrderLogResponse>(`${environment.apiUrl}/api/order-logs/${orderId}/cancel`, {}),
+        this.http.post<OrderLogResponse>(
+          `${environment.apiUrl}/api/order-logs/${orderId}/cancel`,
+          {},
+        ),
       );
 
       await this.loadOrderLogs();
@@ -803,7 +808,9 @@ export class OrderLifecycleLabComponent implements OnInit, OnDestroy {
     }
 
     const rows = await firstValueFrom(
-      this.http.get<OrderLogResponse[]>(`${environment.apiUrl}/api/order-logs/portfolio/${portfolioId}`),
+      this.http.get<OrderLogResponse[]>(
+        `${environment.apiUrl}/api/order-logs/portfolio/${portfolioId}`,
+      ),
     );
 
     const sorted = [...(rows ?? [])].sort(

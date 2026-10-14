@@ -1,0 +1,85 @@
+<app-widget-card title="Watchlist">
+  <div widget-actions class="watchlist-actions">
+    <label class="sr-only" for="dashboard-watchlist-select">Active watchlist</label>
+    <select
+      id="dashboard-watchlist-select"
+      class="watchlist-select"
+      [value]="activeWatchlistId()"
+      (change)="onWatchlistChange($event)"
+      aria-label="Select watchlist"
+    >
+      @for (watchlist of watchlistOptions(); track watchlist.id) {
+        <option [value]="watchlist.id">{{ watchlist.name }}</option>
+      }
+    </select>
+
+    @if (!backendDataMode) {
+      <button
+        type="button"
+        class="watchlist-action-btn"
+        (click)="requestCreateWatchlist()"
+        aria-label="Create watchlist"
+        title="Create watchlist"
+      >
+        +
+      </button>
+
+      <button
+        type="button"
+        class="watchlist-action-btn"
+        (click)="requestEditWatchlist()"
+        aria-label="Edit watchlist"
+        title="Edit watchlist"
+      >
+        &#9998;
+      </button>
+    }
+  </div>
+
+  <app-scrollable-list
+    [items]="rows()"
+    [minHeight]="watchlistListMinHeight"
+    [maxHeight]="watchlistListMaxHeight"
+    [trackBy]="trackBySymbol"
+    emptyMessage="Your watchlist is empty."
+  >
+    <ng-template let-row>
+      <button type="button" class="listing-row" (click)="requestAssetDetails(row.symbol)">
+        <div class="watchlist-info">
+          <span class="symbol">{{ row.symbol }}</span>
+          <span class="name">{{ row.name }}</span>
+        </div>
+        <div class="price-stack">
+          @if (row.price === null) {
+            <span class="price">Price unavailable</span>
+          } @else {
+            <span class="price">{{ row.price | number: '1.2-2' }}</span>
+          }
+
+          @if (row.changePct !== null) {
+            <span
+              class="change"
+              [class.positive]="row.changePct >= 0"
+              [class.negative]="row.changePct < 0"
+            >
+              {{ row.changePct >= 0 ? '+' : '' }}{{ row.changePct | number: '1.2-2' }}%
+            </span>
+          }
+        </div>
+      </button>
+    </ng-template>
+  </app-scrollable-list>
+
+  <button
+    type="button"
+    class="watchlist-add-row"
+    [disabled]="!canAddSymbolToActive()"
+    (click)="requestAddAsset()"
+  >
+    Add +
+  </button>
+
+  <p class="watchlist-capacity">
+    {{ activeWatchlistSymbolCount() }}/{{ maxWatchlistHoldings }} items
+  </p>
+</app-widget-card>

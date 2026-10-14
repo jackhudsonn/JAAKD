@@ -1,9 +1,9 @@
 import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { TradeCardComponent } from './cards/trade-card/trade-card.component';
-import { HoldingsCardComponent } from './cards/holdings-card/holdings-card.component';
-import { OrdersCardComponent } from './cards/orders-card/orders-card.component';
+import { TradeCardComponent } from './cards/trade/trade-card.component';
+import { HoldingsCardComponent } from './cards/holdings/holdings-card.component';
+import { OrdersCardComponent } from './cards/orders/orders-card.component';
 import {
   AssetPopupComponent,
   AssetOrderPlaced,
@@ -63,8 +63,8 @@ export class TradeComponent implements OnInit, OnDestroy {
   activeOrderId = signal<string | null>(null);
 
   activeOrder = computed(() => this.tradeFacade.getOrderById(this.activeOrderId()));
-  activeAssetOwnedQuantity = computed(
-    () => this.tradeFacade.getOwnedQuantity(this.activeAssetSymbol()),
+  activeAssetOwnedQuantity = computed(() =>
+    this.tradeFacade.getOwnedQuantity(this.activeAssetSymbol()),
   );
   watchlistOptionsForActiveAsset = computed(() =>
     this.tradeFacade.getWatchlistOptionsForSymbol(this.activeAssetSymbol()),

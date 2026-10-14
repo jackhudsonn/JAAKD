@@ -100,6 +100,14 @@ CREATE TABLE IF NOT EXISTS watchlist_items (
   name TEXT
 );
 
+CREATE TABLE IF NOT EXISTS preferences (
+  "preferenceID" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  "portfolioID" UUID NOT NULL,
+  "dashboardWidgets" TEXT[] NOT NULL DEFAULT '{}',
+  "createdAt" TIMESTAMP NOT NULL DEFAULT now(),
+  "updatedAt" TIMESTAMP NOT NULL DEFAULT now()
+);
+
 -- 2) Constraints
 ALTER TABLE users
   ADD CONSTRAINT chk_users_email_not_blank
@@ -205,6 +213,15 @@ ALTER TABLE watchlist_items
   ADD CONSTRAINT fk_watchlist_items_instruments
   FOREIGN KEY ("instrumentID") REFERENCES instruments("instrumentID");
 
+ALTER TABLE preferences
+  ADD CONSTRAINT fk_preferences_portfolios
+  FOREIGN KEY ("portfolioID") REFERENCES portfolios("portfolioID")
+  ON DELETE CASCADE;
+
+ALTER TABLE preferences
+  ADD CONSTRAINT uq_preferences_portfolio
+  UNIQUE ("portfolioID");
+
 -- 3) Indexes
 CREATE INDEX idx_portfolios_userid ON portfolios ("userID");
 
@@ -226,6 +243,8 @@ CREATE INDEX idx_lot_matches_holding ON lot_matches ("holdingID");
 CREATE INDEX idx_watchlist_items_portfolioid ON watchlist_items ("portfolioID");
 CREATE INDEX idx_watchlist_items_instrumentid ON watchlist_items ("instrumentID");
 
+CREATE INDEX idx_preferences_portfolioid ON preferences ("portfolioID");
+
 -- 4) Grants
 REVOKE ALL ON ALL TABLES IN SCHEMA public FROM PUBLIC;
 
@@ -239,7 +258,8 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE
   "orderLogs",
   position_lots,
   lot_matches,
-  watchlist_items
+  watchlist_items,
+  preferences
 TO jaakd_app;
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE users, sessions TO jaakd_app;

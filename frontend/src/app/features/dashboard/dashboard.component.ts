@@ -8,23 +8,27 @@ import {
   viewChildren,
 } from '@angular/core';
 import { WidgetSelectorComponent } from './components/widget-selector/widget-selector.component';
-import { PortfolioValueWidgetComponent } from './widgets/portfolio-value/portfolio-value.component';
-import { OpenOrdersWidgetComponent } from './widgets/open-orders/open-orders.component';
-import { WatchlistWidgetComponent } from './widgets/watchlist/watchlist.component';
-import { TopMoversWidgetComponent } from './widgets/top-movers/top-movers.component';
-import { AllocationByAssetWidgetComponent } from './widgets/allocation-by-asset/allocation-by-asset.component';
-import { PerformanceGraphWidgetComponent } from './widgets/performance-graph/performance-graph.component';
-import { ToBeDeletedWidgetComponent } from './widgets/to-be-deleted/to-be-deleted.component';
+import { PortfolioValueWidgetComponent } from './cards/portfolio-value/portfolio-value.component';
+import { OpenOrdersWidgetComponent } from './cards/open-orders/open-orders.component';
+import { WatchlistWidgetComponent } from './cards/watchlist/watchlist.component';
+import { TopMoversWidgetComponent } from './cards/top-movers/top-movers.component';
+import { AllocationByAssetWidgetComponent } from './cards/allocation-by-asset/allocation-by-asset.component';
+import { PerformanceGraphWidgetComponent } from './cards/performance-graph/performance-graph.component';
+import { ToBeDeletedWidgetComponent } from './cards/to-be-deleted/to-be-deleted.component';
 import { DashboardOverlaysComponent } from './components/overlays/dashboard-overlays.component';
 import { WidgetId, WIDGET_CATALOGUE } from './components/widget-selector/widget-selector.component';
 import { DASHBOARD_STATE_PORT } from '@features/dashboard/services/dashboard-state.port';
 import { BackendDashboardStateService } from '@features/dashboard/services/backend-dashboard-state.service';
 import { DashboardWatchlistOverlayFacade } from './components/overlays/watchlist/dashboard-watchlist-overlay.facade';
+import { sanitizeDashboardWidgetIds } from './utils/dashboard-widget-preferences.util';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  providers: [{ provide: DASHBOARD_STATE_PORT, useExisting: BackendDashboardStateService }, DashboardWatchlistOverlayFacade,],
+  providers: [
+    { provide: DASHBOARD_STATE_PORT, useExisting: BackendDashboardStateService },
+    DashboardWatchlistOverlayFacade,
+  ],
   imports: [
     WidgetSelectorComponent,
     PortfolioValueWidgetComponent,
@@ -44,17 +48,16 @@ export class DashboardComponent implements OnInit {
 
   readonly overlays = viewChild(DashboardOverlaysComponent);
 
-  // TODO: persist widget selection + order (e.g. localStorage or a
-  // user-preferences API call) so it survives page reloads/sessions instead
-  // of resetting to the default set/order every time.
-  //
+  private readonly allowedWidgetOrder: WidgetId[] = WIDGET_CATALOGUE.map((widget) => widget.id);
+  private readonly defaultWidgetOrder: WidgetId[] = WIDGET_CATALOGUE.filter(
+    (widget) => widget.defaultEnabled,
+  ).map((widget) => widget.id);
+
   // Order matters here: this array drives the render order in the grid.
   // Removing a widget shifts the remaining ones up; adding a widget appends
   // it to the end, letting the user effectively choose widget order by
   // toggling widgets off and back on in the order they want.
-  selectedWidgets = signal<WidgetId[]>(
-    WIDGET_CATALOGUE.filter((widget) => widget.defaultEnabled).map((widget) => widget.id),
-  );
+  selectedWidgets = signal<WidgetId[]>([...this.defaultWidgetOrder]);
 
   // The list actually rendered in the grid. It mirrors `selectedWidgets` for
   // additions, but lags behind on removal so the exit animation can play
@@ -74,7 +77,7 @@ export class DashboardComponent implements OnInit {
   private static readonly REFLOW_EASING = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
 
   ngOnInit() {
-    void this.backendState.load();
+    void this.initializeDashboardState();
   }
 
   isEntering(id: WidgetId) {
@@ -92,6 +95,7 @@ export class DashboardComponent implements OnInit {
       // Update the logical selection immediately (so the widget-selector's
       // min/max checks are correct right away)...
       this.selectedWidgets.update((current) => current.filter((widgetId) => widgetId !== id));
+      this.persistWidgetPreferences();
 
       // ...but animate the card out before actually removing it from the
       // rendered list, so the grid reflows smoothly instead of snapping.
@@ -116,6 +120,7 @@ export class DashboardComponent implements OnInit {
     // "entering" for one frame so the CSS transition has a starting state
     // to animate from (scaled/faded in) before settling.
     this.selectedWidgets.update((current) => [...current, id]);
+    this.persistWidgetPreferences();
     this.animateWidgetReflow(() => {
       this.displayWidgets.update((current) => [...current, id]);
     });
@@ -190,5 +195,45 @@ export class DashboardComponent implements OnInit {
         );
       }
     });
+  }
+
+  private async initializeDashboardState() {
+    await this.backendState.load();
+
+    const persistedWidgets = this.backendState.dashboardWidgets?.();
+    if (!persistedWidgets) {
+      return;
+    }
+
+    const sanitized = sanitizeDashboardWidgetIds(
+      persistedWidgets as readonly unknown[],
+      this.allowedWidgetOrder,
+      this.defaultWidgetOrder,
+    );
+
+    this.selectedWidgets.set(sanitized);
+    this.displayWidgets.set([...sanitized]);
+
+    if (!this.areWidgetOrdersEqual(persistedWidgets, sanitized)) {
+      void this.backendState.setDashboardWidgets?.(sanitized);
+    }
+  }
+
+  private persistWidgetPreferences() {
+    void this.backendState.setDashboardWidgets?.(this.selectedWidgets());
+  }
+
+  private areWidgetOrdersEqual(left: readonly string[], right: readonly string[]) {
+    if (left.length !== right.length) {
+      return false;
+    }
+
+    for (let i = 0; i < left.length; i++) {
+      if (left[i] !== right[i]) {
+        return false;
+      }
+    }
+
+    return true;
   }
 }

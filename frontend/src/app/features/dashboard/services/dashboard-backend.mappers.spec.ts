@@ -312,11 +312,15 @@ describe('dashboard-backend.mappers', () => {
         createdAt: '2026-01-01T08:00:00.000Z',
       });
 
-      expect(result.find((transaction) => transaction.id === 'txn-withdraw')?.status).toBe('failed');
+      expect(result.find((transaction) => transaction.id === 'txn-withdraw')?.status).toBe(
+        'failed',
+      );
       expect(result.find((transaction) => transaction.id === 'txn-cancelled')?.status).toBe(
         'cancelled',
       );
-      expect(result.find((transaction) => transaction.id === 'txn-pending')?.status).toBe('pending');
+      expect(result.find((transaction) => transaction.id === 'txn-pending')?.status).toBe(
+        'pending',
+      );
     });
   });
 
