@@ -83,6 +83,10 @@ public class PreferenceService {
         Preference preference = getByPortfolio(portfolioId);
         List<String> sanitized = sanitizeWidgetIds(request.dashboardWidgets());
 
+        if (sanitized.equals(preference.getDashboardWidgets())) {
+            return preference;
+        }
+
         preference.setDashboardWidgets(sanitized);
         return preferenceRepository.save(preference);
     }
