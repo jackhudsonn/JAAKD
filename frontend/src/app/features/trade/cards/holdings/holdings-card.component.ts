@@ -1,4 +1,13 @@
-import { Component, OnDestroy, OnInit, computed, inject, input, output, signal } from '@angular/core';
+import {
+  Component,
+  OnDestroy,
+  OnInit,
+  computed,
+  inject,
+  input,
+  output,
+  signal,
+} from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -44,7 +53,7 @@ const HOLDINGS_FILTER_OPTIONS: { id: HoldingsFilter; label: string }[] = [
 export class HoldingsCardComponent implements OnInit, OnDestroy {
   private readonly marketData = inject(TRADE_MARKET_DATA_PORT);
   private readonly cashDisplayOrder = ['USD', 'EUR', 'INR'];
-  
+
   readonly holdingsListMinHeight = '255px';
   readonly holdingsListMaxHeight = '255px';
 

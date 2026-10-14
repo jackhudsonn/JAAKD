@@ -13,7 +13,10 @@ import {
 } from '@angular/core';
 import { DecimalPipe, TitleCasePipe } from '@angular/common';
 import { ModalComponent } from '@shared/components/modal/modal.component';
-import { LineChartComponent, LineChartPoint } from '@shared/components/line-chart/line-chart.component';
+import {
+  LineChartComponent,
+  LineChartPoint,
+} from '@shared/components/line-chart/line-chart.component';
 import {
   OrderFormComponent,
   OrderFormSubmit,
@@ -49,13 +52,7 @@ export interface AssetSetWatchlistMembershipRequest {
 @Component({
   selector: 'app-asset-popup',
   standalone: true,
-  imports: [
-    ModalComponent,
-    LineChartComponent,
-    OrderFormComponent,
-    DecimalPipe,
-    TitleCasePipe,
-  ],
+  imports: [ModalComponent, LineChartComponent, OrderFormComponent, DecimalPipe, TitleCasePipe],
   templateUrl: './asset-popup.component.html',
   styleUrl: './asset-popup.component.css',
 })
@@ -91,9 +88,9 @@ export class AssetPopupComponent implements OnInit, OnDestroy {
   });
   // TODO: replace market data adapter with an API-backed call like
   // GET /assets/{symbol}/performance?interval={interval}.
-  performanceSeries = computed<LineChartPoint[]>(() =>
-    [...this.marketData.getPerformanceSeries(this.symbol(), this.selectedInterval())],
-  );
+  performanceSeries = computed<LineChartPoint[]>(() => [
+    ...this.marketData.getPerformanceSeries(this.symbol(), this.selectedInterval()),
+  ]);
   watchlistMembershipCount = computed(
     () => this.watchlists().filter((watchlist) => watchlist.containsSymbol).length,
   );
@@ -131,10 +128,7 @@ export class AssetPopupComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (
-      this.watchlistDropdownOpen() &&
-      !this.elementRef.nativeElement.contains(target)
-    ) {
+    if (this.watchlistDropdownOpen() && !this.elementRef.nativeElement.contains(target)) {
       this.watchlistDropdownOpen.set(false);
     }
   }

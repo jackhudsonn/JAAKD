@@ -128,7 +128,9 @@ export class OrderLifecycleLabComponent implements OnInit, OnDestroy {
           latestTimestamp: latest.timestamp,
         };
       })
-      .sort((a, b) => new Date(b.latestTimestamp).getTime() - new Date(a.latestTimestamp).getTime());
+      .sort(
+        (a, b) => new Date(b.latestTimestamp).getTime() - new Date(a.latestTimestamp).getTime(),
+      );
   });
 
   readonly selectedPortfolioName = computed(() => {
@@ -137,10 +139,7 @@ export class OrderLifecycleLabComponent implements OnInit, OnDestroy {
   });
 
   readonly cashInstruments = computed(() =>
-    this.instruments().filter(
-      (instrument) =>
-        instrument.instrumentClass === 'CASH'
-    ),
+    this.instruments().filter((instrument) => instrument.instrumentClass === 'CASH'),
   );
 
   readonly selectedCashInstrumentId = signal('');
@@ -260,7 +259,9 @@ export class OrderLifecycleLabComponent implements OnInit, OnDestroy {
         this.selectedInstrumentId.set(created.instrumentId);
       }
 
-      this.statusMessage.set('Instrument created. You can now use it for order and watchlist tests.');
+      this.statusMessage.set(
+        'Instrument created. You can now use it for order and watchlist tests.',
+      );
       this.instrumentForm.set({
         ticker: '',
         market: payload.market,
@@ -456,7 +457,10 @@ export class OrderLifecycleLabComponent implements OnInit, OnDestroy {
 
     try {
       await firstValueFrom(
-        this.http.post<OrderLogResponse>(`${environment.apiUrl}/api/order-logs/${orderId}/cancel`, {}),
+        this.http.post<OrderLogResponse>(
+          `${environment.apiUrl}/api/order-logs/${orderId}/cancel`,
+          {},
+        ),
       );
 
       await this.loadOrderLogs();
@@ -504,7 +508,9 @@ export class OrderLifecycleLabComponent implements OnInit, OnDestroy {
     }
 
     const rows = await firstValueFrom(
-      this.http.get<OrderLogResponse[]>(`${environment.apiUrl}/api/order-logs/portfolio/${portfolioId}`),
+      this.http.get<OrderLogResponse[]>(
+        `${environment.apiUrl}/api/order-logs/portfolio/${portfolioId}`,
+      ),
     );
 
     const sorted = [...(rows ?? [])].sort(

@@ -72,7 +72,11 @@ services:
     container_name: jaakd-kafka
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1"]
+      test:
+        [
+          "CMD-SHELL",
+          "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1",
+        ]
       interval: 10s
       timeout: 10s
       retries: 12

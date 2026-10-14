@@ -33,5 +33,6 @@ export class WatchlistSearchOverlayComponent {
   watchlistInstrumentFilterChange = output<DashboardInstrumentFilter>();
   addSymbolToActiveWatchlist = output<string>();
 
-  protected readonly trackByWatchlistSearchSymbol = (row: DashboardWatchlistSearchRow) => row.asset.symbol;
+  protected readonly trackByWatchlistSearchSymbol = (row: DashboardWatchlistSearchRow) =>
+    row.asset.symbol;
 }

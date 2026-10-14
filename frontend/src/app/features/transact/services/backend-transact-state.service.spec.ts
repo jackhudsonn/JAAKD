@@ -158,7 +158,9 @@ describe('BackendTransactStateService', () => {
       quantity: 300,
     });
     expect(
-      service.transactions().some((transaction) => transaction.id === '11111111-1111-1111-1111-111111111111'),
+      service
+        .transactions()
+        .some((transaction) => transaction.id === '11111111-1111-1111-1111-111111111111'),
     ).toBe(true);
 
     randomUuidSpy.mockRestore();
@@ -261,8 +263,9 @@ describe('BackendTransactStateService', () => {
 
     await expect(movementPromise).resolves.toBeUndefined();
     expect(
-      service.transactions().find((transaction) => transaction.id === '33333333-3333-3333-3333-333333333333')
-        ?.status,
+      service
+        .transactions()
+        .find((transaction) => transaction.id === '33333333-3333-3333-3333-333333333333')?.status,
     ).toBe('pending');
 
     randomUuidSpy.mockRestore();

@@ -41,7 +41,6 @@ export interface OrderLogResponse {
   status: OrderStatus;
   executionPrice: number;
   quotedPrice: number | null;
-
 }
 
 export interface CreateOrderLogRequest {

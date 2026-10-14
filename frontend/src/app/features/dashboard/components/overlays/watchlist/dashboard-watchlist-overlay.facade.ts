@@ -103,7 +103,9 @@ export class DashboardWatchlistOverlayFacade {
           asset.name.toLowerCase().includes(query),
       )
       .map((asset) => {
-        const knownAsset = this.backendDataMode ? undefined : this.marketData.getAsset(asset.symbol);
+        const knownAsset = this.backendDataMode
+          ? undefined
+          : this.marketData.getAsset(asset.symbol);
         const numericPrice = knownAsset ? this.marketData.getPrice(asset.symbol) : null;
         const changePct =
           knownAsset && numericPrice !== null && knownAsset.basePrice > 0
@@ -151,7 +153,8 @@ export class DashboardWatchlistOverlayFacade {
     }
 
     const price = this.marketData.getPrice(symbol);
-    const changePct = asset.basePrice > 0 ? ((price - asset.basePrice) / asset.basePrice) * 100 : null;
+    const changePct =
+      asset.basePrice > 0 ? ((price - asset.basePrice) / asset.basePrice) * 100 : null;
     return {
       symbol,
       name: asset.name,

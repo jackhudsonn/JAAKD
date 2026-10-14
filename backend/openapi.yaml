@@ -1062,7 +1062,13 @@ paths:
             schema:
               $ref: "#/components/schemas/UpdatePreferencesRequest"
             example:
-              dashboardWidgets: [performance-graph, watchlist, portfolio-value, allocation-by-asset]
+              dashboardWidgets:
+                [
+                  performance-graph,
+                  watchlist,
+                  portfolio-value,
+                  allocation-by-asset,
+                ]
       responses:
         "200":
           description: Preferences updated
@@ -1361,7 +1367,8 @@ components:
       enum: [BUY, SELL, DEPOSIT, WITHDRAW]
     OrderStatus:
       type: string
-      enum: [SUBMITTED, PENDING, CANCELLED, ACCEPTED, REJECTED, EXECUTED, FAILED]
+      enum:
+        [SUBMITTED, PENDING, CANCELLED, ACCEPTED, REJECTED, EXECUTED, FAILED]
 
     # ---- holdings
     HoldingResponse:
