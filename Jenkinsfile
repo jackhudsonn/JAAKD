@@ -31,6 +31,19 @@ pipeline {
             }
         }
 
+        stage('Backend: Unit Tests') {
+            steps {
+                dir('backend') {
+                    sh 'chmod +x mvnw && ./mvnw -B clean verify'
+                }
+            }
+            post {
+                always {
+                    junit 'backend/target/surefire-reports/*.xml'
+                }
+            }
+        }
+
         stage('Backend: Static Code Analysis') {
             steps {
                 withSonarQubeEnv('SonarQube') {
@@ -48,19 +61,6 @@ pipeline {
                 }
 
                 input message: "ssh -N -L 9000:localhost:9000 <user>@<host> in Windows to access SonarQube Dashboard"
-            }
-        }
-
-        stage('Backend: Unit Tests') {
-            steps {
-                dir('backend') {
-                    sh 'chmod +x mvnw && ./mvnw -B clean verify'
-                }
-            }
-            post {
-                always {
-                    junit 'backend/target/surefire-reports/*.xml'
-                }
             }
         }
 
