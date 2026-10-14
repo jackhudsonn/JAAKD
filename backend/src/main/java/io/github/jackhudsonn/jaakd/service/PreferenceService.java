@@ -4,10 +4,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import io.github.jackhudsonn.jaakd.dto.UpdatePreferencesRequest;
-import io.github.jackhudsonn.jaakd.exception.PortfolioNotFoundException;
 import io.github.jackhudsonn.jaakd.model.Portfolio;
 import io.github.jackhudsonn.jaakd.model.Preference;
-import io.github.jackhudsonn.jaakd.repository.PortfolioRepository;
 import io.github.jackhudsonn.jaakd.repository.PreferenceRepository;
 import io.github.jackhudsonn.jaakd.security.CurrentUserService;
 
@@ -39,26 +37,24 @@ public class PreferenceService {
     );
 
     private static final int MIN_SELECTED_WIDGETS = 2;
-
     private final PreferenceRepository preferenceRepository;
-    private final PortfolioRepository portfolioRepository;
+    private final PreferenceRepository preferenceRepository;
     private final CurrentUserService currentUserService;
-
+    private final CurrentUserService currentUserService;
     public PreferenceService(
         PreferenceRepository preferenceRepository,
-        PortfolioRepository portfolioRepository,
+        PreferenceRepository preferenceRepository,
         CurrentUserService currentUserService
     ) {
         this.preferenceRepository = preferenceRepository;
-        this.portfolioRepository = portfolioRepository;
+        this.preferenceRepository = preferenceRepository;
         this.currentUserService = currentUserService;
     }
-
+    }
     @Transactional
     public Preference getByPortfolio(UUID portfolioId) {
         UUID userId = currentUserService.getUserId();
-        Portfolio portfolio = portfolioRepository.findOwnedByPortfolioId(portfolioId, userId)
-            .orElseThrow(() -> new PortfolioNotFoundException(portfolioId));
+        Portfolio portfolio = portfolioService.getCurrentUserPortfolioById(portfolioId);
 
         Optional<Preference> maybeExisting = preferenceRepository.findOwnedByPortfolioId(portfolioId, userId);
 
