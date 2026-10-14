@@ -1,8 +1,26 @@
 #!/usr/bin/env node
 
+const { execFileSync } = require("node:child_process");
 const { randomUUID } = require("node:crypto");
 
 const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8081";
+const AUDITOR_CONTAINER = process.env.AUDITOR_DB_CONTAINER || "jaakd-postgres";
+
+const AUDITOR_ACCOUNT = {
+  userId: "7d01f6ba-39bf-4f09-b6f8-4adcaef2f7f4",
+  email: "auditor@123.com",
+  password: "12345678",
+  profile: {
+    userType: 2,
+    firstName: "Dev",
+    lastName: "Auditor",
+    city: "Austin",
+    state: "TX",
+    country: "US",
+    zipCode: "73301",
+    username: "dev_auditor",
+  },
+};
 
 const USERS = [
   {
@@ -564,6 +582,95 @@ async function requestJson({
   };
 }
 
+function sqlLiteral(value) {
+  if (value === null || value === undefined) {
+    return "NULL";
+  }
+
+  return `'${String(value).replace(/'/g, "''")}'`;
+}
+
+function ensureAuditorAccount() {
+  const sql = `
+INSERT INTO users ("userID", email, roles)
+VALUES (
+  ${sqlLiteral(AUDITOR_ACCOUNT.userId)},
+  ${sqlLiteral(AUDITOR_ACCOUNT.email)},
+  '{AUDITOR}'
+)
+ON CONFLICT ("userID") DO UPDATE
+SET
+  email = EXCLUDED.email,
+  roles = EXCLUDED.roles;
+
+INSERT INTO profiles (
+  "userID",
+  "userType",
+  "firstName",
+  "lastName",
+  city,
+  state,
+  country,
+  "zipCode",
+  username,
+  avatar
+)
+VALUES (
+  ${sqlLiteral(AUDITOR_ACCOUNT.userId)},
+  ${AUDITOR_ACCOUNT.profile.userType},
+  ${sqlLiteral(AUDITOR_ACCOUNT.profile.firstName)},
+  ${sqlLiteral(AUDITOR_ACCOUNT.profile.lastName)},
+  ${sqlLiteral(AUDITOR_ACCOUNT.profile.city)},
+  ${sqlLiteral(AUDITOR_ACCOUNT.profile.state)},
+  ${sqlLiteral(AUDITOR_ACCOUNT.profile.country)},
+  ${sqlLiteral(AUDITOR_ACCOUNT.profile.zipCode)},
+  ${sqlLiteral(AUDITOR_ACCOUNT.profile.username)},
+  NULL
+)
+ON CONFLICT ("userID") DO UPDATE
+SET
+  "userType" = EXCLUDED."userType",
+  "firstName" = EXCLUDED."firstName",
+  "lastName" = EXCLUDED."lastName",
+  city = EXCLUDED.city,
+  state = EXCLUDED.state,
+  country = EXCLUDED.country,
+  "zipCode" = EXCLUDED."zipCode",
+  username = EXCLUDED.username,
+  avatar = EXCLUDED.avatar;
+
+INSERT INTO development_credentials ("userID", email, "passwordHash")
+VALUES (
+  ${sqlLiteral(AUDITOR_ACCOUNT.userId)},
+  ${sqlLiteral(AUDITOR_ACCOUNT.email)},
+  crypt(${sqlLiteral(AUDITOR_ACCOUNT.password)}, gen_salt('bf'))
+)
+ON CONFLICT (email) DO UPDATE
+SET
+  "userID" = EXCLUDED."userID",
+  "passwordHash" = EXCLUDED."passwordHash";
+`;
+
+  execFileSync(
+    "docker",
+    [
+      "exec",
+      "-i",
+      AUDITOR_CONTAINER,
+      "psql",
+      "-U",
+      "postgres",
+      "-d",
+      "jaakd",
+      "-v",
+      "ON_ERROR_STOP=1",
+      "-c",
+      sql,
+    ],
+    { stdio: "pipe", encoding: "utf8" },
+  );
+}
+
 function extractSessionCookie(headers) {
   const setCookie = headers.get("set-cookie");
 
@@ -887,17 +994,27 @@ async function seedScenario(scenario) {
 function printCredentials() {
   console.log("Demo user credentials:");
   console.table(
-    USERS.map((user) => ({
-      level: user.level,
-      email: user.email,
-      password: user.password,
-    })),
+    [
+      ...USERS.map((user) => ({
+        level: user.level,
+        email: user.email,
+        password: user.password,
+      })),
+      {
+        level: "auditor",
+        email: AUDITOR_ACCOUNT.email,
+        password: AUDITOR_ACCOUNT.password,
+      },
+    ],
   );
 }
 
 async function main() {
   console.log(`Seeding demo users using backend: ${BACKEND_URL}`);
   printCredentials();
+
+  ensureAuditorAccount();
+  console.log(`Auditor account seeded in ${AUDITOR_CONTAINER}.`);
 
   const summaries = [];
 
