@@ -6,6 +6,7 @@ import io.github.jackhudsonn.jaakd.exception.InvalidTradeException;
 import io.github.jackhudsonn.jaakd.exception.OrderCancellationConflictException;
 import io.github.jackhudsonn.jaakd.exception.OrderLogNotFoundException;
 import io.github.jackhudsonn.jaakd.exception.PortfolioNotFoundException;
+import io.github.jackhudsonn.jaakd.model.CashCurrency;
 import io.github.jackhudsonn.jaakd.model.Instrument;
 import io.github.jackhudsonn.jaakd.model.InstrumentClass;
 import io.github.jackhudsonn.jaakd.model.OrderLog;
@@ -206,7 +207,7 @@ class OrderLogServiceTest {
         Portfolio portfolio = new Portfolio(profile);
         setField(portfolio, "portfolioId", portfolioId);
 
-        Instrument instrument = new Instrument("AAPL", "NASDAQ", "Apple", InstrumentClass.EQUITY);
+        Instrument instrument = new Instrument("AAPL", "NASDAQ", "Apple", InstrumentClass.EQUITY, CashCurrency.USD);
         setField(instrument, "instrumentId", instrumentId);
 
         CreateOrderLogRequest request = new CreateOrderLogRequest(
@@ -247,7 +248,7 @@ class OrderLogServiceTest {
         Portfolio portfolio = new Portfolio(profile);
         setField(portfolio, "portfolioId", portfolioId);
 
-        Instrument instrument = new Instrument("AAPL", "NASDAQ", "Apple", InstrumentClass.EQUITY);
+        Instrument instrument = new Instrument("AAPL", "NASDAQ", "Apple", InstrumentClass.EQUITY, CashCurrency.USD);
         setField(instrument, "instrumentId", instrumentId);
 
         CreateOrderLogRequest request = new CreateOrderLogRequest(
@@ -448,7 +449,7 @@ class OrderLogServiceTest {
         Portfolio portfolio = new Portfolio(profile);
         setField(portfolio, "portfolioId", portfolioId);
 
-        Instrument instrument = new Instrument("AAPL", "NASDAQ", "Apple", InstrumentClass.EQUITY);
+        Instrument instrument = new Instrument("AAPL", "NASDAQ", "Apple", InstrumentClass.EQUITY, CashCurrency.USD);
         setField(instrument, "instrumentId", instrumentId);
 
         OrderLog orderLog = new OrderLog(UUID.randomUUID(), portfolio, instrument, side, quantity);

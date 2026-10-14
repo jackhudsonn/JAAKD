@@ -175,11 +175,12 @@ public class OrderLogService {
             }
         }
 
+        String reason = REASON_SUBMIT_PRICE_UNAVAILABLE;
         if (lastException != null) {
-            throw new InvalidTradeException(REASON_SUBMIT_PRICE_UNAVAILABLE + ": " + lastException.getMessage());
+            reason = reason + ": " + lastException.getMessage();
         }
-
-        throw new InvalidTradeException(REASON_SUBMIT_PRICE_UNAVAILABLE);
+        
+        throw new InvalidTradeException(reason);
     }
 
     @Transactional

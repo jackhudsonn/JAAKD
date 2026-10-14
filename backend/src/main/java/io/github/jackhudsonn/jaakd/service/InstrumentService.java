@@ -2,6 +2,7 @@ package io.github.jackhudsonn.jaakd.service;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.annotation.Validated;
 
 import io.github.jackhudsonn.jaakd.dto.CreateInstrumentRequest;
 import io.github.jackhudsonn.jaakd.dto.UpdateInstrumentRequest;
@@ -20,7 +21,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+
 @Service
+@Validated
 public class InstrumentService {
 
     private static final int MAX_QUOTES_BATCH_SIZE = 25;
@@ -37,18 +43,18 @@ public class InstrumentService {
         return instrumentRepository.findAll();
     }
 
-    public Instrument getInstrumentById(UUID instrumentId) {
+    public Instrument getInstrumentById(@NotNull UUID instrumentId) {
         return instrumentRepository.findById(instrumentId)
                 .orElseThrow(() -> new InstrumentNotFoundException(instrumentId));
     }
 
-    public Instrument getInstrumentByTicker(String ticker) {
+    public Instrument getInstrumentByTicker(@NotBlank String ticker) {
         return instrumentRepository.findByTickerIgnoreCase(ticker)
                 .orElseThrow(() -> new InstrumentNotFoundException(ticker));
     }
 
     @Transactional
-    public Instrument createInstrument(CreateInstrumentRequest request) {
+    public Instrument createInstrument(@NotNull CreateInstrumentRequest request) {
         // 1. Prevent duplicate tickers
         if (instrumentRepository.existsByTickerIgnoreCase(request.ticker())) {
             throw new InstrumentConflictException(request.ticker());
@@ -70,16 +76,13 @@ public class InstrumentService {
     }
 
     @Transactional
-    public Instrument updateInstrument(UUID instrumentId, UpdateInstrumentRequest request) {
+    public Instrument updateInstrument(@NotNull UUID instrumentId, @NotNull UpdateInstrumentRequest request) {
         // 1. Fetch existing entity
         Instrument instrument = instrumentRepository.findById(instrumentId)
             .orElseThrow(() -> new InstrumentNotFoundException(instrumentId));
 
         // 2. Update allowed fields only: name, logoUrl, description
         if (request.name() != null) {
-            if (request.name().isBlank()) {
-                throw new InvalidInstrumentException("Instrument name cannot be blank");
-            }
             instrument.setName(request.name().trim());
         }
 
@@ -96,7 +99,7 @@ public class InstrumentService {
     }
 
     @Transactional
-    public Instrument createOrUpdateFromExternalData(String ticker) {
+    public Instrument createOrUpdateFromExternalData(@NotBlank String ticker) {
         String normalizedTicker = normalizeTicker(ticker);
         FauxnanceSymbolResponse symbolResponse = fauxnanceService.getSymbol(normalizedTicker);
 
@@ -120,7 +123,7 @@ public class InstrumentService {
     }
 
     @Transactional
-    public Instrument createOrUpdateCryptoFromExternalData(String baseTicker, CashCurrency quoteCurrency) {
+    public Instrument createOrUpdateCryptoFromExternalData(@NotBlank String baseTicker, @NotNull CashCurrency quoteCurrency) {
         if (quoteCurrency == null) {
             throw new InvalidInstrumentException("Quote currency is required");
         }
@@ -130,17 +133,17 @@ public class InstrumentService {
         return createOrUpdateFromExternalData(providerTicker);
     }
 
-    public FauxnanceCandleResponse getCandlesFromExternalData(String ticker) {
+    public FauxnanceCandleResponse getCandlesFromExternalData(@NotBlank String ticker) {
         String normalizedTicker = normalizeTicker(ticker);
         return fauxnanceService.getCandles(normalizedTicker);
     }
 
-    public FauxnanceQuoteResponse getQuoteByTicker(String ticker) {
+    public FauxnanceQuoteResponse getQuoteByTicker(@NotBlank String ticker) {
         List<FauxnanceQuoteResponse> quotes = getQuotesByTickers(List.of(ticker));
         return quotes.get(0);
     }
 
-    public List<FauxnanceQuoteResponse> getQuotesByTickers(List<String> tickers) {
+    public List<FauxnanceQuoteResponse> getQuotesByTickers(@NotNull @Size(min = 1, max = MAX_QUOTES_BATCH_SIZE) List<String> tickers) {
         if (tickers == null || tickers.isEmpty()) {
             throw new InvalidInstrumentException("At least one ticker is required");
         }

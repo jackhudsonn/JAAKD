@@ -35,6 +35,10 @@ interface OrderLogResponse {
   quotedPrice: number | null;
 }
 
+interface OrderLogListResponse {
+  orderLogs: OrderLogResponse[];
+}
+
 interface WatchlistItemResponse {
   listItemId: string;
   portfolioId: string;
@@ -807,13 +811,15 @@ export class OrderLifecycleLabComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const rows = await firstValueFrom(
-      this.http.get<OrderLogResponse[]>(
+    const response = await firstValueFrom(
+      this.http.get<OrderLogListResponse>(
         `${environment.apiUrl}/api/order-logs/portfolio/${portfolioId}`,
       ),
     );
 
-    const sorted = [...(rows ?? [])].sort(
+    const rows = response?.orderLogs ?? [];
+
+    const sorted = [...rows].sort(
       (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
     );
 

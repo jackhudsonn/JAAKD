@@ -6,8 +6,15 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import jakarta.annotation.PreDestroy;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -37,6 +44,8 @@ public class HttpFauxnanceService implements FauxnanceService {
     private final RestTemplate fauxnanceRestTemplate;
     private final ObjectMapper objectMapper;
     private final FauxnanceProperties fauxnanceProperties;
+    private final ExecutorService fauxnanceRequestExecutor;
+    private final ScheduledExecutorService fauxnanceRetryScheduler;
 
     public HttpFauxnanceService(
         RestTemplate fauxnanceRestTemplate,
@@ -46,45 +55,78 @@ public class HttpFauxnanceService implements FauxnanceService {
         this.fauxnanceRestTemplate = fauxnanceRestTemplate;
         this.objectMapper = objectMapper;
         this.fauxnanceProperties = fauxnanceProperties;
+        this.fauxnanceRequestExecutor = Executors.newVirtualThreadPerTaskExecutor();
+        this.fauxnanceRetryScheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
+            Thread thread = new Thread(runnable, "fauxnance-retry-scheduler");
+            thread.setDaemon(true);
+            return thread;
+        });
     }
 
     @Override
     public FauxnanceHealthResponse getHealth() {
-        JsonNode json = getJsonWithRetry("/health");
-        return toValue(json, FauxnanceHealthResponse.class, "/health");
+        return await(getHealthAsync());
+    }
+
+    @Override
+    public CompletableFuture<FauxnanceHealthResponse> getHealthAsync() {
+        return getJsonWithRetryAsync("/health")
+            .thenApply(json -> toValue(json, FauxnanceHealthResponse.class, "/health"));
     }
 
     @Override
     public FauxnanceUsageResponse getUsage() {
-        JsonNode json = getJsonWithRetry("/usage");
-        return toValue(json, FauxnanceUsageResponse.class, "/usage");
+        return await(getUsageAsync());
+    }
+
+    @Override
+    public CompletableFuture<FauxnanceUsageResponse> getUsageAsync() {
+        return getJsonWithRetryAsync("/usage")
+            .thenApply(json -> toValue(json, FauxnanceUsageResponse.class, "/usage"));
     }
 
     @Override
     public FauxnanceSymbolResponse getSymbol(String symbol) {
+        return await(getSymbolAsync(symbol));
+    }
+
+    @Override
+    public CompletableFuture<FauxnanceSymbolResponse> getSymbolAsync(String symbol) {
         String normalizedSymbol = normalizeSymbol(symbol);
-        JsonNode json = getJsonWithRetry("/symbols/{symbol}", Map.of("symbol", normalizedSymbol));
-        return parseSymbolResponse(json);
+        return getJsonWithRetryAsync("/symbols/{symbol}", Map.of("symbol", normalizedSymbol))
+            .thenApply(this::parseSymbolResponse);
     }
 
     @Override
     public FauxnanceCandleResponse getCandles(String symbol) {
+        return await(getCandlesAsync(symbol));
+    }
+
+    @Override
+    public CompletableFuture<FauxnanceCandleResponse> getCandlesAsync(String symbol) {
         String normalizedSymbol = normalizeSymbol(symbol);
-        JsonNode json = getJsonWithRetry("/candles/{symbol}", Map.of("symbol", normalizedSymbol));
-        return toValue(json, FauxnanceCandleResponse.class, "/candles/{symbol}");
+        return getJsonWithRetryAsync("/candles/{symbol}", Map.of("symbol", normalizedSymbol))
+            .thenApply(json -> toValue(json, FauxnanceCandleResponse.class, "/candles/{symbol}"));
     }
 
     @Override
     public List<FauxnanceQuoteResponse> getQuotes(List<String> symbols) {
+        return await(getQuotesAsync(symbols));
+    }
+
+    @Override
+    public CompletableFuture<List<FauxnanceQuoteResponse>> getQuotesAsync(List<String> symbols) {
         if (symbols == null || symbols.isEmpty()) {
-            throw new FauxnanceClientException("At least one symbol is required for /quotes");
+            return CompletableFuture.failedFuture(
+                new FauxnanceClientException("At least one symbol is required for /quotes")
+            );
         }
 
-        int maxBatchSize = Math.max(1, fauxnanceProperties.getQuotes().getMaxBatchSize());
+        int maxBatchSize = fauxnanceProperties.getQuotes().getMaxBatchSize();
         if (symbols.size() > maxBatchSize) {
-            throw new FauxnanceClientException(
+            return CompletableFuture.failedFuture(new FauxnanceClientException(
                 "Fauxnance quote batch size exceeded: requested " + symbols.size() + ", max " + maxBatchSize
-            );
+            ));
         }
 
         List<String> normalizedSymbols = symbols.stream()
@@ -92,45 +134,88 @@ public class HttpFauxnanceService implements FauxnanceService {
             .toList();
 
         String symbolsQueryValue = String.join(",", normalizedSymbols);
-        JsonNode root = getJsonWithRetry(
+        return getJsonWithRetryAsync(
             "/quotes",
             Map.of(),
             Map.of("symbols", symbolsQueryValue)
-        );
-
-        return parseQuotes(root, normalizedSymbols);
+        ).thenApply(root -> parseQuotes(root, normalizedSymbols));
     }
 
     private JsonNode getJsonWithRetry(String path) {
-        return getJsonWithRetry(path, Map.of());
+        return await(getJsonWithRetryAsync(path));
     }
 
     private JsonNode getJsonWithRetry(String path, Map<String, String> uriVariables) {
-        return getJsonWithRetry(path, uriVariables, Map.of());
+        return await(getJsonWithRetryAsync(path, uriVariables));
     }
 
     private JsonNode getJsonWithRetry(String path, Map<String, String> uriVariables, Map<String, String> queryParams) {
-        int maxAttempts = Math.max(1, fauxnanceProperties.getRetry().getMaxAttempts());
-        long backoffMillis = Math.max(0, fauxnanceProperties.getRetry().getBackoff().toMillis());
+        return await(getJsonWithRetryAsync(path, uriVariables, queryParams));
+    }
 
-        RestClientException lastClientException = null;
+    private CompletableFuture<JsonNode> getJsonWithRetryAsync(String path) {
+        return getJsonWithRetryAsync(path, Map.of());
+    }
 
-        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
-            try {
-                return fetchJson(path, uriVariables, queryParams);
-            } catch (RestClientException ex) {
-                lastClientException = ex;
-                if (attempt == maxAttempts) {
-                    break;
+    private CompletableFuture<JsonNode> getJsonWithRetryAsync(String path, Map<String, String> uriVariables) {
+        return getJsonWithRetryAsync(path, uriVariables, Map.of());
+    }
+
+    private CompletableFuture<JsonNode> getJsonWithRetryAsync(
+        String path,
+        Map<String, String> uriVariables,
+        Map<String, String> queryParams
+    ) {
+        int maxAttempts = fauxnanceProperties.getRetry().getMaxAttempts();
+        long backoffMillis = fauxnanceProperties.getRetry().getBackoff().toMillis();
+        CompletableFuture<JsonNode> resultFuture = new CompletableFuture<>();
+        attemptFetch(path, uriVariables, queryParams, maxAttempts, backoffMillis, 1, resultFuture);
+        return resultFuture;
+    }
+
+    private void attemptFetch(
+        String path,
+        Map<String, String> uriVariables,
+        Map<String, String> queryParams,
+        int maxAttempts,
+        long backoffMillis,
+        int attempt,
+        CompletableFuture<JsonNode> resultFuture
+    ) {
+        CompletableFuture
+            .supplyAsync(() -> fetchJson(path, uriVariables, queryParams), fauxnanceRequestExecutor)
+            .whenComplete((json, throwable) -> {
+                if (throwable == null) {
+                    resultFuture.complete(json);
+                    return;
                 }
 
-                if (backoffMillis > 0) {
-                    sleepBackoff(backoffMillis * attempt);
-                }
-            }
-        }
+                Throwable cause = unwrap(throwable);
+                if (cause instanceof RestClientException restClientException) {
+                    if (attempt >= maxAttempts) {
+                        resultFuture.completeExceptionally(mapRestClientException(path, restClientException));
+                        return;
+                    }
 
-        throw mapRestClientException(path, lastClientException);
+                    long delayMillis = Math.max(0, backoffMillis * attempt);
+                    fauxnanceRetryScheduler.schedule(
+                        () -> attemptFetch(
+                            path,
+                            uriVariables,
+                            queryParams,
+                            maxAttempts,
+                            backoffMillis,
+                            attempt + 1,
+                            resultFuture
+                        ),
+                        delayMillis,
+                        TimeUnit.MILLISECONDS
+                    );
+                    return;
+                }
+
+                resultFuture.completeExceptionally(cause);
+            });
     }
 
     private JsonNode fetchJson(String path, Map<String, String> uriVariables, Map<String, String> queryParams) {
@@ -173,13 +258,30 @@ public class HttpFauxnanceService implements FauxnanceService {
         return builder.buildAndExpand(uriVariables).toUri();
     }
 
-    private void sleepBackoff(long backoffMillis) {
+    private <T> T await(CompletableFuture<T> future) {
         try {
-            Thread.sleep(backoffMillis);
-        } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-            throw new FauxnanceClientException("Retry backoff interrupted while calling Fauxnance", ex);
+            return future.join();
+        } catch (CompletionException ex) {
+            Throwable cause = unwrap(ex);
+            if (cause instanceof RuntimeException runtimeException) {
+                throw runtimeException;
+            }
+            throw new FauxnanceClientException("Unexpected Fauxnance client failure", cause);
         }
+    }
+
+    private Throwable unwrap(Throwable throwable) {
+        if (throwable instanceof CompletionException completionException && completionException.getCause() != null) {
+            return completionException.getCause();
+        }
+
+        return throwable;
+    }
+
+    @PreDestroy
+    void shutdownExecutors() {
+        fauxnanceRetryScheduler.shutdown();
+        fauxnanceRequestExecutor.shutdown();
     }
 
     private FauxnanceClientException mapRestClientException(String path, RestClientException ex) {

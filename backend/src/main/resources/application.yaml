@@ -82,8 +82,8 @@ fauxnance:
   api-key: ${FAUXNANCE_API_KEY:}
   api-key-header: ${FAUXNANCE_API_KEY_HEADER:X-API-Key}
   timeout:
-    connect: ${FAUXNANCE_TIMEOUT_CONNECT:PT2S}
-    read: ${FAUXNANCE_TIMEOUT_READ:PT4S}
+    connect: ${FAUXNANCE_TIMEOUT_CONNECT:PT10S}
+    read: ${FAUXNANCE_TIMEOUT_READ:PT30S}
   retry:
     max-attempts: ${FAUXNANCE_RETRY_MAX_ATTEMPTS:3}
     backoff: ${FAUXNANCE_RETRY_BACKOFF:PT0.2S}

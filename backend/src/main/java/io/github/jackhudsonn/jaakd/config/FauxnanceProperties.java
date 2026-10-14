@@ -3,6 +3,9 @@ package io.github.jackhudsonn.jaakd.config;
 import java.time.Duration;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 
 @ConfigurationProperties(prefix = "fauxnance")
 public class FauxnanceProperties {
@@ -10,8 +13,17 @@ public class FauxnanceProperties {
     private String baseUrl;
     private String apiKey;
     private String apiKeyHeader = "X-API-Key";
+
+    @Valid
+    @NotNull
     private Timeout timeout = new Timeout();
+
+    @Valid
+    @NotNull
     private Retry retry = new Retry();
+
+    @Valid
+    @NotNull
     private Quotes quotes = new Quotes();
 
     public String getBaseUrl() {
@@ -63,7 +75,10 @@ public class FauxnanceProperties {
     }
 
     public static class Timeout {
+        @NotNull
         private Duration connect = Duration.ofSeconds(2);
+
+        @NotNull
         private Duration read = Duration.ofSeconds(4);
 
         public Duration getConnect() {
@@ -84,7 +99,10 @@ public class FauxnanceProperties {
     }
 
     public static class Retry {
+        @Min(1)
         private int maxAttempts = 3;
+
+        @NotNull
         private Duration backoff = Duration.ofMillis(200);
 
         public int getMaxAttempts() {
@@ -105,6 +123,7 @@ public class FauxnanceProperties {
     }
 
     public static class Quotes {
+        @Min(1)
         private int maxBatchSize = 25;
 
         public int getMaxBatchSize() {

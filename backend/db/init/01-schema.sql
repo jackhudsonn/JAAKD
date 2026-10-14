@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS instruments (
   market TEXT NOT NULL,
   name TEXT NOT NULL,
   "instrumentClass" TEXT NOT NULL,
-  "tradingCurrency" TEXT NOT NULL DEFAULT 'USD',
+  "tradingCurrency" TEXT NOT NULL,
   "logoUrl" TEXT,
   description TEXT
 );
@@ -265,6 +265,7 @@ TO jaakd_app;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE users, sessions TO jaakd_app;
 
 -- 5) Seed Cash Instruments
+-- 5) Seed Cash Instruments (single statement, idempotent)
 INSERT INTO instruments (
   "instrumentID",
   ticker,
@@ -277,91 +278,23 @@ INSERT INTO instruments (
 )
 SELECT
   gen_random_uuid(),
-  'USD',
+  v.ticker,
   'INTERNAL',
-  'United States Dollar',
+  v.name,
   'CASH',
-  'USD',
+  v.ticker,
   NULL,
-  'Seeded cash instrument for USD.'
+  v.description
+FROM (
+  VALUES
+    ('USD', 'United States Dollar', 'Seeded cash instrument for USD.'),
+    ('EUR', 'Euro', 'Seeded cash instrument for EUR.'),
+    ('GBP', 'Great British Pound', 'Seeded cash instrument for GBP.'),
+    ('INR', 'Indian Rupee', 'Seeded cash instrument for INR.')
+) AS v(ticker, name, description)
 WHERE NOT EXISTS (
   SELECT 1
   FROM instruments i
-  WHERE UPPER(i.ticker) = 'USD'
-);
-
-INSERT INTO instruments (
-  "instrumentID",
-  ticker,
-  market,
-  name,
-  "instrumentClass",
-  "tradingCurrency",
-  "logoUrl",
-  description
-)
-SELECT
-  gen_random_uuid(),
-  'EUR',
-  'INTERNAL',
-  'Euro',
-  'CASH',
-  'EUR',
-  NULL,
-  'Seeded cash instrument for EUR.'
-WHERE NOT EXISTS (
-  SELECT 1
-  FROM instruments i
-  WHERE UPPER(i.ticker) = 'EUR'
-);
-
-INSERT INTO instruments (
-  "instrumentID",
-  ticker,
-  market,
-  name,
-  "instrumentClass",
-  "tradingCurrency",
-  "logoUrl",
-  description
-)
-SELECT
-  gen_random_uuid(),
-  'GBP',
-  'INTERNAL',
-  'Great British Pound',
-  'CASH',
-  'GBP',
-  NULL,
-  'Seeded cash instrument for GBP.'
-WHERE NOT EXISTS (
-  SELECT 1
-  FROM instruments i
-  WHERE UPPER(i.ticker) = 'GBP'
-);
-
-INSERT INTO instruments (
-  "instrumentID",
-  ticker,
-  market,
-  name,
-  "instrumentClass",
-  "tradingCurrency",
-  "logoUrl",
-  description
-)
-SELECT
-  gen_random_uuid(),
-  'INR',
-  'INTERNAL',
-  'Indian Rupee',
-  'CASH',
-  'INR',
-  NULL,
-  'Seeded cash instrument for INR.'
-WHERE NOT EXISTS (
-  SELECT 1
-  FROM instruments i
-  WHERE UPPER(i.ticker) = 'INR'
+  WHERE UPPER(i.ticker) = v.ticker
 );
 

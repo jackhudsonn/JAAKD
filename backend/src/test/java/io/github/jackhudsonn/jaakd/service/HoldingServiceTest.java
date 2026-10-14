@@ -20,7 +20,6 @@ import io.github.jackhudsonn.jaakd.repository.InstrumentRepository;
 import io.github.jackhudsonn.jaakd.repository.HoldingRepository;
 import io.github.jackhudsonn.jaakd.repository.LotMatchRepository;
 import io.github.jackhudsonn.jaakd.repository.OrderLogRepository;
-import io.github.jackhudsonn.jaakd.repository.PortfolioRepository;
 import io.github.jackhudsonn.jaakd.repository.PositionLotRepository;
 import io.github.jackhudsonn.jaakd.security.CurrentUserService;
 import io.github.jackhudsonn.jaakd.service.fauxnance.FauxnanceQuoteResponse;
@@ -60,7 +59,7 @@ class HoldingServiceTest {
     private InstrumentRepository instrumentRepository;
 
     @Mock
-    private PortfolioRepository portfolioRepository;
+    private PortfolioService portfolioService;
 
     @Mock
     private OrderLogRepository orderLogRepository;
@@ -150,9 +149,9 @@ class HoldingServiceTest {
         Portfolio portfolio = new Portfolio(new Profile(UUID.randomUUID(), BigDecimal.ZERO));
         setField(portfolio, "portfolioId", portfolioId);
 
-        Instrument eurCash = new Instrument("EUR", "INTERNAL", "Euro Cash", InstrumentClass.CASH);
+        Instrument eurCash = new Instrument("EUR", "INTERNAL", "Euro Cash", InstrumentClass.CASH, CashCurrency.EUR);
         setField(eurCash, "instrumentId", eurInstrumentId);
-        Instrument usdCash = new Instrument("USD", "INTERNAL", "US Dollar Cash", InstrumentClass.CASH);
+        Instrument usdCash = new Instrument("USD", "INTERNAL", "US Dollar Cash", InstrumentClass.CASH, CashCurrency.USD);
         setField(usdCash, "instrumentId", usdInstrumentId);
 
         Holding eurHolding = new Holding(UUID.randomUUID(), portfolioId, eurInstrumentId);
@@ -168,7 +167,7 @@ class HoldingServiceTest {
         );
 
         when(currentUserService.getUserId()).thenReturn(userId);
-        when(portfolioRepository.findOwnedByPortfolioId(portfolioId, userId)).thenReturn(Optional.of(portfolio));
+        when(portfolioService.getCurrentUserPortfolioById(portfolioId)).thenReturn(portfolio);
         when(instrumentRepository.findByTickerIgnoreCaseAndInstrumentClass("EUR", InstrumentClass.CASH))
             .thenReturn(Optional.of(eurCash));
         when(instrumentRepository.findByTickerIgnoreCaseAndInstrumentClass("USD", InstrumentClass.CASH))
@@ -210,9 +209,9 @@ class HoldingServiceTest {
         Portfolio portfolio = new Portfolio(new Profile(UUID.randomUUID(), BigDecimal.ZERO));
         setField(portfolio, "portfolioId", portfolioId);
 
-        Instrument gbpCash = new Instrument("GBP", "INTERNAL", "Pound Cash", InstrumentClass.CASH);
+        Instrument gbpCash = new Instrument("GBP", "INTERNAL", "Pound Cash", InstrumentClass.CASH, CashCurrency.GBP);
         setField(gbpCash, "instrumentId", gbpInstrumentId);
-        Instrument eurCash = new Instrument("EUR", "INTERNAL", "Euro Cash", InstrumentClass.CASH);
+        Instrument eurCash = new Instrument("EUR", "INTERNAL", "Euro Cash", InstrumentClass.CASH, CashCurrency.EUR);
         setField(eurCash, "instrumentId", eurInstrumentId);
 
         Holding gbpHolding = new Holding(UUID.randomUUID(), portfolioId, gbpInstrumentId);
@@ -228,7 +227,7 @@ class HoldingServiceTest {
         );
 
         when(currentUserService.getUserId()).thenReturn(userId);
-        when(portfolioRepository.findOwnedByPortfolioId(portfolioId, userId)).thenReturn(Optional.of(portfolio));
+        when(portfolioService.getCurrentUserPortfolioById(portfolioId)).thenReturn(portfolio);
         when(instrumentRepository.findByTickerIgnoreCaseAndInstrumentClass("GBP", InstrumentClass.CASH))
             .thenReturn(Optional.of(gbpCash));
         when(instrumentRepository.findByTickerIgnoreCaseAndInstrumentClass("EUR", InstrumentClass.CASH))
@@ -271,9 +270,9 @@ class HoldingServiceTest {
         Portfolio portfolio = new Portfolio(new Profile(UUID.randomUUID(), BigDecimal.ZERO));
         setField(portfolio, "portfolioId", portfolioId);
 
-        Instrument usdCash = new Instrument("USD", "INTERNAL", "US Dollar Cash", InstrumentClass.CASH);
+        Instrument usdCash = new Instrument("USD", "INTERNAL", "US Dollar Cash", InstrumentClass.CASH, CashCurrency.USD);
         setField(usdCash, "instrumentId", usdInstrumentId);
-        Instrument eurCash = new Instrument("EUR", "INTERNAL", "Euro Cash", InstrumentClass.CASH);
+        Instrument eurCash = new Instrument("EUR", "INTERNAL", "Euro Cash", InstrumentClass.CASH, CashCurrency.EUR);
         setField(eurCash, "instrumentId", eurInstrumentId);
 
         Holding usdHolding = new Holding(UUID.randomUUID(), portfolioId, usdInstrumentId);
@@ -287,7 +286,7 @@ class HoldingServiceTest {
         );
 
         when(currentUserService.getUserId()).thenReturn(userId);
-        when(portfolioRepository.findOwnedByPortfolioId(portfolioId, userId)).thenReturn(Optional.of(portfolio));
+        when(portfolioService.getCurrentUserPortfolioById(portfolioId)).thenReturn(portfolio);
         when(instrumentRepository.findByTickerIgnoreCaseAndInstrumentClass("USD", InstrumentClass.CASH))
             .thenReturn(Optional.of(usdCash));
         when(instrumentRepository.findByTickerIgnoreCaseAndInstrumentClass("EUR", InstrumentClass.CASH))

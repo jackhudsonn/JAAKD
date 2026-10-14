@@ -1,11 +1,9 @@
 package io.github.jackhudsonn.jaakd.service;
 
 import io.github.jackhudsonn.jaakd.exception.FauxnanceClientException;
-import io.github.jackhudsonn.jaakd.exception.InstrumentNotFoundException;
 import io.github.jackhudsonn.jaakd.model.Instrument;
 import io.github.jackhudsonn.jaakd.model.InstrumentClass;
 import io.github.jackhudsonn.jaakd.model.OrderSide;
-import io.github.jackhudsonn.jaakd.repository.InstrumentRepository;
 import io.github.jackhudsonn.jaakd.service.fauxnance.FauxnanceQuoteResponse;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
@@ -21,14 +19,14 @@ import java.util.UUID;
 public class FauxnanceQuoteService implements QuoteService {
 
     private final FauxnanceService fauxnanceService;
-    private final InstrumentRepository instrumentRepository;
+    private final InstrumentService instrumentService;
 
     public FauxnanceQuoteService(
         FauxnanceService fauxnanceService,
-        InstrumentRepository instrumentRepository
+        InstrumentService instrumentService
     ) {
         this.fauxnanceService = fauxnanceService;
-        this.instrumentRepository = instrumentRepository;
+        this.instrumentService = instrumentService;
     }
 
     @Override
@@ -93,8 +91,7 @@ public class FauxnanceQuoteService implements QuoteService {
     }
 
     private String resolveSymbol(UUID instrumentId) {
-        Instrument instrument = instrumentRepository.findById(instrumentId)
-            .orElseThrow(() -> new InstrumentNotFoundException(instrumentId));
+        Instrument instrument = instrumentService.getInstrumentById(instrumentId);
 
         String normalizedTicker = instrument.getTicker().trim().toUpperCase();
         if (instrument.getInstrumentClass() == InstrumentClass.FX && !normalizedTicker.startsWith("FX:")) {

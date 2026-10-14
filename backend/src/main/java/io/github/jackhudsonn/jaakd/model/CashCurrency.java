@@ -19,12 +19,8 @@ public enum CashCurrency {
     }
 
     public static CashCurrency fromCodeOrNull(String code) {
-        if (code == null || code.isBlank()) {
-            return null;
-        }
-
         try {
-            return CashCurrency.valueOf(code.trim().toUpperCase());
+            return fromCode(code);
         } catch (IllegalArgumentException ex) {
             return null;
         }

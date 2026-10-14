@@ -26,11 +26,7 @@ public class MarketHoursValidator {
     }
 
     public boolean isMarketOpen(CashCurrency currency, ZonedDateTime utcNow) {
-        if (currency == null || utcNow == null) {
-            return false;
-        }
-
-        if (!supportsMarketHoursFallback(currency)) {
+        if (currency == null || utcNow == null || !supportsMarketHoursFallback(currency)) {
             return false;
         }
 

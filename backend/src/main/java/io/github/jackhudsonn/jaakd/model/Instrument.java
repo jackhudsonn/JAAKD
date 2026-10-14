@@ -47,12 +47,14 @@ public class Instrument {
     protected Instrument() {
     }
 
-    public Instrument(String ticker, String market, String name, InstrumentClass instrumentClass) {
-        this(ticker, market, name, instrumentClass, inferTradingCurrency(instrumentClass, ticker), null, null);
-    }
-
-    public Instrument(String ticker, String market, String name, InstrumentClass instrumentClass, String logoUrl, String description) {
-        this(ticker, market, name, instrumentClass, inferTradingCurrency(instrumentClass, ticker), logoUrl, description);
+    public Instrument(
+        String ticker,
+        String market,
+        String name,
+        InstrumentClass instrumentClass,
+        CashCurrency tradingCurrency
+    ) {
+        this(ticker, market, name, instrumentClass, tradingCurrency, null, null);
     }
 
     public Instrument(
@@ -128,16 +130,5 @@ public class Instrument {
 
     public void setDescription(String description) {
         this.description = description;
-    }
-
-    private static CashCurrency inferTradingCurrency(InstrumentClass instrumentClass, String ticker) {
-        if (instrumentClass == InstrumentClass.CASH) {
-            CashCurrency byTicker = CashCurrency.fromCodeOrNull(ticker);
-            if (byTicker != null) {
-                return byTicker;
-            }
-        }
-
-        return CashCurrency.USD;
     }
 }

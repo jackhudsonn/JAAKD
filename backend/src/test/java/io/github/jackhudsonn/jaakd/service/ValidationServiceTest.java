@@ -456,7 +456,7 @@ class ValidationServiceTest {
         OrderLog pending = buildOrderLog(orderId, logOrderId, OrderStatus.PENDING);
         pending.setQuotedPrice(10.0);
 
-        Instrument cashInstrument = new Instrument("USD", "USD", "US Dollar Cash Balance", InstrumentClass.CASH);
+        Instrument cashInstrument = new Instrument("USD", "USD", "US Dollar Cash Balance", InstrumentClass.CASH, CashCurrency.USD);
         setField(cashInstrument, "instrumentId", cashInstrumentId);
 
         Holding cashHolding = new Holding(UUID.randomUUID(), portfolioId, cashInstrumentId);
@@ -530,7 +530,7 @@ class ValidationServiceTest {
         OrderLog pending = buildOrderLog(orderId, logOrderId, OrderStatus.PENDING);
         pending.setQuotedPrice(10.0);
 
-        Instrument cashInstrument = new Instrument("USD", "USD", "US Dollar Cash Balance", InstrumentClass.CASH);
+        Instrument cashInstrument = new Instrument("USD", "USD", "US Dollar Cash Balance", InstrumentClass.CASH, CashCurrency.USD);
         setField(cashInstrument, "instrumentId", cashInstrumentId);
 
         Holding cashHolding = new Holding(UUID.randomUUID(), portfolioId, cashInstrumentId);
@@ -633,7 +633,7 @@ class ValidationServiceTest {
         pending.getInstrument().setTradingCurrency(CashCurrency.EUR);
         pending.setQuotedPrice(10.0);
 
-        Instrument eurCash = new Instrument("EUR", "INTERNAL", "Euro Cash Balance", InstrumentClass.CASH);
+        Instrument eurCash = new Instrument("EUR", "INTERNAL", "Euro Cash Balance", InstrumentClass.CASH, CashCurrency.EUR);
         setField(eurCash, "instrumentId", eurCashInstrumentId);
 
         Holding eurCashHolding = new Holding(UUID.randomUUID(), portfolioId, eurCashInstrumentId);
@@ -701,7 +701,13 @@ class ValidationServiceTest {
         OrderLog orderLog = new OrderLog(
             orderId,
             new io.github.jackhudsonn.jaakd.model.Portfolio(new io.github.jackhudsonn.jaakd.model.Profile(UUID.randomUUID(), BigDecimal.ZERO)),
-            new io.github.jackhudsonn.jaakd.model.Instrument("AAPL", "NASDAQ", "Apple", io.github.jackhudsonn.jaakd.model.InstrumentClass.EQUITY),
+            new io.github.jackhudsonn.jaakd.model.Instrument(
+                "AAPL",
+                "NASDAQ",
+                "Apple",
+                io.github.jackhudsonn.jaakd.model.InstrumentClass.EQUITY,
+                io.github.jackhudsonn.jaakd.model.CashCurrency.USD
+            ),
             OrderSide.BUY,
             1.0
         );

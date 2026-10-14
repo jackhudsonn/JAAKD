@@ -6,7 +6,6 @@ import io.github.jackhudsonn.jaakd.dto.LotMatchResponse;
 import io.github.jackhudsonn.jaakd.dto.PositionLotResponse;
 import io.github.jackhudsonn.jaakd.exception.HoldingNotFoundException;
 import io.github.jackhudsonn.jaakd.exception.InvalidTradeException;
-import io.github.jackhudsonn.jaakd.exception.PortfolioNotFoundException;
 import io.github.jackhudsonn.jaakd.model.CashCurrency;
 import io.github.jackhudsonn.jaakd.model.Holding;
 import io.github.jackhudsonn.jaakd.model.Instrument;
@@ -21,7 +20,6 @@ import io.github.jackhudsonn.jaakd.repository.InstrumentRepository;
 import io.github.jackhudsonn.jaakd.repository.HoldingRepository;
 import io.github.jackhudsonn.jaakd.repository.LotMatchRepository;
 import io.github.jackhudsonn.jaakd.repository.OrderLogRepository;
-import io.github.jackhudsonn.jaakd.repository.PortfolioRepository;
 import io.github.jackhudsonn.jaakd.repository.PositionLotRepository;
 import io.github.jackhudsonn.jaakd.security.CurrentUserService;
 import io.github.jackhudsonn.jaakd.service.fauxnance.FauxnanceQuoteResponse;
@@ -42,7 +40,7 @@ public class HoldingService {
     private final PositionLotRepository positionLotRepository;
     private final LotMatchRepository lotMatchRepository;
     private final InstrumentRepository instrumentRepository;
-    private final PortfolioRepository portfolioRepository;
+    private final PortfolioService portfolioService;
     private final OrderLogRepository orderLogRepository;
     private final FauxnanceService fauxnanceService;
     private final CurrentUserService currentUserService;
@@ -52,7 +50,7 @@ public class HoldingService {
         PositionLotRepository positionLotRepository,
         LotMatchRepository lotMatchRepository,
         InstrumentRepository instrumentRepository,
-        PortfolioRepository portfolioRepository,
+        PortfolioService portfolioService,
         OrderLogRepository orderLogRepository,
         FauxnanceService fauxnanceService,
         CurrentUserService currentUserService
@@ -61,7 +59,7 @@ public class HoldingService {
         this.positionLotRepository = positionLotRepository;
         this.lotMatchRepository = lotMatchRepository;
         this.instrumentRepository = instrumentRepository;
-        this.portfolioRepository = portfolioRepository;
+        this.portfolioService = portfolioService;
         this.orderLogRepository = orderLogRepository;
         this.fauxnanceService = fauxnanceService;
         this.currentUserService = currentUserService;
@@ -69,10 +67,7 @@ public class HoldingService {
 
     @Transactional
     public CashConversionResponse convertCash(UUID portfolioId, CashConversionRequest request) {
-        UUID userId = currentUserService.getUserId();
-
-        Portfolio portfolio = portfolioRepository.findOwnedByPortfolioId(portfolioId, userId)
-            .orElseThrow(() -> new PortfolioNotFoundException(portfolioId));
+        Portfolio portfolio = portfolioService.getCurrentUserPortfolioById(portfolioId);
 
         if (request.sourceCurrency() == request.targetCurrency()) {
             throw new InvalidTradeException("Source and target currencies must be different");

@@ -1,6 +1,7 @@
 package io.github.jackhudsonn.jaakd.service;
 
 import io.github.jackhudsonn.jaakd.exception.InvalidTradeException;
+import io.github.jackhudsonn.jaakd.model.CashCurrency;
 import io.github.jackhudsonn.jaakd.model.Holding;
 import io.github.jackhudsonn.jaakd.model.Instrument;
 import io.github.jackhudsonn.jaakd.model.InstrumentClass;
@@ -388,7 +389,7 @@ class FifoAccountingServiceTest {
         Portfolio portfolio = new Portfolio(profile);
         setField(portfolio, "portfolioId", portfolioId);
 
-        Instrument instrument = new Instrument("AAPL", "NASDAQ", "Apple", InstrumentClass.EQUITY);
+        Instrument instrument = new Instrument("AAPL", "NASDAQ", "Apple", InstrumentClass.EQUITY, CashCurrency.USD);
         setField(instrument, "instrumentId", instrumentId);
 
         OrderLog orderLog = new OrderLog(UUID.randomUUID(), portfolio, instrument, side, quantity);
@@ -400,7 +401,12 @@ class FifoAccountingServiceTest {
     }
 
     private Instrument buildCashInstrument(UUID instrumentId, String ticker) throws Exception {
-        Instrument instrument = new Instrument(ticker, "CASH", ticker + " Cash", InstrumentClass.CASH);
+        CashCurrency tradingCurrency = CashCurrency.fromCodeOrNull(ticker);
+        if (tradingCurrency == null) {
+            tradingCurrency = CashCurrency.USD;
+        }
+
+        Instrument instrument = new Instrument(ticker, "CASH", ticker + " Cash", InstrumentClass.CASH, tradingCurrency);
         setField(instrument, "instrumentId", instrumentId);
         return instrument;
     }

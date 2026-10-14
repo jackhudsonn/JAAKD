@@ -1,6 +1,7 @@
 package io.github.jackhudsonn.jaakd.service;
 
 import io.github.jackhudsonn.jaakd.event.OrderAcceptedEvent;
+import io.github.jackhudsonn.jaakd.model.CashCurrency;
 import io.github.jackhudsonn.jaakd.model.Instrument;
 import io.github.jackhudsonn.jaakd.model.InstrumentClass;
 import io.github.jackhudsonn.jaakd.model.OrderLog;
@@ -180,7 +181,7 @@ class ExecutionServiceTest {
         Profile profile = new Profile(UUID.randomUUID(), BigDecimal.ZERO);
         Portfolio portfolio = new Portfolio(profile);
 
-        Instrument instrument = new Instrument("AAPL", "NASDAQ", "Apple", InstrumentClass.EQUITY);
+        Instrument instrument = new Instrument("AAPL", "NASDAQ", "Apple", InstrumentClass.EQUITY, CashCurrency.USD);
 
         OrderLog orderLog = new OrderLog(orderId, portfolio, instrument, OrderSide.BUY, 10.0);
         orderLog.setStatus(status);
