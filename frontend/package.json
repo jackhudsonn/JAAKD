@@ -9,7 +9,13 @@
     "test": "ng test"
   },
   "private": true,
-  "packageManager": "npm@11.21.0",
+  "packageManager": "npm@12.2.0",
+  "allowScripts": {
+    "@parcel/watcher": true,
+    "esbuild": true,
+    "lmdb": true,
+    "msgpackr-extract": true
+  },
   "dependencies": {
     "@angular/common": "^22.1.0",
     "@angular/compiler": "^22.1.0",
