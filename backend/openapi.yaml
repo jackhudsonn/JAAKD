@@ -31,6 +31,8 @@ tags:
     description: Audit trail - one row per status change of an order (BR-14, BR-15), including privileged diagnostics endpoints
   - name: Watchlists
     description: Instruments a user is watching, per portfolio
+  - name: Preferences
+    description: Portfolio-scoped user preferences such as dashboard widget order/selection
   - name: Profile
     description: The signed-in user's profile
   - name: Orders
@@ -1023,6 +1025,66 @@ paths:
         "500":
           $ref: "#/components/responses/ServerError"
 
+  # ------------------------------------------------------------- Preferences
+  /api/preferences/portfolio/{portfolioId}:
+    get:
+      tags: [Preferences]
+      summary: Get dashboard preferences for a portfolio
+      description: |
+        Returns one preference row per owned portfolio. If none exists yet,
+        a default row is created and returned.
+      operationId: getPreferencesByPortfolio
+      parameters:
+        - $ref: "#/components/parameters/PortfolioId"
+      responses:
+        "200":
+          description: Preferences for the portfolio
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PreferencesResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    put:
+      tags: [Preferences]
+      summary: Update dashboard preferences for a portfolio
+      operationId: updatePreferencesByPortfolio
+      parameters:
+        - $ref: "#/components/parameters/PortfolioId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePreferencesRequest"
+            example:
+              dashboardWidgets:
+                [
+                  performance-graph,
+                  watchlist,
+                  portfolio-value,
+                  allocation-by-asset,
+                ]
+      responses:
+        "200":
+          description: Preferences updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PreferencesResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
   # ----------------------------------------------------------------- Profile
   /api/profile:
     post:
@@ -1305,7 +1367,8 @@ components:
       enum: [BUY, SELL, DEPOSIT, WITHDRAW]
     OrderStatus:
       type: string
-      enum: [SUBMITTED, PENDING, CANCELLED, ACCEPTED, REJECTED, EXECUTED, FAILED]
+      enum:
+        [SUBMITTED, PENDING, CANCELLED, ACCEPTED, REJECTED, EXECUTED, FAILED]
 
     # ---- holdings
     HoldingResponse:
@@ -1652,6 +1715,36 @@ components:
           format: uuid
         name:
           type: [string, "null"]
+
+    # ---- preferences
+    UpdatePreferencesRequest:
+      type: object
+      required: [dashboardWidgets]
+      properties:
+        dashboardWidgets:
+          type: array
+          description: Ordered widget IDs for the dashboard.
+          items:
+            type: string
+    PreferencesResponse:
+      type: object
+      properties:
+        preferenceId:
+          type: string
+          format: uuid
+        portfolioId:
+          type: string
+          format: uuid
+        dashboardWidgets:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
 
     # ---- profile
     CreateProfileRequest:

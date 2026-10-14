@@ -18,7 +18,7 @@ the team should agree on before writing migrations.
   (`app.bank_transfers`) simulates deposits/withdrawals. Postgres is the system of
   record for the cash ledger (`public.transactions`).
 - **Identity/roles**: Supabase Auth (`auth.users`) is the single identity provider for
-  everyone — retail clients, traders, staff, auditors. Role is *not* a claim you trust
+  everyone — retail clients, traders, staff, auditors. Role is _not_ a claim you trust
   blindly off the JWT; it's a row in `app.user_roles` checked via a `SECURITY DEFINER`
   helper function, so granting/revoking access doesn't require re-issuing tokens.
 - **Accounts**: one trading account per client for MVP, enforced with a `UNIQUE`
@@ -36,12 +36,12 @@ the team should agree on before writing migrations.
 
 Four Postgres schemas, each with a distinct trust boundary:
 
-| Schema | Exposed via Supabase API (PostgREST)? | Written by | Purpose |
-|---|---|---|---|
-| `public` | Yes | Spring Boot backend (privileged role); read by Angular via RLS | Client-facing domain data: accounts, orders, trades, positions, cash ledger, reference data |
-| `app` | No | Spring Boot backend only | Internal mechanics: roles, order state audit trail, outbox, idempotency, risk limits, generic audit log, fake bank ledger |
-| `reporting` | Yes, but RLS-locked to `staff`/`auditor` roles | Scheduled job / materialized view refresh | Pre-aggregated analytics, decoupled refresh cadence |
-| `auth` | Supabase-managed | Supabase | Identity, passwords, sessions — never duplicated elsewhere |
+| Schema      | Exposed via Supabase API (PostgREST)?          | Written by                                                     | Purpose                                                                                                                   |
+| ----------- | ---------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `public`    | Yes                                            | Spring Boot backend (privileged role); read by Angular via RLS | Client-facing domain data: accounts, orders, trades, positions, cash ledger, reference data                               |
+| `app`       | No                                             | Spring Boot backend only                                       | Internal mechanics: roles, order state audit trail, outbox, idempotency, risk limits, generic audit log, fake bank ledger |
+| `reporting` | Yes, but RLS-locked to `staff`/`auditor` roles | Scheduled job / materialized view refresh                      | Pre-aggregated analytics, decoupled refresh cadence                                                                       |
+| `auth`      | Supabase-managed                               | Supabase                                                       | Identity, passwords, sessions — never duplicated elsewhere                                                                |
 
 **Why not just one schema?** Supabase exposes whatever schemas you opt into over
 PostgREST. Putting audit/event/idempotency machinery in `app` means it's structurally
@@ -71,18 +71,20 @@ app.has_role(role_code text) returns boolean  -- SECURITY DEFINER helper used in
 ```
 
 **`app.roles`**
-| column | type | null? | notes |
-|---|---|---|---|
-| role_code | text | PK | `retail_client`, `trader`, `staff`, `auditor`, `service` |
-| description | text | not null | |
+
+| column      | type | null?    | notes                                                    |
+| ----------- | ---- | -------- | -------------------------------------------------------- |
+| role_code   | text | PK       | `retail_client`, `trader`, `staff`, `auditor`, `service` |
+| description | text | not null |                                                          |
 
 **`app.user_roles`**
-| column | type | null? | notes |
-|---|---|---|---|
-| user_id | uuid | not null | FK → `auth.users(id)` |
-| role_code | text | not null | FK → `app.roles(role_code)` |
-| granted_at | timestamptz | not null, default `now()` | |
-| granted_by | uuid | nullable | FK → `auth.users(id)`, who granted it (null = system/seed) |
+
+| column     | type        | null?                     | notes                                                      |
+| ---------- | ----------- | ------------------------- | ---------------------------------------------------------- |
+| user_id    | uuid        | not null                  | FK → `auth.users(id)`                                      |
+| role_code  | text        | not null                  | FK → `app.roles(role_code)`                                |
+| granted_at | timestamptz | not null, default `now()` |                                                            |
+| granted_by | uuid        | nullable                  | FK → `auth.users(id)`, who granted it (null = system/seed) |
 
 PK `(user_id, role_code)` — a user can hold more than one role (e.g. a `trader` who is
 also `staff`). This table is never exposed to the API; role changes go through the
@@ -91,12 +93,13 @@ backend, which is itself an auditable action logged in `app.audit_log`.
 ## 4. `public` schema
 
 ### `public.profiles`
-| column | type | null? | notes |
-|---|---|---|---|
-| user_id | uuid | PK, FK → `auth.users(id)` on delete cascade | |
-| display_name | text | not null | |
-| kyc_status | text | not null, default `'pending'` | `pending` / `verified` / `rejected` |
-| created_at | timestamptz | not null, default `now()` | |
+
+| column       | type        | null?                                       | notes                               |
+| ------------ | ----------- | ------------------------------------------- | ----------------------------------- |
+| user_id      | uuid        | PK, FK → `auth.users(id)` on delete cascade |                                     |
+| display_name | text        | not null                                    |                                     |
+| kyc_status   | text        | not null, default `'pending'`               | `pending` / `verified` / `rejected` |
+| created_at   | timestamptz | not null, default `now()`                   |                                     |
 
 RLS: `select`/`update` where `user_id = auth.uid()`; `staff`/`auditor` get `select` on
 all rows via `app.has_role()`. No client-side `insert`/`delete` — row is created by a
@@ -109,14 +112,15 @@ Storage and keep only the storage path + verification status/timestamp in a
 database small and backups fast.
 
 ### `public.accounts`
-| column | type | null? | notes |
-|---|---|---|---|
-| account_id | uuid | PK, default `gen_random_uuid()` | |
-| owner_id | uuid | not null, FK → `auth.users(id)` | `UNIQUE` — enforces one account per client for MVP |
-| currency | text | not null, default `'USD'` | ISO 4217 |
-| status | text | not null, default `'active'` | `active` / `suspended` / `closed` |
-| cash_balance | numeric(18,2) | not null, default `0` | cache, maintained by trigger from `transactions`; **not** the source of truth |
-| created_at | timestamptz | not null, default `now()` | |
+
+| column       | type          | null?                           | notes                                                                         |
+| ------------ | ------------- | ------------------------------- | ----------------------------------------------------------------------------- |
+| account_id   | uuid          | PK, default `gen_random_uuid()` |                                                                               |
+| owner_id     | uuid          | not null, FK → `auth.users(id)` | `UNIQUE` — enforces one account per client for MVP                            |
+| currency     | text          | not null, default `'USD'`       | ISO 4217                                                                      |
+| status       | text          | not null, default `'active'`    | `active` / `suspended` / `closed`                                             |
+| cash_balance | numeric(18,2) | not null, default `0`           | cache, maintained by trigger from `transactions`; **not** the source of truth |
+| created_at   | timestamptz   | not null, default `now()`       |                                                                               |
 
 RLS: `select` where `owner_id = auth.uid()`; `staff`/`auditor` see all. `insert`/`update`
 restricted to backend role. Dropping the `UNIQUE(owner_id)` constraint is the entire
@@ -128,24 +132,26 @@ need to aggregate the whole ledger on every read. `public.transactions` remains 
 reconcilable source of truth if the cache ever drifts.
 
 ### `public.asset_classes` (lookup, reference data)
-| column | type | null? | notes |
-|---|---|---|---|
-| asset_class_code | text | PK | `equity`, `option`, `future`, `fx`, `crypto` |
-| description | text | not null | |
+
+| column           | type | null?    | notes                                        |
+| ---------------- | ---- | -------- | -------------------------------------------- |
+| asset_class_code | text | PK       | `equity`, `option`, `future`, `fx`, `crypto` |
+| description      | text | not null |                                              |
 
 ### `public.instruments`
-| column | type | null? | notes |
-|---|---|---|---|
-| instrument_id | uuid | PK, default `gen_random_uuid()` | |
-| symbol | text | not null, `UNIQUE` | e.g. `AAPL`, `EURUSD`, `BTC-USD` |
-| asset_class_code | text | not null, FK → `public.asset_classes` | discriminator |
-| exchange | text | nullable | null for OTC/crypto/FX pairs |
-| currency | text | not null | quote currency |
-| tick_size | numeric(18,8) | not null, default `0.01` | |
-| lot_size | numeric(18,8) | not null, default `1` | |
-| status | text | not null, default `'active'` | `active` / `halted` / `delisted` |
-| attributes | jsonb | not null, default `'{}'` | asset-class-specific fields (option strike/expiry/underlying, future contract size/expiry, etc.) |
-| created_at | timestamptz | not null, default `now()` | |
+
+| column           | type          | null?                                 | notes                                                                                            |
+| ---------------- | ------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| instrument_id    | uuid          | PK, default `gen_random_uuid()`       |                                                                                                  |
+| symbol           | text          | not null, `UNIQUE`                    | e.g. `AAPL`, `EURUSD`, `BTC-USD`                                                                 |
+| asset_class_code | text          | not null, FK → `public.asset_classes` | discriminator                                                                                    |
+| exchange         | text          | nullable                              | null for OTC/crypto/FX pairs                                                                     |
+| currency         | text          | not null                              | quote currency                                                                                   |
+| tick_size        | numeric(18,8) | not null, default `0.01`              |                                                                                                  |
+| lot_size         | numeric(18,8) | not null, default `1`                 |                                                                                                  |
+| status           | text          | not null, default `'active'`          | `active` / `halted` / `delisted`                                                                 |
+| attributes       | jsonb         | not null, default `'{}'`              | asset-class-specific fields (option strike/expiry/underlying, future contract size/expiry, etc.) |
+| created_at       | timestamptz   | not null, default `now()`             |                                                                                                  |
 
 RLS: `select` for any authenticated user (reference data, no ownership concept).
 `insert`/`update` restricted to backend/admin. The `attributes` JSONB column is the
@@ -153,23 +159,24 @@ extensibility point for new asset classes — adding options support doesn't nee
 schema migration, just an agreed JSON shape and application-level validation.
 
 ### `public.orders`
-| column | type | null? | notes |
-|---|---|---|---|
-| order_id | uuid | PK, default `gen_random_uuid()` | |
-| account_id | uuid | not null, FK → `public.accounts` | |
-| instrument_id | uuid | not null, FK → `public.instruments` | |
-| side | text | not null | `buy` / `sell` |
-| order_type | text | not null | `market` / `limit` / `stop` / `stop_limit` |
-| time_in_force | text | not null, default `'day'` | `day` / `gtc` |
-| limit_price | numeric(18,8) | nullable | required iff `order_type in ('limit','stop_limit')` (check constraint) |
-| stop_price | numeric(18,8) | nullable | required iff `order_type in ('stop','stop_limit')` (check constraint) |
-| quantity | numeric(18,8) | not null | `check (quantity > 0)` |
-| remaining_quantity | numeric(18,8) | not null | decremented as fills happen |
-| status | text | not null, default `'pending_risk_check'` | see `app.order_status` lookup for the full lifecycle |
-| client_order_id | text | not null | client-generated idempotency key |
-| submitted_at | timestamptz | not null, default `now()` | |
-| updated_at | timestamptz | not null, default `now()` | bumped on every state change |
-| version | integer | not null, default `1` | optimistic concurrency for concurrent fill/cancel races |
+
+| column             | type          | null?                                    | notes                                                                  |
+| ------------------ | ------------- | ---------------------------------------- | ---------------------------------------------------------------------- |
+| order_id           | uuid          | PK, default `gen_random_uuid()`          |                                                                        |
+| account_id         | uuid          | not null, FK → `public.accounts`         |                                                                        |
+| instrument_id      | uuid          | not null, FK → `public.instruments`      |                                                                        |
+| side               | text          | not null                                 | `buy` / `sell`                                                         |
+| order_type         | text          | not null                                 | `market` / `limit` / `stop` / `stop_limit`                             |
+| time_in_force      | text          | not null, default `'day'`                | `day` / `gtc`                                                          |
+| limit_price        | numeric(18,8) | nullable                                 | required iff `order_type in ('limit','stop_limit')` (check constraint) |
+| stop_price         | numeric(18,8) | nullable                                 | required iff `order_type in ('stop','stop_limit')` (check constraint)  |
+| quantity           | numeric(18,8) | not null                                 | `check (quantity > 0)`                                                 |
+| remaining_quantity | numeric(18,8) | not null                                 | decremented as fills happen                                            |
+| status             | text          | not null, default `'pending_risk_check'` | see `app.order_status` lookup for the full lifecycle                   |
+| client_order_id    | text          | not null                                 | client-generated idempotency key                                       |
+| submitted_at       | timestamptz   | not null, default `now()`                |                                                                        |
+| updated_at         | timestamptz   | not null, default `now()`                | bumped on every state change                                           |
+| version            | integer       | not null, default `1`                    | optimistic concurrency for concurrent fill/cancel races                |
 
 Constraints: `UNIQUE(account_id, client_order_id)` (idempotent submission),
 `CHECK` linking `order_type` to required price fields.
@@ -183,51 +190,54 @@ through its service role.
 not an `ALTER TYPE` that takes a table lock.
 
 ### `public.trades`
-| column | type | null? | notes |
-|---|---|---|---|
-| trade_id | uuid | PK, default `gen_random_uuid()` | |
-| order_id | uuid | not null, FK → `public.orders` | |
-| account_id | uuid | not null, FK → `public.accounts` | denormalized from the order for cheaper RLS + queries |
-| instrument_id | uuid | not null, FK → `public.instruments` | |
-| side | text | not null | |
-| quantity | numeric(18,8) | not null | `check (quantity > 0)` |
-| price | numeric(18,8) | not null | `check (price > 0)` |
-| fee | numeric(18,8) | not null, default `0` | |
-| executed_at | timestamptz | not null, default `now()` | |
+
+| column        | type          | null?                               | notes                                                 |
+| ------------- | ------------- | ----------------------------------- | ----------------------------------------------------- |
+| trade_id      | uuid          | PK, default `gen_random_uuid()`     |                                                       |
+| order_id      | uuid          | not null, FK → `public.orders`      |                                                       |
+| account_id    | uuid          | not null, FK → `public.accounts`    | denormalized from the order for cheaper RLS + queries |
+| instrument_id | uuid          | not null, FK → `public.instruments` |                                                       |
+| side          | text          | not null                            |                                                       |
+| quantity      | numeric(18,8) | not null                            | `check (quantity > 0)`                                |
+| price         | numeric(18,8) | not null                            | `check (price > 0)`                                   |
+| fee           | numeric(18,8) | not null, default `0`               |                                                       |
+| executed_at   | timestamptz   | not null, default `now()`           |                                                       |
 
 **Immutable**: no `update`/`delete` grants for anyone, including the backend role.
 Corrections happen via a compensating trade, never by editing history — this is what
 makes "answer a dispute without reconstruction work" possible: the trade table
-*is* the record.
+_is_ the record.
 
 RLS: `select` scoped to account ownership; `staff`/`auditor` unrestricted.
 
 ### `public.positions`
-| column | type | null? | notes |
-|---|---|---|---|
-| account_id | uuid | PK part, FK → `public.accounts` | |
-| instrument_id | uuid | PK part, FK → `public.instruments` | |
-| quantity | numeric(18,8) | not null, default `0` | |
-| avg_cost | numeric(18,8) | not null, default `0` | |
-| updated_at | timestamptz | not null, default `now()` | |
+
+| column        | type          | null?                              | notes |
+| ------------- | ------------- | ---------------------------------- | ----- |
+| account_id    | uuid          | PK part, FK → `public.accounts`    |       |
+| instrument_id | uuid          | PK part, FK → `public.instruments` |       |
+| quantity      | numeric(18,8) | not null, default `0`              |       |
+| avg_cost      | numeric(18,8) | not null, default `0`              |       |
+| updated_at    | timestamptz   | not null, default `now()`          |       |
 
 Derived cache maintained by the backend after each trade — **not** authoritative.
 `public.trades` is the source of truth; positions can always be rebuilt by replaying
 trades for an account. RLS scoped the same way as orders/trades.
 
 ### `public.transactions` (cash ledger)
-| column | type | null? | notes |
-|---|---|---|---|
-| transaction_id | uuid | PK, default `gen_random_uuid()` | |
-| account_id | uuid | not null, FK → `public.accounts` | |
-| type | text | not null | `deposit` / `withdrawal` / `fee` / `dividend` / `interest` / `tax_withholding` / `trade_settlement` |
-| amount | numeric(18,2) | not null | signed: positive = credit, negative = debit |
-| currency | text | not null, default `'USD'` | |
-| related_order_id | uuid | nullable, FK → `public.orders` | set for `trade_settlement` rows |
-| related_transfer_id | uuid | nullable, FK → `app.bank_transfers` | set for deposit/withdrawal rows; cross-schema FK, fine internally, not exposed via API since `app` isn't in the exposed-schema list |
-| status | text | not null, default `'posted'` | `pending` / `posted` / `reversed` |
-| description | text | nullable | |
-| created_at | timestamptz | not null, default `now()` | |
+
+| column              | type          | null?                               | notes                                                                                                                               |
+| ------------------- | ------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| transaction_id      | uuid          | PK, default `gen_random_uuid()`     |                                                                                                                                     |
+| account_id          | uuid          | not null, FK → `public.accounts`    |                                                                                                                                     |
+| type                | text          | not null                            | `deposit` / `withdrawal` / `fee` / `dividend` / `interest` / `tax_withholding` / `trade_settlement`                                 |
+| amount              | numeric(18,2) | not null                            | signed: positive = credit, negative = debit                                                                                         |
+| currency            | text          | not null, default `'USD'`           |                                                                                                                                     |
+| related_order_id    | uuid          | nullable, FK → `public.orders`      | set for `trade_settlement` rows                                                                                                     |
+| related_transfer_id | uuid          | nullable, FK → `app.bank_transfers` | set for deposit/withdrawal rows; cross-schema FK, fine internally, not exposed via API since `app` isn't in the exposed-schema list |
+| status              | text          | not null, default `'posted'`        | `pending` / `posted` / `reversed`                                                                                                   |
+| description         | text          | nullable                            |                                                                                                                                     |
+| created_at          | timestamptz   | not null, default `now()`           |                                                                                                                                     |
 
 **Immutable append-only ledger** — reversals are new rows with `status='reversed'`
 linkage, never `UPDATE`/`DELETE`. This is what satisfies "complete record... without
@@ -241,38 +251,41 @@ write grants (deposits/withdrawals go through the backend, which creates the
 ## 5. `app` schema (backend-only, never exposed to PostgREST)
 
 ### `app.order_status` (lookup)
+
 `pending_risk_check`, `accepted`, `rejected`, `partially_filled`, `filled`,
 `cancel_requested`, `cancelled`, `expired`. Backing table so new statuses are inserts,
 not migrations.
 
 ### `app.order_events` (immutable event log — the audit trail)
-| column | type | null? | notes |
-|---|---|---|---|
-| event_id | bigint | PK, `identity` | |
-| order_id | uuid | not null, FK → `public.orders` | |
-| event_type | text | not null | `submitted`, `risk_check_passed`, `risk_check_failed`, `accepted`, `partial_fill`, `filled`, `cancel_requested`, `cancelled`, `rejected`, `expired` |
-| previous_status | text | nullable | |
-| new_status | text | not null | |
-| payload | jsonb | not null, default `'{}'` | snapshot of relevant fields at event time (price, qty, reason) |
-| actor_id | uuid | nullable, FK → `auth.users` | null for pure system events |
-| actor_type | text | not null, default `'system'` | `client` / `staff` / `system` |
-| occurred_at | timestamptz | not null, default `now()` | |
+
+| column          | type        | null?                          | notes                                                                                                                                               |
+| --------------- | ----------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| event_id        | bigint      | PK, `identity`                 |                                                                                                                                                     |
+| order_id        | uuid        | not null, FK → `public.orders` |                                                                                                                                                     |
+| event_type      | text        | not null                       | `submitted`, `risk_check_passed`, `risk_check_failed`, `accepted`, `partial_fill`, `filled`, `cancel_requested`, `cancelled`, `rejected`, `expired` |
+| previous_status | text        | nullable                       |                                                                                                                                                     |
+| new_status      | text        | not null                       |                                                                                                                                                     |
+| payload         | jsonb       | not null, default `'{}'`       | snapshot of relevant fields at event time (price, qty, reason)                                                                                      |
+| actor_id        | uuid        | nullable, FK → `auth.users`    | null for pure system events                                                                                                                         |
+| actor_type      | text        | not null, default `'system'`   | `client` / `staff` / `system`                                                                                                                       |
+| occurred_at     | timestamptz | not null, default `now()`      |                                                                                                                                                     |
 
 No `update`/`delete` grants for any role. This table, together with `public.trades`
 and `public.transactions`, is the "reconstruct any dispute or regulatory query without
 reconstruction work" answer — it's already reconstructed, permanently.
 
 ### `app.outbox_events` (transactional outbox → Kafka)
-| column | type | null? | notes |
-|---|---|---|---|
-| outbox_id | bigint | PK, `identity` | |
-| aggregate_type | text | not null | `order` / `trade` / `transaction` |
-| aggregate_id | uuid | not null | |
-| event_type | text | not null | |
-| payload | jsonb | not null | |
-| created_at | timestamptz | not null, default `now()` | |
-| published_at | timestamptz | nullable | set by the publisher once handed to Kafka |
-| kafka_topic | text | nullable | |
+
+| column         | type        | null?                     | notes                                     |
+| -------------- | ----------- | ------------------------- | ----------------------------------------- |
+| outbox_id      | bigint      | PK, `identity`            |                                           |
+| aggregate_type | text        | not null                  | `order` / `trade` / `transaction`         |
+| aggregate_id   | uuid        | not null                  |                                           |
+| event_type     | text        | not null                  |                                           |
+| payload        | jsonb       | not null                  |                                           |
+| created_at     | timestamptz | not null, default `now()` |                                           |
+| published_at   | timestamptz | nullable                  | set by the publisher once handed to Kafka |
+| kafka_topic    | text        | nullable                  |                                           |
 
 Partial index on `published_at IS NULL` for the publisher's poll query. Writing to
 `orders`/`trades`/`transactions` and `outbox_events` happens in the same DB transaction
@@ -281,55 +294,59 @@ standard transactional-outbox pattern, needed because Kafka and Postgres can't s
 a two-phase commit.
 
 ### `app.idempotency_keys`
-| column | type | null? | notes |
-|---|---|---|---|
-| account_id | uuid | PK part, FK → `public.accounts` | |
-| client_order_id | text | PK part | |
-| order_id | uuid | nullable, FK → `public.orders` | set once the order is created |
-| created_at | timestamptz | not null, default `now()` | |
+
+| column          | type        | null?                           | notes                         |
+| --------------- | ----------- | ------------------------------- | ----------------------------- |
+| account_id      | uuid        | PK part, FK → `public.accounts` |                               |
+| client_order_id | text        | PK part                         |                               |
+| order_id        | uuid        | nullable, FK → `public.orders`  | set once the order is created |
+| created_at      | timestamptz | not null, default `now()`       |                               |
 
 Belt-and-suspenders alongside the `UNIQUE(account_id, client_order_id)` constraint on
 `orders` — lets the backend short-circuit a retried request before even attempting an
 insert.
 
 ### `app.risk_limits`
-| column | type | null? | notes |
-|---|---|---|---|
-| account_id | uuid | PK, FK → `public.accounts` | |
-| max_order_notional | numeric(18,2) | not null | |
-| max_daily_notional | numeric(18,2) | not null | |
-| max_position_qty | numeric(18,8) | nullable | null = no limit |
-| updated_at | timestamptz | not null, default `now()` | |
+
+| column             | type          | null?                      | notes           |
+| ------------------ | ------------- | -------------------------- | --------------- |
+| account_id         | uuid          | PK, FK → `public.accounts` |                 |
+| max_order_notional | numeric(18,2) | not null                   |                 |
+| max_daily_notional | numeric(18,2) | not null                   |                 |
+| max_position_qty   | numeric(18,8) | nullable                   | null = no limit |
+| updated_at         | timestamptz   | not null, default `now()`  |                 |
 
 ### `app.audit_log` (generic staff/admin action log)
-| column | type | null? | notes |
-|---|---|---|---|
-| audit_id | bigint | PK, `identity` | |
-| table_name | text | not null | |
-| record_id | text | not null | |
-| action | text | not null | `insert` / `update` / `delete` / `manual_adjustment` |
-| actor_id | uuid | not null, FK → `auth.users` | |
-| actor_role | text | not null | role in effect at time of action |
-| before_data | jsonb | nullable | |
-| after_data | jsonb | nullable | |
-| reason | text | nullable | required (enforced at application layer) for `manual_adjustment` |
-| occurred_at | timestamptz | not null, default `now()` | |
+
+| column      | type        | null?                       | notes                                                            |
+| ----------- | ----------- | --------------------------- | ---------------------------------------------------------------- |
+| audit_id    | bigint      | PK, `identity`              |                                                                  |
+| table_name  | text        | not null                    |                                                                  |
+| record_id   | text        | not null                    |                                                                  |
+| action      | text        | not null                    | `insert` / `update` / `delete` / `manual_adjustment`             |
+| actor_id    | uuid        | not null, FK → `auth.users` |                                                                  |
+| actor_role  | text        | not null                    | role in effect at time of action                                 |
+| before_data | jsonb       | nullable                    |                                                                  |
+| after_data  | jsonb       | nullable                    |                                                                  |
+| reason      | text        | nullable                    | required (enforced at application layer) for `manual_adjustment` |
+| occurred_at | timestamptz | not null, default `now()`   |                                                                  |
 
 Covers anything `order_events`/`transactions` don't — e.g. a staff member manually
 suspending an account or overriding a risk limit.
 
 ### `app.bank_transfers` (fake bank for MVP)
-| column | type | null? | notes |
-|---|---|---|---|
-| transfer_id | uuid | PK, default `gen_random_uuid()` | |
-| account_id | uuid | not null, FK → `public.accounts` | |
-| direction | text | not null | `deposit` / `withdrawal` |
-| amount | numeric(18,2) | not null | `check (amount > 0)` |
-| currency | text | not null, default `'USD'` | |
-| status | text | not null, default `'pending'` | `pending` / `completed` / `failed` |
-| external_ref | text | nullable | placeholder for a real payment processor reference later |
-| requested_at | timestamptz | not null, default `now()` | |
-| settled_at | timestamptz | nullable | |
+
+| column       | type          | null?                            | notes                                                    |
+| ------------ | ------------- | -------------------------------- | -------------------------------------------------------- |
+| transfer_id  | uuid          | PK, default `gen_random_uuid()`  |                                                          |
+| account_id   | uuid          | not null, FK → `public.accounts` |                                                          |
+| direction    | text          | not null                         | `deposit` / `withdrawal`                                 |
+| amount       | numeric(18,2) | not null                         | `check (amount > 0)`                                     |
+| currency     | text          | not null, default `'USD'`        |                                                          |
+| status       | text          | not null, default `'pending'`    | `pending` / `completed` / `failed`                       |
+| external_ref | text          | nullable                         | placeholder for a real payment processor reference later |
+| requested_at | timestamptz   | not null, default `now()`        |                                                          |
+| settled_at   | timestamptz   | nullable                         |                                                          |
 
 Simulates a bank rail today; when real banking integration lands, this table gains a
 webhook/callback path and `external_ref` starts pointing at a real provider — no
@@ -338,10 +355,12 @@ structural change needed.
 ## 6. `reporting` schema (analytics, decoupled from live trading)
 
 ### `reporting.daily_trading_volume` (materialized view)
+
 Grouped by `trade_date`, `instrument_id`: `total_quantity`, `total_notional`,
 `trade_count`. Sourced from `public.trades`.
 
 ### `reporting.client_activity_summary` (materialized view)
+
 Grouped by `account_id`, `period`: `order_count`, `trade_count`, `total_volume`,
 `total_fees`. Sourced from `public.orders`/`public.trades`.
 
@@ -378,6 +397,7 @@ free (no new infra), and keeps everything queryable with plain SQL/PostgREST fro
 place.
 
 **When to move it out:**
+
 - If materialized view refresh times start competing with OLTP for I/O/CPU on the
   same instance, move reporting queries to a **Postgres read replica** first — a
   small operational change, no data-model change.
@@ -392,14 +412,14 @@ place.
 
 ## 9. Explicitly NOT part of this schema (and where it belongs instead)
 
-| Data | Why excluded | Where it belongs |
-|---|---|---|
-| Card/bank account numbers, payment credentials | PCI-DSS scope; storing raw payment credentials creates compliance burden this project doesn't need yet | Tokenized reference from a payment processor, when real banking is integrated; `app.bank_transfers.external_ref` is the placeholder |
-| KYC documents (ID scans, proof of address) | Large binary blobs, different retention/legal-hold rules than transactional data | Supabase Storage bucket; only a status + storage path reference in Postgres |
-| Passwords, session tokens, MFA secrets | Already Supabase Auth's job; duplicating it is a security liability, not a feature | `auth.users` / Supabase Auth internals |
-| Live order-book / tick-by-tick market data | Extremely high write volume/velocity, wrong shape for an OLTP row-store; would overwhelm Postgres and bloat backups | A market-data pipeline (Kafka topics + a time-series store, e.g. TimescaleDB/ClickHouse, or a vendor feed queried live); Postgres only needs a last-traded-price cache if the UI needs one |
-| Long-tail historical audit/event data (multi-year retention) | Keeping every event forever in the hot OLTP database inflates backup/restore time and vacuum cost | Periodic archive of `app.order_events`/`app.audit_log` to cold storage/object storage once past a retention window (e.g. 2 years); application logic doesn't need to change, just an archival job |
-| Heavy BI aggregation beyond the two materialized views above | Wrong tool once queries need arbitrary historical slicing | Columnar warehouse fed from the outbox, see §8 |
+| Data                                                         | Why excluded                                                                                                        | Where it belongs                                                                                                                                                                                  |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Card/bank account numbers, payment credentials               | PCI-DSS scope; storing raw payment credentials creates compliance burden this project doesn't need yet              | Tokenized reference from a payment processor, when real banking is integrated; `app.bank_transfers.external_ref` is the placeholder                                                               |
+| KYC documents (ID scans, proof of address)                   | Large binary blobs, different retention/legal-hold rules than transactional data                                    | Supabase Storage bucket; only a status + storage path reference in Postgres                                                                                                                       |
+| Passwords, session tokens, MFA secrets                       | Already Supabase Auth's job; duplicating it is a security liability, not a feature                                  | `auth.users` / Supabase Auth internals                                                                                                                                                            |
+| Live order-book / tick-by-tick market data                   | Extremely high write volume/velocity, wrong shape for an OLTP row-store; would overwhelm Postgres and bloat backups | A market-data pipeline (Kafka topics + a time-series store, e.g. TimescaleDB/ClickHouse, or a vendor feed queried live); Postgres only needs a last-traded-price cache if the UI needs one        |
+| Long-tail historical audit/event data (multi-year retention) | Keeping every event forever in the hot OLTP database inflates backup/restore time and vacuum cost                   | Periodic archive of `app.order_events`/`app.audit_log` to cold storage/object storage once past a retention window (e.g. 2 years); application logic doesn't need to change, just an archival job |
+| Heavy BI aggregation beyond the two materialized views above | Wrong tool once queries need arbitrary historical slicing                                                           | Columnar warehouse fed from the outbox, see §8                                                                                                                                                    |
 
 ## 10. Open questions before writing migrations
 

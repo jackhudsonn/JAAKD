@@ -3,6 +3,7 @@ import { HttpContext, HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '@environments/environment.local';
 import { AUTH_FLOW } from '@core/http/auth-flow.token';
+import { DASHBOARD_PREFERENCES_CACHE_PREFIX } from '@core/constants/dashboard-preferences.constants';
 
 interface SessionResponse {
   email: string;
@@ -89,5 +90,29 @@ export class AuthService {
 
   clearSession(): void {
     this.emailSignal.set(null);
+    this.clearDashboardPreferencesSessionCache();
+  }
+
+  private clearDashboardPreferencesSessionCache(): void {
+    try {
+      if (typeof globalThis === 'undefined' || !('sessionStorage' in globalThis)) {
+        return;
+      }
+
+      const keysToDelete: string[] = [];
+
+      for (let i = 0; i < globalThis.sessionStorage.length; i++) {
+        const key = globalThis.sessionStorage.key(i);
+        if (key?.startsWith(DASHBOARD_PREFERENCES_CACHE_PREFIX)) {
+          keysToDelete.push(key);
+        }
+      }
+
+      for (const key of keysToDelete) {
+        globalThis.sessionStorage.removeItem(key);
+      }
+    } catch {
+      // Best effort cleanup; avoid throwing during logout/session expiry.
+    }
   }
 }
