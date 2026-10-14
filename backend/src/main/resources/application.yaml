@@ -11,9 +11,9 @@ spring:
     import: optional:file:../.env[.properties]
 
   datasource:
-    url: ${SPRING_DATASOURCE_URL}
-    username: ${SPRING_DATASOURCE_USERNAME}
-    password: ${SPRING_DATASOURCE_PASSWORD}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/jaakd}
+    username: ${SPRING_DATASOURCE_USERNAME:jaakd_app}
+    password: ${SPRING_DATASOURCE_PASSWORD:${JAAKD_APP_DB_PASSWORD:}}
 
   jpa:
     open-in-view: false
