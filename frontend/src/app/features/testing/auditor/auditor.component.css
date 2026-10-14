@@ -1,0 +1,281 @@
+.auditor-page {
+  padding: 1.5rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.hero h1 {
+  margin: 0;
+  font-size: 1.8rem;
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #6b7280;
+}
+
+.subtitle {
+  margin: 0.5rem 0 0;
+  color: #374151;
+}
+
+.panel {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.subpanel {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.6rem;
+  padding: 0.75rem;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.panel-help {
+  margin: 0;
+  color: #4b5563;
+  font-size: 0.9rem;
+}
+
+.banner {
+  margin: 0;
+  border-radius: 0.5rem;
+  padding: 0.65rem 0.75rem;
+  font-size: 0.92rem;
+}
+
+.banner.success {
+  background: #ecfdf3;
+  border: 1px solid #a7f3d0;
+  color: #065f46;
+}
+
+.banner.error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+
+.form-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.form-grid-wide {
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+
+label {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.9rem;
+  color: #111827;
+}
+
+input,
+select,
+button {
+  font: inherit;
+}
+
+input,
+select {
+  border: 1px solid #d1d5db;
+  border-radius: 0.45rem;
+  padding: 0.45rem 0.55rem;
+  background: #ffffff;
+}
+
+button {
+  border-radius: 0.5rem;
+  border: 1px solid transparent;
+  padding: 0.5rem 0.85rem;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.primary {
+  background: #0f766e;
+  color: #ffffff;
+}
+
+.ghost {
+  background: #ffffff;
+  border-color: #d1d5db;
+}
+
+.button-row {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.grid-two {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.list {
+  display: grid;
+  gap: 0.45rem;
+  max-height: 340px;
+  overflow: auto;
+}
+
+.list-item {
+  text-align: left;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  border-radius: 0.5rem;
+  padding: 0.55rem;
+  display: grid;
+  gap: 0.15rem;
+}
+
+.list-item.selected {
+  border-color: #0f766e;
+  background: #f0fdfa;
+}
+
+.inline-stats {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.diagnostics-panel {
+  gap: 0.5rem;
+}
+
+.diagnostics-grid {
+  display: grid;
+  gap: 0.35rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.diagnostics-grid p {
+  margin: 0;
+}
+
+.diagnostics-params {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.diagnostics-params pre {
+  margin: 0;
+  padding: 0.6rem;
+  border-radius: 0.45rem;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  overflow: auto;
+  font-size: 0.8rem;
+}
+
+.muted {
+  color: #6b7280;
+  font-size: 0.85rem;
+}
+
+.table-wrap {
+  overflow: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 720px;
+}
+
+th,
+td {
+  border-bottom: 1px solid #e5e7eb;
+  padding: 0.45rem 0.55rem;
+  text-align: left;
+  font-size: 0.85rem;
+}
+
+th {
+  background: #f9fafb;
+}
+
+.timeline-list {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.timeline-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.6rem;
+  padding: 0.7rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.status-steps {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.status-step {
+  display: grid;
+  gap: 0.25rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 0.45rem;
+}
+
+.status-chip {
+  display: inline-block;
+  width: fit-content;
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.status-submitted {
+  background: #e0f2fe;
+  color: #075985;
+}
+
+.status-pending {
+  background: #fef9c3;
+  color: #854d0e;
+}
+
+.status-cancelled,
+.status-failed,
+.status-rejected {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.status-accepted,
+.status-executed {
+  background: #dcfce7;
+  color: #166534;
+}
+
+@media (max-width: 768px) {
+  .auditor-page {
+    padding: 1rem;
+  }
+}

@@ -298,9 +298,9 @@ paths:
                 items:
                   $ref: "#/components/schemas/PositionLotResponse"
               example:
-                - positionLotID: 31f46f28-0d42-4c19-95de-77561f6fc2c4
-                  holdingID: 3f6c1a2e-8b4d-4c1a-9e2f-1a2b3c4d5e6f
-                  sourceBuyLogOrderID: 6e8b3bca-9d8a-4028-9d5f-136dca4deec5
+                - positionLotId: 31f46f28-0d42-4c19-95de-77561f6fc2c4
+                  holdingId: 3f6c1a2e-8b4d-4c1a-9e2f-1a2b3c4d5e6f
+                  sourceBuyLogOrderId: 6e8b3bca-9d8a-4028-9d5f-136dca4deec5
                   openedAt: "2026-09-25T09:30:00Z"
                   originalQuantity: 100.00
                   remainingQuantity: 40.00
@@ -332,10 +332,10 @@ paths:
                 items:
                   $ref: "#/components/schemas/LotMatchResponse"
               example:
-                - lotMatchID: 0f0d4025-f962-4faf-988a-ec6f71f698c2
-                  sellLogOrderID: 4e261f03-c0dc-4653-ae7b-ece8f26d0a9e
-                  positionLotID: 31f46f28-0d42-4c19-95de-77561f6fc2c4
-                  holdingID: 3f6c1a2e-8b4d-4c1a-9e2f-1a2b3c4d5e6f
+                - lotMatchId: 0f0d4025-f962-4faf-988a-ec6f71f698c2
+                  sellLogOrderId: 4e261f03-c0dc-4653-ae7b-ece8f26d0a9e
+                  positionLotId: 31f46f28-0d42-4c19-95de-77561f6fc2c4
+                  holdingId: 3f6c1a2e-8b4d-4c1a-9e2f-1a2b3c4d5e6f
                   matchedQuantity: 60.00
                   sellUnitPrice: 11.20
                   realizedPnlAmount: 42.00
@@ -1640,11 +1640,15 @@ components:
             details:
               currentQuantity: Current quantity must be greater than 0
     Unauthorized:
-      description: Missing, expired or invalid session
+      description: Missing, expired or invalid session. Returned as structured `ErrorResponse` JSON by security handlers.
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/ErrorResponse"
+          example:
+            timestamp: "2026-10-14T13:30:00Z"
+            message: Unauthorized
+            details: {}
     ChallengeRequired:
       description: |
         The identity provider requires another step before a session is created.
@@ -1661,7 +1665,7 @@ components:
               challenge: MFA
               continuation: opaque-continuation-token
     Forbidden:
-      description: Authenticated but not authorized for this operation
+      description: Authenticated but not authorized for this operation. Returned as structured `ErrorResponse` JSON.
       content:
         application/json:
           schema:
@@ -1703,9 +1707,11 @@ components:
         message:
           type: string
         details:
-          type: object
-          additionalProperties:
-            type: string
+          anyOf:
+            - type: object
+              additionalProperties:
+                type: string
+            - type: "null"
 
     # ---- auth
     RegisterRequest:
@@ -1746,7 +1752,7 @@ components:
     # ---- enums
     InstrumentClass:
       type: string
-      enum: [ETF, EQUITY, STOCK, BOND, USD, GBP, CRYPTO]
+      enum: [ETF, EQUITY, STOCK, BOND, CASH, CRYPTO]
     OrderSide:
       type: string
       enum: [BUY, SELL, DEPOSIT, WITHDRAW]
@@ -1786,13 +1792,13 @@ components:
       type: object
       description: One FIFO BUY lot attached to a holding.
       properties:
-        positionLotID:
+        positionLotId:
           type: string
           format: uuid
-        holdingID:
+        holdingId:
           type: string
           format: uuid
-        sourceBuyLogOrderID:
+        sourceBuyLogOrderId:
           type: string
           format: uuid
         openedAt:
@@ -1812,16 +1818,16 @@ components:
       type: object
       description: One FIFO SELL-to-BUY match slice for a holding.
       properties:
-        lotMatchID:
+        lotMatchId:
           type: string
           format: uuid
-        sellLogOrderID:
+        sellLogOrderId:
           type: string
           format: uuid
-        positionLotID:
+        positionLotId:
           type: string
           format: uuid
-        holdingID:
+        holdingId:
           type: string
           format: uuid
         matchedQuantity:
@@ -2080,6 +2086,9 @@ components:
           $ref: "#/components/schemas/OrderStatus"
         executionPrice:
           type: number
+          format: double
+        quotedPrice:
+          type: [number, "null"]
           format: double
 
     # ---- watchlists

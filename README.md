@@ -65,6 +65,13 @@ If you have a VS Code Remote-SSH window open to the Docker host, it forwards por
 
 Open `http://localhost:4200` and register an account.
 
+For endpoint testing, use the Auditor Lab page at `http://localhost:4200/testing/auditor`.
+It is a testing utility that supports:
+
+- User drilldown (`user -> portfolios/holdings -> lots/matches`)
+- Order-log day search with grouped lifecycle timeline and raw-row toggle
+- Request diagnostics (last endpoint, params, status, and row counts)
+
 Always use `localhost` in the browser, not the host's IP address: sign-in uses a session cookie that is only sent when the frontend and backend are both on `localhost`.
 
 Backend API docs are at `http://localhost:8081/swagger-ui.html`. The tunnel in step 3 forwards only `4200`; to reach the docs, forward the backend port as well:
@@ -84,6 +91,21 @@ docker exec -it jaakd-frontend npm install <package>
 ### Accounts
 
 Sign-in uses the development identity provider, so accounts exist only in your local database. After `docker-compose down -v`, register again.
+
+If you use the seeded development credentials from database init scripts, remember:
+
+- `AUDITOR`/`ADMIN` roles can access `/api/audit/**`
+- `RETAIL_CLIENT` users will receive `403` on `/api/audit/**`
+
+Security errors are returned as structured JSON:
+
+```json
+{
+	"timestamp": "2026-10-14T13:30:00Z",
+	"message": "Unauthorized",
+	"details": {}
+}
+```
 
 ### Stop or reset
 

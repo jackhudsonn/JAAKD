@@ -21,6 +21,10 @@
         Dev Testing
       </a>
 
+      <a routerLink="/testing/auditor" routerLinkActive="active" (click)="closeMenus()">
+        Auditor Lab
+      </a>
+
       <div class="menu-wrapper">
         <button
           type="button"
@@ -65,6 +69,15 @@
               (click)="closeMenu()"
             >
               Dev Testing
+            </a>
+
+            <a
+              routerLink="/testing/auditor"
+              routerLinkActive="active"
+              role="menuitem"
+              (click)="closeMenu()"
+            >
+              Auditor Lab
             </a>
           </div>
         }
@@ -164,6 +177,15 @@
           (click)="closeMenus()"
         >
           Dev Testing
+        </a>
+
+        <a
+          routerLink="/testing/auditor"
+          routerLinkActive="active"
+          role="menuitem"
+          (click)="closeMenus()"
+        >
+          Auditor Lab
         </a>
       </div>
     }
