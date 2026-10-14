@@ -1,13 +1,15 @@
 <main class="page-content payment-page">
   <header class="payment-heading">
-    <!-- <h1>Payment Methods</h1> -->
-
     <p class="page-description">
-      Add and manage your funding methods for deposits and withdrawals.
+      Add and manage your bank payment methods for deposits and withdrawals.
     </p>
   </header>
 
-  <app-add-method-card [activeType]="activeType()" (activeTypeChanged)="setType($event)" />
+  @if (loadFailed()) {
+    <p class="form-error">{{ loadError() }}</p>
+  }
 
-  <app-saved-methods-card [activeType]="activeType()" />
+  <app-add-method-card />
+
+  <app-saved-methods-card />
 </main>

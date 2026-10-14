@@ -76,3 +76,26 @@ export interface PreferencesResponse {
   createdAt: string;
   updatedAt: string;
 }
+
+export type BankAccountType = 'checking' | 'savings';
+
+export interface CreatePaymentMethodRequest {
+  nickname: string;
+  accountHolderName: string;
+  bankName: string;
+  accountType: BankAccountType;
+  routingNumber: string;
+  accountNumber: string;
+}
+
+export interface PaymentMethodResponse {
+  paymentMethodId: string;
+  nickname: string;
+  accountHolderName: string;
+  bankName: string;
+  accountType: BankAccountType;
+  routingLast4: string;
+  accountLast4: string;
+  createdAt: string;
+  updatedAt: string;
+}

@@ -1,40 +1,22 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { Injectable, computed, signal } from '@angular/core';
 import { PaymentMethod } from '@core/models';
+import { BankAccountType, PaymentMethodResponse } from '@core/models/api.models';
+import { PaymentMethodApiService } from '@core/services/payment-method-api.service';
 
-export type StoredPaymentMethodType = 'bank' | 'debit_card' | 'crypto_wallet';
-export type BankAccountType = 'checking' | 'savings';
+export type { BankAccountType } from '@core/models/api.models';
 
-interface StoredMethodBase {
+export interface StoredBankPaymentMethod {
   id: string;
-  type: StoredPaymentMethodType;
   nickname: string;
-  isDefault: boolean;
-  addedAt: string;
-}
-
-export interface StoredBankAccount extends StoredMethodBase {
-  type: 'bank';
+  accountHolderName: string;
   bankName: string;
   accountType: BankAccountType;
-  accountLast4: string;
   routingLast4: string;
+  accountLast4: string;
+  addedAt: string;
+  updatedAt: string;
 }
-
-export interface StoredDebitCard extends StoredMethodBase {
-  type: 'debit_card';
-  cardBrand: string;
-  cardLast4: string;
-  expMonth: string;
-  expYear: string;
-}
-
-export interface StoredCryptoWallet extends StoredMethodBase {
-  type: 'crypto_wallet';
-  network: string;
-  walletPreview: string;
-}
-
-export type StoredPaymentMethod = StoredBankAccount | StoredDebitCard | StoredCryptoWallet;
 
 export interface TransactPaymentOption {
   id: string;
@@ -42,147 +24,125 @@ export interface TransactPaymentOption {
   method: PaymentMethod;
 }
 
+export type PaymentMethodsLoadState = 'idle' | 'loading' | 'ready' | 'error';
+
 @Injectable({
   providedIn: 'root',
 })
 export class PaymentMethodsStore {
-  private readonly methodState = signal<StoredPaymentMethod[]>([]);
+  private readonly methodState = signal<StoredBankPaymentMethod[]>([]);
+  private readonly loadStateSignal = signal<PaymentMethodsLoadState>('idle');
+  private readonly loadErrorSignal = signal('');
+  private loadInFlight: Promise<void> | null = null;
+
+  constructor(private paymentMethodApiService: PaymentMethodApiService) {}
 
   readonly methods = this.methodState.asReadonly();
+  readonly loadState = this.loadStateSignal.asReadonly();
+  readonly loadError = this.loadErrorSignal.asReadonly();
 
   readonly transactOptions = computed<readonly TransactPaymentOption[]>(() =>
     this.methodState().map((storedMethod) => ({
       id: storedMethod.id,
-      label: this.toTransactLabel(storedMethod),
-      method: this.toTransactionMethod(storedMethod.type),
+      label: `${storedMethod.nickname} - ${storedMethod.bankName} (...${storedMethod.accountLast4})`,
+      method: 'bank_transfer',
     })),
   );
 
-  addBankAccount(input: {
+  async load(force = false): Promise<void> {
+    if (!force && this.loadInFlight) {
+      return this.loadInFlight;
+    }
+
+    this.loadInFlight = (async () => {
+      this.loadStateSignal.set('loading');
+      this.loadErrorSignal.set('');
+
+      try {
+        const methods = await this.paymentMethodApiService.list();
+        this.methodState.set(methods.map((method) => this.toStoredMethod(method)));
+        this.loadStateSignal.set('ready');
+      } catch (error) {
+        console.error('PaymentMethodsStore.load failed', error);
+        this.methodState.set([]);
+        this.loadStateSignal.set('error');
+        this.loadErrorSignal.set(this.extractErrorMessage(error, 'Unable to load payment methods.'));
+      }
+    })().finally(() => {
+      this.loadInFlight = null;
+    });
+
+    return this.loadInFlight;
+  }
+
+  async addBankAccount(input: {
     nickname: string;
+    accountHolderName: string;
     bankName: string;
     accountType: BankAccountType;
     accountNumber: string;
     routingNumber: string;
-  }) {
-    const accountDigits = input.accountNumber.replace(/\D/g, '');
-    const routingDigits = input.routingNumber.replace(/\D/g, '');
+  }): Promise<void> {
+    try {
+      const created = await this.paymentMethodApiService.create({
+        nickname: input.nickname,
+        accountHolderName: input.accountHolderName,
+        bankName: input.bankName,
+        accountType: input.accountType,
+        accountNumber: input.accountNumber,
+        routingNumber: input.routingNumber,
+      });
 
-    const nextMethod: StoredBankAccount = {
-      id: this.makeId('bank'),
-      type: 'bank',
-      nickname: input.nickname,
-      isDefault: this.methodState().length === 0,
-      addedAt: new Date().toISOString(),
-      bankName: input.bankName,
-      accountType: input.accountType,
-      accountLast4: accountDigits.slice(-4),
-      routingLast4: routingDigits.slice(-4),
+      this.methodState.update((methods) => [this.toStoredMethod(created), ...methods]);
+      this.loadStateSignal.set('ready');
+      this.loadErrorSignal.set('');
+    } catch (error) {
+      throw new Error(this.extractErrorMessage(error, 'Unable to add payment method.'));
+    }
+  }
+
+  async removeMethod(methodId: string): Promise<void> {
+    try {
+      await this.paymentMethodApiService.remove(methodId);
+      this.methodState.update((methods) => methods.filter((method) => method.id !== methodId));
+    } catch (error) {
+      throw new Error(this.extractErrorMessage(error, 'Unable to remove payment method.'));
+    }
+  }
+
+  private toStoredMethod(method: PaymentMethodResponse): StoredBankPaymentMethod {
+    return {
+      id: method.paymentMethodId,
+      nickname: method.nickname,
+      accountHolderName: method.accountHolderName,
+      bankName: method.bankName,
+      accountType: method.accountType,
+      accountLast4: method.accountLast4,
+      routingLast4: method.routingLast4,
+      addedAt: method.createdAt,
+      updatedAt: method.updatedAt,
     };
-
-    this.methodState.update((methods) => [nextMethod, ...methods]);
   }
 
-  addDebitCard(input: { nickname: string; cardNumber: string; expMonth: string; expYear: string }) {
-    const cardDigits = input.cardNumber.replace(/\D/g, '');
-    const cardBrand = this.detectCardBrand(cardDigits);
+  private extractErrorMessage(error: unknown, fallback: string): string {
+    if (error instanceof HttpErrorResponse) {
+      const message =
+        typeof error.error === 'object' &&
+        error.error &&
+        'message' in error.error &&
+        typeof error.error.message === 'string'
+          ? error.error.message.trim()
+          : '';
 
-    const nextMethod: StoredDebitCard = {
-      id: this.makeId('card'),
-      type: 'debit_card',
-      nickname: input.nickname,
-      isDefault: this.methodState().length === 0,
-      addedAt: new Date().toISOString(),
-      cardBrand,
-      cardLast4: cardDigits.slice(-4),
-      expMonth: input.expMonth.padStart(2, '0'),
-      expYear: input.expYear,
-    };
-
-    this.methodState.update((methods) => [nextMethod, ...methods]);
-  }
-
-  addCryptoWallet(input: { nickname: string; network: string; walletAddress: string }) {
-    const walletAddress = input.walletAddress.trim();
-
-    const nextMethod: StoredCryptoWallet = {
-      id: this.makeId('wallet'),
-      type: 'crypto_wallet',
-      nickname: input.nickname,
-      isDefault: this.methodState().length === 0,
-      addedAt: new Date().toISOString(),
-      network: input.network,
-      walletPreview: `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`,
-    };
-
-    this.methodState.update((methods) => [nextMethod, ...methods]);
-  }
-
-  setDefault(methodId: string) {
-    this.methodState.update((methods) =>
-      methods.map((method) => ({
-        ...method,
-        isDefault: method.id === methodId,
-      })),
-    );
-  }
-
-  removeMethod(methodId: string) {
-    this.methodState.update((methods) => {
-      const remaining = methods.filter((method) => method.id !== methodId);
-
-      if (!remaining.some((method) => method.isDefault) && remaining.length > 0) {
-        remaining[0] = {
-          ...remaining[0],
-          isDefault: true,
-        };
+      if (message.length > 0) {
+        return message;
       }
-
-      return remaining;
-    });
-  }
-
-  private toTransactionMethod(type: StoredPaymentMethodType): PaymentMethod {
-    if (type === 'bank') {
-      return 'bank_transfer';
     }
 
-    if (type === 'debit_card') {
-      return 'card';
+    if (error instanceof Error && error.message.trim().length > 0) {
+      return error.message;
     }
 
-    return 'crypto_wallet';
-  }
-
-  private toTransactLabel(method: StoredPaymentMethod): string {
-    if (method.type === 'bank') {
-      return `${method.nickname} - ${method.bankName} (...${method.accountLast4})`;
-    }
-
-    if (method.type === 'debit_card') {
-      return `${method.nickname} - ${method.cardBrand} (...${method.cardLast4})`;
-    }
-
-    return `${method.nickname} - ${method.network} (${method.walletPreview})`;
-  }
-
-  private detectCardBrand(cardDigits: string): string {
-    if (cardDigits.startsWith('4')) {
-      return 'Visa';
-    }
-
-    if (/^5[1-5]/.test(cardDigits)) {
-      return 'Mastercard';
-    }
-
-    if (/^3[47]/.test(cardDigits)) {
-      return 'Amex';
-    }
-
-    return 'Debit Card';
-  }
-
-  private makeId(prefix: string): string {
-    return `${prefix}-${Date.now()}-${Math.round(Math.random() * 1000)}`;
+    return fallback;
   }
 }

@@ -1,9 +1,6 @@
 import { TitleCasePipe } from '@angular/common';
-import { Component, computed, inject, input, signal } from '@angular/core';
-import {
-  PaymentMethodsStore,
-  StoredPaymentMethodType,
-} from '@features/payment/services/payment-methods.store';
+import { Component, inject, signal } from '@angular/core';
+import { PaymentMethodsStore } from '@features/payment/services/payment-methods.store';
 
 @Component({
   selector: 'app-saved-methods-card',
@@ -13,37 +10,23 @@ import {
   styleUrl: './saved-methods-card.component.css',
 })
 export class SavedMethodsCardComponent {
-  activeType = input.required<StoredPaymentMethodType>();
-
   private readonly paymentMethodsStore = inject(PaymentMethodsStore);
 
-  private readonly methods = this.paymentMethodsStore.methods;
+  methods = this.paymentMethodsStore.methods;
+  removingMethodId = signal<string | null>(null);
 
   statusMessage = signal('');
 
-  activeMethods = computed(() =>
-    this.methods().filter((method) => method.type === this.activeType()),
-  );
+  async removeMethod(methodId: string) {
+    this.removingMethodId.set(methodId);
 
-  setDefault(methodId: string) {
-    this.paymentMethodsStore.setDefault(methodId);
-    this.statusMessage.set('Default payment method updated.');
-  }
-
-  removeMethod(methodId: string) {
-    this.paymentMethodsStore.removeMethod(methodId);
-    this.statusMessage.set('Payment method removed.');
-  }
-
-  formatMethodType(type: StoredPaymentMethodType): string {
-    if (type === 'bank') {
-      return 'Bank Account';
+    try {
+      await this.paymentMethodsStore.removeMethod(methodId);
+      this.statusMessage.set('Payment method removed.');
+    } catch (error) {
+      this.statusMessage.set(error instanceof Error ? error.message : 'Unable to remove payment method.');
+    } finally {
+      this.removingMethodId.set(null);
     }
-
-    if (type === 'debit_card') {
-      return 'Debit Card';
-    }
-
-    return 'Crypto Wallet';
   }
 }
