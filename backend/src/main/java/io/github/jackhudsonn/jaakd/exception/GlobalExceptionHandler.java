@@ -104,7 +104,30 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
     public ErrorResponse handleDataAccess(DataAccessException ex) {
         log.error("Database access error", ex);
-        return new ErrorResponse(Instant.now(), "Database error", null);
+
+        Throwable root = ex.getMostSpecificCause();
+        String rootMessage = root == null ? "unknown" : String.valueOf(root.getMessage());
+        String normalized = rootMessage.toLowerCase();
+
+        String errorType = "db_unknown";
+        String hint = "Check backend datasource environment variables and database reachability from the backend host.";
+
+        if (normalized.contains("password authentication failed") || normalized.contains("authentication failed")) {
+            errorType = "db_auth";
+            hint = "Database authentication failed. Verify datasource username and password on the backend host.";
+        } else if (normalized.contains("connection refused") || normalized.contains("connect timed out") || normalized.contains("timeout") || normalized.contains("could not connect")) {
+            errorType = "db_connectivity";
+            hint = "Backend cannot reach the database host/port. Verify network, host, and port from the backend runtime.";
+        } else if (normalized.contains("illegal path") || normalized.contains("can't add file system") || normalized.contains("cannot add file system")) {
+            errorType = "db_path_config";
+            hint = "Datasource/JDBC path config is invalid for this OS. Check backend-side JDBC URL options such as ssl cert paths.";
+        }
+
+        Map<String, String> details = new LinkedHashMap<>();
+        details.put("type", errorType);
+        details.put("hint", hint);
+
+        return new ErrorResponse(Instant.now(), "Database error", details);
     }
 
     @ExceptionHandler(ForbiddenException.class)
