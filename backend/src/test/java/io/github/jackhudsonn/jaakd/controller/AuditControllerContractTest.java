@@ -226,6 +226,16 @@ class AuditControllerContractTest {
         verify(auditService).getHoldingOrderLogs(holdingId, fromDate, toDate, OrderStatus.FAILED, 1, 10);
     }
 
+    @Test
+    void searchOrderLogs_invalidUserIdReturnsBadRequest() throws Exception {
+        mockMvc.perform(get("/api/audit/order-logs")
+                .cookie(authCookie())
+                .queryParam("userId", "not-a-uuid")
+                .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message").value("Invalid value 'not-a-uuid' for parameter 'userId'"));
+    }
+
     private Cookie authCookie() {
         return new Cookie(SessionAuthenticationFilter.SESSION_COOKIE, SESSION_ID.toString());
     }
