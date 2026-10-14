@@ -46,7 +46,11 @@ export class DashboardPreferencesSyncService {
         updated.updatedAt,
       );
       return updated.dashboardWidgets;
-    } catch {
+    } catch (error) {
+      console.warn('DashboardPreferencesSyncService.persistWidgets fallback to dirty cache', {
+        portfolioId,
+        error,
+      });
       // Keep local cache as dirty; it will be retried on next load and next toggle.
       return [...dashboardWidgets];
     }
@@ -90,7 +94,11 @@ export class DashboardPreferencesSyncService {
           server.updatedAt,
         );
       }
-    } catch {
+    } catch (error) {
+      console.warn('DashboardPreferencesSyncService.reconcile continuing with cached widgets', {
+        portfolioId,
+        error,
+      });
       // Non-fatal: continue with cached widgets.
     }
   }
@@ -115,7 +123,11 @@ export class DashboardPreferencesSyncService {
         updated.dashboardWidgets,
         updated.updatedAt,
       );
-    } catch {
+    } catch (error) {
+      console.warn('DashboardPreferencesSyncService.syncLocalIfNeeded keeping dirty cache', {
+        portfolioId,
+        error,
+      });
       // Keep dirty cache for later retry.
     }
   }
