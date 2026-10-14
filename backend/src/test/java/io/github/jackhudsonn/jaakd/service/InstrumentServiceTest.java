@@ -12,6 +12,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -44,7 +45,8 @@ class InstrumentServiceTest {
 
     @Test
     void getAllInstruments_doesNotRequireAdmin() {
-        when(instrumentRepository.searchByFilters(null, "")).thenReturn(List.of());
+        when(instrumentRepository.findByTickerContainingIgnoreCaseOrNameContainingIgnoreCaseOrderByTickerAscInstrumentIdAsc("", ""))
+            .thenReturn(List.of());
 
         instrumentService.getAllInstruments();
 
@@ -54,38 +56,63 @@ class InstrumentServiceTest {
     @Test
     void getAllInstruments_filterByQueryOnly_usesUnpagedFilteredSearch() {
         Instrument instrument = new Instrument("AAPL", "NASDAQ", "Apple", InstrumentClass.EQUITY);
-        when(instrumentRepository.searchByFilters(null, "app")).thenReturn(List.of(instrument));
+        when(instrumentRepository.findByTickerContainingIgnoreCaseOrNameContainingIgnoreCaseOrderByTickerAscInstrumentIdAsc("app", "app"))
+            .thenReturn(List.of(instrument));
 
         List<Instrument> result = instrumentService.getAllInstruments(null, " app ", null, null);
 
         assertEquals(1, result.size());
-        verify(instrumentRepository, times(1)).searchByFilters(null, "app");
+        verify(instrumentRepository, times(1))
+            .findByTickerContainingIgnoreCaseOrNameContainingIgnoreCaseOrderByTickerAscInstrumentIdAsc("app", "app");
         verify(privilegedAccessService, never()).ensureAdmin();
     }
 
     @Test
     void getAllInstruments_filterByInstrumentTypeOnly_usesUnpagedFilteredSearch() {
-        when(instrumentRepository.searchByFilters(InstrumentClass.ETF, "")).thenReturn(List.of());
+        when(instrumentRepository.findByInstrumentClassAndTickerContainingIgnoreCaseOrInstrumentClassAndNameContainingIgnoreCaseOrderByTickerAscInstrumentIdAsc(
+            InstrumentClass.ETF,
+            "",
+            InstrumentClass.ETF,
+            ""
+        )).thenReturn(List.of());
 
         instrumentService.getAllInstruments(InstrumentClass.ETF, null, null, null);
 
-        verify(instrumentRepository, times(1)).searchByFilters(InstrumentClass.ETF, "");
+        verify(instrumentRepository, times(1))
+            .findByInstrumentClassAndTickerContainingIgnoreCaseOrInstrumentClassAndNameContainingIgnoreCaseOrderByTickerAscInstrumentIdAsc(
+                InstrumentClass.ETF,
+                "",
+                InstrumentClass.ETF,
+                ""
+            );
         verify(privilegedAccessService, never()).ensureAdmin();
     }
 
     @Test
     void getAllInstruments_filterByTypeAndQuery_usesUnpagedFilteredSearch() {
-        when(instrumentRepository.searchByFilters(InstrumentClass.EQUITY, "aap")).thenReturn(List.of());
+        when(instrumentRepository.findByInstrumentClassAndTickerContainingIgnoreCaseOrInstrumentClassAndNameContainingIgnoreCaseOrderByTickerAscInstrumentIdAsc(
+            InstrumentClass.EQUITY,
+            "aap",
+            InstrumentClass.EQUITY,
+            "aap"
+        )).thenReturn(List.of());
 
         instrumentService.getAllInstruments(InstrumentClass.EQUITY, "aap", null, null);
 
-        verify(instrumentRepository, times(1)).searchByFilters(InstrumentClass.EQUITY, "aap");
+        verify(instrumentRepository, times(1))
+            .findByInstrumentClassAndTickerContainingIgnoreCaseOrInstrumentClassAndNameContainingIgnoreCaseOrderByTickerAscInstrumentIdAsc(
+                InstrumentClass.EQUITY,
+                "aap",
+                InstrumentClass.EQUITY,
+                "aap"
+            );
         verify(privilegedAccessService, never()).ensureAdmin();
     }
 
     @Test
     void getAllInstruments_emptyResults_returnsEmptyList() {
-        when(instrumentRepository.searchByFilters(null, "missing")).thenReturn(List.of());
+        when(instrumentRepository.findByTickerContainingIgnoreCaseOrNameContainingIgnoreCaseOrderByTickerAscInstrumentIdAsc("missing", "missing"))
+            .thenReturn(List.of());
 
         List<Instrument> result = instrumentService.getAllInstruments(null, "missing", null, null);
 
@@ -96,7 +123,11 @@ class InstrumentServiceTest {
     void getAllInstruments_withPaging_usesPageRequestDefaults() {
         List<Instrument> content = List.of(new Instrument("AAPL", "NASDAQ", "Apple", InstrumentClass.EQUITY));
         Page<Instrument> page = new PageImpl<>(content);
-        when(instrumentRepository.searchByFilters(org.mockito.ArgumentMatchers.eq(null), org.mockito.ArgumentMatchers.eq(""), org.mockito.ArgumentMatchers.any(Pageable.class)))
+        when(instrumentRepository.findByTickerContainingIgnoreCaseOrNameContainingIgnoreCase(
+            org.mockito.ArgumentMatchers.eq(""),
+            org.mockito.ArgumentMatchers.eq(""),
+            org.mockito.ArgumentMatchers.any(Pageable.class)
+        ))
             .thenReturn(page);
 
         List<Instrument> result = instrumentService.getAllInstruments(null, null, 0, null);
@@ -104,12 +135,15 @@ class InstrumentServiceTest {
         assertEquals(1, result.size());
 
         org.mockito.ArgumentCaptor<Pageable> pageableCaptor = org.mockito.ArgumentCaptor.forClass(Pageable.class);
-        verify(instrumentRepository, times(1)).searchByFilters(
-            org.mockito.ArgumentMatchers.eq(null),
+        verify(instrumentRepository, times(1)).findByTickerContainingIgnoreCaseOrNameContainingIgnoreCase(
+            org.mockito.ArgumentMatchers.eq(""),
             org.mockito.ArgumentMatchers.eq(""),
             pageableCaptor.capture()
         );
-        assertEquals(PageRequest.of(0, 25), pageableCaptor.getValue());
+        assertEquals(
+            PageRequest.of(0, 25, Sort.by(Sort.Order.asc("ticker"), Sort.Order.asc("instrumentId"))),
+            pageableCaptor.getValue()
+        );
     }
 
     @Test

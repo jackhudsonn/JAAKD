@@ -6,6 +6,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.repository.query.Param;
 
 import io.github.jackhudsonn.jaakd.model.InstrumentClass;
@@ -19,7 +20,7 @@ import java.util.Optional;
 import java.util.Collection;
 import java.util.UUID;
 
-public interface OrderLogRepository extends JpaRepository<OrderLog, UUID> {
+public interface OrderLogRepository extends JpaRepository<OrderLog, UUID>, JpaSpecificationExecutor<OrderLog> {
     List<OrderLog> findByOrderIDOrderByTimestampAsc(UUID orderId);
 
     List<OrderLog> findByOrderIDOrderByTimestampDesc(UUID orderId);
