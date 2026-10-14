@@ -101,16 +101,16 @@ pipeline {
                     sh 'cp $ENV_FILE .env.development'
                     
                     // Remove old containers and volumes
-                    sh 'docker-compose down -v'
+                    sh 'docker-compose --env-file .env.development down -v'
 
                     // Start new containers
-                    sh 'docker-compose up -d --build'
+                    sh 'docker-compose --env-file .env.development up -d --build'
 
                     // Verify that the containers are running
-                    sh 'docker-compose ps'
+                    sh 'docker-compose --env-file .env.development ps'
 
                     // Print the logs of the running containers
-                    sh 'docker-compose logs'
+                    sh 'docker-compose --env-file .env.development logs'
 
                     // Prompt user to set up tunnel in Windows
                     input message: 'ssh -N -L 4200:localhost:4200 <user>@<host> in Windows Terminal to access the frontend at http://localhost:4200'
