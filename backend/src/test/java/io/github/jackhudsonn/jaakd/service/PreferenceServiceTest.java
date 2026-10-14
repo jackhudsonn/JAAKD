@@ -5,7 +5,6 @@ import io.github.jackhudsonn.jaakd.exception.PortfolioNotFoundException;
 import io.github.jackhudsonn.jaakd.model.Portfolio;
 import io.github.jackhudsonn.jaakd.model.Preference;
 import io.github.jackhudsonn.jaakd.model.Profile;
-import io.github.jackhudsonn.jaakd.repository.PortfolioRepository;
 import io.github.jackhudsonn.jaakd.repository.PreferenceRepository;
 import io.github.jackhudsonn.jaakd.security.CurrentUserService;
 import org.junit.jupiter.api.Test;
@@ -22,6 +21,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -33,7 +33,7 @@ class PreferenceServiceTest {
     private PreferenceRepository preferenceRepository;
 
     @Mock
-    private PortfolioRepository portfolioRepository;
+    private PortfolioService portfolioService;
 
     @Mock
     private CurrentUserService currentUserService;
@@ -47,7 +47,8 @@ class PreferenceServiceTest {
         UUID portfolioId = UUID.randomUUID();
 
         when(currentUserService.getUserId()).thenReturn(userId);
-        when(portfolioRepository.findOwnedByPortfolioId(portfolioId, userId)).thenReturn(Optional.empty());
+        when(portfolioService.getCurrentUserPortfolioById(portfolioId))
+            .thenThrow(new PortfolioNotFoundException(portfolioId));
 
         assertThrows(PortfolioNotFoundException.class, () -> preferenceService.getByPortfolio(portfolioId));
         verify(preferenceRepository, never()).save(any(Preference.class));
@@ -60,7 +61,7 @@ class PreferenceServiceTest {
         Portfolio portfolio = new Portfolio(new Profile(userId, BigDecimal.ZERO));
 
         when(currentUserService.getUserId()).thenReturn(userId);
-        when(portfolioRepository.findOwnedByPortfolioId(portfolioId, userId)).thenReturn(Optional.of(portfolio));
+        when(portfolioService.getCurrentUserPortfolioById(portfolioId)).thenReturn(portfolio);
         when(preferenceRepository.findOwnedByPortfolioId(portfolioId, userId)).thenReturn(Optional.empty());
         when(preferenceRepository.save(any(Preference.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -78,7 +79,7 @@ class PreferenceServiceTest {
         Preference existing = new Preference(portfolio, List.of("1", "3", "3", "5", "2", "bad-widget"));
 
         when(currentUserService.getUserId()).thenReturn(userId);
-        when(portfolioRepository.findOwnedByPortfolioId(portfolioId, userId)).thenReturn(Optional.of(portfolio));
+        when(portfolioService.getCurrentUserPortfolioById(portfolioId)).thenReturn(portfolio);
         when(preferenceRepository.findOwnedByPortfolioId(portfolioId, userId)).thenReturn(Optional.of(existing));
         when(preferenceRepository.save(existing)).thenReturn(existing);
 
@@ -96,7 +97,7 @@ class PreferenceServiceTest {
         Preference existing = new Preference(portfolio, List.of("watchlist", "portfolio-value"));
 
         when(currentUserService.getUserId()).thenReturn(userId);
-        when(portfolioRepository.findOwnedByPortfolioId(portfolioId, userId)).thenReturn(Optional.of(portfolio));
+        when(portfolioService.getCurrentUserPortfolioById(portfolioId)).thenReturn(portfolio);
         when(preferenceRepository.findOwnedByPortfolioId(portfolioId, userId)).thenReturn(Optional.of(existing));
         when(preferenceRepository.save(existing)).thenReturn(existing);
 
@@ -107,5 +108,25 @@ class PreferenceServiceTest {
 
         assertEquals(List.of("portfolio-value", "watchlist"), updated.getDashboardWidgets());
         verify(preferenceRepository).save(existing);
+    }
+
+    @Test
+    void updateByPortfolio_unchangedWidgets_skipsSave() {
+        UUID userId = UUID.randomUUID();
+        UUID portfolioId = UUID.randomUUID();
+        Portfolio portfolio = new Portfolio(new Profile(userId, BigDecimal.ZERO));
+        Preference existing = new Preference(portfolio, List.of("watchlist", "portfolio-value"));
+
+        when(currentUserService.getUserId()).thenReturn(userId);
+        when(portfolioService.getCurrentUserPortfolioById(portfolioId)).thenReturn(portfolio);
+        when(preferenceRepository.findOwnedByPortfolioId(portfolioId, userId)).thenReturn(Optional.of(existing));
+
+        Preference updated = preferenceService.updateByPortfolio(
+            portfolioId,
+            new UpdatePreferencesRequest(List.of("watchlist", "portfolio-value"))
+        );
+
+        assertEquals(List.of("watchlist", "portfolio-value"), updated.getDashboardWidgets());
+        verify(preferenceRepository, never()).save(eq(existing));
     }
 }
