@@ -20,8 +20,7 @@ public interface InstrumentRepository extends JpaRepository<Instrument, UUID> {
         FROM Instrument i
         WHERE (:instrumentType IS NULL OR i.instrumentClass = :instrumentType)
           AND (
-              :query IS NULL
-              OR UPPER(i.ticker) LIKE UPPER(CONCAT('%', :query, '%'))
+              UPPER(i.ticker) LIKE UPPER(CONCAT('%', :query, '%'))
               OR UPPER(i.name) LIKE UPPER(CONCAT('%', :query, '%'))
           )
         ORDER BY i.ticker ASC, i.instrumentId ASC
@@ -36,8 +35,7 @@ public interface InstrumentRepository extends JpaRepository<Instrument, UUID> {
         FROM Instrument i
         WHERE (:instrumentType IS NULL OR i.instrumentClass = :instrumentType)
           AND (
-              :query IS NULL
-              OR UPPER(i.ticker) LIKE UPPER(CONCAT('%', :query, '%'))
+              UPPER(i.ticker) LIKE UPPER(CONCAT('%', :query, '%'))
               OR UPPER(i.name) LIKE UPPER(CONCAT('%', :query, '%'))
           )
         ORDER BY i.ticker ASC, i.instrumentId ASC

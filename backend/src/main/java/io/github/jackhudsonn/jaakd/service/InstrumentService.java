@@ -123,11 +123,11 @@ public class InstrumentService {
 
     private String normalizeQuery(String query) {
         if (query == null) {
-            return null;
+            return "";
         }
 
         String trimmed = query.trim();
-        return trimmed.isEmpty() ? null : trimmed;
+        return trimmed.isEmpty() ? "" : trimmed;
     }
 
     private void validatePaging(int page, int size) {

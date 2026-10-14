@@ -121,7 +121,7 @@ public interface OrderLogRepository extends JpaRepository<OrderLog, UUID> {
                 AND (:end IS NULL OR o.timestamp < :end)
                 AND (:userId IS NULL OR o.portfolio.profile.userId = :userId)
                 AND (:status IS NULL OR o.status = :status)
-                AND (:ticker IS NULL OR UPPER(o.instrument.ticker) = UPPER(:ticker))
+                AND (:ticker IS NULL OR UPPER(o.instrument.ticker) = :ticker)
                 AND (:instrumentId IS NULL OR o.instrument.instrumentId = :instrumentId)
                 AND (:instrumentType IS NULL OR o.instrument.instrumentClass = :instrumentType)
             ORDER BY o.timestamp DESC, o.logOrderID DESC
