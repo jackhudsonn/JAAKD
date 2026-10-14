@@ -1,4 +1,13 @@
-import { Component, OnDestroy, OnInit, computed, inject, input, output, signal } from '@angular/core';
+import {
+  Component,
+  OnDestroy,
+  OnInit,
+  computed,
+  inject,
+  input,
+  output,
+  signal,
+} from '@angular/core';
 import { DatePipe, TitleCasePipe } from '@angular/common';
 import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
 import { ScrollableListComponent } from '@shared/components/scrollable-list/scrollable-list.component';

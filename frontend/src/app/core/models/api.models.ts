@@ -41,7 +41,6 @@ export interface OrderLogResponse {
   status: OrderStatus;
   executionPrice: number;
   quotedPrice: number | null;
-
 }
 
 export interface CreateOrderLogRequest {
@@ -64,4 +63,16 @@ export interface CreateWatchlistItemRequest {
   portfolioId: string;
   instrumentId: string;
   name?: string;
+}
+
+export interface UpdatePreferencesRequest {
+  dashboardWidgets: string[];
+}
+
+export interface PreferencesResponse {
+  preferenceId: string;
+  portfolioId: string;
+  dashboardWidgets: string[];
+  createdAt: string;
+  updatedAt: string;
 }

@@ -3,6 +3,7 @@ import { HoldingApiService } from '@core/services/holding-api.service';
 import { InstrumentApiService } from '@core/services/instrument-api.service';
 import { OrderLogApiService } from '@core/services/order-log-api.service';
 import { PortfolioApiService } from '@core/services/portfolio-api.service';
+import { PreferencesApiService } from '@core/services/preferences-api.service';
 import { WatchlistApiService } from '@core/services/watchlist-api.service';
 import { BackendDashboardStateService } from './backend-dashboard-state.service';
 
@@ -96,6 +97,14 @@ describe('BackendDashboardStateService', () => {
     },
   ];
 
+  const preferences = {
+    preferenceId: 'pref-1',
+    portfolioId: portfolio.portfolioId,
+    dashboardWidgets: ['performance-graph', 'watchlist', 'portfolio-value', 'allocation-by-asset'],
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+  };
+
   const portfolioApiService = {
     ensureDefault: vi.fn(async () => portfolio),
   };
@@ -118,17 +127,25 @@ describe('BackendDashboardStateService', () => {
     remove: vi.fn(async () => undefined),
   };
 
+  const preferencesApiService = {
+    getByPortfolio: vi.fn(async () => preferences),
+    updateByPortfolio: vi.fn(async () => preferences),
+  };
+
   let service: BackendDashboardStateService;
 
   beforeEach(() => {
     vi.restoreAllMocks();
     vi.clearAllMocks();
+    sessionStorage.clear();
 
     portfolioApiService.ensureDefault.mockImplementation(async () => portfolio);
     holdingApiService.listByPortfolio.mockImplementation(async () => holdings);
     instrumentApiService.list.mockImplementation(async () => instruments);
     orderLogApiService.listByPortfolio.mockImplementation(async () => orderLogs);
     watchlistApiService.listByPortfolio.mockImplementation(async () => watchlistItems);
+    preferencesApiService.getByPortfolio.mockImplementation(async () => preferences);
+    preferencesApiService.updateByPortfolio.mockImplementation(async () => preferences);
 
     TestBed.configureTestingModule({
       providers: [
@@ -138,6 +155,7 @@ describe('BackendDashboardStateService', () => {
         { provide: InstrumentApiService, useValue: instrumentApiService },
         { provide: OrderLogApiService, useValue: orderLogApiService },
         { provide: WatchlistApiService, useValue: watchlistApiService },
+        { provide: PreferencesApiService, useValue: preferencesApiService },
       ],
     });
 
@@ -165,9 +183,12 @@ describe('BackendDashboardStateService', () => {
       },
     ]);
 
-    expect(service.watchlists()).toEqual([{ id: 'watchlist', name: 'Watchlist', symbols: ['AAPL'] }]);
+    expect(service.watchlists()).toEqual([
+      { id: 'watchlist', name: 'Watchlist', symbols: ['AAPL'] },
+    ]);
     expect(service.activeWatchlistId()).toBe('watchlist');
     expect(service.dashboardOpenOrders()).toEqual([]);
+    expect(service.dashboardWidgets()).toEqual(preferences.dashboardWidgets);
     expect(service.backendWatchlistInstrumentOptions()).toEqual([
       {
         instrumentId: 'inst-aapl',
@@ -184,7 +205,7 @@ describe('BackendDashboardStateService', () => {
     ]);
   });
 
-  it("sets loadState to error and clears fields when load fails", async () => {
+  it('sets loadState to error and clears fields when load fails', async () => {
     instrumentApiService.list.mockRejectedValueOnce(new Error('boom'));
 
     await service.load();
@@ -197,6 +218,7 @@ describe('BackendDashboardStateService', () => {
     expect(service.watchlists()).toEqual([]);
     expect(service.activeWatchlistId()).toBe('watchlist');
     expect(service.dashboardOpenOrders()).toEqual([]);
+    expect(service.dashboardWidgets()).toBeNull();
     expect(service.backendWatchlistInstrumentOptions()).toEqual([]);
   });
 
@@ -213,5 +235,22 @@ describe('BackendDashboardStateService', () => {
     await service.setWatchlistMembership('AAPL', false);
     expect(watchlistApiService.remove).toHaveBeenCalledWith('wl-1');
     expect(service.loadState()).toBe('ready');
+  });
+
+  it('persists dashboard widgets to backend preferences and updates local signal', async () => {
+    await service.load();
+
+    const updatedPreferences = {
+      ...preferences,
+      dashboardWidgets: ['watchlist', 'portfolio-value', 'performance-graph'],
+    };
+    preferencesApiService.updateByPortfolio.mockResolvedValueOnce(updatedPreferences);
+
+    await service.setDashboardWidgets(['watchlist', 'portfolio-value', 'performance-graph']);
+
+    expect(preferencesApiService.updateByPortfolio).toHaveBeenCalledWith(portfolio.portfolioId, {
+      dashboardWidgets: ['watchlist', 'portfolio-value', 'performance-graph'],
+    });
+    expect(service.dashboardWidgets()).toEqual(updatedPreferences.dashboardWidgets);
   });
 });

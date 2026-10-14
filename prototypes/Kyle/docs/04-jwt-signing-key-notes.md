@@ -13,7 +13,7 @@ yet; this note records the concern and the direction.
   `backend/src/main/resources/application.yaml`). HS256 is symmetric, so the
   verifier must hold the signer's key — this is not a convenience choice, the
   algorithm forces it.
-- Consequence: the backend, which only needs to *verify*, can also *mint* a
+- Consequence: the backend, which only needs to _verify_, can also _mint_ a
   valid token for any `sub`. A leak from either service (env var,
   `docker inspect`, config dump, CI log) is enough to impersonate any user.
 - The value is duplicated and injected in several places: root `.env.example`,

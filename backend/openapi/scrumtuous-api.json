@@ -145,9 +145,7 @@
             "description": "The period one candle covers. Version 1 serves daily candles only, so `1d` is the sole accepted value and anything else is a `VALIDATION_ERROR`; `1wk` and `1mo` are planned. Equities, ETFs and FX return eligible weekdays, crypto returns UTC calendar days.",
             "schema": {
               "type": "string",
-              "enum": [
-                "1d"
-              ],
+              "enum": ["1d"],
               "default": "1d"
             }
           }
@@ -350,9 +348,7 @@
     },
     "/admin/cohorts": {
       "post": {
-        "tags": [
-          "Admin cohorts"
-        ],
+        "tags": ["Admin cohorts"],
         "x-internal": true,
         "operationId": "createCohort",
         "summary": "Create a training cohort",
@@ -396,9 +392,7 @@
         }
       },
       "get": {
-        "tags": [
-          "Admin cohorts"
-        ],
+        "tags": ["Admin cohorts"],
         "x-internal": true,
         "operationId": "listCohorts",
         "summary": "List cohorts with today's aggregate usage",
@@ -443,9 +437,7 @@
         }
       ],
       "get": {
-        "tags": [
-          "Admin cohorts"
-        ],
+        "tags": ["Admin cohorts"],
         "x-internal": true,
         "operationId": "getCohort",
         "summary": "Get one cohort with today's aggregate usage",
@@ -478,9 +470,7 @@
         }
       },
       "patch": {
-        "tags": [
-          "Admin cohorts"
-        ],
+        "tags": ["Admin cohorts"],
         "x-internal": true,
         "operationId": "updateCohort",
         "summary": "Update cohort lifecycle fields",
@@ -528,9 +518,7 @@
     },
     "/admin/keys": {
       "post": {
-        "tags": [
-          "Admin keys"
-        ],
+        "tags": ["Admin keys"],
         "x-internal": true,
         "operationId": "issueKeys",
         "summary": "Issue up to 25 student API keys",
@@ -577,9 +565,7 @@
         }
       },
       "get": {
-        "tags": [
-          "Admin keys"
-        ],
+        "tags": ["Admin keys"],
         "x-internal": true,
         "operationId": "listKeys",
         "summary": "List keys and today's usage without secret material",
@@ -636,9 +622,7 @@
         }
       ],
       "delete": {
-        "tags": [
-          "Admin keys"
-        ],
+        "tags": ["Admin keys"],
         "x-internal": true,
         "operationId": "revokeKey",
         "summary": "Revoke a student API key",
@@ -677,9 +661,7 @@
     },
     "/admin/symbols": {
       "post": {
-        "tags": [
-          "Admin ingestion"
-        ],
+        "tags": ["Admin ingestion"],
         "x-internal": true,
         "operationId": "registerSymbols",
         "summary": "Add up to 50 canonical symbols to the curated registry",
@@ -724,9 +706,7 @@
     },
     "/admin/ingest/backfill": {
       "post": {
-        "tags": [
-          "Admin ingestion"
-        ],
+        "tags": ["Admin ingestion"],
         "x-internal": true,
         "operationId": "startBackfill",
         "summary": "Start a resumable historical backfill",
@@ -780,9 +760,7 @@
         }
       ],
       "get": {
-        "tags": [
-          "Admin ingestion"
-        ],
+        "tags": ["Admin ingestion"],
         "x-internal": true,
         "operationId": "getBackfillJob",
         "summary": "Get backfill progress",
@@ -1024,10 +1002,7 @@
     "schemas": {
       "BaseMeta": {
         "type": "object",
-        "required": [
-          "asOf",
-          "disclaimer"
-        ],
+        "required": ["asOf", "disclaimer"],
         "properties": {
           "asOf": {
             "type": "string",
@@ -1046,10 +1021,7 @@
           },
           {
             "type": "object",
-            "required": [
-              "symbol",
-              "source"
-            ],
+            "required": ["symbol", "source"],
             "properties": {
               "symbol": {
                 "type": "string"
@@ -1115,23 +1087,11 @@
           },
           "type": {
             "type": "string",
-            "enum": [
-              "equity",
-              "etf",
-              "fx",
-              "crypto"
-            ]
+            "enum": ["equity", "etf", "fx", "crypto"]
           },
           "exchange": {
             "type": "string",
-            "enum": [
-              "NYSE",
-              "NASDAQ",
-              "NSE",
-              "BSE",
-              "FX",
-              "CRYPTO"
-            ]
+            "enum": ["NYSE", "NASDAQ", "NSE", "BSE", "FX", "CRYPTO"]
           },
           "currency": {
             "type": "string",
@@ -1195,10 +1155,7 @@
             "description": "The close restated in today's share terms, so the difference between two `adjclose` values is a true return even across a split or a dividend. Computed at read time by multiplying `close` by every corporate-action factor dated after this candle — including actions outside the requested range — so it can change between requests when a new action is ingested, while `close` cannot. Equal to `close` for recent candles, for FX and crypto, and for any symbol with no known corporate actions. Use `adjclose` for returns and backtests, `close` for what the market printed that day."
           },
           "volume": {
-            "type": [
-              "integer",
-              "null"
-            ],
+            "type": ["integer", "null"],
             "minimum": 0,
             "example": 42317890,
             "description": "Raw share or contract volume, never adjusted. Null where the source publishes no volume (daily FX reference rates) and on every synthetic candle."
@@ -1212,11 +1169,7 @@
       },
       "Error": {
         "type": "object",
-        "required": [
-          "code",
-          "message",
-          "details"
-        ],
+        "required": ["code", "message", "details"],
         "properties": {
           "code": {
             "type": "string",
@@ -1248,9 +1201,7 @@
       },
       "ErrorResponse": {
         "type": "object",
-        "required": [
-          "error"
-        ],
+        "required": ["error"],
         "properties": {
           "error": {
             "$ref": "#/components/schemas/Error"
@@ -1260,11 +1211,7 @@
       "CreateCohortRequest": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "name",
-          "defaultDailyQuota",
-          "expiresAt"
-        ],
+        "required": ["name", "defaultDailyQuota", "expiresAt"],
         "properties": {
           "name": {
             "type": "string",
@@ -1303,10 +1250,7 @@
           },
           "status": {
             "type": "string",
-            "enum": [
-              "active",
-              "inactive"
-            ]
+            "enum": ["active", "inactive"]
           }
         }
       },
@@ -1338,10 +1282,7 @@
           },
           "status": {
             "type": "string",
-            "enum": [
-              "active",
-              "inactive"
-            ]
+            "enum": ["active", "inactive"]
           },
           "createdAt": {
             "type": "string",
@@ -1360,18 +1301,11 @@
           },
           {
             "type": "object",
-            "required": [
-              "keyCounts",
-              "usedToday"
-            ],
+            "required": ["keyCounts", "usedToday"],
             "properties": {
               "keyCounts": {
                 "type": "object",
-                "required": [
-                  "total",
-                  "active",
-                  "revoked"
-                ],
+                "required": ["total", "active", "revoked"],
                 "properties": {
                   "total": {
                     "type": "integer",
@@ -1397,10 +1331,7 @@
       },
       "CohortResponse": {
         "type": "object",
-        "required": [
-          "data",
-          "meta"
-        ],
+        "required": ["data", "meta"],
         "properties": {
           "data": {
             "$ref": "#/components/schemas/Cohort"
@@ -1412,10 +1343,7 @@
       },
       "CohortDetailResponse": {
         "type": "object",
-        "required": [
-          "data",
-          "meta"
-        ],
+        "required": ["data", "meta"],
         "properties": {
           "data": {
             "$ref": "#/components/schemas/CohortDetail"
@@ -1427,17 +1355,11 @@
       },
       "CohortListResponse": {
         "type": "object",
-        "required": [
-          "data",
-          "meta"
-        ],
+        "required": ["data", "meta"],
         "properties": {
           "data": {
             "type": "object",
-            "required": [
-              "cohorts",
-              "cursor"
-            ],
+            "required": ["cohorts", "cursor"],
             "properties": {
               "cohorts": {
                 "type": "array",
@@ -1446,10 +1368,7 @@
                 }
               },
               "cursor": {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": ["string", "null"]
               }
             }
           },
@@ -1461,9 +1380,7 @@
       "IssueKeysRequest": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "cohortId"
-        ],
+        "required": ["cohortId"],
         "properties": {
           "cohortId": {
             "type": "string",
@@ -1493,24 +1410,16 @@
         },
         "oneOf": [
           {
-            "required": [
-              "labels"
-            ]
+            "required": ["labels"]
           },
           {
-            "required": [
-              "count"
-            ]
+            "required": ["count"]
           }
         ]
       },
       "IssuedKey": {
         "type": "object",
-        "required": [
-          "keyId",
-          "label",
-          "key"
-        ],
+        "required": ["keyId", "label", "key"],
         "properties": {
           "keyId": {
             "type": "string"
@@ -1527,17 +1436,11 @@
       },
       "IssuedKeysResponse": {
         "type": "object",
-        "required": [
-          "data",
-          "meta"
-        ],
+        "required": ["data", "meta"],
         "properties": {
           "data": {
             "type": "object",
-            "required": [
-              "cohortId",
-              "keys"
-            ],
+            "required": ["cohortId", "keys"],
             "properties": {
               "cohortId": {
                 "type": "string"
@@ -1581,10 +1484,7 @@
           },
           "status": {
             "type": "string",
-            "enum": [
-              "active",
-              "revoked"
-            ]
+            "enum": ["active", "revoked"]
           },
           "createdAt": {
             "type": "string",
@@ -1606,18 +1506,11 @@
       },
       "KeyListResponse": {
         "type": "object",
-        "required": [
-          "data",
-          "meta"
-        ],
+        "required": ["data", "meta"],
         "properties": {
           "data": {
             "type": "object",
-            "required": [
-              "cohortId",
-              "keys",
-              "cursor"
-            ],
+            "required": ["cohortId", "keys", "cursor"],
             "properties": {
               "cohortId": {
                 "type": "string"
@@ -1629,10 +1522,7 @@
                 }
               },
               "cursor": {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": ["string", "null"]
               }
             }
           },
@@ -1643,18 +1533,11 @@
       },
       "RevokeKeyResponse": {
         "type": "object",
-        "required": [
-          "data",
-          "meta"
-        ],
+        "required": ["data", "meta"],
         "properties": {
           "data": {
             "type": "object",
-            "required": [
-              "keyId",
-              "status",
-              "revokedAt"
-            ],
+            "required": ["keyId", "status", "revokedAt"],
             "properties": {
               "keyId": {
                 "type": "string"
@@ -1677,25 +1560,14 @@
       "RegisterSymbolInput": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "symbol",
-          "name",
-          "type",
-          "exchange",
-          "currency"
-        ],
+        "required": ["symbol", "name", "type", "exchange", "currency"],
         "properties": {
           "symbol": {
             "type": "string",
             "minLength": 1,
             "maxLength": 32,
             "description": "Uppercase canonical Fauxnance symbol.",
-            "examples": [
-              "AAPL",
-              "INFY.NS",
-              "FX:EURUSD",
-              "X:BTC-USD"
-            ]
+            "examples": ["AAPL", "INFY.NS", "FX:EURUSD", "X:BTC-USD"]
           },
           "name": {
             "type": "string",
@@ -1704,12 +1576,7 @@
           },
           "type": {
             "type": "string",
-            "enum": [
-              "equity",
-              "etf",
-              "fx",
-              "crypto"
-            ]
+            "enum": ["equity", "etf", "fx", "crypto"]
           },
           "exchange": {
             "type": "string",
@@ -1750,12 +1617,7 @@
           },
           "type": {
             "type": "string",
-            "enum": [
-              "equity",
-              "etf",
-              "fx",
-              "crypto"
-            ]
+            "enum": ["equity", "etf", "fx", "crypto"]
           },
           "exchange": {
             "type": "string"
@@ -1766,21 +1628,14 @@
           },
           "market": {
             "type": "string",
-            "enum": [
-              "US",
-              "IN",
-              "FX",
-              "CRYPTO"
-            ]
+            "enum": ["US", "IN", "FX", "CRYPTO"]
           }
         }
       },
       "RegisterSymbolsRequest": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "symbols"
-        ],
+        "required": ["symbols"],
         "properties": {
           "symbols": {
             "type": "array",
@@ -1794,16 +1649,11 @@
       },
       "RegisterSymbolsResponse": {
         "type": "object",
-        "required": [
-          "data",
-          "meta"
-        ],
+        "required": ["data", "meta"],
         "properties": {
           "data": {
             "type": "object",
-            "required": [
-              "symbols"
-            ],
+            "required": ["symbols"],
             "properties": {
               "symbols": {
                 "type": "array",
@@ -1823,10 +1673,7 @@
       "StartBackfillRequest": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "from",
-          "to"
-        ],
+        "required": ["from", "to"],
         "properties": {
           "symbols": {
             "type": "array",
@@ -1856,30 +1703,20 @@
         },
         "oneOf": [
           {
-            "required": [
-              "symbols"
-            ]
+            "required": ["symbols"]
           },
           {
-            "required": [
-              "universe"
-            ]
+            "required": ["universe"]
           }
         ]
       },
       "StartBackfillResponse": {
         "type": "object",
-        "required": [
-          "data",
-          "meta"
-        ],
+        "required": ["data", "meta"],
         "properties": {
           "data": {
             "type": "object",
-            "required": [
-              "jobId",
-              "state"
-            ],
+            "required": ["jobId", "state"],
             "properties": {
               "jobId": {
                 "type": "string"
@@ -1901,10 +1738,7 @@
       },
       "FailedBackfillUnit": {
         "type": "object",
-        "required": [
-          "symbol",
-          "year"
-        ],
+        "required": ["symbol", "year"],
         "properties": {
           "symbol": {
             "type": "string"
@@ -1936,13 +1770,7 @@
           },
           "state": {
             "type": "string",
-            "enum": [
-              "preparing",
-              "expanding",
-              "running",
-              "completed",
-              "failed"
-            ]
+            "enum": ["preparing", "expanding", "running", "completed", "failed"]
           },
           "done": {
             "type": "integer",
@@ -1976,10 +1804,7 @@
       },
       "BackfillJobResponse": {
         "type": "object",
-        "required": [
-          "data",
-          "meta"
-        ],
+        "required": ["data", "meta"],
         "properties": {
           "data": {
             "$ref": "#/components/schemas/BackfillJob"
@@ -1991,10 +1816,7 @@
       },
       "SymbolResponse": {
         "type": "object",
-        "required": [
-          "data",
-          "meta"
-        ],
+        "required": ["data", "meta"],
         "properties": {
           "data": {
             "$ref": "#/components/schemas/Symbol"
@@ -2006,19 +1828,11 @@
       },
       "CandlesResponse": {
         "type": "object",
-        "required": [
-          "data",
-          "meta"
-        ],
+        "required": ["data", "meta"],
         "properties": {
           "data": {
             "type": "object",
-            "required": [
-              "symbol",
-              "interval",
-              "currency",
-              "candles"
-            ],
+            "required": ["symbol", "interval", "currency", "candles"],
             "properties": {
               "symbol": {
                 "type": "string",
@@ -2094,32 +1908,20 @@
             "description": "Width of the modelled spread in basis points, published so callers can see the model rather than infer it."
           },
           "currency": {
-            "type": [
-              "string",
-              "null"
-            ],
+            "type": ["string", "null"],
             "example": "USD"
           },
           "change": {
-            "type": [
-              "number",
-              "null"
-            ],
+            "type": ["number", "null"],
             "example": 3.63
           },
           "changePercent": {
-            "type": [
-              "number",
-              "null"
-            ],
+            "type": ["number", "null"],
             "example": 1.1713,
             "description": "Percentage points, not a decimal fraction."
           },
           "previousClose": {
-            "type": [
-              "number",
-              "null"
-            ],
+            "type": ["number", "null"],
             "example": 309.9
           },
           "asOf": {
@@ -2129,28 +1931,18 @@
           },
           "marketState": {
             "type": "string",
-            "enum": [
-              "open",
-              "closed",
-              "pre",
-              "post",
-              "unknown"
-            ],
+            "enum": ["open", "closed", "pre", "post", "unknown"],
             "example": "open"
           }
         }
       },
       "SpreadSource": {
         "type": "object",
-        "required": [
-          "spreadSource"
-        ],
+        "required": ["spreadSource"],
         "properties": {
           "spreadSource": {
             "type": "string",
-            "enum": [
-              "modelled"
-            ],
+            "enum": ["modelled"],
             "example": "modelled",
             "description": "Always `modelled`. `meta.source` describes where `price` came from. `bid` and `ask` are derived from stored candle history and are never observed from an upstream, whatever `source` says."
           }
@@ -2158,10 +1950,7 @@
       },
       "QuoteResponse": {
         "type": "object",
-        "required": [
-          "data",
-          "meta"
-        ],
+        "required": ["data", "meta"],
         "properties": {
           "data": {
             "$ref": "#/components/schemas/Quote"
@@ -2176,9 +1965,7 @@
               },
               {
                 "type": "object",
-                "required": [
-                  "stale"
-                ]
+                "required": ["stale"]
               }
             ]
           }
@@ -2186,9 +1973,7 @@
       },
       "BatchQuoteItem": {
         "type": "object",
-        "required": [
-          "symbol"
-        ],
+        "required": ["symbol"],
         "properties": {
           "symbol": {
             "type": "string"
@@ -2208,31 +1993,20 @@
         },
         "oneOf": [
           {
-            "required": [
-              "source",
-              "stale",
-              "quote"
-            ]
+            "required": ["source", "stale", "quote"]
           },
           {
-            "required": [
-              "error"
-            ]
+            "required": ["error"]
           }
         ]
       },
       "BatchQuotesResponse": {
         "type": "object",
-        "required": [
-          "data",
-          "meta"
-        ],
+        "required": ["data", "meta"],
         "properties": {
           "data": {
             "type": "object",
-            "required": [
-              "quotes"
-            ],
+            "required": ["quotes"],
             "properties": {
               "quotes": {
                 "type": "array",
@@ -2257,10 +2031,7 @@
       },
       "UsageResponse": {
         "type": "object",
-        "required": [
-          "data",
-          "meta"
-        ],
+        "required": ["data", "meta"],
         "properties": {
           "data": {
             "type": "object",
@@ -2273,16 +2044,10 @@
             ],
             "properties": {
               "keyLabel": {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": ["string", "null"]
               },
               "cohort": {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": ["string", "null"]
               },
               "dailyQuota": {
                 "type": "integer",
@@ -2305,44 +2070,28 @@
       },
       "HealthResponse": {
         "type": "object",
-        "required": [
-          "data",
-          "meta"
-        ],
+        "required": ["data", "meta"],
         "properties": {
           "data": {
             "type": "object",
-            "required": [
-              "status",
-              "markets"
-            ],
+            "required": ["status", "markets"],
             "properties": {
               "status": {
                 "type": "string",
-                "enum": [
-                  "ok",
-                  "degraded"
-                ]
+                "enum": ["ok", "degraded"]
               },
               "markets": {
                 "type": "array",
                 "items": {
                   "type": "object",
-                  "required": [
-                    "market",
-                    "latestEod",
-                    "stale"
-                  ],
+                  "required": ["market", "latestEod", "stale"],
                   "properties": {
                     "market": {
                       "type": "string",
                       "example": "US"
                     },
                     "latestEod": {
-                      "type": [
-                        "string",
-                        "null"
-                      ],
+                      "type": ["string", "null"],
                       "format": "date"
                     },
                     "stale": {

@@ -2,7 +2,10 @@ import { Component, OnInit, computed, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { CountryOption, LocationDataService } from '@features/profile/services/location-data.service';
+import {
+  CountryOption,
+  LocationDataService,
+} from '@features/profile/services/location-data.service';
 import { AuthService } from '@core/services/auth.service';
 import { ProfileService } from '@features/profile/services/profile.service';
 import {

@@ -75,7 +75,11 @@ export class OrderFormComponent {
     const backendPriceUnavailableForBuy =
       this.backendDataMode() && this.type() === 'buy' && this.currentPrice() <= 0;
 
-    if (!backendPriceUnavailableForBuy && this.type() === 'buy' && quantity > this.maxBuyQuantity()) {
+    if (
+      !backendPriceUnavailableForBuy &&
+      this.type() === 'buy' &&
+      quantity > this.maxBuyQuantity()
+    ) {
       return 'Insufficient account cash for this quantity.';
     }
 

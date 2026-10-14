@@ -61,7 +61,9 @@ export class DashboardOverlaysComponent {
     this.watchlistFacade.onWatchlistSearchChange(value);
   }
 
-  protected setWatchlistInstrumentFilter(type: Parameters<DashboardWatchlistOverlayFacade['setWatchlistInstrumentFilter']>[0]) {
+  protected setWatchlistInstrumentFilter(
+    type: Parameters<DashboardWatchlistOverlayFacade['setWatchlistInstrumentFilter']>[0],
+  ) {
     this.watchlistFacade.setWatchlistInstrumentFilter(type);
   }
 

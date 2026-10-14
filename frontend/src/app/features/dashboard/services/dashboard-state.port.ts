@@ -15,8 +15,6 @@ export interface DashboardStatePort {
   readonly holdings: WritableSignal<Holding[]>;
   readonly orders: WritableSignal<Order[]>;
   readonly transactions: WritableSignal<Transaction[]>;
-  // CONTRACT_DIFF: UI state is modeled as named watchlists with variable symbol counts.
-  // Backend may need a watchlist aggregate endpoint/model beyond item-level rows.
   readonly watchlists: WritableSignal<SharedWatchlist[]>;
   readonly activeWatchlistId: WritableSignal<string>;
   readonly dashboardOpenOrders: WritableSignal<MockOrder[]>;
@@ -24,8 +22,10 @@ export interface DashboardStatePort {
   readonly watchlistConstraints: typeof WATCHLIST_CONSTRAINTS;
   readonly backendDataMode?: boolean;
   readonly backendWatchlistInstrumentOptions?: Signal<DashboardWatchlistInstrumentOption[]>;
+  readonly dashboardWidgets?: Signal<readonly string[] | null>;
   load?(): Promise<void>;
   setWatchlistMembership?(symbol: string, included: boolean): Promise<void>;
+  setDashboardWidgets?(dashboardWidgets: readonly string[]): Promise<void>;
 }
 
 export const DASHBOARD_STATE_PORT = new InjectionToken<DashboardStatePort>('DASHBOARD_STATE_PORT', {
