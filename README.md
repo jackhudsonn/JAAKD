@@ -83,6 +83,12 @@ docker exec -it jaakd-frontend npm install <package>
 
 Sign-in uses the development identity provider, so accounts exist only in your local database. After `docker-compose down -v`, register again.
 
+To avoid manually setting up a user account (signing in, adding bank accounts, adding funds, buying/selling instruments, etc) when spinning up a fresh db, run the command below in root. Copy any of the three credentials from your terminal directly. There is a newbie, intermediate, and pro user; the newbie user has a couple of trades and pro has more of a history (many trades, multiple watchlists, etc). 
+
+```bash
+node scripts/seed-demo-users.js
+```
+
 ### Stop or reset
 
 - `docker-compose down` stops everything and keeps your data.
