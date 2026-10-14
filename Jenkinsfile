@@ -46,6 +46,8 @@ pipeline {
                         """
                     }
                 }
+
+                input message: "ssh -N -L 9000:localhost:9000 <user>@<host> in Windows to access SonarQube Dashboard"
             }
         }
 
@@ -64,11 +66,12 @@ pipeline {
 
         stage('Backend: Security Scan') {
             steps {
-                owaspDependencyCheck name: 'backend-scan'
+                dependencyCheck additionalArguments: '--scan backend --format XML --out backend/target',
+                    odcInstallation: 'DependencyCheck'
             }
             post {
                 always {
-                    dependencyCheckPublisher pattern: 'dependency-check-report.xml'
+                    dependencyCheckPublisher pattern: 'backend/target/dependency-check-report.xml'
                 }
             }
         }
@@ -85,7 +88,7 @@ pipeline {
         stage('Frontend: Lint & Format Check') {
             steps {
                 dir('frontend') {
-                    sh 'npm prettier --check'
+                    sh 'npm prettier --check .'
                 }
             }
         }
