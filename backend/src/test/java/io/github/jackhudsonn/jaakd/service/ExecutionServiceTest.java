@@ -39,9 +39,6 @@ class ExecutionServiceTest {
     @Mock
     private FifoAccountingService fifoAccountingService;
 
-    @Mock
-    private SimulateDelay simulateDelay;
-
     @InjectMocks
     private ExecutionService executionService;
 
