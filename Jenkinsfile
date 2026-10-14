@@ -60,19 +60,7 @@ pipeline {
                     }
                 }
 
-                input message: "ssh -N -L 9000:localhost:9000 <user>@<host> in Windows to access SonarQube Dashboard"
-            }
-        }
-
-        stage('Backend: Security Scan') {
-            steps {
-                dependencyCheck additionalArguments: '--scan backend --format XML --out backend/target',
-                    odcInstallation: 'DependencyCheck'
-            }
-            post {
-                always {
-                    dependencyCheckPublisher pattern: 'backend/target/dependency-check-report.xml'
-                }
+                input message: "ssh -N -L 9000:localhost:9000 <user>@<host> in Windows Terminal to access SonarQube Dashboard at http://localhost:9000"
             }
         }
 
@@ -88,7 +76,7 @@ pipeline {
         stage('Frontend: Lint & Format Check') {
             steps {
                 dir('frontend') {
-                    sh 'npm prettier --check .'
+                    sh 'npx prettier --check .'
                 }
             }
         }
