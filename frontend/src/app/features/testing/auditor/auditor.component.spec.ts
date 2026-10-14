@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { HttpErrorResponse } from '@angular/common/http';
 import { AuditorComponent } from './auditor.component';
 import {
   AuditApiService,
@@ -211,5 +212,23 @@ describe('AuditorComponent', () => {
     expect(summaries[0].orderId).toBe('order-1');
     expect(summaries[0].status).toBe('EXECUTED');
     expect(summaries[0].executionPrice).toBe(100);
+  });
+
+  it('shows backend 503 diagnostic details when provided', async () => {
+    auditApiService.searchOrderLogs.mockRejectedValueOnce(new HttpErrorResponse({
+      status: 503,
+      error: {
+        message: 'Database error',
+        details: {
+          type: 'db_schema_mismatch',
+          hint: 'Convert affected columns to TEXT.',
+        },
+      },
+    }));
+    auditApiService.listHoldings.mockResolvedValueOnce(page([]));
+
+    await component.refreshSummaries();
+
+    expect(component.errorMessage()).toContain('Database error (db_schema_mismatch): Convert affected columns to TEXT.');
   });
 });
