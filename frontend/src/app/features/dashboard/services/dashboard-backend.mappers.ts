@@ -148,7 +148,10 @@ export const toHoldings = (
   return mapped;
 };
 
-export const toOrders = (orderLogs: OrderLogResponse[], instruments: InstrumentResponse[]): Order[] => {
+export const toOrders = (
+  orderLogs: OrderLogResponse[],
+  instruments: InstrumentResponse[],
+): Order[] => {
   const instrumentsById = buildInstrumentById(instruments);
   const grouped = new Map<string, OrderLogResponse[]>();
 

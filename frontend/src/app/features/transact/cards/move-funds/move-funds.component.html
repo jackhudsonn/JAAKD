@@ -1,4 +1,7 @@
-<app-widget-card title="Move Funds" subtitle="Deposit or withdraw with one payment method selection">
+<app-widget-card
+  title="Move Funds"
+  subtitle="Deposit or withdraw with one payment method selection"
+>
   <div class="form-field">
     <label for="funds-currency">Currency</label>
 
@@ -54,18 +57,31 @@
   }
 
   <div class="action-row">
-    <button type="button" class="btn btn-secondary" [disabled]="submitting()" (click)="submit('withdrawal')">
+    <button
+      type="button"
+      class="btn btn-secondary"
+      [disabled]="submitting()"
+      (click)="submit('withdrawal')"
+    >
       Withdraw
     </button>
 
-    <button type="button" class="btn btn-primary" [disabled]="submitting()" (click)="submit('deposit')">
+    <button
+      type="button"
+      class="btn btn-primary"
+      [disabled]="submitting()"
+      (click)="submit('deposit')"
+    >
       Deposit
     </button>
   </div>
 </app-widget-card>
 
 @if (pendingAction(); as pendingAction) {
-  <app-modal [title]="pendingAction.action === 'deposit' ? 'Confirm Deposit' : 'Confirm Withdrawal'" (closed)="cancelAction()">
+  <app-modal
+    [title]="pendingAction.action === 'deposit' ? 'Confirm Deposit' : 'Confirm Withdrawal'"
+    (closed)="cancelAction()"
+  >
     <p class="confirm-copy">
       @if (pendingAction.action === 'deposit') {
         Deposit {{ pendingAction.amount }} {{ selectedCurrency }} into your account?

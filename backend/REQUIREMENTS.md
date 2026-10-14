@@ -4,11 +4,11 @@ Tooling and access needed to build and run `backend/` locally.
 
 ## Tooling
 
-| Tool | Version verified | Used for |
-|---|---|---|
-| JDK | 21+ (tested on 25.0.3) | Build and run backend |
-| Maven | via `./mvnw` | Build/test lifecycle |
-| Docker + docker-compose | current | Full local stack (Postgres + backend) |
+| Tool                    | Version verified       | Used for                              |
+| ----------------------- | ---------------------- | ------------------------------------- |
+| JDK                     | 21+ (tested on 25.0.3) | Build and run backend                 |
+| Maven                   | via `./mvnw`           | Build/test lifecycle                  |
+| Docker + docker-compose | current                | Full local stack (Postgres + backend) |
 
 ## Required environment variables
 

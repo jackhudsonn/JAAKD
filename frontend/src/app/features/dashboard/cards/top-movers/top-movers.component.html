@@ -1,22 +1,24 @@
 <app-widget-card title="Top Movers" [subtitle]="activeMode.label">
-  @if (backendDataMode) { 
-    <p class="indicative-note">Top movers aren't available yet (needs live prices).</p> 
+  @if (backendDataMode) {
+    <p class="indicative-note">Top movers aren't available yet (needs live prices).</p>
   } @else {
-  <div class="mover-list" [class.fading]="fading()">
-    @for (mover of activeMovers; track mover.symbol) {
-    <div class="mover-row">
-      <span class="symbol">{{ mover.symbol }}</span>
-      <span
-        class="amount"
-        [class.positive]="mover.changeAmount > 0"
-        [class.negative]="mover.changeAmount < 0"
-        [class.neutral]="mover.changeAmount === 0"
-      >
-        {{ mover.changeAmount > 0 ? '+' : '' }}{{ mover.changeAmount | number: '1.2-2' }} ({{ formatChange(mover.changePct) }})
-      </span>
+    <div class="mover-list" [class.fading]="fading()">
+      @for (mover of activeMovers; track mover.symbol) {
+        <div class="mover-row">
+          <span class="symbol">{{ mover.symbol }}</span>
+          <span
+            class="amount"
+            [class.positive]="mover.changeAmount > 0"
+            [class.negative]="mover.changeAmount < 0"
+            [class.neutral]="mover.changeAmount === 0"
+          >
+            {{ mover.changeAmount > 0 ? '+' : '' }}{{ mover.changeAmount | number: '1.2-2' }} ({{
+              formatChange(mover.changePct)
+            }})
+          </span>
+        </div>
+      }
     </div>
-    }
-  </div>
-  <p class="indicative-note">Prices are indicative.</p>
+    <p class="indicative-note">Prices are indicative.</p>
   }
 </app-widget-card>

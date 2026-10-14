@@ -76,14 +76,14 @@ The `authGuard` checks the active Supabase session. Unauthenticated requests are
 
 ## Conventions
 
-| Layer | Rule |
-|---|---|
-| **core/** | Provided in root (`providedIn: 'root'`). No feature-specific logic. |
-| **features/** | One folder per route. Each component is standalone. Lazy-loaded via `loadComponent`. |
-| **layout/** | One shell for authenticated pages. Extract into `shared/components/` if a second layout is needed. |
-| **shared/** | Presentational only — no service calls or routing. Import into whichever feature needs them. |
-| **File naming** | `*.component.ts`, `*.service.ts`, `*.guard.ts`, `*.pipe.ts`, `*.directive.ts` |
-| **Signals** | Use Angular signals (`signal()`, `computed()`) over RxJS for local component state. |
+| Layer           | Rule                                                                                               |
+| --------------- | -------------------------------------------------------------------------------------------------- |
+| **core/**       | Provided in root (`providedIn: 'root'`). No feature-specific logic.                                |
+| **features/**   | One folder per route. Each component is standalone. Lazy-loaded via `loadComponent`.               |
+| **layout/**     | One shell for authenticated pages. Extract into `shared/components/` if a second layout is needed. |
+| **shared/**     | Presentational only — no service calls or routing. Import into whichever feature needs them.       |
+| **File naming** | `*.component.ts`, `*.service.ts`, `*.guard.ts`, `*.pipe.ts`, `*.directive.ts`                      |
+| **Signals**     | Use Angular signals (`signal()`, `computed()`) over RxJS for local component state.                |
 
 ---
 

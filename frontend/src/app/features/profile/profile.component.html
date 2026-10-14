@@ -9,11 +9,7 @@
 
   <section class="account-summary card">
     <div class="account-summary-avatar">
-      {{
-        (displayName() || authService.userEmail() || 'U')
-          .charAt(0)
-          .toUpperCase()
-      }}
+      {{ (displayName() || authService.userEmail() || 'U').charAt(0).toUpperCase() }}
     </div>
 
     <div class="account-summary-info">
@@ -97,7 +93,7 @@
         <div class="form-field">
           <label for="profileDob">Date of Birth *</label>
 
-          <input id="profileDob" type="date" [(ngModel)]="dob" [max]="maxDob" min="1900-01-01"/>
+          <input id="profileDob" type="date" [(ngModel)]="dob" [max]="maxDob" min="1900-01-01" />
 
           <small>Account holders must be 18 or older.</small>
         </div>

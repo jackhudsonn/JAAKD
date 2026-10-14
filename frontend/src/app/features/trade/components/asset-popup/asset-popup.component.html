@@ -7,54 +7,59 @@
       }
       <div class="asset-price-group">
         <span class="asset-price">{{ currentPrice() | number: '1.2-2' }}</span>
-        <span class="asset-price-change" [class.positive]="isPositive()" [class.negative]="!isPositive()">
-          {{ isPositive() ? '+' : '' }}${{ changeAmount() | number: '1.2-2' }}
-          ({{ isPositive() ? '+' : '' }}{{ changePct() | number: '1.2-2' }}%)
+        <span
+          class="asset-price-change"
+          [class.positive]="isPositive()"
+          [class.negative]="!isPositive()"
+        >
+          {{ isPositive() ? '+' : '' }}${{ changeAmount() | number: '1.2-2' }} ({{
+            isPositive() ? '+' : ''
+          }}{{ changePct() | number: '1.2-2' }}%)
         </span>
       </div>
     </div>
 
     @if (activeView() === 'analysis') {
-        @if (watchlists().length > 0) {
-          <div class="watchlist-selector">
-            <button
-              type="button"
-              class="btn btn-secondary watchlist-selector-trigger"
-              (click)="toggleWatchlistDropdown()"
-              [attr.aria-expanded]="watchlistDropdownOpen()"
-              aria-label="Toggle watchlist selector"
-            >
-              <span>{{ symbol() }} is in {{ watchlistMembershipCount() }} watchlist(s)</span>
-              <span class="watchlist-selector-chevron" [class.open]="watchlistDropdownOpen()">▾</span>
-            </button>
+      @if (watchlists().length > 0) {
+        <div class="watchlist-selector">
+          <button
+            type="button"
+            class="btn btn-secondary watchlist-selector-trigger"
+            (click)="toggleWatchlistDropdown()"
+            [attr.aria-expanded]="watchlistDropdownOpen()"
+            aria-label="Toggle watchlist selector"
+          >
+            <span>{{ symbol() }} is in {{ watchlistMembershipCount() }} watchlist(s)</span>
+            <span class="watchlist-selector-chevron" [class.open]="watchlistDropdownOpen()">▾</span>
+          </button>
 
-            <div
-              class="watchlist-selector-panel"
-              [class.open]="watchlistDropdownOpen()"
-              [attr.aria-hidden]="!watchlistDropdownOpen()"
-            >
-              @for (watchlist of watchlists(); track watchlist.id) {
-                <label
-                  class="watchlist-selector-option"
-                  [class.disabled]="isOptionDisabled(watchlist)"
-                  [attr.title]="isOptionDisabled(watchlist) ? watchlist.disabledReason : null"
+          <div
+            class="watchlist-selector-panel"
+            [class.open]="watchlistDropdownOpen()"
+            [attr.aria-hidden]="!watchlistDropdownOpen()"
+          >
+            @for (watchlist of watchlists(); track watchlist.id) {
+              <label
+                class="watchlist-selector-option"
+                [class.disabled]="isOptionDisabled(watchlist)"
+                [attr.title]="isOptionDisabled(watchlist) ? watchlist.disabledReason : null"
+              >
+                <input
+                  #watchlistToggle
+                  type="checkbox"
+                  [checked]="watchlist.containsSymbol"
+                  [disabled]="isOptionDisabled(watchlist)"
+                  (change)="onWatchlistOptionChange(watchlist, watchlistToggle.checked)"
+                />
+                <span class="watchlist-selector-name">{{ watchlist.name }}</span>
+                <span class="watchlist-selector-count"
+                  >{{ watchlist.symbolCount }}/{{ maxWatchlistHoldings() }}</span
                 >
-                  <input
-                    #watchlistToggle
-                    type="checkbox"
-                    [checked]="watchlist.containsSymbol"
-                    [disabled]="isOptionDisabled(watchlist)"
-                    (change)="onWatchlistOptionChange(watchlist, watchlistToggle.checked)"
-                  />
-                  <span class="watchlist-selector-name">{{ watchlist.name }}</span>
-                  <span class="watchlist-selector-count"
-                    >{{ watchlist.symbolCount }}/{{ maxWatchlistHoldings() }}</span
-                  >
-                </label>
-              }
-            </div>
+              </label>
+            }
           </div>
-        }
+        </div>
+      }
       <div class="analysis-view">
         <app-line-chart [points]="performanceSeries()" [positive]="isPositive()" />
 

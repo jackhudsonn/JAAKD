@@ -1,5 +1,12 @@
 import { signal } from '@angular/core';
-import { Holding, Order, PaymentMethod, Transaction, TransactionStatus, TransactionType } from '@core/models';
+import {
+  Holding,
+  Order,
+  PaymentMethod,
+  Transaction,
+  TransactionStatus,
+  TransactionType,
+} from '@core/models';
 import { DEFAULT_ACTIVE_WATCHLIST_ID, MOCK_WATCHLISTS, SharedWatchlist } from './watchlist.mock';
 
 export interface MockOrder {
