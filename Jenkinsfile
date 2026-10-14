@@ -34,7 +34,17 @@ pipeline {
         stage('Backend: Static Code Analysis') {
             steps {
                 withSonarQubeEnv('SonarQube') {
-                    sh 'sonar-scanner'
+                    script {
+                        def scannerHome = tool 'SonarQube Scanner'
+                        sh """
+                            ${scannerHome}/bin/sonar-scanner \
+                            -Dsonar.projectKey=JAAKD \
+                            -Dsonar.projectName=JAAKD \
+                            -Dsonar.sources=backend/src/main/java,frontend/src \
+                            -Dsonar.tests=backend/src/test/java \
+                            -Dsonar.java.binaries=backend/target/classes
+                        """
+                    }
                 }
             }
         }
