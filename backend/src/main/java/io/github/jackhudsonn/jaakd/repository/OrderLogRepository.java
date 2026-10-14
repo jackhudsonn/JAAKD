@@ -151,4 +151,23 @@ public interface OrderLogRepository extends JpaRepository<OrderLog, UUID> {
             @Param("instrumentType") InstrumentClass instrumentType,
             Pageable pageable
         );
+
+        @Query("""
+            SELECT o
+            FROM OrderLog o
+            WHERE o.portfolio.portfolioId = :portfolioId
+                AND o.instrument.instrumentId = :instrumentId
+                AND (:start IS NULL OR o.timestamp >= :start)
+                AND (:end IS NULL OR o.timestamp < :end)
+                AND (:status IS NULL OR o.status = :status)
+            ORDER BY o.timestamp DESC, o.logOrderID DESC
+            """)
+        Page<OrderLog> findByHoldingContextWithinTimestampRange(
+            @Param("portfolioId") UUID portfolioId,
+            @Param("instrumentId") UUID instrumentId,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end,
+            @Param("status") OrderStatus status,
+            Pageable pageable
+        );
 }

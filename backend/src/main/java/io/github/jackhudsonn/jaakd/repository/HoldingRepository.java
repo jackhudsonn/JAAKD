@@ -28,11 +28,31 @@ public interface HoldingRepository extends JpaRepository<Holding, UUID> {
           AND p.profile.userId = :userId
           AND (:portfolioId IS NULL OR p.portfolioId = :portfolioId)
       )
-      ORDER BY h.holdingID ASC
+      ORDER BY h.updatedAt DESC, h.holdingID DESC
       """)
     Page<Holding> findByAuditUserIdAndOptionalPortfolioId(
       @Param("userId") UUID userId,
       @Param("portfolioId") UUID portfolioId,
+      Pageable pageable
+    );
+
+    @Query("""
+      SELECT h
+      FROM Holding h
+      WHERE (:instrumentId IS NULL OR h.instrumentID = :instrumentId)
+        AND EXISTS (
+          SELECT 1
+          FROM Portfolio p
+          WHERE p.portfolioId = h.portfolioID
+            AND (:userId IS NULL OR p.profile.userId = :userId)
+            AND (:portfolioId IS NULL OR p.portfolioId = :portfolioId)
+        )
+      ORDER BY h.updatedAt DESC, h.holdingID DESC
+      """)
+    Page<Holding> findByAuditOptionalFilters(
+      @Param("userId") UUID userId,
+      @Param("portfolioId") UUID portfolioId,
+      @Param("instrumentId") UUID instrumentId,
       Pageable pageable
     );
 

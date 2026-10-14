@@ -1,11 +1,9 @@
 <section class="auditor-page">
   <header class="hero">
     <div>
-      <p class="eyebrow">Testing only</p>
-      <h1>Auditor Endpoint Lab</h1>
-      <p class="subtitle">
-        Validate audit workflows quickly: user drilldown and order lifecycle timeline.
-      </p>
+      <p class="eyebrow">Auditor workspace</p>
+      <h1>Orders and Holdings Explorer</h1>
+      <p class="subtitle">Loads all data first, then narrows with filters.</p>
     </div>
   </header>
 
@@ -17,16 +15,326 @@
     <p class="banner error">{{ errorMessage() }}</p>
   }
 
+  <section class="panel filter-panel">
+    <h2>Filters</h2>
+    <p class="panel-help">Primary filters: user, date range, instrument. Portfolio is enabled after user selection.</p>
+
+    <div class="filter-grid">
+      <label>
+        User
+        <input
+          type="text"
+          [ngModel]="userInput()"
+          (ngModelChange)="userInput.set($event)"
+          list="auditor-user-options"
+          placeholder="Type to narrow users, then pick from suggestions"
+        />
+      </label>
+
+      <label>
+        Date from
+        <input
+          type="date"
+          [ngModel]="fromDate()"
+          (ngModelChange)="fromDate.set($event)"
+        />
+      </label>
+
+      <label>
+        Date to
+        <input
+          type="date"
+          [ngModel]="toDate()"
+          (ngModelChange)="toDate.set($event)"
+        />
+      </label>
+
+      <label>
+        Instrument
+        <input
+          type="text"
+          [ngModel]="instrumentInput()"
+          (ngModelChange)="instrumentInput.set($event)"
+          list="auditor-instrument-options"
+          placeholder="Type ticker or instrument name"
+        />
+      </label>
+
+      <label>
+        Portfolio
+        <input
+          type="text"
+          [ngModel]="portfolioInput()"
+          (ngModelChange)="portfolioInput.set($event)"
+          [disabled]="!selectedUserId()"
+          list="auditor-portfolio-options"
+          placeholder="Enabled after selecting a user"
+        />
+      </label>
+    </div>
+
+    <datalist id="auditor-user-options">
+      @for (user of userOptions(); track user.id) {
+        <option [value]="user.label"></option>
+      }
+    </datalist>
+
+    <datalist id="auditor-instrument-options">
+      @for (instrument of instrumentOptions(); track instrument.id) {
+        <option [value]="instrument.label"></option>
+      }
+    </datalist>
+
+    <datalist id="auditor-portfolio-options">
+      @for (portfolio of portfolioOptions(); track portfolio.id) {
+        <option [value]="portfolio.label"></option>
+      }
+    </datalist>
+
+    <div class="button-row">
+      <button type="button" class="primary" [disabled]="loading()" (click)="applyFilters()">
+        {{ loading() ? 'Applying...' : 'Apply Filters' }}
+      </button>
+      <button type="button" class="ghost" [disabled]="loading()" (click)="clearFilters()">Clear</button>
+      <button type="button" class="ghost" [disabled]="loadingInstruments()" (click)="loadInstruments()">
+        Reload Instruments
+      </button>
+    </div>
+  </section>
+
+  <section class="panel summary-panel">
+    <div class="card-grid">
+      <article class="subpanel">
+        <h3>Orders ({{ orderSummaries().length }})</h3>
+        <p class="muted">Page {{ ordersPage() + 1 }} of {{ ordersMeta().totalPages || 1 }} | total {{ ordersMeta().totalElements }}</p>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Order ID</th>
+                <th>Status</th>
+                <th>Execution Price</th>
+                <th>Instrument</th>
+                <th>User</th>
+                <th>Updated</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (order of orderSummaries(); track order.orderId) {
+                <tr class="clickable" (click)="selectOrder(order.orderId)">
+                  <td>{{ order.orderId }}</td>
+                  <td>{{ order.status }}</td>
+                  <td>{{ order.executionPrice }}</td>
+                  <td>{{ getInstrumentName(order.instrumentId) }}</td>
+                  <td>{{ order.userId ?? 'All users' }}</td>
+                  <td>{{ order.timestamp | date: 'short' }}</td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="6" class="muted">No order summaries for current filters.</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <div class="button-row">
+          <button type="button" class="ghost" [disabled]="ordersPage() === 0 || loading()" (click)="goToOrdersPage(ordersPage() - 1)">Prev</button>
+          <button type="button" class="ghost" [disabled]="!ordersMeta().hasNext || loading()" (click)="goToOrdersPage(ordersPage() + 1)">Next</button>
+        </div>
+      </article>
+
+      <article class="subpanel">
+        <h3>Holdings ({{ holdings().length }})</h3>
+        <p class="muted">Page {{ holdingsPage() + 1 }} of {{ holdingsMeta().totalPages || 1 }} | total {{ holdingsMeta().totalElements }}</p>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Value</th>
+                <th>PnL</th>
+                <th>Instrument</th>
+                <th>User</th>
+                <th>Updated</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (holding of holdings(); track holding.holdingID) {
+                <tr class="clickable" (click)="selectHolding(holding.holdingID)">
+                  <td>{{ holding.holdingID }}</td>
+                  <td>{{ holding.currentQuantity }}</td>
+                  <td>{{ holding.cumulativeRealizedPnl }}</td>
+                  <td>{{ getInstrumentName(holding.instrumentID) }}</td>
+                  <td>{{ getHoldingDisplayUser(holding) }}</td>
+                  <td>{{ holding.updatedAt | date: 'short' }}</td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="6" class="muted">No holdings for current filters.</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <div class="button-row">
+          <button type="button" class="ghost" [disabled]="holdingsPage() === 0 || loading()" (click)="goToHoldingsPage(holdingsPage() - 1)">Prev</button>
+          <button type="button" class="ghost" [disabled]="!holdingsMeta().hasNext || loading()" (click)="goToHoldingsPage(holdingsPage() + 1)">Next</button>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  @if (selectedOrderId()) {
+    <section class="panel">
+      <h2>Order Lifecycle Logs</h2>
+      <p class="panel-help">Log rows for selected order {{ selectedOrderId() }}.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Log ID</th>
+              <th>Status</th>
+              <th>Side</th>
+              <th>Qty</th>
+              <th>Execution Price</th>
+              <th>Timestamp</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of selectedOrderLogs(); track row.logOrderId) {
+              <tr>
+                <td>{{ row.logOrderId }}</td>
+                <td>{{ row.status }}</td>
+                <td>{{ row.side }}</td>
+                <td>{{ row.quantity }}</td>
+                <td>{{ row.executionPrice }}</td>
+                <td>{{ row.timestamp | date: 'short' }}</td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="6" class="muted">No log rows available on this page for the selected order.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+
+  @if (selectedHoldingId()) {
+    <section class="panel">
+      <h2>Holding Drilldown</h2>
+      <p class="panel-help">Three summary cards for holding {{ selectedHoldingId() }}.</p>
+
+      <div class="card-grid details-grid">
+        <article class="subpanel">
+          <h3>Order Logs</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Log ID</th>
+                  <th>Status</th>
+                  <th>Price</th>
+                  <th>At</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of holdingOrderLogs(); track row.logOrderId) {
+                  <tr>
+                    <td>{{ row.logOrderId }}</td>
+                    <td>{{ row.status }}</td>
+                    <td>{{ row.executionPrice }}</td>
+                    <td>{{ row.timestamp | date: 'short' }}</td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="4" class="muted">No holding order logs loaded.</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="subpanel">
+          <h3>Position Lots</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Unit Cost</th>
+                  <th>Remain Qty</th>
+                  <th>Opened</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (lot of positionLots(); track getPositionLotId(lot)) {
+                  <tr>
+                    <td>{{ getPositionLotId(lot) }}</td>
+                    <td>{{ lot.unitCost }}</td>
+                    <td>{{ lot.remainingQuantity }}</td>
+                    <td>{{ lot.openedAt | date: 'short' }}</td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="4" class="muted">No position lots loaded.</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="subpanel">
+          <h3>Lot Matches</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Matched Qty</th>
+                  <th>Realized PnL</th>
+                  <th>Matched</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (match of lotMatches(); track getLotMatchId(match)) {
+                  <tr>
+                    <td>{{ getLotMatchId(match) }}</td>
+                    <td>{{ match.matchedQuantity }}</td>
+                    <td>{{ match.realizedPnlAmount ?? match.realizedPnl ?? '-' }}</td>
+                    <td>{{ match.matchedAt | date: 'short' }}</td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="4" class="muted">No lot matches loaded.</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </article>
+      </div>
+    </section>
+  }
+
   <section class="panel diagnostics-panel">
     <h2>Request Diagnostics</h2>
-    <p class="panel-help">Latest endpoint call details for quick verification.</p>
+    <p class="panel-help">Most recent endpoint call.</p>
 
     @if (lastRequest()) {
       <div class="diagnostics-grid">
         <p><strong>Action:</strong> {{ lastRequest()!.action }}</p>
         <p><strong>Endpoint:</strong> {{ lastRequest()!.endpoint }}</p>
         <p><strong>Status:</strong> {{ lastRequest()!.statusCode ?? 'N/A' }}</p>
-        <p><strong>Rows Loaded:</strong> {{ lastRequest()!.rowsLoaded ?? 'N/A' }}</p>
+        <p><strong>Rows:</strong> {{ lastRequest()!.rowsLoaded ?? 'N/A' }}</p>
         <p><strong>At:</strong> {{ lastRequest()!.happenedAt | date: 'short' }}</p>
       </div>
 
@@ -35,443 +343,7 @@
         <pre>{{ lastRequest()!.params | json }}</pre>
       </div>
     } @else {
-      <p class="muted">No endpoint call has been made yet.</p>
-    }
-  </section>
-
-  <section class="panel">
-    <h2>User Drilldown</h2>
-    <p class="panel-help">
-      Flow: search user -> load portfolios/holdings -> select holding -> inspect lots and matches.
-    </p>
-
-    <div class="form-grid">
-      <label>
-        Query
-        <input
-          type="text"
-          [ngModel]="userSearchForm().query"
-          (ngModelChange)="userSearchForm.set({ ...userSearchForm(), query: $event })"
-          placeholder="email, username, first name, last name"
-        />
-      </label>
-
-      <label>
-        Page
-        <input
-          type="number"
-          min="0"
-          [ngModel]="userSearchForm().page"
-          (ngModelChange)="userSearchForm.set({ ...userSearchForm(), page: +$event })"
-        />
-      </label>
-
-      <label>
-        Size
-        <input
-          type="number"
-          min="1"
-          max="100"
-          [ngModel]="userSearchForm().size"
-          (ngModelChange)="userSearchForm.set({ ...userSearchForm(), size: +$event })"
-        />
-      </label>
-    </div>
-
-    <div class="button-row">
-      <button type="button" class="primary" [disabled]="loadingUsers()" (click)="searchUsers()">
-        {{ loadingUsers() ? 'Searching...' : 'Search Users' }}
-      </button>
-
-      <button
-        type="button"
-        class="ghost"
-        [disabled]="!selectedUserId() || loadingDrilldown()"
-        (click)="loadUserDrilldown()"
-      >
-        Reload Drilldown
-      </button>
-    </div>
-
-    <div class="grid-two">
-      <article class="subpanel">
-        <h3>Search Results</h3>
-        <label>
-          Filter Users
-          <input
-            type="text"
-            [ngModel]="userPickerQuery()"
-            (ngModelChange)="userPickerQuery.set($event)"
-            placeholder="Filter by email, username, or name"
-          />
-        </label>
-
-        <label>
-          User
-          <select
-            [ngModel]="selectedUserId()"
-            (ngModelChange)="selectUser($event)"
-            [disabled]="loadingDrilldown()"
-          >
-            <option value="">Select User</option>
-            @for (user of filteredUsers(); track user.userId) {
-              <option [value]="user.userId">{{ formatUserOption(user) }}</option>
-            }
-          </select>
-        </label>
-
-        <p class="muted">Showing {{ filteredUsers().length }} of {{ users().length }} users.</p>
-      </article>
-
-      <article class="subpanel">
-        <h3>Selected User Context</h3>
-        @if (selectedUser()) {
-          <p><strong>Email:</strong> {{ selectedUser()!.email }}</p>
-          <p><strong>User ID:</strong> {{ selectedUser()!.userId }}</p>
-          <p><strong>Username:</strong> {{ selectedUser()!.username || '-' }}</p>
-        } @else {
-          <p class="muted">Select a user to continue.</p>
-        }
-
-        <label>
-          Filter Portfolios
-          <input
-            type="text"
-            [ngModel]="portfolioPickerQuery()"
-            (ngModelChange)="portfolioPickerQuery.set($event)"
-            placeholder="Filter by portfolio name or ID"
-          />
-        </label>
-
-        <label>
-          Portfolio Filter
-          <select
-            [ngModel]="selectedPortfolioId()"
-            (ngModelChange)="onPortfolioFilterChange($event)"
-            [disabled]="!selectedUserId() || loadingDrilldown()"
-          >
-            <option value="">All Portfolios</option>
-            @for (portfolio of filteredPortfolios(); track portfolio.portfolioId) {
-              <option [value]="portfolio.portfolioId">
-                {{ formatPortfolioOption(portfolio) }}
-              </option>
-            }
-          </select>
-        </label>
-
-        <div class="inline-stats">
-          <span>Portfolios: {{ portfolios().length }}</span>
-          <span>Holdings: {{ holdings().length }}</span>
-        </div>
-      </article>
-    </div>
-
-    <div class="grid-two">
-      <article class="subpanel">
-        <h3>Holdings</h3>
-        <label>
-          Filter Holdings
-          <input
-            type="text"
-            [ngModel]="holdingPickerQuery()"
-            (ngModelChange)="holdingPickerQuery.set($event)"
-            placeholder="Filter by holding, portfolio, or instrument ID"
-          />
-        </label>
-
-        <label>
-          Holding
-          <select
-            [ngModel]="selectedHoldingId()"
-            (ngModelChange)="selectHolding($event)"
-            [disabled]="loadingDrilldown() || filteredHoldings().length === 0"
-          >
-            <option value="">Select Holding</option>
-            @for (holding of filteredHoldings(); track getHoldingId(holding)) {
-              <option [value]="getHoldingId(holding)">{{ formatHoldingOption(holding) }}</option>
-            }
-          </select>
-        </label>
-
-        <p class="muted">Showing {{ filteredHoldings().length }} of {{ holdings().length }} holdings.</p>
-      </article>
-
-      <article class="subpanel">
-        <h3>Holding Details</h3>
-        <p class="panel-help">Position lots and lot matches for selected holding.</p>
-
-        <h4>Position Lots ({{ positionLots().length }})</h4>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Lot ID</th>
-                <th>Holding ID</th>
-                <th>Buy Log ID</th>
-                <th>Orig Qty</th>
-                <th>Remain Qty</th>
-                <th>Unit Cost</th>
-                <th>Opened At</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (lot of positionLots(); track getPositionLotId(lot)) {
-                <tr>
-                  <td>{{ getPositionLotId(lot) }}</td>
-                  <td>{{ getPositionLotHoldingId(lot) }}</td>
-                  <td>{{ getPositionLotBuyLogId(lot) }}</td>
-                  <td>{{ lot.originalQuantity }}</td>
-                  <td>{{ lot.remainingQuantity }}</td>
-                  <td>{{ lot.unitCost }}</td>
-                  <td>{{ lot.openedAt | date: 'short' }}</td>
-                </tr>
-              } @empty {
-                <tr>
-                  <td colspan="7" class="muted">No position lots loaded.</td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-
-        <h4>Lot Matches ({{ lotMatches().length }})</h4>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Match ID</th>
-                <th>Position Lot ID</th>
-                <th>Sell Log ID</th>
-                <th>Matched Qty</th>
-                <th>Cost/Unit</th>
-                <th>Proceeds/Unit</th>
-                <th>Realized PnL</th>
-                <th>Matched At</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (match of lotMatches(); track getLotMatchId(match)) {
-                <tr>
-                  <td>{{ getLotMatchId(match) }}</td>
-                  <td>{{ getLotMatchPositionLotId(match) }}</td>
-                  <td>{{ getLotMatchSellLogId(match) }}</td>
-                  <td>{{ match.matchedQuantity }}</td>
-                  <td>{{ match.sellUnitPrice ?? '-' }}</td>
-                  <td>{{ match.proceedsPerUnit ?? '-' }}</td>
-                  <td>{{ match.realizedPnlAmount ?? match.realizedPnl ?? '-' }}</td>
-                  <td>{{ match.matchedAt | date: 'short' }}</td>
-                </tr>
-              } @empty {
-                <tr>
-                  <td colspan="8" class="muted">No lot matches loaded.</td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      </article>
-    </div>
-  </section>
-
-  <section class="panel">
-    <h2>Order Log Timeline</h2>
-    <p class="panel-help">
-      Optional date filter plus additional filters. Timeline is grouped by order ID and sorted by latest event.
-    </p>
-
-    <div class="form-grid form-grid-wide">
-      <label>
-        Date (optional)
-        <input
-          type="date"
-          [ngModel]="orderLogForm().date"
-          (ngModelChange)="orderLogForm.set({ ...orderLogForm(), date: $event })"
-        />
-      </label>
-
-      <label>
-        User ID
-        <input
-          type="text"
-          [ngModel]="orderLogForm().userId"
-          (ngModelChange)="orderLogForm.set({ ...orderLogForm(), userId: $event })"
-          placeholder="optional UUID"
-        />
-      </label>
-
-      <label>
-        Status
-        <select
-          [ngModel]="orderLogForm().status"
-          (ngModelChange)="orderLogForm.set({ ...orderLogForm(), status: $event })"
-        >
-          <option value="">All</option>
-          <option value="SUBMITTED">SUBMITTED</option>
-          <option value="PENDING">PENDING</option>
-          <option value="CANCELLED">CANCELLED</option>
-          <option value="ACCEPTED">ACCEPTED</option>
-          <option value="REJECTED">REJECTED</option>
-          <option value="EXECUTED">EXECUTED</option>
-          <option value="FAILED">FAILED</option>
-        </select>
-      </label>
-
-      <label>
-        Ticker
-        <input
-          type="text"
-          [ngModel]="orderLogForm().ticker"
-          (ngModelChange)="orderLogForm.set({ ...orderLogForm(), ticker: $event })"
-          placeholder="optional"
-        />
-      </label>
-
-      <label>
-        Instrument ID
-        <input
-          type="text"
-          [ngModel]="instrumentPickerQuery()"
-          (ngModelChange)="instrumentPickerQuery.set($event)"
-          placeholder="Filter instruments by ticker or name"
-        />
-        <select
-          [ngModel]="orderLogForm().instrumentId"
-          (ngModelChange)="orderLogForm.set({ ...orderLogForm(), instrumentId: $event })"
-        >
-          <option value="">All Instruments</option>
-          @for (instrument of filteredInstruments(); track instrument.instrumentId) {
-            <option [value]="instrument.instrumentId">
-              {{ formatInstrumentOption(instrument) }}
-            </option>
-          }
-        </select>
-        <span class="muted">
-          Showing {{ filteredInstruments().length }} of {{ instruments().length }} instruments
-          @if (loadingInstruments()) {
-            (loading...)
-          }
-        </span>
-        <button type="button" class="ghost" [disabled]="loadingInstruments()" (click)="loadInstruments()">
-          Reload Instruments
-        </button>
-      </label>
-
-      <label>
-        Instrument Type
-        <select
-          [ngModel]="orderLogForm().instrumentType"
-          (ngModelChange)="orderLogForm.set({ ...orderLogForm(), instrumentType: $event })"
-        >
-          <option value="">All</option>
-          <option value="EQUITY">EQUITY</option>
-          <option value="STOCK">STOCK</option>
-          <option value="ETF">ETF</option>
-          <option value="BOND">BOND</option>
-          <option value="CRYPTO">CRYPTO</option>
-          <option value="CASH">CASH</option>
-        </select>
-      </label>
-
-      <label>
-        Page
-        <input
-          type="number"
-          min="0"
-          [ngModel]="orderLogForm().page"
-          (ngModelChange)="orderLogForm.set({ ...orderLogForm(), page: +$event })"
-        />
-      </label>
-
-      <label>
-        Size
-        <input
-          type="number"
-          min="1"
-          max="100"
-          [ngModel]="orderLogForm().size"
-          (ngModelChange)="orderLogForm.set({ ...orderLogForm(), size: +$event })"
-        />
-      </label>
-    </div>
-
-    <div class="button-row">
-      <button type="button" class="primary" [disabled]="loadingOrderLogs()" (click)="searchOrderLogs()">
-        {{ loadingOrderLogs() ? 'Searching...' : 'Search Order Logs' }}
-      </button>
-
-      <button type="button" class="ghost" (click)="toggleRawOrderRows()">
-        {{ showRawOrderRows() ? 'Show Grouped Timeline' : 'Show Raw Rows' }}
-      </button>
-
-      <span class="muted">Rows: {{ orderLogs().length }} | Groups: {{ lifecycleOrders().length }}</span>
-    </div>
-
-    @if (!showRawOrderRows()) {
-      <div class="timeline-list">
-        @for (order of lifecycleOrders(); track order.orderId) {
-          <article class="timeline-card">
-            <div class="timeline-head">
-              <div>
-                <strong>{{ order.orderId }}</strong>
-                <p class="muted">Latest: {{ order.latestStatus }} at {{ order.latestTimestamp | date: 'short' }}</p>
-              </div>
-            </div>
-
-            <div class="status-steps">
-              @for (row of order.rows; track row.logOrderId) {
-                <div class="status-step">
-                  <span class="status-chip status-{{ row.status.toLowerCase() }}">{{ row.status }}</span>
-                  <span>{{ row.side }} {{ row.quantity }}</span>
-                  <span class="muted">Portfolio: {{ row.portfolioId }}</span>
-                  <span class="muted">Instrument: {{ row.instrumentId }}</span>
-                  <time>{{ row.timestamp | date: 'short' }}</time>
-                </div>
-              }
-            </div>
-          </article>
-        } @empty {
-          <p class="muted">No grouped order timeline rows available.</p>
-        }
-      </div>
-    } @else {
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Log ID</th>
-              <th>Order ID</th>
-              <th>Status</th>
-              <th>Side</th>
-              <th>Qty</th>
-              <th>Portfolio</th>
-              <th>Instrument</th>
-              <th>Timestamp</th>
-              <th>Execution Price</th>
-              <th>Quoted Price</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (row of orderLogs(); track row.logOrderId) {
-              <tr>
-                <td>{{ row.logOrderId }}</td>
-                <td>{{ row.orderId }}</td>
-                <td>{{ row.status }}</td>
-                <td>{{ row.side }}</td>
-                <td>{{ row.quantity }}</td>
-                <td>{{ row.portfolioId }}</td>
-                <td>{{ row.instrumentId }}</td>
-                <td>{{ row.timestamp | date: 'short' }}</td>
-                <td>{{ row.executionPrice }}</td>
-                <td>{{ row.quotedPrice ?? '-' }}</td>
-              </tr>
-            } @empty {
-              <tr>
-                <td colspan="10" class="muted">No raw rows loaded.</td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
+      <p class="muted">No endpoint call has been recorded yet.</p>
     }
   </section>
 </section>
