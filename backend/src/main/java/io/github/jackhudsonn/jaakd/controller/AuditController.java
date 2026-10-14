@@ -45,14 +45,15 @@ public class AuditController {
     @ResponseStatus(HttpStatus.OK)
     public List<OrderLogResponse> searchOrderLogs(
         @RequestParam(required = false) UUID userId,
-        @RequestParam LocalDate date,
+        @RequestParam(required = false) LocalDate date,
         @RequestParam(required = false) OrderStatus status,
         @RequestParam(required = false) String ticker,
+        @RequestParam(required = false) UUID instrumentId,
         @RequestParam(required = false) InstrumentClass instrumentType,
         @RequestParam(required = false) Integer page,
         @RequestParam(required = false) Integer size
     ) {
-        return auditService.searchOrderLogs(userId, date, status, ticker, instrumentType, page, size);
+        return auditService.searchOrderLogs(userId, date, status, ticker, instrumentId, instrumentType, page, size);
     }
 
     @GetMapping("/users/{userId}/portfolios")

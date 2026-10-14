@@ -164,6 +164,7 @@ class AuditServiceTest {
             any(LocalDateTime.class),
             eq(OrderStatus.EXECUTED),
             eq("AAPL"),
+            eq(instrumentId),
             eq(InstrumentClass.EQUITY),
             any(Pageable.class)
         )).thenReturn(new PageImpl<>(List.of(row)));
@@ -173,6 +174,7 @@ class AuditServiceTest {
             date,
             OrderStatus.EXECUTED,
             " AAPL ",
+            instrumentId,
             InstrumentClass.EQUITY,
             null,
             null
@@ -189,6 +191,7 @@ class AuditServiceTest {
             endCaptor.capture(),
             eq(OrderStatus.EXECUTED),
             eq("AAPL"),
+            eq(instrumentId),
             eq(InstrumentClass.EQUITY),
             pageableCaptor.capture()
         );
@@ -215,10 +218,11 @@ class AuditServiceTest {
             eq(null),
             eq(null),
             eq(null),
+            eq(null),
             any(Pageable.class)
         )).thenReturn(new PageImpl<>(List.of()));
 
-        auditService.searchOrderLogs(null, date, null, "   ", null, 1, 10);
+        auditService.searchOrderLogs(null, date, null, "   ", null, null, 1, 10);
 
         verify(orderLogRepository, times(1)).findByAuditFiltersWithinTimestampRange(
             eq(null),
@@ -227,26 +231,36 @@ class AuditServiceTest {
             eq(null),
             eq(null),
             eq(null),
+            eq(null),
             any(Pageable.class)
         );
     }
 
     @Test
-    void searchOrderLogs_missingDate_throwsValidationAndSkipsRepository() {
-        assertThrows(
-            ValidationException.class,
-            () -> auditService.searchOrderLogs(null, null, null, null, null, 0, 25)
-        );
+    void searchOrderLogs_missingDate_isAllowedAndUsesNullDateBounds() {
+        when(orderLogRepository.findByAuditFiltersWithinTimestampRange(
+            eq(null),
+            eq(null),
+            eq(null),
+            eq(null),
+            eq(null),
+            eq(null),
+            eq(null),
+            any(Pageable.class)
+        )).thenReturn(new PageImpl<>(List.of()));
+
+        auditService.searchOrderLogs(null, null, null, null, null, null, 0, 25);
 
         verify(privilegedAccessService, times(1)).ensureAdminOrAuditor();
-        verify(orderLogRepository, never()).findByAuditFiltersWithinTimestampRange(
-            any(),
-            any(LocalDateTime.class),
-            any(LocalDateTime.class),
-            any(),
-            any(),
-            any(),
-            any(Pageable.class)
+        verify(orderLogRepository, times(1)).findByAuditFiltersWithinTimestampRange(
+            eq(null),
+            eq(null),
+            eq(null),
+            eq(null),
+            eq(null),
+            eq(null),
+            eq(null),
+            eq(PageRequest.of(0, 25))
         );
     }
 
@@ -256,13 +270,14 @@ class AuditServiceTest {
 
         assertThrows(
             ValidationException.class,
-            () -> auditService.searchOrderLogs(null, date, null, null, null, -1, 25)
+            () -> auditService.searchOrderLogs(null, date, null, null, null, null, -1, 25)
         );
 
         verify(orderLogRepository, never()).findByAuditFiltersWithinTimestampRange(
             any(),
             any(LocalDateTime.class),
             any(LocalDateTime.class),
+            any(),
             any(),
             any(),
             any(),
@@ -276,13 +291,14 @@ class AuditServiceTest {
 
         assertThrows(
             ValidationException.class,
-            () -> auditService.searchOrderLogs(null, date, null, null, null, 0, 101)
+            () -> auditService.searchOrderLogs(null, date, null, null, null, null, 0, 101)
         );
 
         verify(orderLogRepository, never()).findByAuditFiltersWithinTimestampRange(
             any(),
             any(LocalDateTime.class),
             any(LocalDateTime.class),
+            any(),
             any(),
             any(),
             any(),

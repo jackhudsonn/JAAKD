@@ -6,7 +6,13 @@ import {
   AuditOrderLogSearchRequest,
   AuditPaging,
 } from '@core/services/audit-api.service';
-import { OrderLogResponse, PortfolioResponse, HoldingResponse } from '@core/models/api.models';
+import { InstrumentApiService } from '@core/services/instrument-api.service';
+import {
+  OrderLogResponse,
+  PortfolioResponse,
+  HoldingResponse,
+  InstrumentResponse,
+} from '@core/models/api.models';
 
 describe('AuditorComponent', () => {
   let component: AuditorComponent;
@@ -31,6 +37,10 @@ describe('AuditorComponent', () => {
     ),
   };
 
+  const instrumentApiService = {
+    list: vi.fn<() => Promise<InstrumentResponse[]>>(async () => []),
+  };
+
   beforeEach(async () => {
     vi.restoreAllMocks();
     vi.clearAllMocks();
@@ -41,15 +51,70 @@ describe('AuditorComponent', () => {
     auditApiService.listUserHoldings.mockImplementation(async () => []);
     auditApiService.listHoldingPositionLots.mockImplementation(async () => []);
     auditApiService.listHoldingLotMatches.mockImplementation(async () => []);
+    instrumentApiService.list.mockImplementation(async () => []);
 
     await TestBed.configureTestingModule({
       imports: [AuditorComponent],
-      providers: [{ provide: AuditApiService, useValue: auditApiService }],
+      providers: [
+        { provide: AuditApiService, useValue: auditApiService },
+        { provide: InstrumentApiService, useValue: instrumentApiService },
+      ],
     }).compileComponents();
 
     const fixture = TestBed.createComponent(AuditorComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
+  });
+
+  it('loads instruments on init for instrument picker', async () => {
+    instrumentApiService.list.mockResolvedValueOnce([
+      {
+        instrumentId: 'instrument-1',
+        ticker: 'AAPL',
+        market: 'NASDAQ',
+        name: 'Apple Inc',
+        instrumentClass: 'EQUITY',
+        logoUrl: null,
+        description: null,
+      },
+    ]);
+
+    await component.loadInstruments();
+
+    expect(instrumentApiService.list).toHaveBeenCalled();
+    expect(component.instruments()).toHaveLength(1);
+    expect(component.instruments()[0].ticker).toBe('AAPL');
+  });
+
+  it('filters instruments by ticker or name for the instrument picker', async () => {
+    component.instruments.set([
+      {
+        instrumentId: 'instrument-1',
+        ticker: 'AAPL',
+        market: 'NASDAQ',
+        name: 'Apple Inc',
+        instrumentClass: 'EQUITY',
+        logoUrl: null,
+        description: null,
+      },
+      {
+        instrumentId: 'instrument-2',
+        ticker: 'MSFT',
+        market: 'NASDAQ',
+        name: 'Microsoft Corp',
+        instrumentClass: 'EQUITY',
+        logoUrl: null,
+        description: null,
+      },
+    ]);
+
+    component.instrumentPickerQuery.set('app');
+    expect(component.filteredInstruments()).toHaveLength(1);
+    expect(component.filteredInstruments()[0].ticker).toBe('AAPL');
+
+    component.instrumentPickerQuery.set('soft');
+    expect(component.filteredInstruments()).toHaveLength(1);
+    expect(component.filteredInstruments()[0].ticker).toBe('MSFT');
   });
 
   it('requires non-empty query for user search', async () => {
@@ -61,7 +126,7 @@ describe('AuditorComponent', () => {
     expect(auditApiService.searchUsers).not.toHaveBeenCalled();
   });
 
-  it('requires date for order-log search', async () => {
+  it('allows order-log search without date', async () => {
     component.orderLogForm.set({
       ...component.orderLogForm(),
       date: '',
@@ -71,8 +136,39 @@ describe('AuditorComponent', () => {
 
     await component.searchOrderLogs();
 
-    expect(component.errorMessage()).toBe('Date is required for order-log search.');
-    expect(auditApiService.searchOrderLogs).not.toHaveBeenCalled();
+    expect(auditApiService.searchOrderLogs).toHaveBeenCalledWith({
+      date: undefined,
+      userId: undefined,
+      status: undefined,
+      ticker: undefined,
+      instrumentId: undefined,
+      instrumentType: undefined,
+      page: 0,
+      size: 25,
+    });
+  });
+
+  it('passes instrumentId filter for order-log search', async () => {
+    component.orderLogForm.set({
+      ...component.orderLogForm(),
+      date: '2026-10-14',
+      instrumentId: ' instrument-123 ',
+      page: 0,
+      size: 25,
+    });
+
+    await component.searchOrderLogs();
+
+    expect(auditApiService.searchOrderLogs).toHaveBeenCalledWith({
+      date: '2026-10-14',
+      userId: undefined,
+      status: undefined,
+      ticker: undefined,
+      instrumentId: 'instrument-123',
+      instrumentType: undefined,
+      page: 0,
+      size: 25,
+    });
   });
 
   it('clears dependent drilldown state when selecting a new user', async () => {
@@ -215,6 +311,7 @@ describe('AuditorComponent', () => {
       userId: '',
       status: '',
       ticker: '',
+      instrumentId: '',
       instrumentType: '',
       page: 0,
       size: 25,

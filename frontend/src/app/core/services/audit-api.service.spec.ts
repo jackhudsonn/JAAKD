@@ -45,12 +45,13 @@ describe('AuditApiService', () => {
     await expect(promise).resolves.toHaveLength(1);
   });
 
-  it('searchOrderLogs includes required date and optional filters', async () => {
+  it('searchOrderLogs includes optional date and optional filters', async () => {
     const promise = service.searchOrderLogs({
       date: '2026-10-14',
       userId: 'user-1',
       status: 'EXECUTED',
       ticker: '  AAPL  ',
+      instrumentId: 'instrument-123',
       instrumentType: 'EQUITY',
       page: 0,
       size: 25,
@@ -64,6 +65,7 @@ describe('AuditApiService', () => {
     expect(req.request.params.get('userId')).toBe('user-1');
     expect(req.request.params.get('status')).toBe('EXECUTED');
     expect(req.request.params.get('ticker')).toBe('AAPL');
+    expect(req.request.params.get('instrumentId')).toBe('instrument-123');
     expect(req.request.params.get('instrumentType')).toBe('EQUITY');
     expect(req.request.params.get('page')).toBe('0');
     expect(req.request.params.get('size')).toBe('25');
@@ -73,18 +75,20 @@ describe('AuditApiService', () => {
     await expect(promise).resolves.toEqual([]);
   });
 
-  it('searchOrderLogs omits blank optional ticker and missing optional filters', async () => {
+  it('searchOrderLogs omits blank optional filters including date and instrumentId', async () => {
     const promise = service.searchOrderLogs({
-      date: '2026-10-14',
+      date: '   ',
       ticker: '   ',
+      instrumentId: '   ',
     });
 
     const req = httpTestingController.expectOne(
       (request) => request.url === `${environment.apiUrl}/api/audit/order-logs`,
     );
     expect(req.request.method).toBe('GET');
-    expect(req.request.params.get('date')).toBe('2026-10-14');
+    expect(req.request.params.has('date')).toBe(false);
     expect(req.request.params.has('ticker')).toBe(false);
+    expect(req.request.params.has('instrumentId')).toBe(false);
     expect(req.request.params.has('userId')).toBe(false);
     expect(req.request.params.has('status')).toBe(false);
     expect(req.request.params.has('instrumentType')).toBe(false);
