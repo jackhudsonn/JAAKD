@@ -35,14 +35,22 @@ export class AuthService {
 
   async login(email: string, password: string): Promise<void> {
     const response = await firstValueFrom(
-      this.httpClient.post<SessionResponse>(
+      this.httpClient.post<SessionResponse | null>(
         `${environment.apiUrl}/api/auth/login`,
         { email, password },
         { context: this.credentialFlow },
       ),
     );
 
-    this.emailSignal.set(response.email);
+    // Some proxies or adapters may omit the JSON body while still setting the
+    // session cookie; fall back to the submitted email so login can continue.
+    const normalizedEmail = email.trim().toLowerCase();
+    const resolvedEmail =
+      typeof response?.email === 'string' && response.email.trim().length > 0
+        ? response.email
+        : normalizedEmail;
+
+    this.emailSignal.set(resolvedEmail);
   }
 
   async logout(): Promise<void> {
@@ -73,10 +81,16 @@ export class AuthService {
 
     try {
       const response = await firstValueFrom(
-        this.httpClient.get<SessionResponse>(`${environment.apiUrl}/api/auth/session`, {
+        this.httpClient.get<SessionResponse | null>(`${environment.apiUrl}/api/auth/session`, {
           context: this.credentialFlow,
         }),
       );
+
+      if (typeof response?.email !== 'string' || response.email.trim().length === 0) {
+        this.emailSignal.set(null);
+        return false;
+      }
+
       this.emailSignal.set(response.email);
       return true;
     } catch {
