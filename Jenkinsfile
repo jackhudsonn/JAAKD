@@ -2,7 +2,6 @@ pipeline {
     agent any
 
     tools {
-        sonarqube 'SonarQube'
         nodejs 'NodeJS'
     }
 
@@ -15,18 +14,14 @@ pipeline {
         IMAGE_TAG = "${params.BRANCH ?: 'main'}-${env.BUILD_NUMBER}"
     }
 
-    stages {
+    stages {}
 
-        stage('Checkout for Parameters') {
+        stage('Checkout Selected Branch') {
             steps {
-                // Checkout inputted Branch
-            }
-        }
-
-        stage('Checkout for Branch') {
-            steps {
-                if (params.DEPLOY_ENVIRONMENT == 'prod' && params.BRANCH != 'main') {
-                    error "Prod deployments must be from the main branch."
+                script {
+                    if (params.DEPLOY_ENVIRONMENT == 'prod' && params.BRANCH != 'main') {
+                        error "Prod deployments must be from the main branch."
+                    }
                 }
 
                 checkout([
@@ -128,6 +123,7 @@ pipeline {
             }
             steps {
                 // TODO: Implement Prod deployment steps
+                echo("Prod deployment is not yet implemented.")
             }
         }
     }
