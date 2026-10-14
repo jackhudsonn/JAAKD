@@ -8,24 +8,32 @@ pipeline {
 
     parameters {
         choice(name: 'DEPLOY_ENVIRONMENT', choices: ['dev', 'prod'], description: 'Select the environment')
-        string(name: 'BRANCH', defaultValue: 'main', description: 'Branch to deploy')
+        string(name: 'BRANCH', defaultValue: 'main', description: 'Branch to deploy. Prod will deploy from main only.')
     }
 
     environment {
-        IMAGE_TAG: "${params.BRANCH}-${env.BUILD_NUMBER}"
+        IMAGE_TAG = "${params.BRANCH ?: 'main'}-${env.BUILD_NUMBER}"
     }
 
     stages {
 
         stage('Checkout for Parameters') {
             steps {
-                checkout scm
+                // Checkout inputted Branch
             }
         }
 
         stage('Checkout for Branch') {
             steps {
-                checkout([$class: 'GitSCM', branches: [[name: "*/${params.BRANCH}"]], userRemoteConfigs: [[url: 'git@github.com:jackhudsonn/JAAKD.git']]])
+                if (params.DEPLOY_ENVIRONMENT == 'prod' && params.BRANCH != 'main') {
+                    error "Prod deployments must be from the main branch."
+                }
+
+                checkout([
+                    $class: 'GitSCM',
+                    branches: [[name: "*/${params.BRANCH}"]],
+                    userRemoteConfigs: [[url: 'git@github.com:jackhudsonn/JAAKD.git']]
+                ])
             }
         }
 
