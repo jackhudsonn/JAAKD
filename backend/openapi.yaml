@@ -1204,10 +1204,9 @@ paths:
       parameters:
         - name: query
           in: query
-          required: true
+          required: false
           schema:
             type: string
-            minLength: 1
         - name: page
           in: query
           required: false
@@ -1229,9 +1228,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/AuditUserSearchResponse"
+                $ref: "#/components/schemas/AuditUserSearchPageResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -1250,6 +1247,8 @@ paths:
         If `date` is provided, filtering uses day boundaries:
         - start = date at 00:00 (inclusive)
         - end = next day at 00:00 (exclusive)
+        `fromDate` and `toDate` define an optional inclusive date range.
+        If provided, date range takes precedence over `date`.
         Optional filters: userId, status, ticker, instrumentId, instrumentType.
       operationId: searchAuditOrderLogs
       parameters:
@@ -1260,6 +1259,18 @@ paths:
             type: string
             format: uuid
         - name: date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: fromDate
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: toDate
           in: query
           required: false
           schema:
@@ -1308,9 +1319,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/OrderLogResponse"
+                $ref: "#/components/schemas/AuditOrderLogPageResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -1354,9 +1363,63 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/PortfolioResponse"
+                $ref: "#/components/schemas/AuditPortfolioPageResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/audit/holdings:
+    get:
+      tags: [Audit]
+      summary: List holdings across users (audit)
+      description: Restricted to ADMIN or AUDITOR user types.
+      operationId: getAuditHoldings
+      parameters:
+        - name: userId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: portfolioId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: instrumentId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+      responses:
+        "200":
+          description: Holdings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditHoldingPageResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -1385,6 +1448,12 @@ paths:
           schema:
             type: string
             format: uuid
+        - name: instrumentId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
         - name: page
           in: query
           required: false
@@ -1406,15 +1475,71 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/HoldingResponse"
+                $ref: "#/components/schemas/AuditHoldingPageResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/audit/holdings/{holdingId}/order-logs:
+    get:
+      tags: [Audit]
+      summary: List order logs for a holding context (audit)
+      description: Restricted to ADMIN or AUDITOR user types.
+      operationId: getAuditHoldingOrderLogs
+      parameters:
+        - $ref: "#/components/parameters/HoldingId"
+        - name: fromDate
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: toDate
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/OrderStatus"
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+      responses:
+        "200":
+          description: Holding-context order logs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditOrderLogPageResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "500":
           $ref: "#/components/responses/ServerError"
 
@@ -1447,9 +1572,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/PositionLotResponse"
+                $ref: "#/components/schemas/AuditPositionLotPageResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -1490,9 +1613,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/LotMatchResponse"
+                $ref: "#/components/schemas/AuditLotMatchPageResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -1908,6 +2029,120 @@ components:
           type: [string, "null"]
         lastName:
           type: [string, "null"]
+
+    AuditUserSearchPageResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuditUserSearchResponse"
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+        hasNext:
+          type: boolean
+
+    AuditOrderLogPageResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderLogResponse"
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+        hasNext:
+          type: boolean
+
+    AuditPortfolioPageResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/PortfolioResponse"
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+        hasNext:
+          type: boolean
+
+    AuditHoldingPageResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/HoldingResponse"
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+        hasNext:
+          type: boolean
+
+    AuditPositionLotPageResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/PositionLotResponse"
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+        hasNext:
+          type: boolean
+
+    AuditLotMatchPageResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/LotMatchResponse"
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+        hasNext:
+          type: boolean
 
     # ---- portfolios
     CreatePortfolioRequest:

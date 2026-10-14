@@ -1,5 +1,6 @@
 package io.github.jackhudsonn.jaakd.service;
 
+import io.github.jackhudsonn.jaakd.dto.AuditPageResponse;
 import io.github.jackhudsonn.jaakd.dto.AuditUserSearchResponse;
 import io.github.jackhudsonn.jaakd.dto.LotMatchResponse;
 import io.github.jackhudsonn.jaakd.dto.OrderLogResponse;
@@ -21,14 +22,13 @@ import io.github.jackhudsonn.jaakd.repository.PortfolioRepository;
 import io.github.jackhudsonn.jaakd.repository.PositionLotRepository;
 import io.github.jackhudsonn.jaakd.repository.UserRepository;
 import io.github.jackhudsonn.jaakd.repository.projection.AuditUserSearchProjection;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -64,35 +64,32 @@ public class AuditService {
         this.privilegedAccessService = privilegedAccessService;
     }
 
-    public List<AuditUserSearchResponse> searchUsers(String query, Integer page, Integer size) {
+    public AuditPageResponse<AuditUserSearchResponse> searchUsers(String query, Integer page, Integer size) {
         privilegedAccessService.ensureAdminOrAuditor();
 
-        String normalizedQuery = normalizeRequiredQuery(query);
+        String normalizedQuery = normalizeOptionalQuery(query);
         int resolvedPage = page == null ? DEFAULT_PAGE : page;
         int resolvedSize = size == null ? DEFAULT_SIZE : size;
 
         validatePaging(resolvedPage, resolvedSize);
 
         Pageable pageable = PageRequest.of(resolvedPage, resolvedSize);
-        List<AuditUserSearchProjection> rows = userRepository.findByAuditSearchQuery(normalizedQuery, pageable).getContent();
+        Page<AuditUserSearchProjection> rows = userRepository.findByAuditSearchQuery(normalizedQuery, pageable);
 
-        List<AuditUserSearchResponse> responses = new ArrayList<>();
-        for (AuditUserSearchProjection row : rows) {
-            responses.add(new AuditUserSearchResponse(
+        return AuditPageResponse.from(rows.map(row -> new AuditUserSearchResponse(
                 row.getUserId(),
                 row.getEmail(),
                 row.getUsername(),
                 row.getFirstName(),
                 row.getLastName()
-            ));
-        }
-
-        return responses;
+            )));
     }
 
-    public List<OrderLogResponse> searchOrderLogs(
+    public AuditPageResponse<OrderLogResponse> searchOrderLogs(
         UUID userId,
         LocalDate date,
+        LocalDate fromDate,
+        LocalDate toDate,
         OrderStatus status,
         String ticker,
         UUID instrumentId,
@@ -106,12 +103,14 @@ public class AuditService {
         int resolvedSize = size == null ? DEFAULT_SIZE : size;
         validatePaging(resolvedPage, resolvedSize);
 
+        validateDateRange(fromDate, toDate);
+
         String normalizedTicker = normalizeOptionalText(ticker);
-        LocalDateTime start = date == null ? null : date.atStartOfDay();
-        LocalDateTime end = date == null ? null : date.plusDays(1).atStartOfDay();
+        LocalDateTime start = resolveStartDateTime(date, fromDate);
+        LocalDateTime end = resolveEndDateTime(date, toDate);
         Pageable pageable = PageRequest.of(resolvedPage, resolvedSize);
 
-        List<OrderLog> rows = orderLogRepository.findByAuditFiltersWithinTimestampRange(
+        Page<OrderLog> rows = orderLogRepository.findByAuditFiltersWithinTimestampRange(
             userId,
             start,
             end,
@@ -120,17 +119,12 @@ public class AuditService {
             instrumentId,
             instrumentType,
             pageable
-        ).getContent();
+        );
 
-        List<OrderLogResponse> responses = new ArrayList<>();
-        for (OrderLog row : rows) {
-            responses.add(toOrderLogResponse(row));
-        }
-
-        return responses;
+        return AuditPageResponse.from(rows.map(this::toOrderLogResponse));
     }
 
-    public List<PortfolioResponse> getUserPortfolios(UUID userId, Integer page, Integer size) {
+    public AuditPageResponse<PortfolioResponse> getUserPortfolios(UUID userId, Integer page, Integer size) {
         privilegedAccessService.ensureAdminOrAuditor();
         validateRequiredUuid(userId, "User ID is required");
 
@@ -139,31 +133,75 @@ public class AuditService {
         validatePaging(resolvedPage, resolvedSize);
 
         Pageable pageable = PageRequest.of(resolvedPage, resolvedSize);
-        List<Portfolio> rows = portfolioRepository
-            .findByProfileUserIdOrderByPortfolioIdAsc(userId, pageable)
-            .getContent();
-
-        List<PortfolioResponse> responses = new ArrayList<>();
-        for (Portfolio row : rows) {
-            responses.add(new PortfolioResponse(row.getPortfolioId(), row.getPortfolioName()));
-        }
-
-        return responses;
+        Page<Portfolio> rows = portfolioRepository.findByProfileUserIdOrderByPortfolioIdAsc(userId, pageable);
+        return AuditPageResponse.from(rows.map(row -> new PortfolioResponse(row.getPortfolioId(), row.getPortfolioName())));
     }
 
-    public List<Holding> getUserHoldings(UUID userId, UUID portfolioId, Integer page, Integer size) {
+    public AuditPageResponse<Holding> getHoldings(
+        UUID userId,
+        UUID portfolioId,
+        UUID instrumentId,
+        Integer page,
+        Integer size
+    ) {
         privilegedAccessService.ensureAdminOrAuditor();
-        validateRequiredUuid(userId, "User ID is required");
 
         int resolvedPage = page == null ? DEFAULT_PAGE : page;
         int resolvedSize = size == null ? DEFAULT_SIZE : size;
         validatePaging(resolvedPage, resolvedSize);
 
         Pageable pageable = PageRequest.of(resolvedPage, resolvedSize);
-        return holdingRepository.findByAuditUserIdAndOptionalPortfolioId(userId, portfolioId, pageable).getContent();
+        Page<Holding> rows = holdingRepository.findByAuditOptionalFilters(userId, portfolioId, instrumentId, pageable);
+        return AuditPageResponse.from(rows);
     }
 
-    public List<PositionLotResponse> getHoldingPositionLots(UUID holdingId, Integer page, Integer size) {
+    public AuditPageResponse<Holding> getUserHoldings(
+        UUID userId,
+        UUID portfolioId,
+        UUID instrumentId,
+        Integer page,
+        Integer size
+    ) {
+        validateRequiredUuid(userId, "User ID is required");
+        return getHoldings(userId, portfolioId, instrumentId, page, size);
+    }
+
+    public AuditPageResponse<OrderLogResponse> getHoldingOrderLogs(
+        UUID holdingId,
+        LocalDate fromDate,
+        LocalDate toDate,
+        OrderStatus status,
+        Integer page,
+        Integer size
+    ) {
+        privilegedAccessService.ensureAdminOrAuditor();
+        validateRequiredUuid(holdingId, "Holding ID is required");
+        validateDateRange(fromDate, toDate);
+
+        Holding holding = holdingRepository.findById(holdingId)
+            .orElseThrow(() -> new HoldingNotFoundException(holdingId));
+
+        int resolvedPage = page == null ? DEFAULT_PAGE : page;
+        int resolvedSize = size == null ? DEFAULT_SIZE : size;
+        validatePaging(resolvedPage, resolvedSize);
+
+        LocalDateTime start = fromDate == null ? null : fromDate.atStartOfDay();
+        LocalDateTime end = toDate == null ? null : toDate.plusDays(1).atStartOfDay();
+        Pageable pageable = PageRequest.of(resolvedPage, resolvedSize);
+
+        Page<OrderLog> rows = orderLogRepository.findByHoldingContextWithinTimestampRange(
+            holding.getPortfolioID(),
+            holding.getInstrumentID(),
+            start,
+            end,
+            status,
+            pageable
+        );
+
+        return AuditPageResponse.from(rows.map(this::toOrderLogResponse));
+    }
+
+    public AuditPageResponse<PositionLotResponse> getHoldingPositionLots(UUID holdingId, Integer page, Integer size) {
         privilegedAccessService.ensureAdminOrAuditor();
         validateRequiredUuid(holdingId, "Holding ID is required");
 
@@ -175,17 +213,11 @@ public class AuditService {
         validatePaging(resolvedPage, resolvedSize);
 
         Pageable pageable = PageRequest.of(resolvedPage, resolvedSize);
-        List<PositionLot> rows = positionLotRepository.findByHoldingIdOldestFirst(holdingId, pageable).getContent();
-
-        List<PositionLotResponse> responses = new ArrayList<>();
-        for (PositionLot row : rows) {
-            responses.add(toPositionLotResponse(row));
-        }
-
-        return responses;
+        Page<PositionLot> rows = positionLotRepository.findByHoldingIdOldestFirst(holdingId, pageable);
+        return AuditPageResponse.from(rows.map(this::toPositionLotResponse));
     }
 
-    public List<LotMatchResponse> getHoldingLotMatches(UUID holdingId, Integer page, Integer size) {
+    public AuditPageResponse<LotMatchResponse> getHoldingLotMatches(UUID holdingId, Integer page, Integer size) {
         privilegedAccessService.ensureAdminOrAuditor();
         validateRequiredUuid(holdingId, "Holding ID is required");
 
@@ -197,19 +229,35 @@ public class AuditService {
         validatePaging(resolvedPage, resolvedSize);
 
         Pageable pageable = PageRequest.of(resolvedPage, resolvedSize);
-        List<LotMatch> rows = lotMatchRepository.findByHoldingIdOldestFirst(holdingId, pageable).getContent();
-
-        List<LotMatchResponse> responses = new ArrayList<>();
-        for (LotMatch row : rows) {
-            responses.add(toLotMatchResponse(row));
-        }
-
-        return responses;
+        Page<LotMatch> rows = lotMatchRepository.findByHoldingIdOldestFirst(holdingId, pageable);
+        return AuditPageResponse.from(rows.map(this::toLotMatchResponse));
     }
 
-    private String normalizeRequiredQuery(String query) {
-        if (query == null || query.isBlank()) {
-            throw new ValidationException("Query is required");
+    private void validateDateRange(LocalDate fromDate, LocalDate toDate) {
+        if (fromDate != null && toDate != null && fromDate.isAfter(toDate)) {
+            throw new ValidationException("From date must be before or equal to to date");
+        }
+    }
+
+    private LocalDateTime resolveStartDateTime(LocalDate date, LocalDate fromDate) {
+        if (fromDate != null) {
+            return fromDate.atStartOfDay();
+        }
+
+        return date == null ? null : date.atStartOfDay();
+    }
+
+    private LocalDateTime resolveEndDateTime(LocalDate date, LocalDate toDate) {
+        if (toDate != null) {
+            return toDate.plusDays(1).atStartOfDay();
+        }
+
+        return date == null ? null : date.plusDays(1).atStartOfDay();
+    }
+
+    private String normalizeOptionalQuery(String query) {
+        if (query == null) {
+            return "";
         }
 
         return query.trim();

@@ -4,7 +4,6 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
   HoldingResponse,
-  InstrumentClass,
   InstrumentResponse,
   OrderLogResponse,
   OrderStatus,
@@ -18,11 +17,13 @@ import {
 } from '@core/services/audit-api.service';
 import { InstrumentApiService } from '@core/services/instrument-api.service';
 
-interface LifecycleOrder {
+interface OrderSummary {
   orderId: string;
-  rows: OrderLogResponse[];
-  latestStatus: OrderStatus;
-  latestTimestamp: string;
+  status: OrderStatus;
+  timestamp: string;
+  executionPrice: number;
+  instrumentId: string;
+  userId: string | null;
 }
 
 interface RequestDiagnostics {
@@ -32,6 +33,11 @@ interface RequestDiagnostics {
   statusCode: number | null;
   rowsLoaded: number | null;
   happenedAt: string;
+}
+
+interface OptionItem {
+  id: string;
+  label: string;
 }
 
 @Component({
@@ -45,154 +51,93 @@ export class AuditorComponent {
   private readonly auditApi = inject(AuditApiService);
   private readonly instrumentApi = inject(InstrumentApiService);
 
+  readonly pageSize = 25;
+
   readonly users = signal<AuditUserSearchResponse[]>([]);
   readonly instruments = signal<InstrumentResponse[]>([]);
   readonly portfolios = signal<PortfolioResponse[]>([]);
   readonly holdings = signal<HoldingResponse[]>([]);
+  readonly orderRows = signal<OrderLogResponse[]>([]);
+
   readonly positionLots = signal<PositionLotResponse[]>([]);
   readonly lotMatches = signal<LotMatchResponse[]>([]);
-  readonly orderLogs = signal<OrderLogResponse[]>([]);
+  readonly holdingOrderLogs = signal<OrderLogResponse[]>([]);
+  readonly selectedOrderLogs = signal<OrderLogResponse[]>([]);
 
-  readonly selectedUserId = signal('');
-  readonly selectedPortfolioId = signal('');
-  readonly selectedHoldingId = signal('');
-  readonly userPickerQuery = signal('');
-  readonly portfolioPickerQuery = signal('');
-  readonly holdingPickerQuery = signal('');
-  readonly instrumentPickerQuery = signal('');
+  readonly userInput = signal('');
+  readonly instrumentInput = signal('');
+  readonly portfolioInput = signal('');
+  readonly fromDate = signal('');
+  readonly toDate = signal('');
 
-  readonly loadingUsers = signal(false);
+  readonly selectedUserId = signal<string | null>(null);
+  readonly selectedInstrumentId = signal<string | null>(null);
+  readonly selectedPortfolioId = signal<string | null>(null);
+  readonly selectedHoldingId = signal<string | null>(null);
+  readonly selectedOrderId = signal<string | null>(null);
+
+  readonly ordersPage = signal(0);
+  readonly holdingsPage = signal(0);
+
+  readonly ordersMeta = signal({ totalElements: 0, totalPages: 0, hasNext: false });
+  readonly holdingsMeta = signal({ totalElements: 0, totalPages: 0, hasNext: false });
+
+  readonly loading = signal(false);
+  readonly loadingDetails = signal(false);
   readonly loadingInstruments = signal(false);
-  readonly loadingDrilldown = signal(false);
-  readonly loadingOrderLogs = signal(false);
 
   readonly statusMessage = signal<string | null>(null);
   readonly errorMessage = signal<string | null>(null);
   readonly lastRequest = signal<RequestDiagnostics | null>(null);
 
-  readonly showRawOrderRows = signal(false);
+  readonly userOptions = computed<OptionItem[]>(() => this.users().map((user) => ({
+    id: user.userId,
+    label: this.formatUserOption(user),
+  })));
 
-  readonly userSearchForm = signal({
-    query: '',
-    page: 0,
-    size: 25,
-  });
+  readonly instrumentOptions = computed<OptionItem[]>(() => this.instruments().map((instrument) => ({
+    id: instrument.instrumentId,
+    label: this.formatInstrumentOption(instrument),
+  })));
 
-  readonly drilldownForm = signal({
-    page: 0,
-    size: 25,
-  });
+  readonly portfolioOptions = computed<OptionItem[]>(() => this.portfolios().map((portfolio) => ({
+    id: portfolio.portfolioId,
+    label: this.formatPortfolioOption(portfolio),
+  })));
 
-  readonly orderLogForm = signal({
-    date: '',
-    userId: '',
-    status: '' as '' | OrderStatus,
-    ticker: '',
-    instrumentId: '',
-    instrumentType: '' as '' | InstrumentClass,
-    page: 0,
-    size: 25,
-  });
-
-  readonly selectedUser = computed(() =>
-    this.users().find((user) => user.userId === this.selectedUserId()) ?? null,
-  );
-
-  readonly filteredUsers = computed(() => {
-    const query = this.userPickerQuery().trim().toLowerCase();
-    if (!query) {
-      return this.users();
-    }
-
-    return this.users().filter((user) => {
-      const email = user.email.toLowerCase();
-      const username = (user.username ?? '').toLowerCase();
-      const firstName = (user.firstName ?? '').toLowerCase();
-      const lastName = (user.lastName ?? '').toLowerCase();
-      return (
-        email.includes(query)
-        || username.includes(query)
-        || firstName.includes(query)
-        || lastName.includes(query)
-      );
-    });
-  });
-
-  readonly filteredPortfolios = computed(() => {
-    const query = this.portfolioPickerQuery().trim().toLowerCase();
-    if (!query) {
-      return this.portfolios();
-    }
-
-    return this.portfolios().filter((portfolio) => {
-      const name = portfolio.portfolioName.toLowerCase();
-      const id = portfolio.portfolioId.toLowerCase();
-      return name.includes(query) || id.includes(query);
-    });
-  });
-
-  readonly filteredHoldings = computed(() => {
-    const query = this.holdingPickerQuery().trim().toLowerCase();
-    if (!query) {
-      return this.holdings();
-    }
-
-    return this.holdings().filter((holding) => {
-      const holdingId = holding.holdingID.toLowerCase();
-      const portfolioId = holding.portfolioID.toLowerCase();
-      const instrumentId = holding.instrumentID.toLowerCase();
-      return (
-        holdingId.includes(query)
-        || portfolioId.includes(query)
-        || instrumentId.includes(query)
-      );
-    });
-  });
-
-  readonly filteredInstruments = computed(() => {
-    const query = this.instrumentPickerQuery().trim().toLowerCase();
-    if (!query) {
-      return this.instruments();
-    }
-
-    return this.instruments().filter((instrument) => {
-      const ticker = instrument.ticker.toLowerCase();
-      const name = instrument.name.toLowerCase();
-      return ticker.includes(query) || name.includes(query);
-    });
-  });
-
-  readonly lifecycleOrders = computed<LifecycleOrder[]>(() => {
+  readonly orderSummaries = computed<OrderSummary[]>(() => {
     const grouped = new Map<string, OrderLogResponse[]>();
-
-    for (const row of this.orderLogs()) {
-      const current = grouped.get(row.orderId);
-      if (current) {
-        current.push(row);
-      } else {
-        grouped.set(row.orderId, [row]);
-      }
+    for (const row of this.orderRows()) {
+      const rows = grouped.get(row.orderId) ?? [];
+      rows.push(row);
+      grouped.set(row.orderId, rows);
     }
 
     return [...grouped.entries()]
       .map(([orderId, rows]) => {
-        const ascRows = [...rows].sort(
-          (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
-        );
-        const latest = ascRows[ascRows.length - 1];
+        const latest = rows.reduce((acc, current) => (
+          new Date(current.timestamp).getTime() > new Date(acc.timestamp).getTime() ? current : acc
+        ));
 
         return {
           orderId,
-          rows: ascRows,
-          latestStatus: latest.status,
-          latestTimestamp: latest.timestamp,
+          status: latest.status,
+          timestamp: latest.timestamp,
+          executionPrice: latest.executionPrice,
+          instrumentId: latest.instrumentId,
+          userId: this.selectedUserId(),
         };
       })
-      .sort((a, b) => new Date(b.latestTimestamp).getTime() - new Date(a.latestTimestamp).getTime());
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   });
 
   constructor() {
-    void this.loadInstruments();
+    void this.initialize();
+  }
+
+  async initialize() {
+    await Promise.all([this.loadInstruments(), this.loadUsers()]);
+    await this.refreshSummaries();
   }
 
   async loadInstruments() {
@@ -208,261 +153,192 @@ export class AuditorComponent {
     }
   }
 
-  async searchUsers() {
-    const form = this.userSearchForm();
-    const query = form.query.trim();
-
-    if (!query) {
-      this.errorMessage.set('Query is required for user search.');
-      return;
-    }
-
-    if (!this.validatePaging(form.page, form.size)) {
-      return;
-    }
-
-    this.clearMessages();
-    this.loadingUsers.set(true);
-
-    try {
-      const users = await this.auditApi.searchUsers(query, { page: form.page, size: form.size });
-      this.users.set(users);
-      this.recordRequest('searchUsers', '/api/audit/users', {
-        query,
-        page: form.page,
-        size: form.size,
-      }, 200, users.length);
-      this.statusMessage.set(`Loaded ${users.length} users.`);
-
-      if (!users.some((user) => user.userId === this.selectedUserId())) {
-        this.resetDrilldownState();
-      }
-    } catch (error) {
-      this.recordRequest('searchUsers', '/api/audit/users', {
-        query,
-        page: form.page,
-        size: form.size,
-      }, this.resolveStatusCode(error), null);
-      this.handleError(error, 'Failed to search users.');
-    } finally {
-      this.loadingUsers.set(false);
-    }
+  async loadUsers() {
+    const result = await this.auditApi.searchUsers(undefined, { page: 0, size: 100 });
+    this.users.set(result.content);
   }
 
-  async selectUser(userId: string) {
-    if (!userId) {
-      this.resetDrilldownState();
-      return;
-    }
+  async applyFilters() {
+    this.resolveSelectionInputs();
+    this.ordersPage.set(0);
+    this.holdingsPage.set(0);
+    this.selectedOrderId.set(null);
+    this.selectedOrderLogs.set([]);
+    this.clearHoldingDetails();
 
-    this.selectedUserId.set(userId);
-    this.selectedPortfolioId.set('');
-    this.selectedHoldingId.set('');
-    this.positionLots.set([]);
-    this.lotMatches.set([]);
-
-    await this.loadUserDrilldown();
+    await this.loadPortfoliosForUser();
+    await this.refreshSummaries();
   }
 
-  async loadUserDrilldown() {
-    const userId = this.selectedUserId();
-    if (!userId) {
-      this.errorMessage.set('Select a user to load portfolios and holdings.');
-      return;
-    }
+  async clearFilters() {
+    this.userInput.set('');
+    this.instrumentInput.set('');
+    this.portfolioInput.set('');
+    this.fromDate.set('');
+    this.toDate.set('');
+    this.selectedUserId.set(null);
+    this.selectedInstrumentId.set(null);
+    this.selectedPortfolioId.set(null);
+    this.ordersPage.set(0);
+    this.holdingsPage.set(0);
+    this.portfolios.set([]);
+    this.selectedOrderId.set(null);
+    this.selectedOrderLogs.set([]);
+    this.clearHoldingDetails();
+    await this.refreshSummaries();
+  }
 
-    const paging = this.drilldownForm();
-    if (!this.validatePaging(paging.page, paging.size)) {
-      return;
-    }
-
+  async refreshSummaries() {
     this.clearMessages();
-    this.loadingDrilldown.set(true);
+    this.loading.set(true);
 
     try {
-      const [portfolios, holdings] = await Promise.all([
-        this.auditApi.listUserPortfolios(userId, { page: paging.page, size: paging.size }),
-        this.auditApi.listUserHoldings(userId, {
-          portfolioId: this.selectedPortfolioId() || undefined,
-          page: paging.page,
-          size: paging.size,
+      const [ordersPage, holdingsPage] = await Promise.all([
+        this.auditApi.searchOrderLogs({
+          userId: this.selectedUserId() ?? undefined,
+          fromDate: this.fromDate() || undefined,
+          toDate: this.toDate() || undefined,
+          instrumentId: this.selectedInstrumentId() ?? undefined,
+          page: this.ordersPage(),
+          size: this.pageSize,
         }),
+        this.selectedUserId()
+          ? this.auditApi.listUserHoldings(this.selectedUserId()!, {
+            portfolioId: this.selectedPortfolioId() ?? undefined,
+            instrumentId: this.selectedInstrumentId() ?? undefined,
+            page: this.holdingsPage(),
+            size: this.pageSize,
+          })
+          : this.auditApi.listHoldings({
+            instrumentId: this.selectedInstrumentId() ?? undefined,
+            page: this.holdingsPage(),
+            size: this.pageSize,
+          }),
       ]);
 
-      this.portfolios.set(portfolios);
-      this.holdings.set(holdings);
-      this.recordRequest(
-        'loadUserDrilldown',
-        '/api/audit/users/{userId}/portfolios + /api/audit/users/{userId}/holdings',
-        {
-          userId,
-          portfolioId: this.selectedPortfolioId() || undefined,
-          page: paging.page,
-          size: paging.size,
-        },
-        200,
-        portfolios.length + holdings.length,
-      );
-      this.statusMessage.set(
-        `Loaded ${portfolios.length} portfolios and ${holdings.length} holdings for selected user.`,
-      );
+      this.orderRows.set(ordersPage.content);
+      this.holdings.set(holdingsPage.content);
+      this.ordersMeta.set({
+        totalElements: ordersPage.totalElements,
+        totalPages: ordersPage.totalPages,
+        hasNext: ordersPage.hasNext,
+      });
+      this.holdingsMeta.set({
+        totalElements: holdingsPage.totalElements,
+        totalPages: holdingsPage.totalPages,
+        hasNext: holdingsPage.hasNext,
+      });
 
-      if (!holdings.some((holding) => this.getHoldingId(holding) === this.selectedHoldingId())) {
-        this.selectedHoldingId.set('');
-        this.positionLots.set([]);
-        this.lotMatches.set([]);
-      }
+      this.recordRequest('refreshSummaries', '/api/audit/order-logs + /api/audit/holdings', {
+        userId: this.selectedUserId() ?? undefined,
+        portfolioId: this.selectedPortfolioId() ?? undefined,
+        instrumentId: this.selectedInstrumentId() ?? undefined,
+        fromDate: this.fromDate() || undefined,
+        toDate: this.toDate() || undefined,
+        ordersPage: this.ordersPage(),
+        holdingsPage: this.holdingsPage(),
+      }, 200, ordersPage.content.length + holdingsPage.content.length);
+
+      this.statusMessage.set(`Loaded ${ordersPage.content.length} order rows and ${holdingsPage.content.length} holdings.`);
     } catch (error) {
-      this.recordRequest(
-        'loadUserDrilldown',
-        '/api/audit/users/{userId}/portfolios + /api/audit/users/{userId}/holdings',
-        {
-          userId,
-          portfolioId: this.selectedPortfolioId() || undefined,
-          page: paging.page,
-          size: paging.size,
-        },
-        this.resolveStatusCode(error),
-        null,
-      );
-      this.handleError(error, 'Failed to load user drilldown data.');
+      this.recordRequest('refreshSummaries', '/api/audit/order-logs + /api/audit/holdings', {}, this.resolveStatusCode(error), null);
+      this.handleError(error, 'Failed to load auditor summaries.');
     } finally {
-      this.loadingDrilldown.set(false);
+      this.loading.set(false);
     }
   }
 
-  async onPortfolioFilterChange(portfolioId: string) {
-    this.selectedPortfolioId.set(portfolioId);
-    this.selectedHoldingId.set('');
-    this.positionLots.set([]);
-    this.lotMatches.set([]);
+  async goToOrdersPage(nextPage: number) {
+    if (nextPage < 0) {
+      return;
+    }
 
-    await this.loadUserDrilldown();
+    this.ordersPage.set(nextPage);
+    await this.refreshSummaries();
+  }
+
+  async goToHoldingsPage(nextPage: number) {
+    if (nextPage < 0) {
+      return;
+    }
+
+    this.holdingsPage.set(nextPage);
+    await this.refreshSummaries();
+  }
+
+  selectOrder(orderId: string) {
+    this.selectedOrderId.set(orderId);
+    const rows = this.orderRows()
+      .filter((row) => row.orderId === orderId)
+      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    this.selectedOrderLogs.set(rows);
   }
 
   async selectHolding(holdingId: string) {
-    if (!holdingId) {
-      this.selectedHoldingId.set('');
-      this.positionLots.set([]);
-      this.lotMatches.set([]);
-      return;
-    }
-
     this.selectedHoldingId.set(holdingId);
-
-    const paging = this.drilldownForm();
-    if (!this.validatePaging(paging.page, paging.size)) {
-      return;
-    }
+    this.selectedOrderId.set(null);
+    this.selectedOrderLogs.set([]);
 
     this.clearMessages();
-    this.loadingDrilldown.set(true);
+    this.loadingDetails.set(true);
+
+    const fromDate = this.fromDate() || undefined;
+    const toDate = this.toDate() || undefined;
 
     try {
-      const [positionLots, lotMatches] = await Promise.all([
-        this.auditApi.listHoldingPositionLots(holdingId, { page: paging.page, size: paging.size }),
-        this.auditApi.listHoldingLotMatches(holdingId, { page: paging.page, size: paging.size }),
+      const [orderLogsPage, lotsPage, matchesPage] = await Promise.all([
+        this.auditApi.listHoldingOrderLogs(holdingId, {
+          fromDate,
+          toDate,
+          page: 0,
+          size: this.pageSize,
+        }),
+        this.auditApi.listHoldingPositionLots(holdingId, { page: 0, size: this.pageSize }),
+        this.auditApi.listHoldingLotMatches(holdingId, { page: 0, size: this.pageSize }),
       ]);
 
-      this.positionLots.set(positionLots);
-      this.lotMatches.set(lotMatches);
+      this.holdingOrderLogs.set(orderLogsPage.content);
+      this.positionLots.set(lotsPage.content);
+      this.lotMatches.set(matchesPage.content);
       this.recordRequest(
         'selectHolding',
-        '/api/audit/holdings/{holdingId}/position-lots + /api/audit/holdings/{holdingId}/lot-matches',
+        '/api/audit/holdings/{holdingId}/order-logs + lots + matches',
         {
           holdingId,
-          page: paging.page,
-          size: paging.size,
+          fromDate,
+          toDate,
         },
         200,
-        positionLots.length + lotMatches.length,
+        orderLogsPage.content.length + lotsPage.content.length + matchesPage.content.length,
       );
       this.statusMessage.set(
-        `Loaded ${positionLots.length} position lots and ${lotMatches.length} lot matches for holding.`,
+        `Loaded ${orderLogsPage.content.length} order logs, ${lotsPage.content.length} position lots, and ${matchesPage.content.length} lot matches.`,
       );
     } catch (error) {
       this.recordRequest(
         'selectHolding',
-        '/api/audit/holdings/{holdingId}/position-lots + /api/audit/holdings/{holdingId}/lot-matches',
+        '/api/audit/holdings/{holdingId}/order-logs + lots + matches',
         {
           holdingId,
-          page: paging.page,
-          size: paging.size,
+          fromDate,
+          toDate,
         },
         this.resolveStatusCode(error),
         null,
       );
       this.handleError(error, 'Failed to load holding details.');
     } finally {
-      this.loadingDrilldown.set(false);
+      this.loadingDetails.set(false);
     }
   }
 
-  async searchOrderLogs() {
-    const form = this.orderLogForm();
-
-    if (!this.validatePaging(form.page, form.size)) {
-      return;
-    }
-
-    this.clearMessages();
-    this.loadingOrderLogs.set(true);
-
-    try {
-      const orderLogs = await this.auditApi.searchOrderLogs({
-        date: form.date.trim() || undefined,
-        userId: form.userId.trim() || undefined,
-        status: form.status || undefined,
-        ticker: form.ticker.trim() || undefined,
-        instrumentId: form.instrumentId.trim() || undefined,
-        instrumentType: form.instrumentType || undefined,
-        page: form.page,
-        size: form.size,
-      });
-
-      this.orderLogs.set(orderLogs);
-      this.recordRequest('searchOrderLogs', '/api/audit/order-logs', {
-        date: form.date.trim() || undefined,
-        userId: form.userId.trim() || undefined,
-        status: form.status || undefined,
-        ticker: form.ticker.trim() || undefined,
-        instrumentId: form.instrumentId.trim() || undefined,
-        instrumentType: form.instrumentType || undefined,
-        page: form.page,
-        size: form.size,
-      }, 200, orderLogs.length);
-      this.statusMessage.set(`Loaded ${orderLogs.length} order-log rows.`);
-    } catch (error) {
-      this.recordRequest('searchOrderLogs', '/api/audit/order-logs', {
-        date: form.date.trim() || undefined,
-        userId: form.userId.trim() || undefined,
-        status: form.status || undefined,
-        ticker: form.ticker.trim() || undefined,
-        instrumentId: form.instrumentId.trim() || undefined,
-        instrumentType: form.instrumentType || undefined,
-        page: form.page,
-        size: form.size,
-      }, this.resolveStatusCode(error), null);
-      this.handleError(error, 'Failed to search order logs.');
-    } finally {
-      this.loadingOrderLogs.set(false);
-    }
+  getInstrumentName(instrumentId: string): string {
+    const instrument = this.instruments().find((item) => item.instrumentId === instrumentId);
+    return instrument ? `${instrument.ticker} (${instrument.name})` : instrumentId;
   }
 
-  toggleRawOrderRows() {
-    this.showRawOrderRows.update((value) => !value);
-  }
-
-  getHoldingId(holding: HoldingResponse): string {
-    return holding.holdingID;
-  }
-
-  getPortfolioId(holding: HoldingResponse): string {
-    return holding.portfolioID;
-  }
-
-  getInstrumentId(holding: HoldingResponse): string {
-    return holding.instrumentID;
+  getHoldingDisplayUser(_holding: HoldingResponse): string {
+    return this.selectedUserId() ?? 'All users';
   }
 
   formatInstrumentOption(instrument: InstrumentResponse): string {
@@ -476,10 +352,6 @@ export class AuditorComponent {
 
   formatPortfolioOption(portfolio: PortfolioResponse): string {
     return `${portfolio.portfolioName} (${portfolio.portfolioId})`;
-  }
-
-  formatHoldingOption(holding: HoldingResponse): string {
-    return `${holding.holdingID} | Instrument ${holding.instrumentID} | Qty ${holding.currentQuantity}`;
   }
 
   getPositionLotId(lot: PositionLotResponse): string {
@@ -506,28 +378,24 @@ export class AuditorComponent {
     return match.sellLogOrderId ?? match.sellLogOrderID ?? 'UNKNOWN';
   }
 
-  private resetDrilldownState() {
-    this.selectedUserId.set('');
-    this.selectedPortfolioId.set('');
-    this.selectedHoldingId.set('');
-    this.portfolios.set([]);
-    this.holdings.set([]);
+  private clearHoldingDetails() {
+    this.selectedHoldingId.set(null);
+    this.holdingOrderLogs.set([]);
     this.positionLots.set([]);
     this.lotMatches.set([]);
   }
 
-  private validatePaging(page: number, size: number): boolean {
-    if (!Number.isInteger(page) || page < 0) {
-      this.errorMessage.set('Page must be an integer greater than or equal to 0.');
-      return false;
+  private async loadPortfoliosForUser() {
+    const userId = this.selectedUserId();
+    if (!userId) {
+      this.portfolios.set([]);
+      this.selectedPortfolioId.set(null);
+      this.portfolioInput.set('');
+      return;
     }
 
-    if (!Number.isInteger(size) || size < 1 || size > 100) {
-      this.errorMessage.set('Size must be an integer between 1 and 100.');
-      return false;
-    }
-
-    return true;
+    const portfolios = await this.auditApi.listUserPortfolios(userId, { page: 0, size: 100 });
+    this.portfolios.set(portfolios.content);
   }
 
   private clearMessages() {
@@ -565,6 +433,32 @@ export class AuditorComponent {
     });
   }
 
+  private resolveSelectionInputs() {
+    this.selectedUserId.set(this.findOptionId(this.userInput(), this.userOptions()));
+    this.selectedInstrumentId.set(this.findOptionId(this.instrumentInput(), this.instrumentOptions()));
+
+    const portfolioId = this.findOptionId(this.portfolioInput(), this.portfolioOptions());
+    this.selectedPortfolioId.set(this.selectedUserId() ? portfolioId : null);
+
+    if (!this.selectedUserId()) {
+      this.portfolioInput.set('');
+      this.selectedPortfolioId.set(null);
+    }
+  }
+
+  private findOptionId(value: string, options: OptionItem[]): string | null {
+    const normalized = value.trim().toLowerCase();
+    if (!normalized) {
+      return null;
+    }
+
+    const exact = options.find((option) => (
+      option.label.toLowerCase() === normalized || option.id.toLowerCase() === normalized
+    ));
+
+    return exact?.id ?? null;
+  }
+
   private resolveErrorMessage(error: unknown): string | null {
     if (!(error instanceof HttpErrorResponse)) {
       return null;
@@ -587,12 +481,5 @@ export class AuditorComponent {
     }
 
     return error.message || null;
-  }
-
-  private todayString(): string {
-    const now = new Date();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    return `${now.getFullYear()}-${month}-${day}`;
   }
 }

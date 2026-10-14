@@ -1,5 +1,6 @@
 package io.github.jackhudsonn.jaakd.service;
 
+import io.github.jackhudsonn.jaakd.dto.AuditPageResponse;
 import io.github.jackhudsonn.jaakd.dto.AuditUserSearchResponse;
 import io.github.jackhudsonn.jaakd.dto.OrderLogResponse;
 import io.github.jackhudsonn.jaakd.exception.ValidationException;
@@ -81,7 +82,7 @@ class AuditServiceTest {
 
         when(userRepository.findByAuditSearchQuery(eq("ada"), any(Pageable.class))).thenReturn(page);
 
-        List<AuditUserSearchResponse> result = auditService.searchUsers(" ada ", null, null);
+        AuditPageResponse<AuditUserSearchResponse> result = auditService.searchUsers(" ada ", null, null);
 
         verify(privilegedAccessService, times(1)).ensureAdminOrAuditor();
 
@@ -89,10 +90,10 @@ class AuditServiceTest {
         verify(userRepository, times(1)).findByAuditSearchQuery(eq("ada"), pageableCaptor.capture());
         assertEquals(PageRequest.of(0, 25), pageableCaptor.getValue());
 
-        assertEquals(1, result.size());
-        assertEquals(userId, result.get(0).userId());
-        assertEquals("auditor@example.com", result.get(0).email());
-        assertEquals("auditor1", result.get(0).username());
+        assertEquals(1, result.content().size());
+        assertEquals(userId, result.content().get(0).userId());
+        assertEquals("auditor@example.com", result.content().get(0).email());
+        assertEquals("auditor1", result.content().get(0).username());
     }
 
     @Test
@@ -107,19 +108,23 @@ class AuditServiceTest {
     }
 
     @Test
-    void searchUsers_blankQuery_throwsValidationAndSkipsRepository() {
-        assertThrows(ValidationException.class, () -> auditService.searchUsers("   ", 0, 25));
+    void searchUsers_blankQuery_isAllowedAndSearchesAll() {
+        when(userRepository.findByAuditSearchQuery(eq(""), any(Pageable.class))).thenReturn(new PageImpl<>(List.of()));
+
+        auditService.searchUsers("   ", 0, 25);
 
         verify(privilegedAccessService, times(1)).ensureAdminOrAuditor();
-        verify(userRepository, never()).findByAuditSearchQuery(any(), any(Pageable.class));
+        verify(userRepository, times(1)).findByAuditSearchQuery(eq(""), any(Pageable.class));
     }
 
     @Test
-    void searchUsers_missingQuery_throwsValidationAndSkipsRepository() {
-        assertThrows(ValidationException.class, () -> auditService.searchUsers(null, 0, 25));
+    void searchUsers_missingQuery_isAllowedAndSearchesAll() {
+        when(userRepository.findByAuditSearchQuery(eq(""), any(Pageable.class))).thenReturn(new PageImpl<>(List.of()));
+
+        auditService.searchUsers(null, 0, 25);
 
         verify(privilegedAccessService, times(1)).ensureAdminOrAuditor();
-        verify(userRepository, never()).findByAuditSearchQuery(any(), any(Pageable.class));
+        verify(userRepository, times(1)).findByAuditSearchQuery(eq(""), any(Pageable.class));
     }
 
     @Test
@@ -142,9 +147,9 @@ class AuditServiceTest {
     void searchUsers_emptyResults_returnsEmptyList() {
         when(userRepository.findByAuditSearchQuery(eq("none"), any(Pageable.class))).thenReturn(new PageImpl<>(List.of()));
 
-        List<AuditUserSearchResponse> result = auditService.searchUsers("none", null, null);
+        AuditPageResponse<AuditUserSearchResponse> result = auditService.searchUsers("none", null, null);
 
-        assertEquals(0, result.size());
+        assertEquals(0, result.content().size());
     }
 
     @Test
@@ -169,9 +174,11 @@ class AuditServiceTest {
             any(Pageable.class)
         )).thenReturn(new PageImpl<>(List.of(row)));
 
-        List<OrderLogResponse> result = auditService.searchOrderLogs(
+        AuditPageResponse<OrderLogResponse> result = auditService.searchOrderLogs(
             userId,
             date,
+            null,
+            null,
             OrderStatus.EXECUTED,
             " AAPL ",
             instrumentId,
@@ -200,12 +207,12 @@ class AuditServiceTest {
         assertEquals(date.plusDays(1).atStartOfDay(), endCaptor.getValue());
         assertEquals(PageRequest.of(0, 25), pageableCaptor.getValue());
 
-        assertEquals(1, result.size());
-        assertEquals(logOrderId, result.get(0).logOrderId());
-        assertEquals(orderId, result.get(0).orderId());
-        assertEquals(portfolioId, result.get(0).portfolioId());
-        assertEquals(instrumentId, result.get(0).instrumentId());
-        assertEquals(OrderStatus.EXECUTED, result.get(0).status());
+        assertEquals(1, result.content().size());
+        assertEquals(logOrderId, result.content().get(0).logOrderId());
+        assertEquals(orderId, result.content().get(0).orderId());
+        assertEquals(portfolioId, result.content().get(0).portfolioId());
+        assertEquals(instrumentId, result.content().get(0).instrumentId());
+        assertEquals(OrderStatus.EXECUTED, result.content().get(0).status());
     }
 
     @Test
@@ -222,7 +229,7 @@ class AuditServiceTest {
             any(Pageable.class)
         )).thenReturn(new PageImpl<>(List.of()));
 
-        auditService.searchOrderLogs(null, date, null, "   ", null, null, 1, 10);
+        auditService.searchOrderLogs(null, date, null, null, null, "   ", null, null, 1, 10);
 
         verify(orderLogRepository, times(1)).findByAuditFiltersWithinTimestampRange(
             eq(null),
@@ -249,7 +256,7 @@ class AuditServiceTest {
             any(Pageable.class)
         )).thenReturn(new PageImpl<>(List.of()));
 
-        auditService.searchOrderLogs(null, null, null, null, null, null, 0, 25);
+        auditService.searchOrderLogs(null, null, null, null, null, null, null, null, 0, 25);
 
         verify(privilegedAccessService, times(1)).ensureAdminOrAuditor();
         verify(orderLogRepository, times(1)).findByAuditFiltersWithinTimestampRange(
@@ -270,7 +277,7 @@ class AuditServiceTest {
 
         assertThrows(
             ValidationException.class,
-            () -> auditService.searchOrderLogs(null, date, null, null, null, null, -1, 25)
+            () -> auditService.searchOrderLogs(null, date, null, null, null, null, null, null, -1, 25)
         );
 
         verify(orderLogRepository, never()).findByAuditFiltersWithinTimestampRange(
@@ -291,7 +298,7 @@ class AuditServiceTest {
 
         assertThrows(
             ValidationException.class,
-            () -> auditService.searchOrderLogs(null, date, null, null, null, null, 0, 101)
+            () -> auditService.searchOrderLogs(null, date, null, null, null, null, null, null, 0, 101)
         );
 
         verify(orderLogRepository, never()).findByAuditFiltersWithinTimestampRange(
@@ -316,7 +323,7 @@ class AuditServiceTest {
         when(portfolioRepository.findByProfileUserIdOrderByPortfolioIdAsc(eq(userId), any(Pageable.class)))
             .thenReturn(new PageImpl<>(List.of(portfolio)));
 
-        List<io.github.jackhudsonn.jaakd.dto.PortfolioResponse> result =
+        AuditPageResponse<io.github.jackhudsonn.jaakd.dto.PortfolioResponse> result =
             auditService.getUserPortfolios(userId, null, null);
 
         verify(privilegedAccessService, times(1)).ensureAdminOrAuditor();
@@ -325,8 +332,8 @@ class AuditServiceTest {
             .findByProfileUserIdOrderByPortfolioIdAsc(eq(userId), pageableCaptor.capture());
         assertEquals(PageRequest.of(0, 25), pageableCaptor.getValue());
 
-        assertEquals(1, result.size());
-        assertEquals("Growth", result.get(0).portfolioName());
+        assertEquals(1, result.content().size());
+        assertEquals("Growth", result.content().get(0).portfolioName());
     }
 
     @Test
@@ -335,14 +342,14 @@ class AuditServiceTest {
         UUID portfolioId = UUID.randomUUID();
         Holding holding = new Holding(portfolioId, UUID.randomUUID());
 
-        when(holdingRepository.findByAuditUserIdAndOptionalPortfolioId(eq(userId), eq(portfolioId), any(Pageable.class)))
+        when(holdingRepository.findByAuditOptionalFilters(eq(userId), eq(portfolioId), eq(null), any(Pageable.class)))
             .thenReturn(new PageImpl<>(List.of(holding)));
 
-        List<Holding> result = auditService.getUserHoldings(userId, portfolioId, 1, 10);
+        AuditPageResponse<Holding> result = auditService.getUserHoldings(userId, portfolioId, null, 1, 10);
 
         verify(privilegedAccessService, times(1)).ensureAdminOrAuditor();
-        verify(holdingRepository, times(1)).findByAuditUserIdAndOptionalPortfolioId(eq(userId), eq(portfolioId), eq(PageRequest.of(1, 10)));
-        assertEquals(1, result.size());
+        verify(holdingRepository, times(1)).findByAuditOptionalFilters(eq(userId), eq(portfolioId), eq(null), eq(PageRequest.of(1, 10)));
+        assertEquals(1, result.content().size());
     }
 
     @Test
@@ -361,14 +368,14 @@ class AuditServiceTest {
         when(positionLotRepository.findByHoldingIdOldestFirst(eq(holdingId), any(Pageable.class)))
             .thenReturn(new PageImpl<>(List.of(lot)));
 
-        List<io.github.jackhudsonn.jaakd.dto.PositionLotResponse> result =
+        AuditPageResponse<io.github.jackhudsonn.jaakd.dto.PositionLotResponse> result =
             auditService.getHoldingPositionLots(holdingId, null, null);
 
         verify(privilegedAccessService, times(1)).ensureAdminOrAuditor();
         verify(holdingRepository, times(1)).findById(holdingId);
         verify(positionLotRepository, times(1)).findByHoldingIdOldestFirst(eq(holdingId), eq(PageRequest.of(0, 25)));
-        assertEquals(1, result.size());
-        assertEquals(holdingId, result.get(0).holdingId());
+        assertEquals(1, result.content().size());
+        assertEquals(holdingId, result.content().get(0).holdingId());
     }
 
     @Test
@@ -388,14 +395,14 @@ class AuditServiceTest {
         when(lotMatchRepository.findByHoldingIdOldestFirst(eq(holdingId), any(Pageable.class)))
             .thenReturn(new PageImpl<>(List.of(lotMatch)));
 
-        List<io.github.jackhudsonn.jaakd.dto.LotMatchResponse> result =
+        AuditPageResponse<io.github.jackhudsonn.jaakd.dto.LotMatchResponse> result =
             auditService.getHoldingLotMatches(holdingId, 0, 25);
 
         verify(privilegedAccessService, times(1)).ensureAdminOrAuditor();
         verify(holdingRepository, times(1)).findById(holdingId);
         verify(lotMatchRepository, times(1)).findByHoldingIdOldestFirst(eq(holdingId), eq(PageRequest.of(0, 25)));
-        assertEquals(1, result.size());
-        assertEquals(holdingId, result.get(0).holdingId());
+        assertEquals(1, result.content().size());
+        assertEquals(holdingId, result.content().get(0).holdingId());
     }
 
     private OrderLog orderLog(

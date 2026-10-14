@@ -51,9 +51,20 @@ export interface AuditPaging {
   size?: number;
 }
 
+export interface AuditPageResponse<T> {
+  content: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  hasNext: boolean;
+}
+
 export interface AuditOrderLogSearchRequest extends AuditPaging {
   userId?: string;
   date?: string;
+  fromDate?: string;
+  toDate?: string;
   status?: OrderStatus;
   ticker?: string;
   instrumentId?: string;
@@ -66,8 +77,12 @@ export interface AuditOrderLogSearchRequest extends AuditPaging {
 export class AuditApiService {
   constructor(private readonly httpClient: HttpClient) {}
 
-  searchUsers(query: string, paging?: AuditPaging): Promise<AuditUserSearchResponse[]> {
-    let params = new HttpParams().set('query', query.trim());
+  searchUsers(query?: string, paging?: AuditPaging): Promise<AuditPageResponse<AuditUserSearchResponse>> {
+    let params = new HttpParams();
+
+    if (query?.trim()) {
+      params = params.set('query', query.trim());
+    }
 
     if (paging?.page !== undefined) {
       params = params.set('page', paging.page);
@@ -78,17 +93,25 @@ export class AuditApiService {
     }
 
     return firstValueFrom(
-      this.httpClient.get<AuditUserSearchResponse[]>(`${environment.apiUrl}/api/audit/users`, {
+      this.httpClient.get<AuditPageResponse<AuditUserSearchResponse>>(`${environment.apiUrl}/api/audit/users`, {
         params,
       }),
     );
   }
 
-  searchOrderLogs(request: AuditOrderLogSearchRequest): Promise<OrderLogResponse[]> {
+  searchOrderLogs(request: AuditOrderLogSearchRequest): Promise<AuditPageResponse<OrderLogResponse>> {
     let params = new HttpParams();
 
     if (request.date?.trim()) {
       params = params.set('date', request.date.trim());
+    }
+
+    if (request.fromDate?.trim()) {
+      params = params.set('fromDate', request.fromDate.trim());
+    }
+
+    if (request.toDate?.trim()) {
+      params = params.set('toDate', request.toDate.trim());
     }
 
     if (request.userId) {
@@ -120,11 +143,11 @@ export class AuditApiService {
     }
 
     return firstValueFrom(
-      this.httpClient.get<OrderLogResponse[]>(`${environment.apiUrl}/api/audit/order-logs`, { params }),
+      this.httpClient.get<AuditPageResponse<OrderLogResponse>>(`${environment.apiUrl}/api/audit/order-logs`, { params }),
     );
   }
 
-  listUserPortfolios(userId: string, paging?: AuditPaging): Promise<PortfolioResponse[]> {
+  listUserPortfolios(userId: string, paging?: AuditPaging): Promise<AuditPageResponse<PortfolioResponse>> {
     let params = new HttpParams();
 
     if (paging?.page !== undefined) {
@@ -136,20 +159,28 @@ export class AuditApiService {
     }
 
     return firstValueFrom(
-      this.httpClient.get<PortfolioResponse[]>(`${environment.apiUrl}/api/audit/users/${userId}/portfolios`, {
+      this.httpClient.get<AuditPageResponse<PortfolioResponse>>(`${environment.apiUrl}/api/audit/users/${userId}/portfolios`, {
         params,
       }),
     );
   }
 
-  listUserHoldings(
-    userId: string,
-    options?: AuditPaging & { portfolioId?: string },
-  ): Promise<HoldingResponse[]> {
+  listHoldings(options?:
+    AuditPaging &
+    { userId?: string; portfolioId?: string; instrumentId?: string }
+  ): Promise<AuditPageResponse<HoldingResponse>> {
     let params = new HttpParams();
 
-    if (options?.portfolioId) {
-      params = params.set('portfolioId', options.portfolioId);
+    if (options?.userId?.trim()) {
+      params = params.set('userId', options.userId.trim());
+    }
+
+    if (options?.portfolioId?.trim()) {
+      params = params.set('portfolioId', options.portfolioId.trim());
+    }
+
+    if (options?.instrumentId?.trim()) {
+      params = params.set('instrumentId', options.instrumentId.trim());
     }
 
     if (options?.page !== undefined) {
@@ -161,13 +192,76 @@ export class AuditApiService {
     }
 
     return firstValueFrom(
-      this.httpClient.get<HoldingResponse[]>(`${environment.apiUrl}/api/audit/users/${userId}/holdings`, {
+      this.httpClient.get<AuditPageResponse<HoldingResponse>>(`${environment.apiUrl}/api/audit/holdings`, {
         params,
       }),
     );
   }
 
-  listHoldingPositionLots(holdingId: string, paging?: AuditPaging): Promise<PositionLotResponse[]> {
+  listUserHoldings(
+    userId: string,
+    options?: AuditPaging & { portfolioId?: string; instrumentId?: string },
+  ): Promise<AuditPageResponse<HoldingResponse>> {
+    let params = new HttpParams();
+
+    if (options?.portfolioId) {
+      params = params.set('portfolioId', options.portfolioId);
+    }
+
+    if (options?.instrumentId) {
+      params = params.set('instrumentId', options.instrumentId);
+    }
+
+    if (options?.page !== undefined) {
+      params = params.set('page', options.page);
+    }
+
+    if (options?.size !== undefined) {
+      params = params.set('size', options.size);
+    }
+
+    return firstValueFrom(
+      this.httpClient.get<AuditPageResponse<HoldingResponse>>(`${environment.apiUrl}/api/audit/users/${userId}/holdings`, {
+        params,
+      }),
+    );
+  }
+
+  listHoldingOrderLogs(
+    holdingId: string,
+    options?: AuditPaging & { fromDate?: string; toDate?: string; status?: OrderStatus },
+  ): Promise<AuditPageResponse<OrderLogResponse>> {
+    let params = new HttpParams();
+
+    if (options?.fromDate?.trim()) {
+      params = params.set('fromDate', options.fromDate.trim());
+    }
+
+    if (options?.toDate?.trim()) {
+      params = params.set('toDate', options.toDate.trim());
+    }
+
+    if (options?.status) {
+      params = params.set('status', options.status);
+    }
+
+    if (options?.page !== undefined) {
+      params = params.set('page', options.page);
+    }
+
+    if (options?.size !== undefined) {
+      params = params.set('size', options.size);
+    }
+
+    return firstValueFrom(
+      this.httpClient.get<AuditPageResponse<OrderLogResponse>>(
+        `${environment.apiUrl}/api/audit/holdings/${holdingId}/order-logs`,
+        { params },
+      ),
+    );
+  }
+
+  listHoldingPositionLots(holdingId: string, paging?: AuditPaging): Promise<AuditPageResponse<PositionLotResponse>> {
     let params = new HttpParams();
 
     if (paging?.page !== undefined) {
@@ -179,14 +273,14 @@ export class AuditApiService {
     }
 
     return firstValueFrom(
-      this.httpClient.get<PositionLotResponse[]>(
+      this.httpClient.get<AuditPageResponse<PositionLotResponse>>(
         `${environment.apiUrl}/api/audit/holdings/${holdingId}/position-lots`,
         { params },
       ),
     );
   }
 
-  listHoldingLotMatches(holdingId: string, paging?: AuditPaging): Promise<LotMatchResponse[]> {
+  listHoldingLotMatches(holdingId: string, paging?: AuditPaging): Promise<AuditPageResponse<LotMatchResponse>> {
     let params = new HttpParams();
 
     if (paging?.page !== undefined) {
@@ -198,7 +292,7 @@ export class AuditApiService {
     }
 
     return firstValueFrom(
-      this.httpClient.get<LotMatchResponse[]>(
+      this.httpClient.get<AuditPageResponse<LotMatchResponse>>(
         `${environment.apiUrl}/api/audit/holdings/${holdingId}/lot-matches`,
         {
           params,
