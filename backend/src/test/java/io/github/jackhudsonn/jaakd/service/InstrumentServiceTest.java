@@ -44,7 +44,7 @@ class InstrumentServiceTest {
 
     @Test
     void getAllInstruments_doesNotRequireAdmin() {
-        when(instrumentRepository.searchByFilters(null, null)).thenReturn(List.of());
+        when(instrumentRepository.searchByFilters(null, "")).thenReturn(List.of());
 
         instrumentService.getAllInstruments();
 
@@ -65,11 +65,11 @@ class InstrumentServiceTest {
 
     @Test
     void getAllInstruments_filterByInstrumentTypeOnly_usesUnpagedFilteredSearch() {
-        when(instrumentRepository.searchByFilters(InstrumentClass.ETF, null)).thenReturn(List.of());
+        when(instrumentRepository.searchByFilters(InstrumentClass.ETF, "")).thenReturn(List.of());
 
         instrumentService.getAllInstruments(InstrumentClass.ETF, null, null, null);
 
-        verify(instrumentRepository, times(1)).searchByFilters(InstrumentClass.ETF, null);
+        verify(instrumentRepository, times(1)).searchByFilters(InstrumentClass.ETF, "");
         verify(privilegedAccessService, never()).ensureAdmin();
     }
 
@@ -96,7 +96,7 @@ class InstrumentServiceTest {
     void getAllInstruments_withPaging_usesPageRequestDefaults() {
         List<Instrument> content = List.of(new Instrument("AAPL", "NASDAQ", "Apple", InstrumentClass.EQUITY));
         Page<Instrument> page = new PageImpl<>(content);
-        when(instrumentRepository.searchByFilters(org.mockito.ArgumentMatchers.eq(null), org.mockito.ArgumentMatchers.eq(null), org.mockito.ArgumentMatchers.any(Pageable.class)))
+        when(instrumentRepository.searchByFilters(org.mockito.ArgumentMatchers.eq(null), org.mockito.ArgumentMatchers.eq(""), org.mockito.ArgumentMatchers.any(Pageable.class)))
             .thenReturn(page);
 
         List<Instrument> result = instrumentService.getAllInstruments(null, null, 0, null);
@@ -106,7 +106,7 @@ class InstrumentServiceTest {
         org.mockito.ArgumentCaptor<Pageable> pageableCaptor = org.mockito.ArgumentCaptor.forClass(Pageable.class);
         verify(instrumentRepository, times(1)).searchByFilters(
             org.mockito.ArgumentMatchers.eq(null),
-            org.mockito.ArgumentMatchers.eq(null),
+            org.mockito.ArgumentMatchers.eq(""),
             pageableCaptor.capture()
         );
         assertEquals(PageRequest.of(0, 25), pageableCaptor.getValue());

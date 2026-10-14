@@ -106,6 +106,9 @@ public class AuditService {
         validateDateRange(fromDate, toDate);
 
         String normalizedTicker = normalizeOptionalText(ticker);
+        if (normalizedTicker != null) {
+            normalizedTicker = normalizedTicker.toUpperCase();
+        }
         LocalDateTime start = resolveStartDateTime(date, fromDate);
         LocalDateTime end = resolveEndDateTime(date, toDate);
         Pageable pageable = PageRequest.of(resolvedPage, resolvedSize);
