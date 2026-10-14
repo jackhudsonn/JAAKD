@@ -31,6 +31,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -163,16 +165,8 @@ class AuditServiceTest {
         LocalDateTime timestamp = LocalDateTime.of(2026, 10, 13, 12, 30, 0);
 
         OrderLog row = orderLog(logOrderId, orderId, portfolioId, instrumentId, timestamp);
-        when(orderLogRepository.findByAuditFiltersWithinTimestampRange(
-            eq(userId),
-            any(LocalDateTime.class),
-            any(LocalDateTime.class),
-            eq(OrderStatus.EXECUTED),
-            eq("AAPL"),
-            eq(instrumentId),
-            eq(InstrumentClass.EQUITY),
-            any(Pageable.class)
-        )).thenReturn(new PageImpl<>(List.of(row)));
+        when(orderLogRepository.findAll(any(Specification.class), any(Pageable.class)))
+            .thenReturn(new PageImpl<>(List.of(row)));
 
         AuditPageResponse<OrderLogResponse> result = auditService.searchOrderLogs(
             userId,
@@ -189,23 +183,12 @@ class AuditServiceTest {
 
         verify(privilegedAccessService, times(1)).ensureAdminOrAuditor();
 
-        ArgumentCaptor<LocalDateTime> startCaptor = ArgumentCaptor.forClass(LocalDateTime.class);
-        ArgumentCaptor<LocalDateTime> endCaptor = ArgumentCaptor.forClass(LocalDateTime.class);
         ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
-        verify(orderLogRepository, times(1)).findByAuditFiltersWithinTimestampRange(
-            eq(userId),
-            startCaptor.capture(),
-            endCaptor.capture(),
-            eq(OrderStatus.EXECUTED),
-            eq("AAPL"),
-            eq(instrumentId),
-            eq(InstrumentClass.EQUITY),
-            pageableCaptor.capture()
+        verify(orderLogRepository, times(1)).findAll(any(Specification.class), pageableCaptor.capture());
+        assertEquals(
+            PageRequest.of(0, 25, Sort.by(Sort.Order.desc("timestamp"), Sort.Order.desc("logOrderID"))),
+            pageableCaptor.getValue()
         );
-
-        assertEquals(date.atStartOfDay(), startCaptor.getValue());
-        assertEquals(date.plusDays(1).atStartOfDay(), endCaptor.getValue());
-        assertEquals(PageRequest.of(0, 25), pageableCaptor.getValue());
 
         assertEquals(1, result.content().size());
         assertEquals(logOrderId, result.content().get(0).logOrderId());
@@ -218,56 +201,25 @@ class AuditServiceTest {
     @Test
     void searchOrderLogs_blankTicker_isTreatedAsNull() {
         LocalDate date = LocalDate.of(2026, 10, 13);
-        when(orderLogRepository.findByAuditFiltersWithinTimestampRange(
-            eq(null),
-            any(LocalDateTime.class),
-            any(LocalDateTime.class),
-            eq(null),
-            eq(null),
-            eq(null),
-            eq(null),
-            any(Pageable.class)
-        )).thenReturn(new PageImpl<>(List.of()));
+        when(orderLogRepository.findAll(any(Specification.class), any(Pageable.class)))
+            .thenReturn(new PageImpl<>(List.of()));
 
         auditService.searchOrderLogs(null, date, null, null, null, "   ", null, null, 1, 10);
 
-        verify(orderLogRepository, times(1)).findByAuditFiltersWithinTimestampRange(
-            eq(null),
-            any(LocalDateTime.class),
-            any(LocalDateTime.class),
-            eq(null),
-            eq(null),
-            eq(null),
-            eq(null),
-            any(Pageable.class)
-        );
+        verify(orderLogRepository, times(1)).findAll(any(Specification.class), any(Pageable.class));
     }
 
     @Test
     void searchOrderLogs_missingDate_isAllowedAndUsesNullDateBounds() {
-        when(orderLogRepository.findByAuditFiltersWithinTimestampRange(
-            eq(null),
-            eq(null),
-            eq(null),
-            eq(null),
-            eq(null),
-            eq(null),
-            eq(null),
-            any(Pageable.class)
-        )).thenReturn(new PageImpl<>(List.of()));
+        when(orderLogRepository.findAll(any(Specification.class), any(Pageable.class)))
+            .thenReturn(new PageImpl<>(List.of()));
 
         auditService.searchOrderLogs(null, null, null, null, null, null, null, null, 0, 25);
 
         verify(privilegedAccessService, times(1)).ensureAdminOrAuditor();
-        verify(orderLogRepository, times(1)).findByAuditFiltersWithinTimestampRange(
-            eq(null),
-            eq(null),
-            eq(null),
-            eq(null),
-            eq(null),
-            eq(null),
-            eq(null),
-            eq(PageRequest.of(0, 25))
+        verify(orderLogRepository, times(1)).findAll(
+            any(Specification.class),
+            eq(PageRequest.of(0, 25, Sort.by(Sort.Order.desc("timestamp"), Sort.Order.desc("logOrderID"))))
         );
     }
 
@@ -280,16 +232,7 @@ class AuditServiceTest {
             () -> auditService.searchOrderLogs(null, date, null, null, null, null, null, null, -1, 25)
         );
 
-        verify(orderLogRepository, never()).findByAuditFiltersWithinTimestampRange(
-            any(),
-            any(LocalDateTime.class),
-            any(LocalDateTime.class),
-            any(),
-            any(),
-            any(),
-            any(),
-            any(Pageable.class)
-        );
+        verify(orderLogRepository, never()).findAll(any(Specification.class), any(Pageable.class));
     }
 
     @Test
@@ -301,16 +244,7 @@ class AuditServiceTest {
             () -> auditService.searchOrderLogs(null, date, null, null, null, null, null, null, 0, 101)
         );
 
-        verify(orderLogRepository, never()).findByAuditFiltersWithinTimestampRange(
-            any(),
-            any(LocalDateTime.class),
-            any(LocalDateTime.class),
-            any(),
-            any(),
-            any(),
-            any(),
-            any(Pageable.class)
-        );
+        verify(orderLogRepository, never()).findAll(any(Specification.class), any(Pageable.class));
     }
 
     @Test

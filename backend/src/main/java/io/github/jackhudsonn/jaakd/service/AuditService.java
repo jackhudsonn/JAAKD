@@ -25,8 +25,12 @@ import io.github.jackhudsonn.jaakd.repository.projection.AuditUserSearchProjecti
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -111,18 +115,23 @@ public class AuditService {
         }
         LocalDateTime start = resolveStartDateTime(date, fromDate);
         LocalDateTime end = resolveEndDateTime(date, toDate);
-        Pageable pageable = PageRequest.of(resolvedPage, resolvedSize);
+        Pageable pageable = PageRequest.of(
+            resolvedPage,
+            resolvedSize,
+            Sort.by(Sort.Order.desc("timestamp"), Sort.Order.desc("logOrderID"))
+        );
 
-        Page<OrderLog> rows = orderLogRepository.findByAuditFiltersWithinTimestampRange(
+        Specification<OrderLog> specification = buildAuditOrderLogSpecification(
             userId,
             start,
             end,
             status,
             normalizedTicker,
             instrumentId,
-            instrumentType,
-            pageable
+            instrumentType
         );
+
+        Page<OrderLog> rows = orderLogRepository.findAll(specification, pageable);
 
         return AuditPageResponse.from(rows.map(this::toOrderLogResponse));
     }
@@ -190,16 +199,21 @@ public class AuditService {
 
         LocalDateTime start = fromDate == null ? null : fromDate.atStartOfDay();
         LocalDateTime end = toDate == null ? null : toDate.plusDays(1).atStartOfDay();
-        Pageable pageable = PageRequest.of(resolvedPage, resolvedSize);
+        Pageable pageable = PageRequest.of(
+            resolvedPage,
+            resolvedSize,
+            Sort.by(Sort.Order.desc("timestamp"), Sort.Order.desc("logOrderID"))
+        );
 
-        Page<OrderLog> rows = orderLogRepository.findByHoldingContextWithinTimestampRange(
+        Specification<OrderLog> specification = buildHoldingOrderLogSpecification(
             holding.getPortfolioID(),
             holding.getInstrumentID(),
             start,
             end,
-            status,
-            pageable
+            status
         );
+
+        Page<OrderLog> rows = orderLogRepository.findAll(specification, pageable);
 
         return AuditPageResponse.from(rows.map(this::toOrderLogResponse));
     }
@@ -289,6 +303,83 @@ public class AuditService {
         if (value == null) {
             throw new ValidationException(message);
         }
+    }
+
+    private Specification<OrderLog> buildAuditOrderLogSpecification(
+        UUID userId,
+        LocalDateTime start,
+        LocalDateTime end,
+        OrderStatus status,
+        String ticker,
+        UUID instrumentId,
+        InstrumentClass instrumentType
+    ) {
+        return (root, query, cb) -> {
+            List<jakarta.persistence.criteria.Predicate> predicates = new ArrayList<>();
+            var portfolioJoin = root.join("portfolio");
+            var instrumentJoin = root.join("instrument");
+
+            if (start != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("timestamp"), start));
+            }
+
+            if (end != null) {
+                predicates.add(cb.lessThan(root.get("timestamp"), end));
+            }
+
+            if (userId != null) {
+                predicates.add(cb.equal(portfolioJoin.join("profile").get("userId"), userId));
+            }
+
+            if (status != null) {
+                predicates.add(cb.equal(root.get("status"), status));
+            }
+
+            if (ticker != null) {
+                predicates.add(cb.equal(cb.upper(instrumentJoin.get("ticker")), ticker));
+            }
+
+            if (instrumentId != null) {
+                predicates.add(cb.equal(instrumentJoin.get("instrumentId"), instrumentId));
+            }
+
+            if (instrumentType != null) {
+                predicates.add(cb.equal(instrumentJoin.get("instrumentClass"), instrumentType));
+            }
+
+            return cb.and(predicates.toArray(jakarta.persistence.criteria.Predicate[]::new));
+        };
+    }
+
+    private Specification<OrderLog> buildHoldingOrderLogSpecification(
+        UUID portfolioId,
+        UUID instrumentId,
+        LocalDateTime start,
+        LocalDateTime end,
+        OrderStatus status
+    ) {
+        return (root, query, cb) -> {
+            List<jakarta.persistence.criteria.Predicate> predicates = new ArrayList<>();
+            var portfolioJoin = root.join("portfolio");
+            var instrumentJoin = root.join("instrument");
+
+            predicates.add(cb.equal(portfolioJoin.get("portfolioId"), portfolioId));
+            predicates.add(cb.equal(instrumentJoin.get("instrumentId"), instrumentId));
+
+            if (start != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("timestamp"), start));
+            }
+
+            if (end != null) {
+                predicates.add(cb.lessThan(root.get("timestamp"), end));
+            }
+
+            if (status != null) {
+                predicates.add(cb.equal(root.get("status"), status));
+            }
+
+            return cb.and(predicates.toArray(jakarta.persistence.criteria.Predicate[]::new));
+        };
     }
 
     private OrderLogResponse toOrderLogResponse(OrderLog orderLog) {

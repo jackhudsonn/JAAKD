@@ -4,6 +4,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 import io.github.jackhudsonn.jaakd.dto.CreateInstrumentRequest;
 import io.github.jackhudsonn.jaakd.dto.UpdateInstrumentRequest;
@@ -47,17 +48,46 @@ public class InstrumentService {
         Integer size
     ) {
         String normalizedQuery = normalizeQuery(query);
+        Sort sort = Sort.by(Sort.Order.asc("ticker"), Sort.Order.asc("instrumentId"));
 
         if (page == null && size == null) {
-            return instrumentRepository.searchByFilters(instrumentType, normalizedQuery);
+            if (instrumentType == null) {
+                return instrumentRepository
+                    .findByTickerContainingIgnoreCaseOrNameContainingIgnoreCaseOrderByTickerAscInstrumentIdAsc(
+                        normalizedQuery,
+                        normalizedQuery
+                    );
+            }
+
+            return instrumentRepository
+                .findByInstrumentClassAndTickerContainingIgnoreCaseOrInstrumentClassAndNameContainingIgnoreCaseOrderByTickerAscInstrumentIdAsc(
+                    instrumentType,
+                    normalizedQuery,
+                    instrumentType,
+                    normalizedQuery
+                );
         }
 
         int resolvedPage = page == null ? DEFAULT_PAGE : page;
         int resolvedSize = size == null ? DEFAULT_SIZE : size;
         validatePaging(resolvedPage, resolvedSize);
 
-        Pageable pageable = PageRequest.of(resolvedPage, resolvedSize);
-        return instrumentRepository.searchByFilters(instrumentType, normalizedQuery, pageable).getContent();
+        Pageable pageable = PageRequest.of(resolvedPage, resolvedSize, sort);
+        if (instrumentType == null) {
+            return instrumentRepository
+                .findByTickerContainingIgnoreCaseOrNameContainingIgnoreCase(normalizedQuery, normalizedQuery, pageable)
+                .getContent();
+        }
+
+        return instrumentRepository
+            .findByInstrumentClassAndTickerContainingIgnoreCaseOrInstrumentClassAndNameContainingIgnoreCase(
+                instrumentType,
+                normalizedQuery,
+                instrumentType,
+                normalizedQuery,
+                pageable
+            )
+            .getContent();
     }
 
     public Instrument getInstrumentById(UUID instrumentId) {
