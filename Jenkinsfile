@@ -14,8 +14,7 @@ pipeline {
         IMAGE_TAG = "${params.BRANCH ?: 'main'}-${env.BUILD_NUMBER}"
     }
 
-    stages {}
-
+    stages {
         stage('Checkout Selected Branch') {
             steps {
                 script {
