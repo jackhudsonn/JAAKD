@@ -8,7 +8,7 @@ spring:
     name: backend
 
   config:
-    import: optional:file:.env[.properties] # loads backend/.env (KEY=value is valid .properties syntax)
+    import: optional:file:../.env[.properties]
 
   datasource:
     url: ${SPRING_DATASOURCE_URL}

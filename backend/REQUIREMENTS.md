@@ -12,12 +12,14 @@ Tooling and access needed to build and run `backend/` locally.
 
 ## Required environment variables
 
-For containerized local runs, copy root `.env.example` to `.env` and set:
+`.env` in the project directory is the single values file:
 
 - `POSTGRES_PASSWORD`
 - `JAAKD_APP_DB_PASSWORD`
+- `IDENTITY_PROVIDER`
+- `AUTH_COOKIE_SECURE`
 
-For running backend directly (without Docker), use `backend/.env.example` as template.
+When running the backend on the host (without Docker), the `.env` import supplies `IDENTITY_PROVIDER` and `AUTH_COOKIE_SECURE`; set `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, and `SPRING_DATASOURCE_PASSWORD` in the run environment.
 
 ## Known gotchas
 
