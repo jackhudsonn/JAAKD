@@ -95,20 +95,26 @@ pipeline {
                 expression { params.DEPLOY_ENVIRONMENT == 'dev' }
             }
             steps {
-                // Remove old containers and volumes
-                sh 'docker-compose down -v'
+                // need .env.development file in Jenkins credentials with the ID '.env.development'
+                withCredentials([file(credentialsId: '.env.development', variable: 'ENV_FILE')]) {
+                    // Copy the environment file to the current directory
+                    sh 'cp $ENV_FILE .env.development'
+                    
+                    // Remove old containers and volumes
+                    sh 'docker-compose down -v'
 
-                // Start new containers
-                sh 'docker-compose up -d --build'
+                    // Start new containers
+                    sh 'docker-compose up -d --build'
 
-                // Verify that the containers are running
-                sh 'docker-compose ps'
+                    // Verify that the containers are running
+                    sh 'docker-compose ps'
 
-                // Print the logs of the running containers
-                sh 'docker-compose logs'
+                    // Print the logs of the running containers
+                    sh 'docker-compose logs'
 
-                // Prompt user to set up tunnel in Windows
-                input message: 'ssh -N -L 4200:localhost:4200 <user>@<host>'
+                    // Prompt user to set up tunnel in Windows
+                    input message: 'ssh -N -L 4200:localhost:4200 <user>@<host> in Windows Terminal to access the frontend at http://localhost:4200'
+                }
             }
         }
 
