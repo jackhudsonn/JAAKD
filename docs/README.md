@@ -58,6 +58,18 @@ Angular frontend for JAAKD.
 - The interceptor sends requests with credentials; the backend session cookie authorizes them. No token is held in the browser.
 - Some dashboard widgets still read from `src/app/core/mocks/mock-data.ts` and are replaced incrementally.
 
+### Auditor testing environment
+
+The frontend includes an Auditor Lab at `/testing/auditor` for endpoint verification (not production UI polish).
+
+Primary workflows:
+
+- User drilldown: search user -> portfolios/holdings -> holding position lots + lot matches.
+- Order-log investigation: day-based search with optional filters and grouped lifecycle timeline.
+- Request diagnostics: last called endpoint, params, status code, and rows loaded.
+
+This page uses `/api/audit/**` endpoints and is intended for `AUDITOR` or `ADMIN` users.
+
 ## Development setup
 
 Running the backend outside Docker uses a separate `backend/.env` (loaded by `spring.config.import`), because a host process reaches Postgres on `localhost:5433` rather than the compose service name.
@@ -138,6 +150,14 @@ java -jar target\backend-0.0.1-SNAPSHOT.jar
 - The authenticated user's ID, resolved from the session, maps directly to `profiles.userID`.
 - `/actuator/**` is public, as are `/api/auth/register` and `/api/auth/login`; the rest of `/api/**` requires authentication.
 - Schema source of truth is `backend/db/init/` and the JPA model.
+
+### Security error responses
+
+Unauthorized and forbidden responses now follow the shared `ErrorResponse` JSON shape at the security layer (not only controller exception handlers). Practical implications:
+
+- Missing/invalid session returns `401` with message `Unauthorized` and empty `details` object.
+- Authenticated-but-forbidden requests return `403` with `ErrorResponse` JSON.
+- Some domain exceptions still return `details: null`; OpenAPI reflects that `details` may be object or null.
 
 ## Needs improvement
 

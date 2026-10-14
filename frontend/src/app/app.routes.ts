@@ -62,6 +62,11 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'testing/auditor',
+        loadComponent: () =>
+          import('./features/testing/auditor/auditor.component').then((m) => m.AuditorComponent),
+      },
+      {
         path: 'payment-methods',
         loadComponent: () =>
           import('./features/payment/payment.component').then((m) => m.PaymentComponent),

@@ -1,0 +1,420 @@
+<section class="auditor-page">
+  <header class="hero">
+    <div>
+      <p class="eyebrow">Testing only</p>
+      <h1>Auditor Endpoint Lab</h1>
+      <p class="subtitle">
+        Validate audit workflows quickly: user drilldown and order lifecycle timeline.
+      </p>
+    </div>
+  </header>
+
+  @if (statusMessage()) {
+    <p class="banner success">{{ statusMessage() }}</p>
+  }
+
+  @if (errorMessage()) {
+    <p class="banner error">{{ errorMessage() }}</p>
+  }
+
+  <section class="panel diagnostics-panel">
+    <h2>Request Diagnostics</h2>
+    <p class="panel-help">Latest endpoint call details for quick verification.</p>
+
+    @if (lastRequest()) {
+      <div class="diagnostics-grid">
+        <p><strong>Action:</strong> {{ lastRequest()!.action }}</p>
+        <p><strong>Endpoint:</strong> {{ lastRequest()!.endpoint }}</p>
+        <p><strong>Status:</strong> {{ lastRequest()!.statusCode ?? 'N/A' }}</p>
+        <p><strong>Rows Loaded:</strong> {{ lastRequest()!.rowsLoaded ?? 'N/A' }}</p>
+        <p><strong>At:</strong> {{ lastRequest()!.happenedAt | date: 'short' }}</p>
+      </div>
+
+      <div class="diagnostics-params">
+        <strong>Params</strong>
+        <pre>{{ lastRequest()!.params | json }}</pre>
+      </div>
+    } @else {
+      <p class="muted">No endpoint call has been made yet.</p>
+    }
+  </section>
+
+  <section class="panel">
+    <h2>User Drilldown</h2>
+    <p class="panel-help">
+      Flow: search user -> load portfolios/holdings -> select holding -> inspect lots and matches.
+    </p>
+
+    <div class="form-grid">
+      <label>
+        Query
+        <input
+          type="text"
+          [ngModel]="userSearchForm().query"
+          (ngModelChange)="userSearchForm.set({ ...userSearchForm(), query: $event })"
+          placeholder="email, username, first name, last name"
+        />
+      </label>
+
+      <label>
+        Page
+        <input
+          type="number"
+          min="0"
+          [ngModel]="userSearchForm().page"
+          (ngModelChange)="userSearchForm.set({ ...userSearchForm(), page: +$event })"
+        />
+      </label>
+
+      <label>
+        Size
+        <input
+          type="number"
+          min="1"
+          max="100"
+          [ngModel]="userSearchForm().size"
+          (ngModelChange)="userSearchForm.set({ ...userSearchForm(), size: +$event })"
+        />
+      </label>
+    </div>
+
+    <div class="button-row">
+      <button type="button" class="primary" [disabled]="loadingUsers()" (click)="searchUsers()">
+        {{ loadingUsers() ? 'Searching...' : 'Search Users' }}
+      </button>
+
+      <button
+        type="button"
+        class="ghost"
+        [disabled]="!selectedUserId() || loadingDrilldown()"
+        (click)="loadUserDrilldown()"
+      >
+        Reload Drilldown
+      </button>
+    </div>
+
+    <div class="grid-two">
+      <article class="subpanel">
+        <h3>Search Results</h3>
+        <div class="list">
+          @for (user of users(); track user.userId) {
+            <button
+              type="button"
+              class="list-item"
+              [class.selected]="selectedUserId() === user.userId"
+              (click)="selectUser(user.userId)"
+            >
+              <strong>{{ user.email }}</strong>
+              <span>{{ user.firstName || '-' }} {{ user.lastName || '-' }}</span>
+              <span class="muted">{{ user.userId }}</span>
+            </button>
+          } @empty {
+            <p class="muted">No users loaded.</p>
+          }
+        </div>
+      </article>
+
+      <article class="subpanel">
+        <h3>Selected User Context</h3>
+        @if (selectedUser()) {
+          <p><strong>Email:</strong> {{ selectedUser()!.email }}</p>
+          <p><strong>User ID:</strong> {{ selectedUser()!.userId }}</p>
+          <p><strong>Username:</strong> {{ selectedUser()!.username || '-' }}</p>
+        } @else {
+          <p class="muted">Select a user to continue.</p>
+        }
+
+        <label>
+          Portfolio Filter
+          <select
+            [ngModel]="selectedPortfolioId()"
+            (ngModelChange)="onPortfolioFilterChange($event)"
+            [disabled]="!selectedUserId() || loadingDrilldown()"
+          >
+            <option value="">All Portfolios</option>
+            @for (portfolio of portfolios(); track portfolio.portfolioId) {
+              <option [value]="portfolio.portfolioId">
+                {{ portfolio.portfolioName }} ({{ portfolio.portfolioId }})
+              </option>
+            }
+          </select>
+        </label>
+
+        <div class="inline-stats">
+          <span>Portfolios: {{ portfolios().length }}</span>
+          <span>Holdings: {{ holdings().length }}</span>
+        </div>
+      </article>
+    </div>
+
+    <div class="grid-two">
+      <article class="subpanel">
+        <h3>Holdings</h3>
+        <div class="list">
+          @for (holding of holdings(); track getHoldingId(holding)) {
+            <button
+              type="button"
+              class="list-item"
+              [class.selected]="selectedHoldingId() === getHoldingId(holding)"
+              (click)="selectHolding(getHoldingId(holding))"
+            >
+              <strong>Holding {{ getHoldingId(holding) }}</strong>
+              <span class="muted">Portfolio: {{ getPortfolioId(holding) }}</span>
+              <span class="muted">Instrument: {{ getInstrumentId(holding) }}</span>
+              <span>Qty: {{ holding.currentQuantity }}</span>
+            </button>
+          } @empty {
+            <p class="muted">No holdings found.</p>
+          }
+        </div>
+      </article>
+
+      <article class="subpanel">
+        <h3>Holding Details</h3>
+        <p class="panel-help">Position lots and lot matches for selected holding.</p>
+
+        <h4>Position Lots ({{ positionLots().length }})</h4>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Lot ID</th>
+                <th>Holding ID</th>
+                <th>Buy Log ID</th>
+                <th>Orig Qty</th>
+                <th>Remain Qty</th>
+                <th>Unit Cost</th>
+                <th>Opened At</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (lot of positionLots(); track getPositionLotId(lot)) {
+                <tr>
+                  <td>{{ getPositionLotId(lot) }}</td>
+                  <td>{{ getPositionLotHoldingId(lot) }}</td>
+                  <td>{{ getPositionLotBuyLogId(lot) }}</td>
+                  <td>{{ lot.originalQuantity }}</td>
+                  <td>{{ lot.remainingQuantity }}</td>
+                  <td>{{ lot.unitCost }}</td>
+                  <td>{{ lot.openedAt | date: 'short' }}</td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="7" class="muted">No position lots loaded.</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <h4>Lot Matches ({{ lotMatches().length }})</h4>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Match ID</th>
+                <th>Position Lot ID</th>
+                <th>Sell Log ID</th>
+                <th>Matched Qty</th>
+                <th>Cost/Unit</th>
+                <th>Proceeds/Unit</th>
+                <th>Realized PnL</th>
+                <th>Matched At</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (match of lotMatches(); track getLotMatchId(match)) {
+                <tr>
+                  <td>{{ getLotMatchId(match) }}</td>
+                  <td>{{ getLotMatchPositionLotId(match) }}</td>
+                  <td>{{ getLotMatchSellLogId(match) }}</td>
+                  <td>{{ match.matchedQuantity }}</td>
+                  <td>{{ match.sellUnitPrice ?? '-' }}</td>
+                  <td>{{ match.proceedsPerUnit ?? '-' }}</td>
+                  <td>{{ match.realizedPnlAmount ?? match.realizedPnl ?? '-' }}</td>
+                  <td>{{ match.matchedAt | date: 'short' }}</td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="8" class="muted">No lot matches loaded.</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Order Log Timeline</h2>
+    <p class="panel-help">
+      Day-based search with optional filters. Timeline is grouped by order ID and sorted by latest event.
+    </p>
+
+    <div class="form-grid form-grid-wide">
+      <label>
+        Date (required)
+        <input
+          type="date"
+          [ngModel]="orderLogForm().date"
+          (ngModelChange)="orderLogForm.set({ ...orderLogForm(), date: $event })"
+        />
+      </label>
+
+      <label>
+        User ID
+        <input
+          type="text"
+          [ngModel]="orderLogForm().userId"
+          (ngModelChange)="orderLogForm.set({ ...orderLogForm(), userId: $event })"
+          placeholder="optional UUID"
+        />
+      </label>
+
+      <label>
+        Status
+        <select
+          [ngModel]="orderLogForm().status"
+          (ngModelChange)="orderLogForm.set({ ...orderLogForm(), status: $event })"
+        >
+          <option value="">All</option>
+          <option value="SUBMITTED">SUBMITTED</option>
+          <option value="PENDING">PENDING</option>
+          <option value="CANCELLED">CANCELLED</option>
+          <option value="ACCEPTED">ACCEPTED</option>
+          <option value="REJECTED">REJECTED</option>
+          <option value="EXECUTED">EXECUTED</option>
+          <option value="FAILED">FAILED</option>
+        </select>
+      </label>
+
+      <label>
+        Ticker
+        <input
+          type="text"
+          [ngModel]="orderLogForm().ticker"
+          (ngModelChange)="orderLogForm.set({ ...orderLogForm(), ticker: $event })"
+          placeholder="optional"
+        />
+      </label>
+
+      <label>
+        Instrument Type
+        <select
+          [ngModel]="orderLogForm().instrumentType"
+          (ngModelChange)="orderLogForm.set({ ...orderLogForm(), instrumentType: $event })"
+        >
+          <option value="">All</option>
+          <option value="EQUITY">EQUITY</option>
+          <option value="STOCK">STOCK</option>
+          <option value="ETF">ETF</option>
+          <option value="BOND">BOND</option>
+          <option value="CRYPTO">CRYPTO</option>
+          <option value="CASH">CASH</option>
+        </select>
+      </label>
+
+      <label>
+        Page
+        <input
+          type="number"
+          min="0"
+          [ngModel]="orderLogForm().page"
+          (ngModelChange)="orderLogForm.set({ ...orderLogForm(), page: +$event })"
+        />
+      </label>
+
+      <label>
+        Size
+        <input
+          type="number"
+          min="1"
+          max="100"
+          [ngModel]="orderLogForm().size"
+          (ngModelChange)="orderLogForm.set({ ...orderLogForm(), size: +$event })"
+        />
+      </label>
+    </div>
+
+    <div class="button-row">
+      <button type="button" class="primary" [disabled]="loadingOrderLogs()" (click)="searchOrderLogs()">
+        {{ loadingOrderLogs() ? 'Searching...' : 'Search Order Logs' }}
+      </button>
+
+      <button type="button" class="ghost" (click)="toggleRawOrderRows()">
+        {{ showRawOrderRows() ? 'Show Grouped Timeline' : 'Show Raw Rows' }}
+      </button>
+
+      <span class="muted">Rows: {{ orderLogs().length }} | Groups: {{ lifecycleOrders().length }}</span>
+    </div>
+
+    @if (!showRawOrderRows()) {
+      <div class="timeline-list">
+        @for (order of lifecycleOrders(); track order.orderId) {
+          <article class="timeline-card">
+            <div class="timeline-head">
+              <div>
+                <strong>{{ order.orderId }}</strong>
+                <p class="muted">Latest: {{ order.latestStatus }} at {{ order.latestTimestamp | date: 'short' }}</p>
+              </div>
+            </div>
+
+            <div class="status-steps">
+              @for (row of order.rows; track row.logOrderId) {
+                <div class="status-step">
+                  <span class="status-chip status-{{ row.status.toLowerCase() }}">{{ row.status }}</span>
+                  <span>{{ row.side }} {{ row.quantity }}</span>
+                  <span class="muted">Portfolio: {{ row.portfolioId }}</span>
+                  <span class="muted">Instrument: {{ row.instrumentId }}</span>
+                  <time>{{ row.timestamp | date: 'short' }}</time>
+                </div>
+              }
+            </div>
+          </article>
+        } @empty {
+          <p class="muted">No grouped order timeline rows available.</p>
+        }
+      </div>
+    } @else {
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Log ID</th>
+              <th>Order ID</th>
+              <th>Status</th>
+              <th>Side</th>
+              <th>Qty</th>
+              <th>Portfolio</th>
+              <th>Instrument</th>
+              <th>Timestamp</th>
+              <th>Execution Price</th>
+              <th>Quoted Price</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of orderLogs(); track row.logOrderId) {
+              <tr>
+                <td>{{ row.logOrderId }}</td>
+                <td>{{ row.orderId }}</td>
+                <td>{{ row.status }}</td>
+                <td>{{ row.side }}</td>
+                <td>{{ row.quantity }}</td>
+                <td>{{ row.portfolioId }}</td>
+                <td>{{ row.instrumentId }}</td>
+                <td>{{ row.timestamp | date: 'short' }}</td>
+                <td>{{ row.executionPrice }}</td>
+                <td>{{ row.quotedPrice ?? '-' }}</td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="10" class="muted">No raw rows loaded.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+</section>
