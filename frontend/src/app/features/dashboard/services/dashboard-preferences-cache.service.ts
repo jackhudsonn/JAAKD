@@ -104,7 +104,7 @@ export class DashboardPreferencesCacheService {
   }
 
   private cacheKey(portfolioId: string): string {
-    return `${DashboardPreferencesCacheService.CACHE_PREFIX}${portfolioId}`;
+    return `${DASHBOARD_PREFERENCES_CACHE_PREFIX}${portfolioId}`;
   }
 
   private getSessionStorage(): Storage | null {

@@ -103,7 +103,7 @@ export class AuthService {
 
       for (let i = 0; i < globalThis.sessionStorage.length; i++) {
         const key = globalThis.sessionStorage.key(i);
-        if (key?.startsWith(AuthService.DASHBOARD_PREFERENCES_CACHE_PREFIX)) {
+        if (key?.startsWith(DASHBOARD_PREFERENCES_CACHE_PREFIX)) {
           keysToDelete.push(key);
         }
       }
