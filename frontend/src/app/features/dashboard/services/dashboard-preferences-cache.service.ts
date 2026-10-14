@@ -15,7 +15,7 @@ export interface DashboardPreferencesCacheEntry {
 export class DashboardPreferencesCacheService {
   private static readonly CACHE_VERSION = 1;
   private static readonly TTL_MS = 30 * 60 * 1000;
-  
+
   read(portfolioId: string): DashboardPreferencesCacheEntry | null {
     const storage = this.getSessionStorage();
     if (!storage) {
