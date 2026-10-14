@@ -184,10 +184,6 @@ export class RegisterComponent {
       return 'Unable to create your account right now. Please try again.';
     }
 
-    if (error.status === 0) {
-      return 'Unable to reach the server. Confirm the backend is running and any SSH port forward is active, then try again.';
-    }
-
     const response = error.error as Partial<ErrorResponse> | undefined;
     const detailedMessage = toUserFacingErrorMessage(response);
     if (detailedMessage) {

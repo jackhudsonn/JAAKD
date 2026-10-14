@@ -46,20 +46,12 @@ export class LoginComponent {
       return 'Unable to sign in right now. Please try again.';
     }
 
-    if (error.status === 0) {
-      return 'Unable to reach the server. Confirm the backend is running and any SSH port forward is active, then try again.';
-    }
-
-    if (error.status === 401) {
-      return 'Email or password is incorrect. Please try again.';
-    }
-
     const response = error.error as Partial<ErrorResponse> | undefined;
     const detailedMessage = toUserFacingErrorMessage(response);
     if (detailedMessage) {
       return detailedMessage;
     }
 
-    return 'Unable to sign in right now. Please try again.';
+    return 'Email or password is incorrect. Please try again.';
   }
 }
