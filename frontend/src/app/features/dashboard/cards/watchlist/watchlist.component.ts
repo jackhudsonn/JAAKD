@@ -61,31 +61,33 @@ export class WatchlistWidgetComponent implements OnInit, OnDestroy {
     const active = this.activeWatchlist();
     const symbols = active?.symbols ?? [];
 
-    return symbols.map((symbol): WatchlistRow | null => {
-      const asset = this.backendDataMode ? undefined : this.marketData.getAsset(symbol);
+    return symbols
+      .map((symbol): WatchlistRow | null => {
+        const asset = this.backendDataMode ? undefined : this.marketData.getAsset(symbol);
 
-      if (!asset && this.backendDataMode) {
+        if (!asset && this.backendDataMode) {
+          return {
+            symbol,
+            name: symbol,
+            price: null,
+            changePct: null,
+          };
+        }
+
+        if (!asset) {
+          return null;
+        }
+
+        const price = this.marketData.getPrice(symbol);
+        const hasBasePrice = asset.basePrice > 0;
         return {
           symbol,
-          name: symbol,
-          price: null,
-          changePct: null,
+          name: asset.name,
+          price,
+          changePct: hasBasePrice ? ((price - asset.basePrice) / asset.basePrice) * 100 : null,
         };
-      }
-
-      if (!asset) {
-        return null;
-      }
-
-      const price = this.marketData.getPrice(symbol);
-      const hasBasePrice = asset.basePrice > 0;
-      return {
-        symbol,
-        name: asset.name,
-        price,
-        changePct: hasBasePrice ? ((price - asset.basePrice) / asset.basePrice) * 100 : null,
-      };
-    }).filter((row): row is WatchlistRow => row !== null);
+      })
+      .filter((row): row is WatchlistRow => row !== null);
   });
 
   trackBySymbol = (row: WatchlistRow) => row.symbol;

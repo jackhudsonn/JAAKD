@@ -54,7 +54,9 @@
         }
 
         <p class="watchlist-limit-copy">
-          {{ activeWatchlistSymbolCount() }}/{{ maxHoldingsPerWatchlist() }} items in "{{ watchlistName }}"
+          {{ activeWatchlistSymbolCount() }}/{{ maxHoldingsPerWatchlist() }} items in "{{
+            watchlistName
+          }}"
         </p>
 
         <div class="watchlist-dialog-actions">
@@ -66,7 +68,9 @@
           >
             Delete
           </button>
-          <button type="button" class="btn btn-primary" (click)="saveWatchlistName.emit()">Save</button>
+          <button type="button" class="btn btn-primary" (click)="saveWatchlistName.emit()">
+            Save
+          </button>
         </div>
       </div>
     </app-modal>

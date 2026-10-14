@@ -145,7 +145,9 @@ describe('BackendTradeStateService', () => {
     expect(service.accountCash()).toBe(5000);
     expect(service.holdings()).toHaveLength(1);
     expect(service.orders()).toHaveLength(1);
-    expect(service.watchlists()).toEqual([{ id: 'watchlist', name: 'Watchlist', symbols: ['AAPL'] }]);
+    expect(service.watchlists()).toEqual([
+      { id: 'watchlist', name: 'Watchlist', symbols: ['AAPL'] },
+    ]);
     expect(service.latestPriceBySymbolData().get('AAPL')).toBe(100);
   });
 
@@ -197,9 +199,9 @@ describe('BackendTradeStateService', () => {
       side: 'BUY',
       quantity: 3,
     });
-    expect(service.orders().some((order) => order.id === '11111111-1111-1111-1111-111111111111')).toBe(
-      true,
-    );
+    expect(
+      service.orders().some((order) => order.id === '11111111-1111-1111-1111-111111111111'),
+    ).toBe(true);
     expect(service.loadState()).toBe('ready');
 
     randomUuidSpy.mockRestore();

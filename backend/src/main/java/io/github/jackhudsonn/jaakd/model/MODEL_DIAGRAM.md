@@ -10,6 +10,7 @@ erDiagram
   PORTFOLIO ||--o{ ORDER_LOG : logs
   PORTFOLIO ||--o{ WATCHLIST_ITEM : contains
   PORTFOLIO ||--o{ HOLDING : projects
+  PORTFOLIO ||--o| PREFERENCE : configures
 
   HOLDING }o--|| INSTRUMENT : "references instrumentID"
   ORDER_LOG }o--|| INSTRUMENT : "references"
@@ -102,21 +103,33 @@ erDiagram
     uuid instrumentID FK
     string name
   }
+
+  PREFERENCE {
+    uuid preferenceID PK
+    uuid portfolioID FK "unique (1 row per portfolio)"
+    string[] dashboardWidgets "ordered widget IDs"
+    datetime createdAt
+    datetime updatedAt
+  }
 ```
 
 ## Key Relationships
 
 ### Ownership Hierarchy
+
 - **Profile** → **Portfolio** (1:N)
 - **Portfolio** → **Holding** (1:N persisted projection)
 - **Portfolio** → **WatchlistItem** (1:N)
+- **Portfolio** → **Preference** (1:0..1 dashboard/widget configuration)
 
 ### Reference Data
+
 - **Holding** → **Instrument** (N:1)
 - **OrderLog** → **Instrument** (N:1)
 - **WatchlistItem** → **Instrument** (N:1)
 
 ### Execution / Accounting
+
 - **Portfolio** → **OrderLog** (1:N)
 - **Holding** → **PositionLot** (1:N)
 - **OrderLog (BUY)** → **PositionLot** via `sourceBuyLogOrderID` (1:0..1 per buy log)

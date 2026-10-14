@@ -1,6 +1,6 @@
 # Identity Provider Seam — Design Notes
 
-Follows `04-jwt-signing-key-notes.md`, which moved token *issuance* to RS256 +
+Follows `04-jwt-signing-key-notes.md`, which moved token _issuance_ to RS256 +
 JWKS so the backend verifies with public keys only. That work is superseded on
 the browser path by this note: the backend now owns sessions and talks to the
 provider server-side, so no client-facing token is issued at all, and the JWKS
@@ -49,10 +49,10 @@ model. An interface replaces it.
 There are two ports, both on the backend. The frontend depends on neither: it
 only calls the backend at a configured URL.
 
-| Port                | Responsibility                                                  | Adapters                          |
-| ------------------- | --------------------------------------------------------------- | --------------------------------- |
-| `TokenAuthenticator`| Verify an incoming access token and return identity.            | JWKS-backed JWT (development issuer, Cognito) |
-| `IdentityProvider`  | Credential and session operations: register, sign in, refresh, change password, sign out. | development issuer, Cognito |
+| Port                 | Responsibility                                                                            | Adapters                                      |
+| -------------------- | ----------------------------------------------------------------------------------------- | --------------------------------------------- |
+| `TokenAuthenticator` | Verify an incoming access token and return identity.                                      | JWKS-backed JWT (development issuer, Cognito) |
+| `IdentityProvider`   | Credential and session operations: register, sign in, refresh, change password, sign out. | development issuer, Cognito                   |
 
 The browser path authenticates by session cookie, not by token, so
 `TokenAuthenticator` serves only non-browser consumers (a future mobile app, a
@@ -101,13 +101,13 @@ this note applies to all of them.
 > **Pick Layout A** unless you specifically want a hosted login page (B) or
 > must ship a provider SDK in the browser today (C).
 
-| | A. Backend-mediated *(recommended)* | B. Generic OIDC redirect | C. Direct-to-provider |
-| --- | --- | --- | --- |
-| Frontend provider-aware | No | No | **Yes** |
-| Backend provider code | One adapter per provider | None (config only) | None |
-| Login UI | Your existing inline forms | Provider-hosted page | Provider SDK (Amplify) |
-| Development work | Development issuer service | Development issuer service + login page | Development issuer as OIDC provider |
-| Verdict | **Recommended** | Purest; some UX change | Avoid unless required |
+|                         | A. Backend-mediated _(recommended)_ | B. Generic OIDC redirect                | C. Direct-to-provider               |
+| ----------------------- | ----------------------------------- | --------------------------------------- | ----------------------------------- |
+| Frontend provider-aware | No                                  | No                                      | **Yes**                             |
+| Backend provider code   | One adapter per provider            | None (config only)                      | None                                |
+| Login UI                | Your existing inline forms          | Provider-hosted page                    | Provider SDK (Amplify)              |
+| Development work        | Development issuer service          | Development issuer service + login page | Development issuer as OIDC provider |
+| Verdict                 | **Recommended**                     | Purest; some UX change                  | Avoid unless required               |
 
 ### Layout A — Backend-mediated (recommended)
 
@@ -273,7 +273,7 @@ Details to get right:
 - CORS already permits credentials with exact origins
   (`corsConfigurationSource`), which cookies require.
 - Cookies require HTTPS in production; development over plain HTTP needs a
-  tunnel or a dev-only relaxed cookie. Cross-*site* dev origins need
+  tunnel or a dev-only relaxed cookie. Cross-_site_ dev origins need
   `SameSite=None; Secure`; same-site development avoids it.
 - Rotate the session id on sign-in and delete all of a user's sessions on
   password change, to prevent fixation and stale access.
@@ -327,8 +327,8 @@ auth calls are sent with credentials. No route returns a token.
   cookie; `202 { challenge, continuation }` if the provider returns a
   challenge; `401` otherwise.
 - `POST /auth/challenge` `{ continuation, response }` → `200` (as login) or
-  `401`. *(not implemented; only providers that challenge, such as an
-  MFA-capable pool, need it)*
+  `401`. _(not implemented; only providers that challenge, such as an
+  MFA-capable pool, need it)_
 - `GET /auth/session` (cookie) → `200 { email }` or `401`.
 - `POST /auth/logout` (cookie) → `204`, clears the cookie.
 - `POST /auth/change-password` (cookie) `{ currentPassword, newPassword }` →
@@ -360,15 +360,15 @@ never sees a password, a provider, or an environment.
 
 The frontend stays provider-blind; only the backend differs.
 
-| Flow | Development | Production |
-| --- | --- | --- |
-| Register | Frontend → backend → development adapter stores the credential | Frontend → backend → Cognito stores the credential, may send a code |
-| Sign in | Frontend → backend → development adapter checks the credential, backend starts a session | Frontend → backend → Cognito verifies, backend starts a session |
-| Authenticated request | Browser sends the session cookie; backend resolves it to the user | Same |
-| Provisioning | Backend provisions the application `users` row from the provider response (which carries email) | Same |
-| Session refresh | Backend refreshes its own session; browser not involved | Same |
-| Change password | Development adapter updates its store | Cognito `ChangePassword` |
-| Sign out | Backend deletes the session | Backend deletes the session |
+| Flow                  | Development                                                                                     | Production                                                          |
+| --------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Register              | Frontend → backend → development adapter stores the credential                                  | Frontend → backend → Cognito stores the credential, may send a code |
+| Sign in               | Frontend → backend → development adapter checks the credential, backend starts a session        | Frontend → backend → Cognito verifies, backend starts a session     |
+| Authenticated request | Browser sends the session cookie; backend resolves it to the user                               | Same                                                                |
+| Provisioning          | Backend provisions the application `users` row from the provider response (which carries email) | Same                                                                |
+| Session refresh       | Backend refreshes its own session; browser not involved                                         | Same                                                                |
+| Change password       | Development adapter updates its store                                                           | Cognito `ChangePassword`                                            |
+| Sign out              | Backend deletes the session                                                                     | Backend deletes the session                                         |
 
 The environment is chosen once, at wiring. The core runs one path.
 
@@ -407,13 +407,13 @@ The core depends on a deliberately small contract:
 
 Drift happens on any of these axes:
 
-| Axis | Example | How it closes |
-| --- | --- | --- |
-| Claim name | Development uses `sub`; Cognito puts the application UUID in `custom:userId`. | Name claims in configuration (`jwt.user-id-claim`, `jwt.email-claim`) so the difference is a reviewable value, not hidden code. |
+| Axis           | Example                                                                           | How it closes                                                                                                                                 |
+| -------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Claim name     | Development uses `sub`; Cognito puts the application UUID in `custom:userId`.     | Name claims in configuration (`jwt.user-id-claim`, `jwt.email-claim`) so the difference is a reviewable value, not hidden code.               |
 | Claim presence | Cognito access tokens omit top-level `email`; the development issuer includes it. | Decide the email source once; both issuers must satisfy it (pool scope or trigger for Cognito, otherwise resolve from the application store). |
-| Claim meaning | Both use `sub`, but dev's is the application UUID and Cognito's is the pool UUID. | Fix the semantics once in the contract; provisioning is the only place that interprets it. |
-| Token flags | Cognito emits `token_use` / `client_id`; the development issuer omits them. | Make the development issuer emit the same claims so one validator serves both. |
-| TTL and skew | Different lifetimes, no tolerance for clock skew. | Set lifetimes and skew by configuration; keep them explicit. |
+| Claim meaning  | Both use `sub`, but dev's is the application UUID and Cognito's is the pool UUID. | Fix the semantics once in the contract; provisioning is the only place that interprets it.                                                    |
+| Token flags    | Cognito emits `token_use` / `client_id`; the development issuer omits them.       | Make the development issuer emit the same claims so one validator serves both.                                                                |
+| TTL and skew   | Different lifetimes, no tolerance for clock skew.                                 | Set lifetimes and skew by configuration; keep them explicit.                                                                                  |
 
 The dangerous axis is **claim meaning**, because it fails silently: data can be
 written under the wrong identity anchor rather than rejected. The others
@@ -422,10 +422,10 @@ usually surface as 401s.
 A contract test runs tokens from each issuer through the **same**
 `TokenAuthenticator` and asserts the same `AuthenticatedUser`:
 
-- *Unit level*: generate tokens locally against the contract (as
+- _Unit level_: generate tokens locally against the contract (as
   `SecurityConfigTest` already does) and assert the negative cases too — a
   missing identity claim or a malformed UUID must be rejected.
-- *Cross-issuer*: an integration test that fetches a real token from the
+- _Cross-issuer_: an integration test that fetches a real token from the
   configured issuer and runs it through the same authenticator. In development
   this hits the development issuer; in a staging pipeline it hits a test Cognito pool.
 
@@ -461,8 +461,8 @@ satisfies what the core requires.
 Done (development path):
 
 - Schema split: `users` holds no credentials; a `sessions` table added; the
-dev-only `development_credentials` table lives in `backend/db/development/` and is mounted
-only in local development.
+  dev-only `development_credentials` table lives in `backend/db/development/` and is mounted
+  only in local development.
 - Backend: `IdentityProvider` port with `DevelopmentIdentityProvider` (bcrypt over
   `development_credentials`), `SessionService`, `SessionAuthenticationFilter`,
   `UserProvisioner`, `AuthService`, and the `/auth/*` routes. Security is

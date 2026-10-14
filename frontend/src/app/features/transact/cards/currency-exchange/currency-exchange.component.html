@@ -40,11 +40,11 @@
 
   <div class="exchange-result">
     <div class="exchange-summary">
-      <p class="exchange-total">
-        {{ convertedAmount() | number: '1.2-2' }} {{ toCurrency() }}
-      </p>
+      <p class="exchange-total">{{ convertedAmount() | number: '1.2-2' }} {{ toCurrency() }}</p>
 
-      <p class="exchange-rate">1 {{ fromCurrency() }} = {{ quoteRate() | number: '1.2-4' }} {{ toCurrency() }}</p>
+      <p class="exchange-rate">
+        1 {{ fromCurrency() }} = {{ quoteRate() | number: '1.2-4' }} {{ toCurrency() }}
+      </p>
     </div>
 
     <div class="exchange-actions">
