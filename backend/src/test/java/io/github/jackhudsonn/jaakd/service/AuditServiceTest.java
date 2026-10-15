@@ -5,6 +5,7 @@ import io.github.jackhudsonn.jaakd.dto.AuditUserSearchResponse;
 import io.github.jackhudsonn.jaakd.dto.AuditHoldingResponse;
 import io.github.jackhudsonn.jaakd.dto.AuditOrderLogResponse;
 import io.github.jackhudsonn.jaakd.exception.ValidationException;
+import io.github.jackhudsonn.jaakd.model.CashCurrency;
 import io.github.jackhudsonn.jaakd.model.Holding;
 import io.github.jackhudsonn.jaakd.model.Instrument;
 import io.github.jackhudsonn.jaakd.model.InstrumentClass;
@@ -385,7 +386,7 @@ class AuditServiceTest {
         profile.setFirstName("Ada");
         profile.setLastName("Lovelace");
         Portfolio portfolio = new Portfolio(profile);
-        Instrument instrument = new Instrument("AAPL", "NASDAQ", "Apple", InstrumentClass.EQUITY);
+        Instrument instrument = new Instrument("AAPL", "NASDAQ", "Apple", InstrumentClass.EQUITY, CashCurrency.USD);
         OrderLog orderLog = new OrderLog(orderId, portfolio, instrument, OrderSide.BUY, 10.0);
         orderLog.setStatus(OrderStatus.EXECUTED);
         orderLog.setMetadata("meta");
