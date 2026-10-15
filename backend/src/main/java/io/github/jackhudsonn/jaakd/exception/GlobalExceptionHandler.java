@@ -24,7 +24,6 @@ import java.util.Map;
 public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
-    private static final int MAX_CAUSE_LENGTH = 240;
 
     @ExceptionHandler(UnauthorizedException.class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
@@ -111,9 +110,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DataAccessException.class)
     @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
-    public ErrorResponse handleDataAccess(DataAccessException ex) {
-        log.error("Database access error", ex);
-
+    public ErrorResponse handleDataAccess(DataAccessException ex, HttpServletRequest request) {
         Throwable root = ex.getMostSpecificCause();
         String rootMessage = root == null ? "unknown" : String.valueOf(root.getMessage());
         String normalized = rootMessage.toLowerCase();
@@ -147,25 +144,15 @@ public class GlobalExceptionHandler {
             hint = "Datasource/JDBC path config is invalid for this OS. Check backend-side JDBC URL options such as ssl cert paths.";
         }
 
-        Map<String, String> details = new LinkedHashMap<>();
-        details.put("type", errorType);
-        details.put("hint", hint);
-        details.put("cause", truncateForResponse(rootMessage));
+        // Diagnostics stay in the server log; the client only gets a generic message.
+        log.error("Database access error [{}] for {} {}: {}",
+                errorType, request.getMethod(), request.getRequestURI(), hint, ex);
 
-        return new ErrorResponse(Instant.now(), "Database error", details);
-    }
-
-    private String truncateForResponse(String message) {
-        if (message == null || message.isBlank()) {
-            return "unknown";
-        }
-
-        String singleLine = message.replace('\n', ' ').replace('\r', ' ').trim();
-        if (singleLine.length() <= MAX_CAUSE_LENGTH) {
-            return singleLine;
-        }
-
-        return singleLine.substring(0, MAX_CAUSE_LENGTH) + "...";
+        return new ErrorResponse(
+                Instant.now(),
+                "The service is temporarily unavailable. Please try again later.",
+                null
+        );
     }
 
     @ExceptionHandler(ConstraintViolationException.class)

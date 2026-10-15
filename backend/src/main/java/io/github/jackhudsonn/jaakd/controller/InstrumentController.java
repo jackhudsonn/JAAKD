@@ -19,7 +19,7 @@ import io.github.jackhudsonn.jaakd.dto.UpdateInstrumentRequest;
 import io.github.jackhudsonn.jaakd.model.Instrument;
 import io.github.jackhudsonn.jaakd.model.InstrumentClass;
 import io.github.jackhudsonn.jaakd.service.InstrumentService;
-import io.github.jackhudsonn.jaakd.service.fauxnance.FauxnanceQuoteResponse;
+import io.github.jackhudsonn.jaakd.model.fauxnance.FauxnanceQuoteResponse;
 
 import java.util.ArrayList;
 import java.util.List;

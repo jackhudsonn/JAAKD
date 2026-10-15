@@ -17,9 +17,9 @@ import io.github.jackhudsonn.jaakd.model.CashCurrency;
 import io.github.jackhudsonn.jaakd.model.Instrument;
 import io.github.jackhudsonn.jaakd.model.InstrumentClass;
 import io.github.jackhudsonn.jaakd.repository.InstrumentRepository;
-import io.github.jackhudsonn.jaakd.service.fauxnance.FauxnanceCandleResponse;
-import io.github.jackhudsonn.jaakd.service.fauxnance.FauxnanceQuoteResponse;
-import io.github.jackhudsonn.jaakd.service.fauxnance.FauxnanceSymbolResponse;
+import io.github.jackhudsonn.jaakd.model.fauxnance.FauxnanceCandleResponse;
+import io.github.jackhudsonn.jaakd.model.fauxnance.FauxnanceQuoteResponse;
+import io.github.jackhudsonn.jaakd.model.fauxnance.FauxnanceSymbolResponse;
 
 import java.util.ArrayList;
 import java.util.List;

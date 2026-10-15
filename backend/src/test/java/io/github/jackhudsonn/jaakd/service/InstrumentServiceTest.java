@@ -10,7 +10,7 @@ import io.github.jackhudsonn.jaakd.model.CashCurrency;
 import io.github.jackhudsonn.jaakd.model.Instrument;
 import io.github.jackhudsonn.jaakd.model.InstrumentClass;
 import io.github.jackhudsonn.jaakd.repository.InstrumentRepository;
-import io.github.jackhudsonn.jaakd.service.fauxnance.FauxnanceSymbolResponse;
+import io.github.jackhudsonn.jaakd.model.fauxnance.FauxnanceSymbolResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
