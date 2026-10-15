@@ -38,18 +38,16 @@ public class PreferenceService {
 
     private static final int MIN_SELECTED_WIDGETS = 2;
     private final PreferenceRepository preferenceRepository;
-    private final PreferenceRepository preferenceRepository;
     private final CurrentUserService currentUserService;
-    private final CurrentUserService currentUserService;
+    private final PortfolioService portfolioService;
     public PreferenceService(
         PreferenceRepository preferenceRepository,
-        PreferenceRepository preferenceRepository,
-        CurrentUserService currentUserService
+        CurrentUserService currentUserService,
+        PortfolioService portfolioService
     ) {
         this.preferenceRepository = preferenceRepository;
-        this.preferenceRepository = preferenceRepository;
         this.currentUserService = currentUserService;
-    }
+        this.portfolioService = portfolioService;
     }
     @Transactional
     public Preference getByPortfolio(UUID portfolioId) {
