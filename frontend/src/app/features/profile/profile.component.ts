@@ -15,12 +15,12 @@ import {
   toUserFacingErrorMessage,
   UpdateProfileRequest,
 } from '@core/models/profile.model';
-
 import {
   getLatestEligibleDob,
   isAtLeast18,
   isValidPostalCode,
 } from '@shared/utils/profile-validation';
+
 @Component({
   selector: 'app-profile',
   standalone: true,
@@ -52,9 +52,9 @@ export class ProfileComponent implements OnInit {
   country = '';
   zipCode = '';
 
-  countries: CountryOption[] = [];
-  states: string[] = [];
-  cities: string[] = [];
+  countries = signal<CountryOption[]>([]);
+  states = signal<string[]>([]);
+  cities = signal<string[]>([]);
 
   countryCode = '';
 
@@ -70,7 +70,7 @@ export class ProfileComponent implements OnInit {
     void this.loadCountries();
   }
   private async loadCountries() {
-    this.countries = await this.locationDataService.getCountries();
+    this.countries.set(await this.locationDataService.getCountries());
   }
 
   async ngOnInit() {
@@ -105,20 +105,23 @@ export class ProfileComponent implements OnInit {
       this.populateEditableFields(currentProfile);
     }
 
-    const selectedCountry = this.countries.find(
+    await this.loadCountries();
+
+    const selectedCountry = this.countries().find(
       (countryOption) => countryOption.name === this.country || countryOption.code === this.country,
     );
 
     this.countryCode = selectedCountry?.code ?? '';
 
     if (this.countryCode) {
-      this.states = await this.locationDataService.getStates(this.countryCode);
+      this.states.set(await this.locationDataService.getStates(this.countryCode));
     }
 
     if (this.countryCode && this.state) {
-      this.cities = await this.locationDataService.getCities(this.countryCode, this.state);
+      this.cities.set(await this.locationDataService.getCities(this.countryCode, this.state));
     }
   }
+
   async startEditing() {
     await this.loadEditableProfile();
 
@@ -131,13 +134,14 @@ export class ProfileComponent implements OnInit {
     this.profileMessage.set('');
     this.editing.set(false);
   }
+
   async onCountryChange() {
-    this.states = await this.locationDataService.getStates(this.countryCode);
+    this.states.set(await this.locationDataService.getStates(this.countryCode));
     this.state = '';
     this.city = '';
-    this.cities = [];
+    this.cities.set([]);
 
-    const selectedCountry = this.countries.find(
+    const selectedCountry = this.countries().find(
       (countryOption) => countryOption.code === this.countryCode,
     );
 
@@ -147,8 +151,9 @@ export class ProfileComponent implements OnInit {
   async onStateChange() {
     this.city = '';
 
-    this.cities = await this.locationDataService.getCities(this.countryCode, this.state);
+    this.cities.set(await this.locationDataService.getCities(this.countryCode, this.state));
   }
+
   async saveProfile() {
     if (
       !this.firstName ||

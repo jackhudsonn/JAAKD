@@ -104,7 +104,7 @@
           <select id="profileCountry" [(ngModel)]="countryCode" (change)="onCountryChange()">
             <option value="">Select country</option>
 
-            @for (countryOption of countries; track countryOption.code) {
+            @for (countryOption of countries(); track countryOption.code) {
               <option [value]="countryOption.code">
                 {{ countryOption.name }}
               </option>
@@ -123,7 +123,7 @@
           >
             <option value="">Select state / region</option>
 
-            @for (stateOption of states; track stateOption) {
+            @for (stateOption of states(); track stateOption) {
               <option [value]="stateOption">
                 {{ stateOption }}
               </option>
@@ -137,7 +137,7 @@
           <select id="profileCity" [(ngModel)]="city" [disabled]="!state">
             <option value="">Select city</option>
 
-            @for (cityOption of cities; track cityOption) {
+            @for (cityOption of cities(); track cityOption) {
               <option [value]="cityOption">
                 {{ cityOption }}
               </option>
