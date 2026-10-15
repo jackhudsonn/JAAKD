@@ -16,7 +16,6 @@ pipeline {
     }
 
     stages {
-        
         stage('Checkout') {
             steps {
                 checkout scm
@@ -181,7 +180,7 @@ pipeline {
                 }
             }
         }
-        
+
         stage('Prod: Publish Frontend Artifact') {
             when { expression { params.DEPLOY_ENV == 'prod' } }
             steps {

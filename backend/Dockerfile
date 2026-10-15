@@ -1,5 +1,5 @@
 # Starts build stage from image with maven and temurin jdk
-FROM maven:3.10-eclipse-temurin-21 as build
+FROM maven:3.10-eclipse-temurin-25 as build
 # Sets the working directory
 WORKDIR /app
 # Copies the Maven project files to the working directory
@@ -17,7 +17,7 @@ COPY src src
 RUN ./mvnw -B clean package -DskipTests
 
 # Starts the runtime stage from an image with the Temurin JRE
-FROM eclipse-temurin:21-jre
+FROM eclipse-temurin:25-jre
 # Sets the working directory
 WORKDIR /app
 # Creates a non-root user and group for running the application
