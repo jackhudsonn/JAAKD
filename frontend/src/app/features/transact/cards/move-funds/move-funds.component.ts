@@ -1,4 +1,4 @@
-import { Component, computed, inject, input, output, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
@@ -22,7 +22,7 @@ interface PendingFundsAction {
   templateUrl: './move-funds.component.html',
   styleUrl: './move-funds.component.css',
 })
-export class MoveFundsFormComponent {
+export class MoveFundsFormComponent implements OnInit {
   private static readonly ADD_METHOD_OPTION_VALUE = '__add_method__';
 
   private readonly paymentMethodsStore = inject(PaymentMethodsStore);
@@ -42,6 +42,10 @@ export class MoveFundsFormComponent {
 
   depositSubmitted = output<Deposit>();
   withdrawalSubmitted = output<Withdrawal>();
+
+  async ngOnInit(): Promise<void> {
+    await this.paymentMethodsStore.load();
+  }
 
   onMethodSelectionChange() {
     if (this.selectedMethodId !== MoveFundsFormComponent.ADD_METHOD_OPTION_VALUE) {

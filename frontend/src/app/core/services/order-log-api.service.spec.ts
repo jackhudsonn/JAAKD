@@ -28,21 +28,23 @@ describe('OrderLogApiService', () => {
       `${environment.apiUrl}/api/order-logs/portfolio/portfolio-1`,
     );
     expect(req.request.method).toBe('GET');
-    req.flush([
-      {
-        logOrderId: 'l1',
-        orderId: 'o1',
-        portfolioId: 'portfolio-1',
-        instrumentId: 'i1',
-        side: 'BUY',
-        quantity: 1,
-        timestamp: '2026-10-01T00:00:00Z',
-        metadata: null,
-        status: 'SUBMITTED',
-        executionPrice: 0,
-        quotedPrice: null,
-      },
-    ]);
+    req.flush({
+      orderLogs: [
+        {
+          logOrderId: 'l1',
+          orderId: 'o1',
+          portfolioId: 'portfolio-1',
+          instrumentId: 'i1',
+          side: 'BUY',
+          quantity: 1,
+          timestamp: '2026-10-01T00:00:00Z',
+          metadata: null,
+          status: 'SUBMITTED',
+          executionPrice: 0,
+          quotedPrice: null,
+        },
+      ],
+    });
 
     await expect(promise).resolves.toHaveLength(1);
   });

@@ -4,6 +4,7 @@ import io.github.jackhudsonn.jaakd.config.KafkaTopics;
 import io.github.jackhudsonn.jaakd.event.OrderAcceptedEvent;
 import io.github.jackhudsonn.jaakd.event.OrderRejectedEvent;
 import io.github.jackhudsonn.jaakd.event.OrderSubmittedEvent;
+import io.github.jackhudsonn.jaakd.model.CashCurrency;
 import io.github.jackhudsonn.jaakd.model.Holding;
 import io.github.jackhudsonn.jaakd.model.Instrument;
 import io.github.jackhudsonn.jaakd.model.InstrumentClass;
@@ -14,6 +15,7 @@ import io.github.jackhudsonn.jaakd.repository.HoldingRepository;
 import io.github.jackhudsonn.jaakd.repository.InstrumentRepository;
 import io.github.jackhudsonn.jaakd.repository.LotMatchRepository;
 import io.github.jackhudsonn.jaakd.repository.PositionLotRepository;
+import io.github.jackhudsonn.jaakd.util.MarketHoursValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,6 +34,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 class ValidationServiceTest {
@@ -52,6 +55,9 @@ class ValidationServiceTest {
     private LotMatchRepository lotMatchRepository;
 
     @Mock
+    private QuoteService quoteService;
+
+    @Mock
     private KafkaTemplate<String, OrderAcceptedEvent> orderAcceptedKafkaTemplate;
 
     @Mock
@@ -62,18 +68,28 @@ class ValidationServiceTest {
     @Mock
     private SimulateDelay simulateDelay;
 
+    private MarketHoursValidator marketHoursValidator;
+
     @BeforeEach
     void setUp() {
+        marketHoursValidator = new MarketHoursValidator();
+
         validationService = new ValidationService(
             holdingRepository,
             instrumentRepository,
             positionLotRepository,
             lotMatchRepository,
+            quoteService,
+            marketHoursValidator,
             validationLifecycleTxService,
             orderAcceptedKafkaTemplate,
             orderRejectedKafkaTemplate,
             simulateDelay
         );
+
+        lenient()
+            .when(quoteService.getQuote(ArgumentMatchers.any(UUID.class)))
+            .thenReturn(new MarketQuote("AAPL", 100.0, 99.5, 100.5, "USD", "", "open"));
     }
 
     @Test
@@ -123,6 +139,7 @@ class ValidationServiceTest {
         verify(validationLifecycleTxService, never()).appendRejected(
             ArgumentMatchers.any(UUID.class),
             ArgumentMatchers.any(UUID.class),
+            ArgumentMatchers.anyString(),
             ArgumentMatchers.anyString()
         );
         verify(orderAcceptedKafkaTemplate, never()).send(
@@ -153,7 +170,7 @@ class ValidationServiceTest {
 
         when(validationLifecycleTxService.appendPending(orderId, logOrderId))
             .thenReturn(buildOrderLog(orderId, logOrderId, OrderStatus.PENDING));
-        when(validationLifecycleTxService.appendRejected(orderId, logOrderId, "Quantity must be greater than zero"))
+        when(validationLifecycleTxService.appendRejected(orderId, logOrderId, "Quantity must be greater than zero", "reasonCode=NON_POSITIVE_QUANTITY"))
             .thenReturn(buildOrderLog(orderId, logOrderId, OrderStatus.REJECTED));
 
         validationService.handleOrderSubmitted(event);
@@ -162,7 +179,8 @@ class ValidationServiceTest {
         verify(validationLifecycleTxService, times(1)).appendRejected(
             orderId,
             logOrderId,
-            "Quantity must be greater than zero"
+            "Quantity must be greater than zero",
+            "reasonCode=NON_POSITIVE_QUANTITY"
         );
         verify(orderRejectedKafkaTemplate, times(1)).send(
             ArgumentMatchers.eq(KafkaTopics.ORDER_REJECTED),
@@ -174,6 +192,118 @@ class ValidationServiceTest {
             ArgumentMatchers.anyString(),
             ArgumentMatchers.any(OrderAcceptedEvent.class)
         );
+    }
+
+    @Test
+    void handleOrderSubmitted_buyMarketClosed_rejects() throws Exception {
+        UUID orderId = UUID.randomUUID();
+        UUID logOrderId = UUID.randomUUID();
+        UUID portfolioId = UUID.randomUUID();
+        UUID instrumentId = UUID.randomUUID();
+
+        OrderSubmittedEvent event = new OrderSubmittedEvent(
+            orderId,
+            logOrderId,
+            portfolioId,
+            instrumentId,
+            OrderSide.BUY,
+            1.0,
+            LocalDateTime.now()
+        );
+
+        OrderLog pending = buildOrderLog(orderId, logOrderId, OrderStatus.PENDING);
+
+        when(validationLifecycleTxService.appendPending(orderId, logOrderId)).thenReturn(pending);
+        when(quoteService.getQuote(instrumentId)).thenReturn(
+            new MarketQuote("AAPL", 100.0, 99.0, 101.0, "USD", "", "closed")
+        );
+        when(validationLifecycleTxService.appendRejected(
+            orderId,
+            logOrderId,
+            "Market is closed. After/pre-market and pending orders will be implemented soon.",
+            "reasonCode=MARKET_CLOSED"
+        )).thenReturn(buildOrderLog(orderId, logOrderId, OrderStatus.REJECTED));
+
+        validationService.handleOrderSubmitted(event);
+
+        verify(validationLifecycleTxService, times(1)).appendRejected(
+            orderId,
+            logOrderId,
+            "Market is closed. After/pre-market and pending orders will be implemented soon.",
+            "reasonCode=MARKET_CLOSED"
+        );
+        verify(orderAcceptedKafkaTemplate, never()).send(
+            ArgumentMatchers.anyString(),
+            ArgumentMatchers.anyString(),
+            ArgumentMatchers.any(OrderAcceptedEvent.class)
+        );
+    }
+
+    @Test
+    void handleOrderSubmitted_buyUnknownMarketStateUnsupportedFallbackCurrency_rejects() throws Exception {
+        UUID orderId = UUID.randomUUID();
+        UUID logOrderId = UUID.randomUUID();
+        UUID portfolioId = UUID.randomUUID();
+        UUID instrumentId = UUID.randomUUID();
+
+        OrderSubmittedEvent event = new OrderSubmittedEvent(
+            orderId,
+            logOrderId,
+            portfolioId,
+            instrumentId,
+            OrderSide.BUY,
+            1.0,
+            LocalDateTime.now()
+        );
+
+        OrderLog pending = buildOrderLog(orderId, logOrderId, OrderStatus.PENDING);
+        pending.getInstrument().setTradingCurrency(CashCurrency.EUR);
+
+        when(validationLifecycleTxService.appendPending(orderId, logOrderId)).thenReturn(pending);
+        when(quoteService.getQuote(instrumentId)).thenReturn(
+            new MarketQuote("AAPL", 100.0, 99.0, 101.0, "EUR", "", "unknown")
+        );
+        when(validationLifecycleTxService.appendRejected(
+            orderId,
+            logOrderId,
+            "Market hours fallback is unavailable for the instrument trading currency: EUR",
+            "reasonCode=MARKET_HOURS_UNAVAILABLE"
+        )).thenReturn(buildOrderLog(orderId, logOrderId, OrderStatus.REJECTED));
+
+        validationService.handleOrderSubmitted(event);
+
+        verify(validationLifecycleTxService, times(1)).appendRejected(
+            orderId,
+            logOrderId,
+            "Market hours fallback is unavailable for the instrument trading currency: EUR",
+            "reasonCode=MARKET_HOURS_UNAVAILABLE"
+        );
+    }
+
+    @Test
+    void handleOrderSubmitted_depositBypassesMarketGate_acceptsWithoutQuoteCheck() throws Exception {
+        UUID orderId = UUID.randomUUID();
+        UUID logOrderId = UUID.randomUUID();
+
+        OrderSubmittedEvent event = new OrderSubmittedEvent(
+            orderId,
+            logOrderId,
+            UUID.randomUUID(),
+            UUID.randomUUID(),
+            OrderSide.DEPOSIT,
+            1.0,
+            LocalDateTime.now()
+        );
+
+        when(validationLifecycleTxService.appendPending(orderId, logOrderId))
+            .thenReturn(buildOrderLog(orderId, logOrderId, OrderStatus.PENDING));
+        when(validationLifecycleTxService.appendAccepted(orderId, logOrderId))
+            .thenReturn(buildOrderLog(orderId, logOrderId, OrderStatus.ACCEPTED));
+
+        validationService.handleOrderSubmitted(event);
+
+        verify(quoteService, never()).getQuote(ArgumentMatchers.any(UUID.class));
+        verify(validationLifecycleTxService, times(1)).appendAccepted(orderId, logOrderId);
     }
 
     @Test
@@ -193,7 +323,7 @@ class ValidationServiceTest {
         when(validationLifecycleTxService.appendPending(orderId, logOrderId))
             .thenReturn(buildOrderLog(orderId, logOrderId, OrderStatus.PENDING));
         when(lotMatchRepository.existsBySellLogOrderID(logOrderId)).thenReturn(true);
-        when(validationLifecycleTxService.appendRejected(orderId, logOrderId, "Sell order has already been lot-matched"))
+        when(validationLifecycleTxService.appendRejected(orderId, logOrderId, "Sell order has already been lot-matched", "reasonCode=DUPLICATE_MATCHED_SELL"))
             .thenReturn(buildOrderLog(orderId, logOrderId, OrderStatus.REJECTED));
 
         validationService.handleOrderSubmitted(event);
@@ -202,7 +332,8 @@ class ValidationServiceTest {
         verify(validationLifecycleTxService, times(1)).appendRejected(
             orderId,
             logOrderId,
-            "Sell order has already been lot-matched"
+            "Sell order has already been lot-matched",
+            "reasonCode=DUPLICATE_MATCHED_SELL"
         );
         verify(orderRejectedKafkaTemplate, times(1)).send(
             ArgumentMatchers.eq(KafkaTopics.ORDER_REJECTED),
@@ -237,7 +368,7 @@ class ValidationServiceTest {
         when(lotMatchRepository.existsBySellLogOrderID(logOrderId)).thenReturn(false);
         when(holdingRepository.findByPortfolioIDAndInstrumentID(portfolioId, instrumentId)).thenReturn(Optional.of(holding));
         when(positionLotRepository.sumOpenRemainingQuantityByHoldingID(holdingId)).thenReturn(new BigDecimal("5"));
-        when(validationLifecycleTxService.appendRejected(orderId, logOrderId, "Cannot sell more than open lot quantity"))
+        when(validationLifecycleTxService.appendRejected(orderId, logOrderId, "Cannot sell more than open lot quantity", "reasonCode=INSUFFICIENT_OPEN_LOTS"))
             .thenReturn(buildOrderLog(orderId, logOrderId, OrderStatus.REJECTED));
 
         validationService.handleOrderSubmitted(event);
@@ -245,7 +376,8 @@ class ValidationServiceTest {
         verify(validationLifecycleTxService, times(1)).appendRejected(
             orderId,
             logOrderId,
-            "Cannot sell more than open lot quantity"
+            "Cannot sell more than open lot quantity",
+            "reasonCode=INSUFFICIENT_OPEN_LOTS"
         );
         verify(orderRejectedKafkaTemplate, times(1)).send(
             ArgumentMatchers.eq(KafkaTopics.ORDER_REJECTED),
@@ -324,7 +456,7 @@ class ValidationServiceTest {
         OrderLog pending = buildOrderLog(orderId, logOrderId, OrderStatus.PENDING);
         pending.setQuotedPrice(10.0);
 
-        Instrument cashInstrument = new Instrument("USD", "USD", "US Dollar Cash Balance", InstrumentClass.CASH);
+        Instrument cashInstrument = new Instrument("USD", "USD", "US Dollar Cash Balance", InstrumentClass.CASH, CashCurrency.USD);
         setField(cashInstrument, "instrumentId", cashInstrumentId);
 
         Holding cashHolding = new Holding(UUID.randomUUID(), portfolioId, cashInstrumentId);
@@ -335,15 +467,35 @@ class ValidationServiceTest {
             .thenReturn(Optional.of(cashInstrument));
         when(holdingRepository.findByPortfolioIDAndInstrumentID(portfolioId, cashInstrumentId))
             .thenReturn(Optional.of(cashHolding));
-        when(validationLifecycleTxService.appendRejected(orderId, logOrderId, "Cannot buy more than current cash quantity"))
+        when(validationLifecycleTxService.appendRejected(
+            ArgumentMatchers.eq(orderId),
+            ArgumentMatchers.eq(logOrderId),
+            ArgumentMatchers.eq("Cannot buy more than current cash quantity"),
+            ArgumentMatchers.argThat(details ->
+                details != null
+                    && details.contains("reasonCode=INSUFFICIENT_BUY_CASH")
+                    && details.contains("requiredCurrency=USD")
+                    && details.contains("requiredAmount=50")
+                    && details.contains("availableAmount=40")
+                    && details.contains("shortfall=10")
+            )
+        ))
             .thenReturn(buildOrderLog(orderId, logOrderId, OrderStatus.REJECTED));
 
         validationService.handleOrderSubmitted(event);
 
         verify(validationLifecycleTxService, times(1)).appendRejected(
-            orderId,
-            logOrderId,
-            "Cannot buy more than current cash quantity"
+            ArgumentMatchers.eq(orderId),
+            ArgumentMatchers.eq(logOrderId),
+            ArgumentMatchers.eq("Cannot buy more than current cash quantity"),
+            ArgumentMatchers.argThat(details ->
+                details != null
+                    && details.contains("reasonCode=INSUFFICIENT_BUY_CASH")
+                    && details.contains("requiredCurrency=USD")
+                    && details.contains("requiredAmount=50")
+                    && details.contains("availableAmount=40")
+                    && details.contains("shortfall=10")
+            )
         );
         verify(orderRejectedKafkaTemplate, times(1)).send(
             ArgumentMatchers.eq(KafkaTopics.ORDER_REJECTED),
@@ -378,7 +530,7 @@ class ValidationServiceTest {
         OrderLog pending = buildOrderLog(orderId, logOrderId, OrderStatus.PENDING);
         pending.setQuotedPrice(10.0);
 
-        Instrument cashInstrument = new Instrument("USD", "USD", "US Dollar Cash Balance", InstrumentClass.CASH);
+        Instrument cashInstrument = new Instrument("USD", "USD", "US Dollar Cash Balance", InstrumentClass.CASH, CashCurrency.USD);
         setField(cashInstrument, "instrumentId", cashInstrumentId);
 
         Holding cashHolding = new Holding(UUID.randomUUID(), portfolioId, cashInstrumentId);
@@ -407,11 +559,155 @@ class ValidationServiceTest {
         );
     }
 
+    @Test
+    void handleOrderSubmitted_buyMissingRequiredCurrencyCashInstrument_rejects() throws Exception {
+        UUID orderId = UUID.randomUUID();
+        UUID logOrderId = UUID.randomUUID();
+        UUID portfolioId = UUID.randomUUID();
+        UUID instrumentId = UUID.randomUUID();
+
+        OrderSubmittedEvent event = new OrderSubmittedEvent(
+            orderId,
+            logOrderId,
+            portfolioId,
+            instrumentId,
+            OrderSide.BUY,
+            2.0,
+            LocalDateTime.now()
+        );
+
+        OrderLog pending = buildOrderLog(orderId, logOrderId, OrderStatus.PENDING);
+        pending.getInstrument().setTradingCurrency(CashCurrency.EUR);
+        pending.setQuotedPrice(20.0);
+
+        when(validationLifecycleTxService.appendPending(orderId, logOrderId)).thenReturn(pending);
+        when(instrumentRepository.findByTickerIgnoreCaseAndInstrumentClass("EUR", InstrumentClass.CASH))
+            .thenReturn(Optional.empty());
+        when(validationLifecycleTxService.appendRejected(
+            orderId,
+            logOrderId,
+            "Cash instrument is not configured for required currency: EUR",
+            "reasonCode=CASH_INSTRUMENT_NOT_CONFIGURED;requiredCurrency=EUR"
+        ))
+            .thenReturn(buildOrderLog(orderId, logOrderId, OrderStatus.REJECTED));
+
+        validationService.handleOrderSubmitted(event);
+
+        verify(validationLifecycleTxService, times(1)).appendRejected(
+            orderId,
+            logOrderId,
+            "Cash instrument is not configured for required currency: EUR",
+            "reasonCode=CASH_INSTRUMENT_NOT_CONFIGURED;requiredCurrency=EUR"
+        );
+        verify(orderRejectedKafkaTemplate, times(1)).send(
+            ArgumentMatchers.eq(KafkaTopics.ORDER_REJECTED),
+            ArgumentMatchers.eq("AAPL"),
+            ArgumentMatchers.any(OrderRejectedEvent.class)
+        );
+        verify(orderAcceptedKafkaTemplate, never()).send(
+            ArgumentMatchers.anyString(),
+            ArgumentMatchers.anyString(),
+            ArgumentMatchers.any(OrderAcceptedEvent.class)
+        );
+    }
+
+    @Test
+    void handleOrderSubmitted_buyUsesRequiredCurrencyCashHolding_accepts() throws Exception {
+        UUID orderId = UUID.randomUUID();
+        UUID logOrderId = UUID.randomUUID();
+        UUID portfolioId = UUID.randomUUID();
+        UUID instrumentId = UUID.randomUUID();
+        UUID eurCashInstrumentId = UUID.randomUUID();
+
+        OrderSubmittedEvent event = new OrderSubmittedEvent(
+            orderId,
+            logOrderId,
+            portfolioId,
+            instrumentId,
+            OrderSide.BUY,
+            3.0,
+            LocalDateTime.now()
+        );
+
+        OrderLog pending = buildOrderLog(orderId, logOrderId, OrderStatus.PENDING);
+        pending.getInstrument().setTradingCurrency(CashCurrency.EUR);
+        pending.setQuotedPrice(10.0);
+
+        Instrument eurCash = new Instrument("EUR", "INTERNAL", "Euro Cash Balance", InstrumentClass.CASH, CashCurrency.EUR);
+        setField(eurCash, "instrumentId", eurCashInstrumentId);
+
+        Holding eurCashHolding = new Holding(UUID.randomUUID(), portfolioId, eurCashInstrumentId);
+        eurCashHolding.setCurrentQuantity(new BigDecimal("50"));
+
+        when(validationLifecycleTxService.appendPending(orderId, logOrderId)).thenReturn(pending);
+        when(instrumentRepository.findByTickerIgnoreCaseAndInstrumentClass("EUR", InstrumentClass.CASH))
+            .thenReturn(Optional.of(eurCash));
+        when(holdingRepository.findByPortfolioIDAndInstrumentID(portfolioId, eurCashInstrumentId))
+            .thenReturn(Optional.of(eurCashHolding));
+        when(validationLifecycleTxService.appendAccepted(orderId, logOrderId))
+            .thenReturn(buildOrderLog(orderId, logOrderId, OrderStatus.ACCEPTED));
+
+        validationService.handleOrderSubmitted(event);
+
+        verify(validationLifecycleTxService, times(1)).appendAccepted(orderId, logOrderId);
+        verify(orderAcceptedKafkaTemplate, times(1)).send(
+            ArgumentMatchers.eq(KafkaTopics.ORDER_ACCEPTED),
+            ArgumentMatchers.eq("AAPL"),
+            ArgumentMatchers.any(OrderAcceptedEvent.class)
+        );
+        verify(orderRejectedKafkaTemplate, never()).send(
+            ArgumentMatchers.anyString(),
+            ArgumentMatchers.anyString(),
+            ArgumentMatchers.any(OrderRejectedEvent.class)
+        );
+    }
+
+    @Test
+    void handleOrderSubmitted_unexpectedRuntime_rejectsWithReason() throws Exception {
+        UUID orderId = UUID.randomUUID();
+        UUID logOrderId = UUID.randomUUID();
+
+        OrderSubmittedEvent event = new OrderSubmittedEvent(
+            orderId,
+            logOrderId,
+            UUID.randomUUID(),
+            UUID.randomUUID(),
+            OrderSide.BUY,
+            1.0,
+            LocalDateTime.now()
+        );
+
+        when(validationLifecycleTxService.appendPending(orderId, logOrderId))
+            .thenThrow(new RuntimeException("boom"));
+        when(validationLifecycleTxService.appendRejected(orderId, logOrderId, "boom", "reasonCode=INTERNAL_VALIDATION_ERROR"))
+            .thenReturn(buildOrderLog(orderId, logOrderId, OrderStatus.REJECTED));
+
+        validationService.handleOrderSubmitted(event);
+
+        verify(validationLifecycleTxService, times(1)).appendRejected(
+            orderId,
+            logOrderId,
+            "boom",
+            "reasonCode=INTERNAL_VALIDATION_ERROR"
+        );
+        verify(orderRejectedKafkaTemplate, times(1)).send(
+            ArgumentMatchers.eq(KafkaTopics.ORDER_REJECTED),
+            ArgumentMatchers.eq("AAPL"),
+            ArgumentMatchers.any(OrderRejectedEvent.class)
+        );
+    }
+
     private OrderLog buildOrderLog(UUID orderId, UUID logOrderId, OrderStatus status) throws Exception {
         OrderLog orderLog = new OrderLog(
             orderId,
             new io.github.jackhudsonn.jaakd.model.Portfolio(new io.github.jackhudsonn.jaakd.model.Profile(UUID.randomUUID(), BigDecimal.ZERO)),
-            new io.github.jackhudsonn.jaakd.model.Instrument("AAPL", "NASDAQ", "Apple", io.github.jackhudsonn.jaakd.model.InstrumentClass.EQUITY),
+            new io.github.jackhudsonn.jaakd.model.Instrument(
+                "AAPL",
+                "NASDAQ",
+                "Apple",
+                io.github.jackhudsonn.jaakd.model.InstrumentClass.EQUITY,
+                io.github.jackhudsonn.jaakd.model.CashCurrency.USD
+            ),
             OrderSide.BUY,
             1.0
         );

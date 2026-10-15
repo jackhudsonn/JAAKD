@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS instruments (
   market TEXT NOT NULL,
   name TEXT NOT NULL,
   "instrumentClass" TEXT NOT NULL,
+  "tradingCurrency" TEXT NOT NULL,
   "logoUrl" TEXT,
   description TEXT
 );
@@ -107,6 +108,19 @@ CREATE TABLE IF NOT EXISTS preferences (
   "updatedAt" TIMESTAMP NOT NULL DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS payment_methods (
+  "paymentMethodID" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  "userID" UUID NOT NULL,
+  nickname TEXT NOT NULL,
+  "accountHolderName" TEXT NOT NULL,
+  "bankName" TEXT NOT NULL,
+  "accountType" TEXT NOT NULL,
+  "routingNumber" TEXT NOT NULL,
+  "accountNumber" TEXT NOT NULL,
+  "createdAt" TIMESTAMP NOT NULL DEFAULT now(),
+  "updatedAt" TIMESTAMP NOT NULL DEFAULT now()
+);
+
 -- 2) Constraints
 ALTER TABLE users
   ADD CONSTRAINT chk_users_email_not_blank
@@ -159,7 +173,11 @@ ALTER TABLE "orderLogs"
 
 ALTER TABLE "orderLogs"
   ADD CONSTRAINT chk_orderlogs_side
-  CHECK (side IN ('BUY', 'SELL', 'DEPOSIT', 'WITHDRAW'));
+  CHECK (side IN ('BUY', 'SELL', 'DEPOSIT', 'WITHDRAW', 'FX'));
+
+ALTER TABLE instruments
+  ADD CONSTRAINT chk_instruments_trading_currency
+  CHECK ("tradingCurrency" IN ('USD', 'INR', 'GBP', 'EUR'));
 
 ALTER TABLE "orderLogs"
   ADD CONSTRAINT chk_orderlogs_status
@@ -217,6 +235,35 @@ ALTER TABLE preferences
   ADD CONSTRAINT uq_preferences_portfolio
   UNIQUE ("portfolioID");
 
+ALTER TABLE payment_methods
+  ADD CONSTRAINT fk_payment_methods_users
+  FOREIGN KEY ("userID") REFERENCES users("userID")
+  ON DELETE CASCADE;
+
+ALTER TABLE payment_methods
+  ADD CONSTRAINT chk_payment_methods_nickname_not_blank
+  CHECK (btrim(nickname) <> '');
+
+ALTER TABLE payment_methods
+  ADD CONSTRAINT chk_payment_methods_account_holder_name_not_blank
+  CHECK (btrim("accountHolderName") <> '');
+
+ALTER TABLE payment_methods
+  ADD CONSTRAINT chk_payment_methods_bank_name_not_blank
+  CHECK (btrim("bankName") <> '');
+
+ALTER TABLE payment_methods
+  ADD CONSTRAINT chk_payment_methods_account_type
+  CHECK ("accountType" IN ('checking', 'savings'));
+
+ALTER TABLE payment_methods
+  ADD CONSTRAINT chk_payment_methods_routing_number
+  CHECK ("routingNumber" ~ '^[0-9]{9}$');
+
+ALTER TABLE payment_methods
+  ADD CONSTRAINT chk_payment_methods_account_number
+  CHECK ("accountNumber" ~ '^[0-9]{4,17}$');
+
 -- 3) Indexes
 CREATE INDEX idx_portfolios_userid ON portfolios ("userID");
 
@@ -239,6 +286,7 @@ CREATE INDEX idx_watchlist_items_portfolioid ON watchlist_items ("portfolioID");
 CREATE INDEX idx_watchlist_items_instrumentid ON watchlist_items ("instrumentID");
 
 CREATE INDEX idx_preferences_portfolioid ON preferences ("portfolioID");
+CREATE INDEX idx_payment_methods_userid ON payment_methods ("userID");
 
 -- 4) Grants
 REVOKE ALL ON ALL TABLES IN SCHEMA public FROM PUBLIC;
@@ -254,33 +302,43 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE
   position_lots,
   lot_matches,
   watchlist_items,
-  preferences
+  preferences,
+  payment_methods
 TO jaakd_app;
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE users, sessions TO jaakd_app;
 
--- 5) Seed data
--- Seed canonical cash instrument used for cash-balance holdings projection
--- Stable lookup key: ticker = 'USD_CASH' (case-insensitive)
+-- 5) Seed Cash Instruments
+-- 5) Seed Cash Instruments (single statement, idempotent)
 INSERT INTO instruments (
   "instrumentID",
   ticker,
   market,
   name,
   "instrumentClass",
+  "tradingCurrency",
   "logoUrl",
   description
 )
 SELECT
   gen_random_uuid(),
-  'USD',
+  v.ticker,
   'INTERNAL',
-  'US Dollar Cash Balance',
+  v.name,
   'CASH',
+  v.ticker,
   NULL,
-  'Synthetic cash instrument used to represent portfolio cash balance in holdings.'
+  v.description
+FROM (
+  VALUES
+    ('USD', 'United States Dollar', 'Seeded cash instrument for USD.'),
+    ('EUR', 'Euro', 'Seeded cash instrument for EUR.'),
+    ('GBP', 'Great British Pound', 'Seeded cash instrument for GBP.'),
+    ('INR', 'Indian Rupee', 'Seeded cash instrument for INR.')
+) AS v(ticker, name, description)
 WHERE NOT EXISTS (
   SELECT 1
   FROM instruments i
-  WHERE UPPER(i.ticker) = 'USD'
+  WHERE UPPER(i.ticker) = v.ticker
 );
+
