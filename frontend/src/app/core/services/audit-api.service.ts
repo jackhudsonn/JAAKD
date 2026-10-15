@@ -18,6 +18,16 @@ export interface AuditUserSearchResponse {
   lastName: string | null;
 }
 
+export interface AuditOwnerFields {
+  ownerUserId: string | null;
+  ownerFirstName: string | null;
+  ownerLastName: string | null;
+}
+
+export interface AuditOrderLogResponse extends OrderLogResponse, AuditOwnerFields {}
+
+export interface AuditHoldingResponse extends HoldingResponse, AuditOwnerFields {}
+
 export interface PositionLotResponse {
   positionLotId?: string;
   positionLotID?: string;
@@ -69,6 +79,8 @@ export interface AuditOrderLogSearchRequest extends AuditPaging {
   ticker?: string;
   instrumentId?: string;
   instrumentType?: InstrumentClass;
+  orderId?: string;
+  latestOnly?: boolean;
 }
 
 @Injectable({
@@ -99,7 +111,7 @@ export class AuditApiService {
     );
   }
 
-  searchOrderLogs(request: AuditOrderLogSearchRequest): Promise<AuditPageResponse<OrderLogResponse>> {
+  searchOrderLogs(request: AuditOrderLogSearchRequest): Promise<AuditPageResponse<AuditOrderLogResponse>> {
     let params = new HttpParams();
 
     if (request.date?.trim()) {
@@ -134,6 +146,14 @@ export class AuditApiService {
       params = params.set('instrumentType', request.instrumentType);
     }
 
+    if (request.orderId) {
+      params = params.set('orderId', request.orderId);
+    }
+
+    if (request.latestOnly) {
+      params = params.set('latestOnly', true);
+    }
+
     if (request.page !== undefined) {
       params = params.set('page', request.page);
     }
@@ -143,7 +163,7 @@ export class AuditApiService {
     }
 
     return firstValueFrom(
-      this.httpClient.get<AuditPageResponse<OrderLogResponse>>(`${environment.apiUrl}/api/audit/order-logs`, { params }),
+      this.httpClient.get<AuditPageResponse<AuditOrderLogResponse>>(`${environment.apiUrl}/api/audit/order-logs`, { params }),
     );
   }
 
@@ -168,7 +188,7 @@ export class AuditApiService {
   listHoldings(options?:
     AuditPaging &
     { userId?: string; portfolioId?: string; instrumentId?: string }
-  ): Promise<AuditPageResponse<HoldingResponse>> {
+  ): Promise<AuditPageResponse<AuditHoldingResponse>> {
     let params = new HttpParams();
 
     if (options?.userId?.trim()) {
@@ -192,7 +212,7 @@ export class AuditApiService {
     }
 
     return firstValueFrom(
-      this.httpClient.get<AuditPageResponse<HoldingResponse>>(`${environment.apiUrl}/api/audit/holdings`, {
+      this.httpClient.get<AuditPageResponse<AuditHoldingResponse>>(`${environment.apiUrl}/api/audit/holdings`, {
         params,
       }),
     );
@@ -201,7 +221,7 @@ export class AuditApiService {
   listUserHoldings(
     userId: string,
     options?: AuditPaging & { portfolioId?: string; instrumentId?: string },
-  ): Promise<AuditPageResponse<HoldingResponse>> {
+  ): Promise<AuditPageResponse<AuditHoldingResponse>> {
     let params = new HttpParams();
 
     if (options?.portfolioId) {
@@ -221,7 +241,7 @@ export class AuditApiService {
     }
 
     return firstValueFrom(
-      this.httpClient.get<AuditPageResponse<HoldingResponse>>(`${environment.apiUrl}/api/audit/users/${userId}/holdings`, {
+      this.httpClient.get<AuditPageResponse<AuditHoldingResponse>>(`${environment.apiUrl}/api/audit/users/${userId}/holdings`, {
         params,
       }),
     );
@@ -230,7 +250,7 @@ export class AuditApiService {
   listHoldingOrderLogs(
     holdingId: string,
     options?: AuditPaging & { fromDate?: string; toDate?: string; status?: OrderStatus },
-  ): Promise<AuditPageResponse<OrderLogResponse>> {
+  ): Promise<AuditPageResponse<AuditOrderLogResponse>> {
     let params = new HttpParams();
 
     if (options?.fromDate?.trim()) {
@@ -254,7 +274,7 @@ export class AuditApiService {
     }
 
     return firstValueFrom(
-      this.httpClient.get<AuditPageResponse<OrderLogResponse>>(
+      this.httpClient.get<AuditPageResponse<AuditOrderLogResponse>>(
         `${environment.apiUrl}/api/audit/holdings/${holdingId}/order-logs`,
         { params },
       ),

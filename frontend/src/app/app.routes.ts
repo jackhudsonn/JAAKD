@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
+import { adminOrAuditorGuard } from './core/guards/admin-or-auditor.guard';
 import { ShellComponent } from './layout/shell/shell.component';
 import { AuthShellComponent } from './layout/auth-shell/auth-shell.component';
 
@@ -63,6 +64,7 @@ export const routes: Routes = [
       },
       {
         path: 'testing/auditor',
+        canActivate: [adminOrAuditorGuard],
         loadComponent: () =>
           import('./features/testing/auditor/auditor.component').then((m) => m.AuditorComponent),
       },

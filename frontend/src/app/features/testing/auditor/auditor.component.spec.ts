@@ -3,15 +3,15 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { AuditorComponent } from './auditor.component';
 import {
   AuditApiService,
+  AuditHoldingResponse,
+  AuditOrderLogResponse,
   AuditOrderLogSearchRequest,
   AuditPageResponse,
   AuditPaging,
 } from '@core/services/audit-api.service';
 import { InstrumentApiService } from '@core/services/instrument-api.service';
 import {
-  HoldingResponse,
   InstrumentResponse,
-  OrderLogResponse,
   PortfolioResponse,
 } from '@core/models/api.models';
 
@@ -33,19 +33,19 @@ describe('AuditorComponent', () => {
     searchUsers: vi.fn<(query?: string, paging?: AuditPaging) => Promise<AuditPageResponse<any>>>(
       async () => page([]),
     ),
-    searchOrderLogs: vi.fn<(request: AuditOrderLogSearchRequest) => Promise<AuditPageResponse<OrderLogResponse>>>(
+    searchOrderLogs: vi.fn<(request: AuditOrderLogSearchRequest) => Promise<AuditPageResponse<AuditOrderLogResponse>>>(
       async () => page([]),
     ),
     listUserPortfolios: vi.fn<(userId: string, paging?: AuditPaging) => Promise<AuditPageResponse<PortfolioResponse>>>(
       async () => page([]),
     ),
-    listHoldings: vi.fn<(options?: AuditPaging & { userId?: string; portfolioId?: string; instrumentId?: string }) => Promise<AuditPageResponse<HoldingResponse>>>(
+    listHoldings: vi.fn<(options?: AuditPaging & { userId?: string; portfolioId?: string; instrumentId?: string }) => Promise<AuditPageResponse<AuditHoldingResponse>>>(
       async () => page([]),
     ),
-    listUserHoldings: vi.fn<(userId: string, options?: AuditPaging & { portfolioId?: string; instrumentId?: string }) => Promise<AuditPageResponse<HoldingResponse>>>(
+    listUserHoldings: vi.fn<(userId: string, options?: AuditPaging & { portfolioId?: string; instrumentId?: string }) => Promise<AuditPageResponse<AuditHoldingResponse>>>(
       async () => page([]),
     ),
-    listHoldingOrderLogs: vi.fn<(holdingId: string, options?: AuditPaging & { fromDate?: string; toDate?: string }) => Promise<AuditPageResponse<OrderLogResponse>>>(
+    listHoldingOrderLogs: vi.fn<(holdingId: string, options?: AuditPaging & { fromDate?: string; toDate?: string }) => Promise<AuditPageResponse<AuditOrderLogResponse>>>(
       async () => page([]),
     ),
     listHoldingPositionLots: vi.fn<(holdingId: string, paging?: AuditPaging) => Promise<AuditPageResponse<any>>>(
@@ -141,6 +141,9 @@ describe('AuditorComponent', () => {
         status: 'EXECUTED',
         executionPrice: 100,
         quotedPrice: 99,
+        ownerUserId: 'user-1',
+        ownerFirstName: 'Ada',
+        ownerLastName: 'Lovelace',
       },
     ]));
     auditApiService.listHoldingPositionLots.mockResolvedValueOnce(page([
@@ -168,9 +171,9 @@ describe('AuditorComponent', () => {
 
     await component.selectHolding('holding-1');
 
-    expect(auditApiService.listHoldingOrderLogs).toHaveBeenCalledWith('holding-1', expect.objectContaining({ page: 0, size: 25 }));
-    expect(auditApiService.listHoldingPositionLots).toHaveBeenCalledWith('holding-1', { page: 0, size: 25 });
-    expect(auditApiService.listHoldingLotMatches).toHaveBeenCalledWith('holding-1', { page: 0, size: 25 });
+    expect(auditApiService.listHoldingOrderLogs).toHaveBeenCalledWith('holding-1', expect.objectContaining({ page: 0, size: 20 }));
+    expect(auditApiService.listHoldingPositionLots).toHaveBeenCalledWith('holding-1', { page: 0, size: 20 });
+    expect(auditApiService.listHoldingLotMatches).toHaveBeenCalledWith('holding-1', { page: 0, size: 20 });
     expect(component.holdingOrderLogs()).toHaveLength(1);
     expect(component.positionLots()).toHaveLength(1);
     expect(component.lotMatches()).toHaveLength(1);
@@ -190,6 +193,9 @@ describe('AuditorComponent', () => {
         status: 'SUBMITTED',
         executionPrice: 0,
         quotedPrice: 99,
+        ownerUserId: 'user-1',
+        ownerFirstName: 'Ada',
+        ownerLastName: 'Lovelace',
       },
       {
         logOrderId: 'log-2',
@@ -203,6 +209,9 @@ describe('AuditorComponent', () => {
         status: 'EXECUTED',
         executionPrice: 100,
         quotedPrice: 99,
+        ownerUserId: 'user-1',
+        ownerFirstName: 'Ada',
+        ownerLastName: 'Lovelace',
       },
     ]);
 
@@ -212,6 +221,13 @@ describe('AuditorComponent', () => {
     expect(summaries[0].orderId).toBe('order-1');
     expect(summaries[0].status).toBe('EXECUTED');
     expect(summaries[0].executionPrice).toBe(100);
+    expect(summaries[0].ownerName).toBe('Ada Lovelace');
+  });
+
+  it('formats owner names from first and last name, falling back to user id', () => {
+    expect(component.formatOwnerName({ ownerUserId: 'user-1', ownerFirstName: 'Ada', ownerLastName: 'Lovelace' })).toBe('Ada Lovelace');
+    expect(component.formatOwnerName({ ownerUserId: 'user-1', ownerFirstName: null, ownerLastName: null })).toBe('user-1');
+    expect(component.formatOwnerName({ ownerUserId: null, ownerFirstName: null, ownerLastName: null })).toBe('Unknown');
   });
 
   it('shows backend 503 diagnostic details when provided', async () => {

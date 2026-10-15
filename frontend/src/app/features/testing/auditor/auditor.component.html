@@ -112,23 +112,23 @@
           <table>
             <thead>
               <tr>
-                <th>Order ID</th>
                 <th>Status</th>
                 <th>Execution Price</th>
                 <th>Instrument</th>
                 <th>User</th>
                 <th>Updated</th>
+                <th>Order ID</th>
               </tr>
             </thead>
             <tbody>
               @for (order of orderSummaries(); track order.orderId) {
                 <tr class="clickable" (click)="selectOrder(order.orderId)">
-                  <td>{{ order.orderId }}</td>
                   <td>{{ order.status }}</td>
                   <td>{{ order.executionPrice }}</td>
                   <td>{{ getInstrumentName(order.instrumentId) }}</td>
-                  <td>{{ order.userId ?? 'All users' }}</td>
+                  <td>{{ order.ownerName }}</td>
                   <td>{{ order.timestamp | date: 'short' }}</td>
+                  <td>{{ order.orderId }}</td>
                 </tr>
               } @empty {
                 <tr>
@@ -153,23 +153,23 @@
           <table>
             <thead>
               <tr>
-                <th>ID</th>
                 <th>Value</th>
                 <th>PnL</th>
                 <th>Instrument</th>
                 <th>User</th>
                 <th>Updated</th>
+                <th>ID</th>
               </tr>
             </thead>
             <tbody>
               @for (holding of holdings(); track holding.holdingID) {
                 <tr class="clickable" (click)="selectHolding(holding.holdingID)">
-                  <td>{{ holding.holdingID }}</td>
                   <td>{{ holding.currentQuantity }}</td>
                   <td>{{ holding.cumulativeRealizedPnl }}</td>
                   <td>{{ getInstrumentName(holding.instrumentID) }}</td>
-                  <td>{{ getHoldingDisplayUser(holding) }}</td>
+                  <td>{{ formatOwnerName(holding) }}</td>
                   <td>{{ holding.updatedAt | date: 'short' }}</td>
+                  <td>{{ holding.holdingID }}</td>
                 </tr>
               } @empty {
                 <tr>
@@ -197,27 +197,27 @@
         <table>
           <thead>
             <tr>
-              <th>Log ID</th>
               <th>Status</th>
               <th>Side</th>
               <th>Qty</th>
               <th>Execution Price</th>
               <th>Timestamp</th>
+              <th>Log ID</th>
             </tr>
           </thead>
           <tbody>
             @for (row of selectedOrderLogs(); track row.logOrderId) {
               <tr>
-                <td>{{ row.logOrderId }}</td>
                 <td>{{ row.status }}</td>
                 <td>{{ row.side }}</td>
                 <td>{{ row.quantity }}</td>
                 <td>{{ row.executionPrice }}</td>
                 <td>{{ row.timestamp | date: 'short' }}</td>
+                <td>{{ row.logOrderId }}</td>
               </tr>
             } @empty {
               <tr>
-                <td colspan="6" class="muted">No log rows available on this page for the selected order.</td>
+                <td colspan="6" class="muted">No log rows found for the selected order.</td>
               </tr>
             }
           </tbody>
@@ -238,19 +238,19 @@
             <table>
               <thead>
                 <tr>
-                  <th>Log ID</th>
                   <th>Status</th>
                   <th>Price</th>
                   <th>At</th>
+                  <th>Log ID</th>
                 </tr>
               </thead>
               <tbody>
                 @for (row of holdingOrderLogs(); track row.logOrderId) {
                   <tr>
-                    <td>{{ row.logOrderId }}</td>
                     <td>{{ row.status }}</td>
                     <td>{{ row.executionPrice }}</td>
                     <td>{{ row.timestamp | date: 'short' }}</td>
+                    <td>{{ row.logOrderId }}</td>
                   </tr>
                 } @empty {
                   <tr>
@@ -268,19 +268,19 @@
             <table>
               <thead>
                 <tr>
-                  <th>ID</th>
                   <th>Unit Cost</th>
                   <th>Remain Qty</th>
                   <th>Opened</th>
+                  <th>ID</th>
                 </tr>
               </thead>
               <tbody>
                 @for (lot of positionLots(); track getPositionLotId(lot)) {
                   <tr>
-                    <td>{{ getPositionLotId(lot) }}</td>
                     <td>{{ lot.unitCost }}</td>
                     <td>{{ lot.remainingQuantity }}</td>
                     <td>{{ lot.openedAt | date: 'short' }}</td>
+                    <td>{{ getPositionLotId(lot) }}</td>
                   </tr>
                 } @empty {
                   <tr>
@@ -298,19 +298,19 @@
             <table>
               <thead>
                 <tr>
-                  <th>ID</th>
                   <th>Matched Qty</th>
                   <th>Realized PnL</th>
                   <th>Matched</th>
+                  <th>ID</th>
                 </tr>
               </thead>
               <tbody>
                 @for (match of lotMatches(); track getLotMatchId(match)) {
                   <tr>
-                    <td>{{ getLotMatchId(match) }}</td>
                     <td>{{ match.matchedQuantity }}</td>
                     <td>{{ match.realizedPnlAmount ?? match.realizedPnl ?? '-' }}</td>
                     <td>{{ match.matchedAt | date: 'short' }}</td>
+                    <td>{{ getLotMatchId(match) }}</td>
                   </tr>
                 } @empty {
                   <tr>

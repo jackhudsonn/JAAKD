@@ -3,14 +3,15 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
-  HoldingResponse,
   InstrumentResponse,
-  OrderLogResponse,
   OrderStatus,
   PortfolioResponse,
 } from '@core/models/api.models';
 import {
   AuditApiService,
+  AuditHoldingResponse,
+  AuditOrderLogResponse,
+  AuditOwnerFields,
   AuditUserSearchResponse,
   LotMatchResponse,
   PositionLotResponse,
@@ -23,7 +24,7 @@ interface OrderSummary {
   timestamp: string;
   executionPrice: number;
   instrumentId: string;
-  userId: string | null;
+  ownerName: string;
 }
 
 interface RequestDiagnostics {
@@ -51,18 +52,18 @@ export class AuditorComponent {
   private readonly auditApi = inject(AuditApiService);
   private readonly instrumentApi = inject(InstrumentApiService);
 
-  readonly pageSize = 25;
+  readonly pageSize = 20;
 
   readonly users = signal<AuditUserSearchResponse[]>([]);
   readonly instruments = signal<InstrumentResponse[]>([]);
   readonly portfolios = signal<PortfolioResponse[]>([]);
-  readonly holdings = signal<HoldingResponse[]>([]);
-  readonly orderRows = signal<OrderLogResponse[]>([]);
+  readonly holdings = signal<AuditHoldingResponse[]>([]);
+  readonly orderRows = signal<AuditOrderLogResponse[]>([]);
 
   readonly positionLots = signal<PositionLotResponse[]>([]);
   readonly lotMatches = signal<LotMatchResponse[]>([]);
-  readonly holdingOrderLogs = signal<OrderLogResponse[]>([]);
-  readonly selectedOrderLogs = signal<OrderLogResponse[]>([]);
+  readonly holdingOrderLogs = signal<AuditOrderLogResponse[]>([]);
+  readonly selectedOrderLogs = signal<AuditOrderLogResponse[]>([]);
 
   readonly userInput = signal('');
   readonly instrumentInput = signal('');
@@ -106,7 +107,7 @@ export class AuditorComponent {
   })));
 
   readonly orderSummaries = computed<OrderSummary[]>(() => {
-    const grouped = new Map<string, OrderLogResponse[]>();
+    const grouped = new Map<string, AuditOrderLogResponse[]>();
     for (const row of this.orderRows()) {
       const rows = grouped.get(row.orderId) ?? [];
       rows.push(row);
@@ -125,7 +126,7 @@ export class AuditorComponent {
           timestamp: latest.timestamp,
           executionPrice: latest.executionPrice,
           instrumentId: latest.instrumentId,
-          userId: this.selectedUserId(),
+          ownerName: this.formatOwnerName(latest),
         };
       })
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
@@ -199,6 +200,7 @@ export class AuditorComponent {
           fromDate: this.fromDate() || undefined,
           toDate: this.toDate() || undefined,
           instrumentId: this.selectedInstrumentId() ?? undefined,
+          latestOnly: true,
           page: this.ordersPage(),
           size: this.pageSize,
         }),
@@ -266,12 +268,19 @@ export class AuditorComponent {
     await this.refreshSummaries();
   }
 
-  selectOrder(orderId: string) {
+  async selectOrder(orderId: string) {
     this.selectedOrderId.set(orderId);
-    const rows = this.orderRows()
-      .filter((row) => row.orderId === orderId)
-      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-    this.selectedOrderLogs.set(rows);
+    this.selectedOrderLogs.set([]);
+
+    // Summary rows only carry the latest log per order, so fetch the full lifecycle.
+    try {
+      const result = await this.auditApi.searchOrderLogs({ orderId, page: 0, size: 100 });
+      const rows = [...result.content]
+        .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+      this.selectedOrderLogs.set(rows);
+    } catch (error) {
+      this.handleError(error, 'Failed to load order lifecycle logs.');
+    }
   }
 
   async selectHolding(holdingId: string) {
@@ -337,8 +346,9 @@ export class AuditorComponent {
     return instrument ? `${instrument.ticker} (${instrument.name})` : instrumentId;
   }
 
-  getHoldingDisplayUser(_holding: HoldingResponse): string {
-    return this.selectedUserId() ?? 'All users';
+  formatOwnerName(owner: AuditOwnerFields): string {
+    const fullName = `${owner.ownerFirstName ?? ''} ${owner.ownerLastName ?? ''}`.trim();
+    return fullName || owner.ownerUserId || 'Unknown';
   }
 
   formatInstrumentOption(instrument: InstrumentResponse): string {

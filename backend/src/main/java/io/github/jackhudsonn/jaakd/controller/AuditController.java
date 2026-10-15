@@ -1,12 +1,12 @@
 package io.github.jackhudsonn.jaakd.controller;
 
+import io.github.jackhudsonn.jaakd.dto.AuditHoldingResponse;
+import io.github.jackhudsonn.jaakd.dto.AuditOrderLogResponse;
 import io.github.jackhudsonn.jaakd.dto.AuditPageResponse;
 import io.github.jackhudsonn.jaakd.dto.AuditUserSearchResponse;
 import io.github.jackhudsonn.jaakd.dto.LotMatchResponse;
-import io.github.jackhudsonn.jaakd.dto.OrderLogResponse;
 import io.github.jackhudsonn.jaakd.dto.PortfolioResponse;
 import io.github.jackhudsonn.jaakd.dto.PositionLotResponse;
-import io.github.jackhudsonn.jaakd.model.Holding;
 import io.github.jackhudsonn.jaakd.model.InstrumentClass;
 import io.github.jackhudsonn.jaakd.model.OrderStatus;
 import io.github.jackhudsonn.jaakd.service.AuditService;
@@ -43,7 +43,7 @@ public class AuditController {
 
     @GetMapping("/order-logs")
     @ResponseStatus(HttpStatus.OK)
-    public AuditPageResponse<OrderLogResponse> searchOrderLogs(
+    public AuditPageResponse<AuditOrderLogResponse> searchOrderLogs(
         @RequestParam(required = false) UUID userId,
         @RequestParam(required = false) LocalDate date,
         @RequestParam(required = false) LocalDate fromDate,
@@ -52,10 +52,14 @@ public class AuditController {
         @RequestParam(required = false) String ticker,
         @RequestParam(required = false) UUID instrumentId,
         @RequestParam(required = false) InstrumentClass instrumentType,
+        @RequestParam(required = false) UUID orderId,
+        @RequestParam(required = false) Boolean latestOnly,
         @RequestParam(required = false) Integer page,
         @RequestParam(required = false) Integer size
     ) {
-        return auditService.searchOrderLogs(userId, date, fromDate, toDate, status, ticker, instrumentId, instrumentType, page, size);
+        return auditService.searchOrderLogs(
+            userId, date, fromDate, toDate, status, ticker, instrumentId, instrumentType, orderId, latestOnly, page, size
+        );
     }
 
     @GetMapping("/users/{userId}/portfolios")
@@ -70,7 +74,7 @@ public class AuditController {
 
     @GetMapping("/holdings")
     @ResponseStatus(HttpStatus.OK)
-    public AuditPageResponse<Holding> getHoldings(
+    public AuditPageResponse<AuditHoldingResponse> getHoldings(
         @RequestParam(required = false) UUID userId,
         @RequestParam(required = false) UUID portfolioId,
         @RequestParam(required = false) UUID instrumentId,
@@ -82,7 +86,7 @@ public class AuditController {
 
     @GetMapping("/users/{userId}/holdings")
     @ResponseStatus(HttpStatus.OK)
-    public AuditPageResponse<Holding> getUserHoldings(
+    public AuditPageResponse<AuditHoldingResponse> getUserHoldings(
         @PathVariable UUID userId,
         @RequestParam(required = false) UUID portfolioId,
         @RequestParam(required = false) UUID instrumentId,
@@ -94,7 +98,7 @@ public class AuditController {
 
     @GetMapping("/holdings/{holdingId}/order-logs")
     @ResponseStatus(HttpStatus.OK)
-    public AuditPageResponse<OrderLogResponse> getHoldingOrderLogs(
+    public AuditPageResponse<AuditOrderLogResponse> getHoldingOrderLogs(
         @PathVariable UUID holdingId,
         @RequestParam(required = false) LocalDate fromDate,
         @RequestParam(required = false) LocalDate toDate,

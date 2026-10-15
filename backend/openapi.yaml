@@ -1249,7 +1249,7 @@ paths:
         - end = next day at 00:00 (exclusive)
         `fromDate` and `toDate` define an optional inclusive date range.
         If provided, date range takes precedence over `date`.
-        Optional filters: userId, status, ticker, instrumentId, instrumentType.
+        Optional filters: userId, status, ticker, instrumentId, instrumentType, orderId, latestOnly.
       operationId: searchAuditOrderLogs
       parameters:
         - name: userId
@@ -1298,6 +1298,18 @@ paths:
           required: false
           schema:
             $ref: "#/components/schemas/InstrumentClass"
+        - name: orderId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: latestOnly
+          in: query
+          required: false
+          description: When true, return only the most recent log row per order (one row per order).
+          schema:
+            type: boolean
         - name: page
           in: query
           required: false
@@ -2049,13 +2061,35 @@ components:
         hasNext:
           type: boolean
 
+    AuditOwnerFields:
+      type: object
+      description: Owner of the portfolio a row belongs to (portfolio -> profile).
+      properties:
+        ownerUserId:
+          type: [string, "null"]
+          format: uuid
+        ownerFirstName:
+          type: [string, "null"]
+        ownerLastName:
+          type: [string, "null"]
+
+    AuditOrderLogResponse:
+      allOf:
+        - $ref: "#/components/schemas/OrderLogResponse"
+        - $ref: "#/components/schemas/AuditOwnerFields"
+
+    AuditHoldingResponse:
+      allOf:
+        - $ref: "#/components/schemas/HoldingResponse"
+        - $ref: "#/components/schemas/AuditOwnerFields"
+
     AuditOrderLogPageResponse:
       type: object
       properties:
         content:
           type: array
           items:
-            $ref: "#/components/schemas/OrderLogResponse"
+            $ref: "#/components/schemas/AuditOrderLogResponse"
         page:
           type: integer
         size:
@@ -2093,7 +2127,7 @@ components:
         content:
           type: array
           items:
-            $ref: "#/components/schemas/HoldingResponse"
+            $ref: "#/components/schemas/AuditHoldingResponse"
         page:
           type: integer
         size:

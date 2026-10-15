@@ -39,9 +39,19 @@
   border: 1px solid var(--quaternary-bg-border);
   border-radius: 0.6rem;
   padding: 0.75rem;
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 0.6rem;
   background: rgba(0, 0, 0, 0.22);
+}
+
+.subpanel > * {
+  margin-block: 0;
+}
+
+/* Keeps pagination pinned to the bottom when sibling cards are taller. */
+.subpanel > .button-row:last-child {
+  margin-top: auto;
 }
 
 .panel-help {

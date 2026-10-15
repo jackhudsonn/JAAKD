@@ -21,9 +21,11 @@
         Lifecycle Lab
       </a>
 
-      <a routerLink="/testing/auditor" routerLinkActive="active" (click)="closeMenus()">
-        Auditor Lab
-      </a>
+      @if (canAccessAuditor) {
+        <a routerLink="/testing/auditor" routerLinkActive="active" (click)="closeMenus()">
+          Auditor Lab
+        </a>
+      }
 
       <div class="menu-wrapper">
         <button
@@ -71,14 +73,16 @@
               Lifecycle Lab
             </a>
 
-            <a
-              routerLink="/testing/auditor"
-              routerLinkActive="active"
-              role="menuitem"
-              (click)="closeMenu()"
-            >
-              Auditor Lab
-            </a>
+            @if (canAccessAuditor) {
+              <a
+                routerLink="/testing/auditor"
+                routerLinkActive="active"
+                role="menuitem"
+                (click)="closeMenu()"
+              >
+                Auditor Lab
+              </a>
+            }
           </div>
         }
       </div>
@@ -179,14 +183,16 @@
           Lifecycle Lab
         </a>
 
-        <a
-          routerLink="/testing/auditor"
-          routerLinkActive="active"
-          role="menuitem"
-          (click)="closeMenus()"
-        >
-          Auditor Lab
-        </a>
+        @if (canAccessAuditor) {
+          <a
+            routerLink="/testing/auditor"
+            routerLinkActive="active"
+            role="menuitem"
+            (click)="closeMenus()"
+          >
+            Auditor Lab
+          </a>
+        }
       </div>
     }
   </header>
