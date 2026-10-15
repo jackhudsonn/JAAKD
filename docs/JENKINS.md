@@ -68,6 +68,11 @@ In **Manage Jenkins -> System -> SonarQube servers**:
 1. Name the server `SonarQube`.
 2. Set authentication token credential to `sonar_secret`.
 
+### Notes
+
+- SonarQube Scanner will pause the pipeline and prompt you to check the dashboard before proceeding via the ssh tunnel.
+- Dev Deployment will pause the pipeline and prompt you to set up the frontend ssh tunnel to access the frontend in Windows.
+
 ## Production
 
 _TODO: Add production Jenkins/SonarQube setup steps._
