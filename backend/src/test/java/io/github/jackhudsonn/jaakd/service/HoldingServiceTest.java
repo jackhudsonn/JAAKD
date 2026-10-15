@@ -141,7 +141,6 @@ class HoldingServiceTest {
 
     @Test
     void convertCash_directPairRate_updatesBalancesAndReturnsSummary() throws Exception {
-        UUID userId = UUID.randomUUID();
         UUID portfolioId = UUID.randomUUID();
         UUID eurInstrumentId = UUID.randomUUID();
         UUID usdInstrumentId = UUID.randomUUID();
@@ -166,7 +165,6 @@ class HoldingServiceTest {
             "rebalance"
         );
 
-        when(currentUserService.getUserId()).thenReturn(userId);
         when(portfolioService.getCurrentUserPortfolioById(portfolioId)).thenReturn(portfolio);
         when(instrumentRepository.findByTickerIgnoreCaseAndInstrumentClass("EUR", InstrumentClass.CASH))
             .thenReturn(Optional.of(eurCash));
@@ -201,7 +199,6 @@ class HoldingServiceTest {
 
     @Test
     void convertCash_directRateUnavailable_usesInverseRate() throws Exception {
-        UUID userId = UUID.randomUUID();
         UUID portfolioId = UUID.randomUUID();
         UUID gbpInstrumentId = UUID.randomUUID();
         UUID eurInstrumentId = UUID.randomUUID();
@@ -226,7 +223,6 @@ class HoldingServiceTest {
             null
         );
 
-        when(currentUserService.getUserId()).thenReturn(userId);
         when(portfolioService.getCurrentUserPortfolioById(portfolioId)).thenReturn(portfolio);
         when(instrumentRepository.findByTickerIgnoreCaseAndInstrumentClass("GBP", InstrumentClass.CASH))
             .thenReturn(Optional.of(gbpCash));
@@ -262,7 +258,6 @@ class HoldingServiceTest {
 
     @Test
     void convertCash_insufficientSourceBalance_throws() throws Exception {
-        UUID userId = UUID.randomUUID();
         UUID portfolioId = UUID.randomUUID();
         UUID usdInstrumentId = UUID.randomUUID();
         UUID eurInstrumentId = UUID.randomUUID();
@@ -285,7 +280,6 @@ class HoldingServiceTest {
             null
         );
 
-        when(currentUserService.getUserId()).thenReturn(userId);
         when(portfolioService.getCurrentUserPortfolioById(portfolioId)).thenReturn(portfolio);
         when(instrumentRepository.findByTickerIgnoreCaseAndInstrumentClass("USD", InstrumentClass.CASH))
             .thenReturn(Optional.of(usdCash));
