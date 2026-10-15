@@ -78,20 +78,19 @@ export class AddMethodCardComponent {
         accountNumber: accountDigits,
         routingNumber: routingDigits,
       });
+
+      this.bankNickname = '';
+      this.bankAccountHolderName = '';
+      this.bankName = '';
+      this.bankRoutingNumber = '';
+      this.bankAccountNumber = '';
+      this.bankAccountType = 'checking';
+      this.statusMessage.set('Bank account added.');
     } catch (error) {
       this.formError.set(error instanceof Error ? error.message : 'Unable to add payment method.');
-      return;
-    } finally {
-      this.submitting.set(false);
     }
-
-    this.bankNickname = '';
-    this.bankAccountHolderName = '';
-    this.bankName = '';
-    this.bankRoutingNumber = '';
-    this.bankAccountNumber = '';
-    this.bankAccountType = 'checking';
-    this.statusMessage.set('Bank account added.');
+    
+    this.submitting.set(false);
   }
 
   showSavedMethods() {
