@@ -43,6 +43,10 @@ export interface OrderLogResponse {
   quotedPrice: number | null;
 }
 
+export interface OrderLogListResponse {
+  orderLogs: OrderLogResponse[];
+}
+
 export interface CreateOrderLogRequest {
   orderId: string;
   portfolioId: string;

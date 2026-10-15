@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS instruments (
   market TEXT NOT NULL,
   name TEXT NOT NULL,
   "instrumentClass" TEXT NOT NULL,
+  "tradingCurrency" TEXT NOT NULL,
   "logoUrl" TEXT,
   description TEXT
 );
@@ -159,7 +160,11 @@ ALTER TABLE "orderLogs"
 
 ALTER TABLE "orderLogs"
   ADD CONSTRAINT chk_orderlogs_side
-  CHECK (side IN ('BUY', 'SELL', 'DEPOSIT', 'WITHDRAW'));
+  CHECK (side IN ('BUY', 'SELL', 'DEPOSIT', 'WITHDRAW', 'FX'));
+
+ALTER TABLE instruments
+  ADD CONSTRAINT chk_instruments_trading_currency
+  CHECK ("tradingCurrency" IN ('USD', 'INR', 'GBP', 'EUR'));
 
 ALTER TABLE "orderLogs"
   ADD CONSTRAINT chk_orderlogs_status
@@ -259,28 +264,37 @@ TO jaakd_app;
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE users, sessions TO jaakd_app;
 
--- 5) Seed data
--- Seed canonical cash instrument used for cash-balance holdings projection
--- Stable lookup key: ticker = 'USD_CASH' (case-insensitive)
+-- 5) Seed Cash Instruments
+-- 5) Seed Cash Instruments (single statement, idempotent)
 INSERT INTO instruments (
   "instrumentID",
   ticker,
   market,
   name,
   "instrumentClass",
+  "tradingCurrency",
   "logoUrl",
   description
 )
 SELECT
   gen_random_uuid(),
-  'USD',
+  v.ticker,
   'INTERNAL',
-  'US Dollar Cash Balance',
+  v.name,
   'CASH',
+  v.ticker,
   NULL,
-  'Synthetic cash instrument used to represent portfolio cash balance in holdings.'
+  v.description
+FROM (
+  VALUES
+    ('USD', 'United States Dollar', 'Seeded cash instrument for USD.'),
+    ('EUR', 'Euro', 'Seeded cash instrument for EUR.'),
+    ('GBP', 'Great British Pound', 'Seeded cash instrument for GBP.'),
+    ('INR', 'Indian Rupee', 'Seeded cash instrument for INR.')
+) AS v(ticker, name, description)
 WHERE NOT EXISTS (
   SELECT 1
   FROM instruments i
-  WHERE UPPER(i.ticker) = 'USD'
+  WHERE UPPER(i.ticker) = v.ticker
 );
+

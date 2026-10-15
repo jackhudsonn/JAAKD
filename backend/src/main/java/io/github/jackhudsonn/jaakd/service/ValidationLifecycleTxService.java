@@ -30,4 +30,9 @@ public class ValidationLifecycleTxService {
     public OrderLog appendRejected(UUID orderId, UUID sourceLogOrderId, String reason) {
         return orderLogService.appendRejectedFromSystem(orderId, sourceLogOrderId, reason);
     }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public OrderLog appendRejected(UUID orderId, UUID sourceLogOrderId, String reason, String rejectionMetadataDetails) {
+        return orderLogService.appendRejectedFromSystem(orderId, sourceLogOrderId, reason, rejectionMetadataDetails);
+    }
 }
