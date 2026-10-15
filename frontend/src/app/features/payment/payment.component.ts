@@ -1,19 +1,22 @@
-import { Component, signal } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { AddMethodCardComponent } from './cards/add-method/add-method-card.component';
-import { SavedMethodsCardComponent } from './cards/saved-methods/saved-methods-card.component';
-import { StoredPaymentMethodType } from './services/payment-methods.store';
+import { PaymentMethodsStore } from './services/payment-methods.store';
 
 @Component({
   selector: 'app-payment',
   standalone: true,
-  imports: [AddMethodCardComponent, SavedMethodsCardComponent],
+  imports: [AddMethodCardComponent],
   templateUrl: './payment.component.html',
   styleUrl: './payment.component.css',
 })
 export class PaymentComponent {
-  activeType = signal<StoredPaymentMethodType>('bank');
+  private readonly paymentMethodsStore = inject(PaymentMethodsStore);
 
-  setType(type: StoredPaymentMethodType) {
-    this.activeType.set(type);
+  readonly loadState = this.paymentMethodsStore.loadState;
+  readonly loadError = this.paymentMethodsStore.loadError;
+  readonly loadFailed = computed(() => this.loadState() === 'error');
+
+  constructor() {
+    void this.paymentMethodsStore.load();
   }
 }
