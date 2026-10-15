@@ -1,9 +1,10 @@
 package io.github.jackhudsonn.jaakd.service;
 
+import io.github.jackhudsonn.jaakd.dto.AuditHoldingResponse;
+import io.github.jackhudsonn.jaakd.dto.AuditOrderLogResponse;
 import io.github.jackhudsonn.jaakd.dto.AuditPageResponse;
 import io.github.jackhudsonn.jaakd.dto.AuditUserSearchResponse;
 import io.github.jackhudsonn.jaakd.dto.LotMatchResponse;
-import io.github.jackhudsonn.jaakd.dto.OrderLogResponse;
 import io.github.jackhudsonn.jaakd.dto.PortfolioResponse;
 import io.github.jackhudsonn.jaakd.dto.PositionLotResponse;
 import io.github.jackhudsonn.jaakd.exception.HoldingNotFoundException;
@@ -15,6 +16,7 @@ import io.github.jackhudsonn.jaakd.model.OrderLog;
 import io.github.jackhudsonn.jaakd.model.OrderStatus;
 import io.github.jackhudsonn.jaakd.model.Portfolio;
 import io.github.jackhudsonn.jaakd.model.PositionLot;
+import io.github.jackhudsonn.jaakd.model.Profile;
 import io.github.jackhudsonn.jaakd.repository.HoldingRepository;
 import io.github.jackhudsonn.jaakd.repository.LotMatchRepository;
 import io.github.jackhudsonn.jaakd.repository.OrderLogRepository;
@@ -31,6 +33,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -89,7 +93,7 @@ public class AuditService {
             )));
     }
 
-    public AuditPageResponse<OrderLogResponse> searchOrderLogs(
+    public AuditPageResponse<AuditOrderLogResponse> searchOrderLogs(
         UUID userId,
         LocalDate date,
         LocalDate fromDate,
@@ -98,6 +102,8 @@ public class AuditService {
         String ticker,
         UUID instrumentId,
         InstrumentClass instrumentType,
+        UUID orderId,
+        Boolean latestOnly,
         Integer page,
         Integer size
     ) {
@@ -128,7 +134,9 @@ public class AuditService {
             status,
             normalizedTicker,
             instrumentId,
-            instrumentType
+            instrumentType,
+            orderId,
+            Boolean.TRUE.equals(latestOnly)
         );
 
         Page<OrderLog> rows = orderLogRepository.findAll(specification, pageable);
@@ -149,7 +157,7 @@ public class AuditService {
         return AuditPageResponse.from(rows.map(row -> new PortfolioResponse(row.getPortfolioId(), row.getPortfolioName())));
     }
 
-    public AuditPageResponse<Holding> getHoldings(
+    public AuditPageResponse<AuditHoldingResponse> getHoldings(
         UUID userId,
         UUID portfolioId,
         UUID instrumentId,
@@ -164,10 +172,16 @@ public class AuditService {
 
         Pageable pageable = PageRequest.of(resolvedPage, resolvedSize);
         Page<Holding> rows = holdingRepository.findByAuditOptionalFilters(userId, portfolioId, instrumentId, pageable);
-        return AuditPageResponse.from(rows);
+
+        // Holding only stores the portfolio ID, so resolve owners for the whole page in one lookup.
+        List<UUID> portfolioIds = rows.getContent().stream().map(Holding::getPortfolioID).distinct().toList();
+        Map<UUID, Profile> ownersByPortfolioId = portfolioRepository.findAllById(portfolioIds).stream()
+            .collect(Collectors.toMap(Portfolio::getPortfolioId, Portfolio::getProfile));
+
+        return AuditPageResponse.from(rows.map(row -> toHoldingResponse(row, ownersByPortfolioId.get(row.getPortfolioID()))));
     }
 
-    public AuditPageResponse<Holding> getUserHoldings(
+    public AuditPageResponse<AuditHoldingResponse> getUserHoldings(
         UUID userId,
         UUID portfolioId,
         UUID instrumentId,
@@ -178,7 +192,7 @@ public class AuditService {
         return getHoldings(userId, portfolioId, instrumentId, page, size);
     }
 
-    public AuditPageResponse<OrderLogResponse> getHoldingOrderLogs(
+    public AuditPageResponse<AuditOrderLogResponse> getHoldingOrderLogs(
         UUID holdingId,
         LocalDate fromDate,
         LocalDate toDate,
@@ -312,12 +326,35 @@ public class AuditService {
         OrderStatus status,
         String ticker,
         UUID instrumentId,
-        InstrumentClass instrumentType
+        InstrumentClass instrumentType,
+        UUID orderId,
+        boolean latestOnly
     ) {
         return (root, query, cb) -> {
             List<jakarta.persistence.criteria.Predicate> predicates = new ArrayList<>();
             var portfolioJoin = root.join("portfolio");
             var instrumentJoin = root.join("instrument");
+
+            if (orderId != null) {
+                predicates.add(cb.equal(root.get("orderID"), orderId));
+            }
+
+            if (latestOnly) {
+                // One row per order: exclude any log that has a newer log for the same order.
+                var newer = query.subquery(UUID.class);
+                var other = newer.from(OrderLog.class);
+                newer.select(other.get("logOrderID")).where(
+                    cb.equal(other.get("orderID"), root.get("orderID")),
+                    cb.or(
+                        cb.greaterThan(other.<LocalDateTime>get("timestamp"), root.<LocalDateTime>get("timestamp")),
+                        cb.and(
+                            cb.equal(other.get("timestamp"), root.get("timestamp")),
+                            cb.greaterThan(other.<UUID>get("logOrderID"), root.<UUID>get("logOrderID"))
+                        )
+                    )
+                );
+                predicates.add(cb.not(cb.exists(newer)));
+            }
 
             if (start != null) {
                 predicates.add(cb.greaterThanOrEqualTo(root.get("timestamp"), start));
@@ -382,8 +419,9 @@ public class AuditService {
         };
     }
 
-    private OrderLogResponse toOrderLogResponse(OrderLog orderLog) {
-        return new OrderLogResponse(
+    private AuditOrderLogResponse toOrderLogResponse(OrderLog orderLog) {
+        Profile owner = orderLog.getPortfolio().getProfile();
+        return new AuditOrderLogResponse(
             orderLog.getLogOrderID(),
             orderLog.getOrderId(),
             orderLog.getPortfolio().getPortfolioId(),
@@ -394,7 +432,24 @@ public class AuditService {
             orderLog.getMetadata(),
             orderLog.getStatus(),
             orderLog.getExecutionPrice(),
-            orderLog.getQuotedPrice()
+            orderLog.getQuotedPrice(),
+            owner.getUserId(),
+            owner.getFirstName(),
+            owner.getLastName()
+        );
+    }
+
+    private AuditHoldingResponse toHoldingResponse(Holding holding, Profile owner) {
+        return new AuditHoldingResponse(
+            holding.getHoldingID(),
+            holding.getPortfolioID(),
+            holding.getInstrumentID(),
+            holding.getCurrentQuantity(),
+            holding.getCumulativeRealizedPnl(),
+            holding.getUpdatedAt(),
+            owner == null ? null : owner.getUserId(),
+            owner == null ? null : owner.getFirstName(),
+            owner == null ? null : owner.getLastName()
         );
     }
 

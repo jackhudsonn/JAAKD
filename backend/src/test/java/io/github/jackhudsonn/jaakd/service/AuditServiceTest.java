@@ -2,7 +2,8 @@ package io.github.jackhudsonn.jaakd.service;
 
 import io.github.jackhudsonn.jaakd.dto.AuditPageResponse;
 import io.github.jackhudsonn.jaakd.dto.AuditUserSearchResponse;
-import io.github.jackhudsonn.jaakd.dto.OrderLogResponse;
+import io.github.jackhudsonn.jaakd.dto.AuditHoldingResponse;
+import io.github.jackhudsonn.jaakd.dto.AuditOrderLogResponse;
 import io.github.jackhudsonn.jaakd.exception.ValidationException;
 import io.github.jackhudsonn.jaakd.model.Holding;
 import io.github.jackhudsonn.jaakd.model.Instrument;
@@ -168,7 +169,7 @@ class AuditServiceTest {
         when(orderLogRepository.findAll(any(Specification.class), any(Pageable.class)))
             .thenReturn(new PageImpl<>(List.of(row)));
 
-        AuditPageResponse<OrderLogResponse> result = auditService.searchOrderLogs(
+        AuditPageResponse<AuditOrderLogResponse> result = auditService.searchOrderLogs(
             userId,
             date,
             null,
@@ -177,6 +178,8 @@ class AuditServiceTest {
             " AAPL ",
             instrumentId,
             InstrumentClass.EQUITY,
+            null,
+            null,
             null,
             null
         );
@@ -196,6 +199,8 @@ class AuditServiceTest {
         assertEquals(portfolioId, result.content().get(0).portfolioId());
         assertEquals(instrumentId, result.content().get(0).instrumentId());
         assertEquals(OrderStatus.EXECUTED, result.content().get(0).status());
+        assertEquals("Ada", result.content().get(0).ownerFirstName());
+        assertEquals("Lovelace", result.content().get(0).ownerLastName());
     }
 
     @Test
@@ -204,7 +209,7 @@ class AuditServiceTest {
         when(orderLogRepository.findAll(any(Specification.class), any(Pageable.class)))
             .thenReturn(new PageImpl<>(List.of()));
 
-        auditService.searchOrderLogs(null, date, null, null, null, "   ", null, null, 1, 10);
+        auditService.searchOrderLogs(null, date, null, null, null, "   ", null, null, null, null, 1, 10);
 
         verify(orderLogRepository, times(1)).findAll(any(Specification.class), any(Pageable.class));
     }
@@ -214,7 +219,7 @@ class AuditServiceTest {
         when(orderLogRepository.findAll(any(Specification.class), any(Pageable.class)))
             .thenReturn(new PageImpl<>(List.of()));
 
-        auditService.searchOrderLogs(null, null, null, null, null, null, null, null, 0, 25);
+        auditService.searchOrderLogs(null, null, null, null, null, null, null, null, null, null, 0, 25);
 
         verify(privilegedAccessService, times(1)).ensureAdminOrAuditor();
         verify(orderLogRepository, times(1)).findAll(
@@ -229,7 +234,7 @@ class AuditServiceTest {
 
         assertThrows(
             ValidationException.class,
-            () -> auditService.searchOrderLogs(null, date, null, null, null, null, null, null, -1, 25)
+            () -> auditService.searchOrderLogs(null, date, null, null, null, null, null, null, null, null, -1, 25)
         );
 
         verify(orderLogRepository, never()).findAll(any(Specification.class), any(Pageable.class));
@@ -241,7 +246,7 @@ class AuditServiceTest {
 
         assertThrows(
             ValidationException.class,
-            () -> auditService.searchOrderLogs(null, date, null, null, null, null, null, null, 0, 101)
+            () -> auditService.searchOrderLogs(null, date, null, null, null, null, null, null, null, null, 0, 101)
         );
 
         verify(orderLogRepository, never()).findAll(any(Specification.class), any(Pageable.class));
@@ -278,12 +283,42 @@ class AuditServiceTest {
 
         when(holdingRepository.findByAuditOptionalFilters(eq(userId), eq(portfolioId), eq(null), any(Pageable.class)))
             .thenReturn(new PageImpl<>(List.of(holding)));
+        when(portfolioRepository.findAllById(List.of(portfolioId)))
+            .thenReturn(List.of(portfolio(portfolioId, userId, "Ada", "Lovelace")));
 
-        AuditPageResponse<Holding> result = auditService.getUserHoldings(userId, portfolioId, null, 1, 10);
+        AuditPageResponse<AuditHoldingResponse> result = auditService.getUserHoldings(userId, portfolioId, null, 1, 10);
 
         verify(privilegedAccessService, times(1)).ensureAdminOrAuditor();
         verify(holdingRepository, times(1)).findByAuditOptionalFilters(eq(userId), eq(portfolioId), eq(null), eq(PageRequest.of(1, 10)));
         assertEquals(1, result.content().size());
+        assertEquals(userId, result.content().get(0).ownerUserId());
+        assertEquals("Ada", result.content().get(0).ownerFirstName());
+        assertEquals("Lovelace", result.content().get(0).ownerLastName());
+    }
+
+    @Test
+    void getHoldings_resolvesOwnerPerHoldingAcrossUsers() {
+        UUID firstPortfolioId = UUID.randomUUID();
+        UUID secondPortfolioId = UUID.randomUUID();
+        UUID firstUserId = UUID.randomUUID();
+        UUID secondUserId = UUID.randomUUID();
+        Holding first = new Holding(firstPortfolioId, UUID.randomUUID());
+        Holding second = new Holding(secondPortfolioId, UUID.randomUUID());
+        Holding firstAgain = new Holding(firstPortfolioId, UUID.randomUUID());
+
+        when(holdingRepository.findByAuditOptionalFilters(eq(null), eq(null), eq(null), any(Pageable.class)))
+            .thenReturn(new PageImpl<>(List.of(first, second, firstAgain)));
+        when(portfolioRepository.findAllById(List.of(firstPortfolioId, secondPortfolioId)))
+            .thenReturn(List.of(
+                portfolio(firstPortfolioId, firstUserId, "Ada", "Lovelace"),
+                portfolio(secondPortfolioId, secondUserId, "Alan", "Turing")
+            ));
+
+        AuditPageResponse<AuditHoldingResponse> result = auditService.getHoldings(null, null, null, null, null);
+
+        assertEquals(List.of(firstUserId, secondUserId, firstUserId),
+            result.content().stream().map(AuditHoldingResponse::ownerUserId).toList());
+        assertEquals("Turing", result.content().get(1).ownerLastName());
     }
 
     @Test
@@ -347,6 +382,8 @@ class AuditServiceTest {
         LocalDateTime timestamp
     ) {
         Profile profile = new Profile(UUID.randomUUID(), BigDecimal.ZERO);
+        profile.setFirstName("Ada");
+        profile.setLastName("Lovelace");
         Portfolio portfolio = new Portfolio(profile);
         Instrument instrument = new Instrument("AAPL", "NASDAQ", "Apple", InstrumentClass.EQUITY);
         OrderLog orderLog = new OrderLog(orderId, portfolio, instrument, OrderSide.BUY, 10.0);
@@ -361,6 +398,15 @@ class AuditServiceTest {
         setField(instrument, "instrumentId", instrumentId);
 
         return orderLog;
+    }
+
+    private Portfolio portfolio(UUID portfolioId, UUID userId, String firstName, String lastName) {
+        Profile profile = new Profile(userId, BigDecimal.ZERO);
+        profile.setFirstName(firstName);
+        profile.setLastName(lastName);
+        Portfolio portfolio = new Portfolio(profile);
+        setField(portfolio, "portfolioId", portfolioId);
+        return portfolio;
     }
 
     private void setField(Object target, String fieldName, Object value) {

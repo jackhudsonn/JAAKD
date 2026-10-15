@@ -10,6 +10,7 @@ const AUDITOR_ACCOUNT = {
   userId: "7d01f6ba-39bf-4f09-b6f8-4adcaef2f7f4",
   email: "auditor@123.com",
   password: "12345678",
+  role: "AUDITOR",
   profile: {
     userType: 2,
     firstName: "Dev",
@@ -19,6 +20,24 @@ const AUDITOR_ACCOUNT = {
     country: "US",
     zipCode: "73301",
     username: "dev_auditor",
+  },
+};
+
+// Instrument creation is admin-only, so instruments are created under this account.
+const ADMIN_ACCOUNT = {
+  userId: "3b8f5c1e-9a4d-4f2b-8c6e-1d2a7f9e0b45",
+  email: "admin@123.com",
+  password: "12345678",
+  role: "ADMIN",
+  profile: {
+    userType: 1,
+    firstName: "Dev",
+    lastName: "Admin",
+    city: "Austin",
+    state: "TX",
+    country: "US",
+    zipCode: "73301",
+    username: "dev_admin",
   },
 };
 
@@ -704,13 +723,13 @@ function sqlLiteral(value) {
   return `'${String(value).replace(/'/g, "''")}'`;
 }
 
-function ensureAuditorAccount() {
+function ensurePrivilegedAccount(account) {
   const sql = `
 INSERT INTO users ("userID", email, roles)
 VALUES (
-  ${sqlLiteral(AUDITOR_ACCOUNT.userId)},
-  ${sqlLiteral(AUDITOR_ACCOUNT.email)},
-  '{AUDITOR}'
+  ${sqlLiteral(account.userId)},
+  ${sqlLiteral(account.email)},
+  ${sqlLiteral(`{${account.role}}`)}
 )
 ON CONFLICT ("userID") DO UPDATE
 SET
@@ -730,15 +749,15 @@ INSERT INTO profiles (
   avatar
 )
 VALUES (
-  ${sqlLiteral(AUDITOR_ACCOUNT.userId)},
-  ${AUDITOR_ACCOUNT.profile.userType},
-  ${sqlLiteral(AUDITOR_ACCOUNT.profile.firstName)},
-  ${sqlLiteral(AUDITOR_ACCOUNT.profile.lastName)},
-  ${sqlLiteral(AUDITOR_ACCOUNT.profile.city)},
-  ${sqlLiteral(AUDITOR_ACCOUNT.profile.state)},
-  ${sqlLiteral(AUDITOR_ACCOUNT.profile.country)},
-  ${sqlLiteral(AUDITOR_ACCOUNT.profile.zipCode)},
-  ${sqlLiteral(AUDITOR_ACCOUNT.profile.username)},
+  ${sqlLiteral(account.userId)},
+  ${account.profile.userType},
+  ${sqlLiteral(account.profile.firstName)},
+  ${sqlLiteral(account.profile.lastName)},
+  ${sqlLiteral(account.profile.city)},
+  ${sqlLiteral(account.profile.state)},
+  ${sqlLiteral(account.profile.country)},
+  ${sqlLiteral(account.profile.zipCode)},
+  ${sqlLiteral(account.profile.username)},
   NULL
 )
 ON CONFLICT ("userID") DO UPDATE
@@ -755,9 +774,9 @@ SET
 
 INSERT INTO development_credentials ("userID", email, "passwordHash")
 VALUES (
-  ${sqlLiteral(AUDITOR_ACCOUNT.userId)},
-  ${sqlLiteral(AUDITOR_ACCOUNT.email)},
-  crypt(${sqlLiteral(AUDITOR_ACCOUNT.password)}, gen_salt('bf'))
+  ${sqlLiteral(account.userId)},
+  ${sqlLiteral(account.email)},
+  crypt(${sqlLiteral(account.password)}, gen_salt('bf'))
 )
 ON CONFLICT (email) DO UPDATE
 SET
@@ -1155,12 +1174,12 @@ async function updatePreferences(cookie, portfolioId, widgets) {
   });
 }
 
-async function seedScenario(scenario) {
+async function seedScenario(scenario, adminCookie) {
   const cookie = await registerAndLogin(scenario);
   await ensureProfile(cookie, scenario.profile);
   const paymentMethods = await ensurePaymentMethods(cookie, scenario);
   const portfolio = await ensurePortfolio(cookie, scenario.portfolioName);
-  const instrumentsByTicker = await ensureInstruments(cookie, scenario);
+  const instrumentsByTicker = await ensureInstruments(adminCookie, scenario);
   const watchlist = await ensureWatchlist(
     cookie,
     portfolio.portfolioId,
@@ -1204,6 +1223,11 @@ function printCredentials() {
         email: AUDITOR_ACCOUNT.email,
         password: AUDITOR_ACCOUNT.password,
       },
+      {
+        level: "admin",
+        email: ADMIN_ACCOUNT.email,
+        password: ADMIN_ACCOUNT.password,
+      },
     ],
   );
 }
@@ -1218,14 +1242,16 @@ async function main() {
   console.log(`Seeding demo users using backend: ${BACKEND_URL}`);
   printCredentials();
 
-  ensureAuditorAccount();
-  console.log(`Auditor account seeded in ${AUDITOR_CONTAINER}.`);
+  ensurePrivilegedAccount(AUDITOR_ACCOUNT);
+  ensurePrivilegedAccount(ADMIN_ACCOUNT);
+  console.log(`Auditor and admin accounts seeded in ${AUDITOR_CONTAINER}.`);
+  const adminCookie = await registerAndLogin(ADMIN_ACCOUNT);
 
   const summaries = [];
 
   for (const scenario of USERS) {
     console.log(`Seeding level: ${scenario.level}`);
-    const summary = await seedScenario(scenario);
+    const summary = await seedScenario(scenario, adminCookie);
     summaries.push(summary);
     console.log(`Finished level: ${scenario.level}`);
   }

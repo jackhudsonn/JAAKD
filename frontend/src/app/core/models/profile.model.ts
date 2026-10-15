@@ -1,3 +1,14 @@
+// Mirrors backend UserType codes stored in profiles.userType.
+export const USER_TYPE = {
+  RETAIL_CLIENT: 0,
+  ADMIN: 1,
+  AUDITOR: 2,
+} as const;
+
+export function isAdminOrAuditor(userType: number | null | undefined): boolean {
+  return userType === USER_TYPE.ADMIN || userType === USER_TYPE.AUDITOR;
+}
+
 export interface Profile {
   userId: string;
   userType: number;

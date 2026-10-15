@@ -5,8 +5,8 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.github.jackhudsonn.jaakd.config.SecurityConfig;
 import io.github.jackhudsonn.jaakd.dto.AuditPageResponse;
 import io.github.jackhudsonn.jaakd.dto.AuditUserSearchResponse;
-import io.github.jackhudsonn.jaakd.dto.OrderLogResponse;
-import io.github.jackhudsonn.jaakd.model.Holding;
+import io.github.jackhudsonn.jaakd.dto.AuditHoldingResponse;
+import io.github.jackhudsonn.jaakd.dto.AuditOrderLogResponse;
 import io.github.jackhudsonn.jaakd.model.OrderSide;
 import io.github.jackhudsonn.jaakd.model.OrderStatus;
 import io.github.jackhudsonn.jaakd.security.AuthenticatedUser;
@@ -104,8 +104,8 @@ class AuditControllerContractTest {
         LocalDate fromDate = LocalDate.of(2026, 10, 1);
         LocalDate toDate = LocalDate.of(2026, 10, 14);
 
-        AuditPageResponse<OrderLogResponse> page = new AuditPageResponse<>(
-            List.of(new OrderLogResponse(
+        AuditPageResponse<AuditOrderLogResponse> page = new AuditPageResponse<>(
+            List.of(new AuditOrderLogResponse(
                 logOrderId,
                 orderId,
                 portfolioId,
@@ -116,7 +116,10 @@ class AuditControllerContractTest {
                 "meta",
                 OrderStatus.EXECUTED,
                 101.25,
-                100.9
+                100.9,
+                USER_ID,
+                "Ada",
+                "Lovelace"
             )),
             0,
             25,
@@ -131,6 +134,8 @@ class AuditControllerContractTest {
             fromDate,
             toDate,
             OrderStatus.EXECUTED,
+            null,
+            null,
             null,
             null,
             null,
@@ -149,7 +154,9 @@ class AuditControllerContractTest {
                 .accept(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.content[0].status").value("EXECUTED"))
-            .andExpect(jsonPath("$.content[0].orderId").value(orderId.toString()));
+            .andExpect(jsonPath("$.content[0].orderId").value(orderId.toString()))
+            .andExpect(jsonPath("$.content[0].ownerFirstName").value("Ada"))
+            .andExpect(jsonPath("$.content[0].ownerLastName").value("Lovelace"));
 
         verify(auditService).searchOrderLogs(
             USER_ID,
@@ -157,6 +164,8 @@ class AuditControllerContractTest {
             fromDate,
             toDate,
             OrderStatus.EXECUTED,
+            null,
+            null,
             null,
             null,
             null,
@@ -170,13 +179,19 @@ class AuditControllerContractTest {
         UUID instrumentId = UUID.randomUUID();
         UUID portfolioId = UUID.randomUUID();
 
-        Holding holding = new Holding(portfolioId, instrumentId);
-        setField(holding, "holdingID", UUID.randomUUID());
-        holding.setCurrentQuantity(BigDecimal.valueOf(12.5));
-        holding.setCumulativeRealizedPnl(BigDecimal.valueOf(3.75));
-        holding.setUpdatedAt(LocalDateTime.of(2026, 10, 14, 10, 0));
+        AuditHoldingResponse holding = new AuditHoldingResponse(
+            UUID.randomUUID(),
+            portfolioId,
+            instrumentId,
+            BigDecimal.valueOf(12.5),
+            BigDecimal.valueOf(3.75),
+            LocalDateTime.of(2026, 10, 14, 10, 0),
+            USER_ID,
+            "Ada",
+            "Lovelace"
+        );
 
-        AuditPageResponse<Holding> page = new AuditPageResponse<>(
+        AuditPageResponse<AuditHoldingResponse> page = new AuditPageResponse<>(
             List.of(holding),
             0,
             25,
@@ -197,7 +212,10 @@ class AuditControllerContractTest {
                 .accept(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.content[0].portfolioID").value(portfolioId.toString()))
-            .andExpect(jsonPath("$.content[0].instrumentID").value(instrumentId.toString()));
+            .andExpect(jsonPath("$.content[0].instrumentID").value(instrumentId.toString()))
+            .andExpect(jsonPath("$.content[0].ownerUserId").value(USER_ID.toString()))
+            .andExpect(jsonPath("$.content[0].ownerFirstName").value("Ada"))
+            .andExpect(jsonPath("$.content[0].ownerLastName").value("Lovelace"));
 
         verify(auditService).getHoldings(USER_ID, portfolioId, instrumentId, 0, 25);
     }
@@ -238,16 +256,6 @@ class AuditControllerContractTest {
 
     private Cookie authCookie() {
         return new Cookie(SessionAuthenticationFilter.SESSION_COOKIE, SESSION_ID.toString());
-    }
-
-    private void setField(Object target, String fieldName, Object value) {
-        try {
-            java.lang.reflect.Field field = target.getClass().getDeclaredField(fieldName);
-            field.setAccessible(true);
-            field.set(target, value);
-        } catch (ReflectiveOperationException ex) {
-            throw new RuntimeException(ex);
-        }
     }
 
     @TestConfiguration

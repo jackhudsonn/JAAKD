@@ -20,6 +20,7 @@ export class NavbarComponent {
   @Input() isLoggedIn = false;
   @Input() userEmail: string | null = null;
   @Input() profileName: string | null = null;
+  @Input() canAccessAuditor = false;
   @Output() logoutClicked = new EventEmitter<void>();
 
   menuOpen = signal(false);
