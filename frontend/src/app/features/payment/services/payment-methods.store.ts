@@ -12,9 +12,9 @@ export interface StoredBankPaymentMethod {
   accountHolderName: string;
   bankName: string;
   accountType: BankAccountType;
-  routingLast4: string;
-  accountLast4: string;
-  addedAt: string;
+  routingNumber: string;
+  accountNumberLast4: string;
+  createdAt: string;
   updatedAt: string;
 }
 
@@ -44,7 +44,7 @@ export class PaymentMethodsStore {
   readonly transactOptions = computed<readonly TransactPaymentOption[]>(() =>
     this.methodState().map((storedMethod) => ({
       id: storedMethod.id,
-      label: `${storedMethod.nickname} - ${storedMethod.bankName} (...${storedMethod.accountLast4})`,
+      label: `${storedMethod.nickname} - ${storedMethod.bankName} (...${storedMethod.accountNumberLast4})`,
       method: 'bank_transfer',
     })),
   );
@@ -117,9 +117,9 @@ export class PaymentMethodsStore {
       accountHolderName: method.accountHolderName,
       bankName: method.bankName,
       accountType: method.accountType,
-      accountLast4: method.accountLast4,
-      routingLast4: method.routingLast4,
-      addedAt: method.createdAt,
+      accountNumberLast4: method.accountNumberLast4,
+      routingNumber: method.routingNumber,
+      createdAt: method.createdAt,
       updatedAt: method.updatedAt,
     };
   }

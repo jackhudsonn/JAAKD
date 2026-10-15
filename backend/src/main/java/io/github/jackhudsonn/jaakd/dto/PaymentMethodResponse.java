@@ -9,8 +9,8 @@ public record PaymentMethodResponse(
     String accountHolderName,
     String bankName,
     String accountType,
-    String routingLast4,
-    String accountLast4,
+    String routingNumber,
+    String accountNumberLast4,
     Instant createdAt,
     Instant updatedAt
 ) {

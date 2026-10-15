@@ -94,8 +94,8 @@ export interface PaymentMethodResponse {
   accountHolderName: string;
   bankName: string;
   accountType: BankAccountType;
-  routingLast4: string;
-  accountLast4: string;
+  routingNumber: string;
+  accountNumberLast4: string;
   createdAt: string;
   updatedAt: string;
 }

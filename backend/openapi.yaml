@@ -1827,9 +1827,9 @@ components:
         accountType:
           type: string
           enum: [checking, savings]
-        routingLast4:
+        routingNumber:
           type: string
-        accountLast4:
+        accountNumberLast4:
           type: string
         createdAt:
           type: string

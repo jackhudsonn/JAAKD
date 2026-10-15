@@ -32,6 +32,15 @@
 
 .payment-actions {
   margin-top: var(--space-sm);
+
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.payment-actions .btn {
+  width: 180px;
 }
 
 .status-message {

@@ -57,16 +57,15 @@ public class PaymentMethodController {
             paymentMethod.getAccountHolderName(),
             paymentMethod.getBankName(),
             paymentMethod.getAccountType(),
-            maskLast4(paymentMethod.getRoutingNumber()),
+            paymentMethod.getRoutingNumber(),
             maskLast4(paymentMethod.getAccountNumber()),
             paymentMethod.getCreatedAt(),
             paymentMethod.getUpdatedAt()
         );
     }
 
-    private String maskLast4(String value) {
+    private static String maskLast4(String value) {
         final int NON_MASKED_LENGTH = 4;
-        
         if (value == null || value.length() < NON_MASKED_LENGTH) {
             return "";
         }

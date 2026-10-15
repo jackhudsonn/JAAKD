@@ -1,14 +1,18 @@
 import { Component, inject, signal } from '@angular/core';
+const ROUTING_NUMBER_LENGTH = 9;
+const ACCOUNT_NUMBER_MIN_LENGTH = 4;
+const ACCOUNT_NUMBER_MAX_LENGTH = 17;
 import { FormsModule } from '@angular/forms';
 import {
   BankAccountType,
   PaymentMethodsStore,
 } from '@features/payment/services/payment-methods.store';
+import { SavedMethodsPopupComponent } from '@features/payment/components/saved-methods-popup/saved-methods-popup.component';
 
 @Component({
   selector: 'app-add-method-card',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, SavedMethodsPopupComponent],
   templateUrl: './add-method-card.component.html',
   styleUrl: './add-method-card.component.css',
 })
@@ -18,6 +22,7 @@ export class AddMethodCardComponent {
   formError = signal('');
   statusMessage = signal('');
   submitting = signal(false);
+  showingSavedMethods = signal(false);
 
   bankNickname = '';
   bankAccountHolderName = '';
@@ -48,17 +53,17 @@ export class AddMethodCardComponent {
       return;
     }
 
-    if (routingDigits.length !== this.bankRoutingNumber.length || routingDigits.length !== 9) {
-      this.formError.set('Routing number must be exactly 9 digits.');
+    if (routingDigits.length !== this.bankRoutingNumber.length || routingDigits.length !== ROUTING_NUMBER_LENGTH) {
+      this.formError.set(`Routing number must be exactly ${ROUTING_NUMBER_LENGTH} digits.`);
       return;
     }
 
     if (
       accountDigits.length !== this.bankAccountNumber.length ||
-      accountDigits.length < 4 ||
-      accountDigits.length > 17
+      accountDigits.length < ACCOUNT_NUMBER_MIN_LENGTH ||
+      accountDigits.length > ACCOUNT_NUMBER_MAX_LENGTH
     ) {
-      this.formError.set('Account number must be 4 to 17 digits.');
+      this.formError.set(`Account number must be ${ACCOUNT_NUMBER_MIN_LENGTH} to ${ACCOUNT_NUMBER_MAX_LENGTH} digits.`);
       return;
     }
 
@@ -73,18 +78,29 @@ export class AddMethodCardComponent {
         accountNumber: accountDigits,
         routingNumber: routingDigits,
       });
-
-      this.bankNickname = '';
-      this.bankAccountHolderName = '';
-      this.bankName = '';
-      this.bankRoutingNumber = '';
-      this.bankAccountNumber = '';
-      this.bankAccountType = 'checking';
-      this.statusMessage.set('Bank account added.');
     } catch (error) {
       this.formError.set(error instanceof Error ? error.message : 'Unable to add payment method.');
+      return;
     } finally {
       this.submitting.set(false);
     }
+
+    this.bankNickname = '';
+    this.bankAccountHolderName = '';
+    this.bankName = '';
+    this.bankRoutingNumber = '';
+    this.bankAccountNumber = '';
+    this.bankAccountType = 'checking';
+    this.statusMessage.set('Bank account added.');
+  }
+
+  showSavedMethods() {
+    this.showingSavedMethods.set(true);
+    this.statusMessage.set('');
+    this.formError.set('');
+  }
+
+  closeSavedMethods() {
+    this.showingSavedMethods.set(false);
   }
 }
