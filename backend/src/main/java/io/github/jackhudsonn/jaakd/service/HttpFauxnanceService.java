@@ -32,11 +32,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.github.jackhudsonn.jaakd.config.FauxnanceProperties;
 import io.github.jackhudsonn.jaakd.exception.FauxnanceClientException;
-import io.github.jackhudsonn.jaakd.service.fauxnance.FauxnanceCandleResponse;
-import io.github.jackhudsonn.jaakd.service.fauxnance.FauxnanceHealthResponse;
-import io.github.jackhudsonn.jaakd.service.fauxnance.FauxnanceQuoteResponse;
-import io.github.jackhudsonn.jaakd.service.fauxnance.FauxnanceSymbolResponse;
-import io.github.jackhudsonn.jaakd.service.fauxnance.FauxnanceUsageResponse;
+import io.github.jackhudsonn.jaakd.model.fauxnance.FauxnanceCandleResponse;
+import io.github.jackhudsonn.jaakd.model.fauxnance.FauxnanceHealthResponse;
+import io.github.jackhudsonn.jaakd.model.fauxnance.FauxnanceQuoteResponse;
+import io.github.jackhudsonn.jaakd.model.fauxnance.FauxnanceSymbolResponse;
+import io.github.jackhudsonn.jaakd.model.fauxnance.FauxnanceUsageResponse;
 
 @Service
 public class HttpFauxnanceService implements FauxnanceService {

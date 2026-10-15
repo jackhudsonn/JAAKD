@@ -230,14 +230,12 @@ describe('AuditorComponent', () => {
     expect(component.formatOwnerName({ ownerUserId: null, ownerFirstName: null, ownerLastName: null })).toBe('Unknown');
   });
 
-  it('shows backend 503 diagnostic details when provided', async () => {
+  it('shows only the backend message for 503 errors', async () => {
     auditApiService.searchOrderLogs.mockRejectedValueOnce(new HttpErrorResponse({
       status: 503,
       error: {
-        message: 'Database error',
+        message: 'The service is temporarily unavailable. Please try again later.',
         details: {
-          type: 'db_schema_mismatch',
-          hint: 'Convert affected columns to TEXT.',
           cause: 'function upper(bytea) does not exist',
         },
       },
@@ -246,6 +244,6 @@ describe('AuditorComponent', () => {
 
     await component.refreshSummaries();
 
-    expect(component.errorMessage()).toContain('Database error (db_schema_mismatch): Convert affected columns to TEXT. Cause: function upper(bytea) does not exist');
+    expect(component.errorMessage()).toBe('The service is temporarily unavailable. Please try again later.');
   });
 });
