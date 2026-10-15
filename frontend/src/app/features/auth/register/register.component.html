@@ -113,7 +113,7 @@
           >
             <option value="">Select state / region</option>
 
-            @for (stateOption of states; track stateOption) {
+            @for (stateOption of states; track stateOption + '-' + $index) {
               <option [value]="stateOption">
                 {{ stateOption }}
               </option>
@@ -127,7 +127,7 @@
           <select id="city" [(ngModel)]="city" [disabled]="!state" required>
             <option value="">Select city</option>
 
-            @for (cityOption of cities; track cityOption) {
+            @for (cityOption of cities; track cityOption  + '-' + $index) {
               <option [value]="cityOption">
                 {{ cityOption }}
               </option>
