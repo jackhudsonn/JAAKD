@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { firstValueFrom } from 'rxjs';
-import { CreateOrderLogRequest, OrderLogResponse } from '@core/models/api.models';
+import { firstValueFrom, map } from 'rxjs';
+import { CreateOrderLogRequest, OrderLogListResponse, OrderLogResponse } from '@core/models/api.models';
 import { environment } from '@environments/environment.local';
 
 @Injectable({
@@ -12,9 +12,9 @@ export class OrderLogApiService {
 
   listByPortfolio(portfolioId: string): Promise<OrderLogResponse[]> {
     return firstValueFrom(
-      this.httpClient.get<OrderLogResponse[]>(
-        `${environment.apiUrl}/api/order-logs/portfolio/${portfolioId}`,
-      ),
+      this.httpClient
+        .get<OrderLogListResponse>(`${environment.apiUrl}/api/order-logs/portfolio/${portfolioId}`)
+        .pipe(map((response) => response.orderLogs ?? [])),
     );
   }
   submit(request: CreateOrderLogRequest): Promise<OrderLogResponse> {

@@ -2,6 +2,7 @@ package io.github.jackhudsonn.jaakd.service;
 
 import io.github.jackhudsonn.jaakd.dto.PortfolioReconciliationResponse;
 import io.github.jackhudsonn.jaakd.exception.ForbiddenException;
+import io.github.jackhudsonn.jaakd.model.CashCurrency;
 import io.github.jackhudsonn.jaakd.model.Holding;
 import io.github.jackhudsonn.jaakd.model.Instrument;
 import io.github.jackhudsonn.jaakd.model.InstrumentClass;
@@ -143,7 +144,12 @@ class PortfolioReconciliationServiceTest {
     }
 
     private Instrument buildCashInstrument(UUID instrumentId, String ticker) throws Exception {
-        Instrument instrument = new Instrument(ticker, "CASH", ticker + " Cash", InstrumentClass.CASH);
+        CashCurrency tradingCurrency = CashCurrency.fromCodeOrNull(ticker);
+        if (tradingCurrency == null) {
+            tradingCurrency = CashCurrency.USD;
+        }
+
+        Instrument instrument = new Instrument(ticker, "CASH", ticker + " Cash", InstrumentClass.CASH, tradingCurrency);
         setField(instrument, "instrumentId", instrumentId);
         return instrument;
     }
@@ -155,7 +161,7 @@ class PortfolioReconciliationServiceTest {
         double quantity,
         double executionPrice
     ) throws Exception {
-        Instrument instrument = new Instrument("SYM", "MKT", "Name", InstrumentClass.EQUITY);
+        Instrument instrument = new Instrument("SYM", "MKT", "Name", InstrumentClass.EQUITY, CashCurrency.USD);
         setField(instrument, "instrumentId", instrumentId);
 
         OrderLog log = new OrderLog(UUID.randomUUID(), portfolio, instrument, side, quantity);

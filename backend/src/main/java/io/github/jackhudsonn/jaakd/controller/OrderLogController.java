@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import io.github.jackhudsonn.jaakd.dto.CreateOrderLogRequest;
+import io.github.jackhudsonn.jaakd.dto.OrderLogListResponse;
 import io.github.jackhudsonn.jaakd.dto.OrderLogResponse;
 import io.github.jackhudsonn.jaakd.model.OrderLog;
 import io.github.jackhudsonn.jaakd.service.OrderLogService;
@@ -31,28 +32,33 @@ public class OrderLogController {
 
 	@GetMapping("/portfolio/{portfolioId}")
 	@ResponseStatus(HttpStatus.OK)
-	public List<OrderLogResponse> getOrderLogsByPortfolio(@PathVariable UUID portfolioId) {
+	public OrderLogListResponse getOrderLogsByPortfolio(@PathVariable UUID portfolioId) {
 		List<OrderLog> orderLogs = orderLogService.getOrderLogsForPortfolio(portfolioId);
-		List<OrderLogResponse> responses = new ArrayList<>();
+		return toListResponse(orderLogs);
+	}
 
-		for (int i = 0; i < orderLogs.size(); i++) {
-			responses.add(toResponse(orderLogs.get(i)));
-		}
-
-		return responses;
+	@GetMapping("/portfolio/{portfolioId}/fx")
+	@ResponseStatus(HttpStatus.OK)
+	public OrderLogListResponse getFxOrderLogsByPortfolio(@PathVariable UUID portfolioId) {
+		List<OrderLog> orderLogs = orderLogService.getFxOrderLogsForPortfolio(portfolioId);
+		return toListResponse(orderLogs);
 	}
 
 	@GetMapping("/diagnostics/portfolio/{portfolioId}")
 	@ResponseStatus(HttpStatus.OK)
-	public List<OrderLogResponse> getOrderLogsByPortfolioForDiagnostics(@PathVariable UUID portfolioId) {
+	public OrderLogListResponse getOrderLogsByPortfolioForDiagnostics(@PathVariable UUID portfolioId) {
 		List<OrderLog> orderLogs = orderLogService.getOrderLogsForPortfolioDiagnostics(portfolioId);
+		return toListResponse(orderLogs);
+	}
+
+	private OrderLogListResponse toListResponse(List<OrderLog> orderLogs) {
 		List<OrderLogResponse> responses = new ArrayList<>();
 
-		for (int i = 0; i < orderLogs.size(); i++) {
-			responses.add(toResponse(orderLogs.get(i)));
+		for (OrderLog orderLog : orderLogs) {
+			responses.add(toResponse(orderLog));
 		}
 
-		return responses;
+		return new OrderLogListResponse(responses);
 	}
 
 	@GetMapping("/{logOrderId}")

@@ -49,12 +49,12 @@ sequenceDiagram
     participant PR as PortfolioRepository
     participant IR as InstrumentRepository
     participant OR as OrderLogRepository
+    participant QS as QuoteService
     participant VL as ValidationListener
     participant VS as ValidationService
     participant EL as ExecutionListener
     participant ES as ExecutionService
     participant F as FifoAccountingService
-    participant MQS as MockQuoteService
     participant K as Kafka
 
     rect rgb(239, 246, 255)
@@ -65,14 +65,29 @@ sequenceDiagram
     PR-->>OLS: Portfolio
     OLS->>IR: findById(...)
     IR-->>OLS: Instrument
-    OLS->>MQS: getExecutionPrice(instrumentId)
-    MQS-->>OLS: quotedPrice
-    OLS->>OLS: setQuotedPrice(quotedPrice)
-    OLS->>OR: save SUBMITTED row
-    OR-->>OLS: saved log
-    OLS->>K: send ORDER_SUBMITTED
-    OLS-->>C: OrderLog
-    C-->>Client: OrderLogResponse
+    alt side is BUY or SELL
+        loop up to 3 attempts
+            OLS->>QS: getExecutionPrice(instrumentId, side)
+            QS-->>OLS: quotedPrice or null/error
+        end
+        alt valid quotedPrice resolved
+            OLS->>OLS: setQuotedPrice(quotedPrice)
+            OLS->>OR: save SUBMITTED row
+            OR-->>OLS: saved log
+            OLS->>K: send ORDER_SUBMITTED
+            OLS-->>C: OrderLog
+            C-->>Client: OrderLogResponse
+        else null/non-positive/error after retries
+            OLS-->>C: throw InvalidTradeException
+            C-->>Client: 4xx error response
+        end
+    else side is DEPOSIT or WITHDRAW
+        OLS->>OR: save SUBMITTED row
+        OR-->>OLS: saved log
+        OLS->>K: send ORDER_SUBMITTED
+        OLS-->>C: OrderLog
+        C-->>Client: OrderLogResponse
+    end
     end
 
     rect rgb(255, 241, 242)
@@ -105,6 +120,15 @@ sequenceDiagram
                 VS-->>VL: do not publish ORDER_REJECTED
             end
         end
+    else runtime error in validation flow
+        VS->>OLS: appendRejectedFromSystem(...)
+        OLS->>OR: save REJECTED row (unless CANCELLED won race)
+        OLS-->>VS: latest row after append attempt
+        alt append result is REJECTED
+            VS->>K: send ORDER_REJECTED
+        else append skipped due CANCELLED
+            VS-->>VL: do not publish ORDER_REJECTED
+        end
     end
     end
 
@@ -116,9 +140,10 @@ sequenceDiagram
     OLS->>OR: lock/read latest row
     OR-->>OLS: latest row
     OLS-->>ES: latest row
+    Note over ES: Runtime errors in this flow are handled by appending FAILED
     ES->>F: applyExecution(latestAccepted)
-    F->>MQS: getExecutionPrice(...)
-    MQS-->>F: executionPrice
+    F->>QS: getExecutionPrice(..., side)
+    QS-->>F: executionPrice
     F->>F: applyBuy/applySell/applyDeposit/applyWithdraw
     alt outcome.succeeded
         F-->>ES: ExecutionOutcome(success, executionPriceUsed)

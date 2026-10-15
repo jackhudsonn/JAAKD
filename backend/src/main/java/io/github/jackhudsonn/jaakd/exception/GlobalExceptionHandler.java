@@ -1,6 +1,8 @@
 package io.github.jackhudsonn.jaakd.exception;
 
 import io.github.jackhudsonn.jaakd.dto.ErrorResponse;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.FieldError;
@@ -60,6 +62,12 @@ public class GlobalExceptionHandler {
         return new ErrorResponse(Instant.now(), ex.getMessage(), null);
     }
 
+    @ExceptionHandler(FauxnanceClientException.class)
+    @ResponseStatus(HttpStatus.BAD_GATEWAY)
+    public ErrorResponse handleFauxnanceClient(FauxnanceClientException ex) {
+        return new ErrorResponse(Instant.now(), ex.getMessage(), null);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorResponse handleMethodArgumentNotValid(MethodArgumentNotValidException ex) {
@@ -73,6 +81,22 @@ public class GlobalExceptionHandler {
                 Instant.now(),
                 "Validation failed",
                 details
+        );
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleConstraintViolation(ConstraintViolationException ex) {
+        Map<String, String> details = new LinkedHashMap<>();
+
+        for (ConstraintViolation<?> violation : ex.getConstraintViolations()) {
+            details.putIfAbsent(violation.getPropertyPath().toString(), violation.getMessage());
+        }
+
+        return new ErrorResponse(
+            Instant.now(),
+            "Validation failed",
+            details
         );
     }
 
