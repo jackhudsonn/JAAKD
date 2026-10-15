@@ -1,0 +1,38 @@
+<app-modal title="Saved Bank Payment Methods" (closed)="close()">
+  @if (statusMessage()) {
+    <p class="status-message">{{ statusMessage() }}</p>
+  }
+
+  <app-scrollable-list
+    [items]="methods()"
+    [trackBy]="trackByMethodId"
+    emptyMessage="No bank payment methods added yet."
+    maxHeight="360px"
+  >
+    <ng-template let-method>
+      <div class="saved-method-row">
+        <div class="saved-method-main">
+          <strong>{{ method.nickname }}</strong>
+          <p>{{ method.accountHolderName }}</p>
+          <p>
+            {{ method.bankName }} • {{ method.accountType | titlecase }} • Account ••••
+            {{ method.accountLast4 }} • Routing •••• {{ method.routingLast4 }}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          class="btn btn-secondary"
+          [disabled]="removingMethodId() === method.id"
+          (click)="removeMethod(method.id)"
+        >
+          @if (removingMethodId() === method.id) {
+            Removing...
+          } @else {
+            Remove
+          }
+        </button>
+      </div>
+    </ng-template>
+  </app-scrollable-list>
+</app-modal>

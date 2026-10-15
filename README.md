@@ -23,6 +23,8 @@ cp .env.example .env
 - `JAAKD_APP_DB_PASSWORD` — the application-role password.
 - `IDENTITY_PROVIDER` — the identity provider adapter. Only `development` is implemented today.
 - `AUTH_COOKIE_SECURE` — whether the session cookie is sent only over HTTPS.
+- `FAUXNANCE_BASE_URL` — the Fauxnance API url 
+- `FAUXNANCE_API_KEY` — the Fauxance API Key
 
 Generate each password with `openssl rand -hex 32` and never commit `.env`. After pulling, compare it with `.env.example` and add any new settings.
 

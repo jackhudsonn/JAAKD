@@ -41,7 +41,7 @@ export interface MarketQuote {
 }
 
 export type TransactionType = 'deposit' | 'withdrawal' | 'exchange';
-export type PaymentMethod = 'bank_transfer' | 'card' | 'crypto_wallet';
+export type PaymentMethod = 'bank_transfer';
 export type TransactionStatus = 'pending' | 'completed' | 'failed' | 'cancelled';
 
 export interface Transaction {

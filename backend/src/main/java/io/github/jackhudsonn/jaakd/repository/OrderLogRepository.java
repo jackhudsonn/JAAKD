@@ -11,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 
 import io.github.jackhudsonn.jaakd.model.InstrumentClass;
 import io.github.jackhudsonn.jaakd.model.OrderLog;
+import io.github.jackhudsonn.jaakd.model.OrderSide;
 import io.github.jackhudsonn.jaakd.model.OrderStatus;
 
 import java.time.LocalDateTime;
@@ -57,6 +58,20 @@ public interface OrderLogRepository extends JpaRepository<OrderLog, UUID>, JpaSp
         List<OrderLog> findOwnedByPortfolioNewestFirst(
             @Param("portfolioId") UUID portfolioId,
             @Param("userId") UUID userId
+        );
+
+        @Query("""
+            SELECT o
+            FROM OrderLog o
+            WHERE o.portfolio.portfolioId = :portfolioId
+                AND o.portfolio.profile.userId = :userId
+                AND o.side = :side
+            ORDER BY o.timestamp DESC
+            """)
+        List<OrderLog> findOwnedByPortfolioAndSideNewestFirst(
+            @Param("portfolioId") UUID portfolioId,
+            @Param("userId") UUID userId,
+            @Param("side") OrderSide side
         );
 
         @Query("""

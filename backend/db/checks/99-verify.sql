@@ -4,19 +4,34 @@
 SELECT table_name
 FROM information_schema.tables
 WHERE table_schema = 'public'
-  AND table_name IN ('profiles', 'portfolios', 'instruments', 'holdings', 'orderLogs', 'position_lots', 'lot_matches', 'watchlist_items', 'preferences', 'users')
+  AND table_name IN ('profiles', 'portfolios', 'instruments', 'holdings', 'orderLogs', 'position_lots', 'lot_matches', 'watchlist_items', 'preferences', 'payment_methods', 'users')
 ORDER BY table_name;
 
 -- 1b) Ensure the canonical cash instrument exists
-SELECT "instrumentID", ticker, market, name, "instrumentClass"
+SELECT "instrumentID", ticker, market, name, "instrumentClass", "tradingCurrency"
 FROM instruments
 WHERE UPPER(ticker) = 'USD';
+
+-- 1c) Ensure trading currency column and allowed values are in place
+SELECT column_name, data_type, is_nullable, column_default
+FROM information_schema.columns
+WHERE table_schema = 'public'
+  AND table_name = 'instruments'
+  AND column_name = 'tradingCurrency';
+
+SELECT
+  conname,
+  conrelid::regclass AS source_table,
+  pg_get_constraintdef(oid) AS definition
+FROM pg_constraint
+WHERE conname IN ('chk_instruments_trading_currency', 'chk_orderlogs_side')
+ORDER BY conname;
 
 -- 2) Foreign key index checks
 SELECT schemaname, tablename, indexname
 FROM pg_indexes
 WHERE schemaname = 'public'
-  AND tablename IN ('portfolios', 'holdings', 'orderLogs', 'position_lots', 'lot_matches', 'watchlist_items', 'preferences')
+  AND tablename IN ('portfolios', 'holdings', 'orderLogs', 'position_lots', 'lot_matches', 'watchlist_items', 'preferences', 'payment_methods')
 ORDER BY tablename, indexname;
 
 -- 2a) Ensure the profiles-to-users foreign key exists

@@ -4,5 +4,6 @@ public enum OrderSide {
     BUY,
     SELL,
     DEPOSIT,
-    WITHDRAW
+    WITHDRAW,
+    FX
 }

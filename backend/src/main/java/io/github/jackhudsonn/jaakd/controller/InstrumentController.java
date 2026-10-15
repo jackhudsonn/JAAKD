@@ -14,10 +14,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 import io.github.jackhudsonn.jaakd.dto.CreateInstrumentRequest;
 import io.github.jackhudsonn.jaakd.dto.InstrumentResponse;
+import io.github.jackhudsonn.jaakd.dto.SyncCryptoInstrumentRequest;
 import io.github.jackhudsonn.jaakd.dto.UpdateInstrumentRequest;
 import io.github.jackhudsonn.jaakd.model.Instrument;
 import io.github.jackhudsonn.jaakd.model.InstrumentClass;
 import io.github.jackhudsonn.jaakd.service.InstrumentService;
+import io.github.jackhudsonn.jaakd.service.fauxnance.FauxnanceQuoteResponse;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -83,6 +85,37 @@ public class InstrumentController {
 		return toResponse(updated);
 	}
 
+	@PostMapping("/sync/{ticker}")
+	@ResponseStatus(HttpStatus.OK)
+	public InstrumentResponse syncInstrumentFromExternalApi(@PathVariable String ticker) {
+		Instrument synced = instrumentService.createOrUpdateFromExternalData(ticker);
+		return toResponse(synced);
+	}
+
+	@PostMapping("/sync/crypto")
+	@ResponseStatus(HttpStatus.OK)
+	public InstrumentResponse syncCryptoInstrumentFromExternalApi(
+		@Valid @RequestBody SyncCryptoInstrumentRequest request
+	) {
+		Instrument synced = instrumentService.createOrUpdateCryptoFromExternalData(
+			request.baseTicker(),
+			request.quoteCurrency()
+		);
+		return toResponse(synced);
+	}
+
+	@GetMapping("/quotes/{ticker}")
+	@ResponseStatus(HttpStatus.OK)
+	public FauxnanceQuoteResponse getQuoteByTicker(@PathVariable String ticker) {
+		return instrumentService.getQuoteByTicker(ticker);
+	}
+
+	@GetMapping("/quotes")
+	@ResponseStatus(HttpStatus.OK)
+	public List<FauxnanceQuoteResponse> getQuotesByTickers(@RequestParam List<String> symbols) {
+		return instrumentService.getQuotesByTickers(symbols);
+	}
+
 	private InstrumentResponse toResponse(Instrument instrument) {
 		return new InstrumentResponse(
 				instrument.getInstrumentId(),
@@ -90,6 +123,7 @@ public class InstrumentController {
 				instrument.getMarket(),
 				instrument.getName(),
 				instrument.getInstrumentClass(),
+				instrument.getTradingCurrency(),
 				instrument.getLogoUrl(),
 				instrument.getDescription()
 		);

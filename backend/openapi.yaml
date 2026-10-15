@@ -33,6 +33,8 @@ tags:
     description: Instruments a user is watching, per portfolio
   - name: Preferences
     description: Portfolio-scoped user preferences such as dashboard widget order/selection
+  - name: PaymentMethods
+    description: User-managed bank payment methods for deposits and withdrawals
   - name: Profile
     description: The signed-in user's profile
   - name: Orders
@@ -1034,6 +1036,66 @@ paths:
         "500":
           $ref: "#/components/responses/ServerError"
 
+  # ---------------------------------------------------------- PaymentMethods
+  /api/payment-methods:
+    get:
+      tags: [PaymentMethods]
+      summary: List the signed-in user's payment methods
+      operationId: listCurrentUserPaymentMethods
+      responses:
+        "200":
+          description: Payment methods
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PaymentMethodResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    post:
+      tags: [PaymentMethods]
+      summary: Create a bank payment method for the signed-in user
+      operationId: createCurrentUserPaymentMethod
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePaymentMethodRequest"
+      responses:
+        "201":
+          description: Payment method created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentMethodResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/payment-methods/{paymentMethodId}:
+    delete:
+      tags: [PaymentMethods]
+      summary: Delete a signed-in user's payment method
+      operationId: deleteCurrentUserPaymentMethod
+      parameters:
+        - $ref: "#/components/parameters/PaymentMethodId"
+      responses:
+        "204":
+          description: Payment method deleted
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
   # ------------------------------------------------------------- Preferences
   /api/preferences/portfolio/{portfolioId}:
     get:
@@ -1688,6 +1750,13 @@ components:
       schema:
         type: string
         format: uuid
+    PaymentMethodId:
+      name: paymentMethodId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
     Ticker:
       name: ticker
       in: path
@@ -2331,6 +2400,59 @@ components:
           format: uuid
         name:
           type: [string, "null"]
+
+    # ---- payment methods
+    CreatePaymentMethodRequest:
+      type: object
+      required:
+        [nickname, accountHolderName, bankName, accountType, routingNumber, accountNumber]
+      properties:
+        nickname:
+          type: string
+          minLength: 1
+          maxLength: 100
+        accountHolderName:
+          type: string
+          minLength: 1
+          maxLength: 120
+        bankName:
+          type: string
+          minLength: 1
+          maxLength: 120
+        accountType:
+          type: string
+          enum: [checking, savings]
+        routingNumber:
+          type: string
+          pattern: '^\d{9}$'
+        accountNumber:
+          type: string
+          pattern: '^\d{4,17}$'
+    PaymentMethodResponse:
+      type: object
+      properties:
+        paymentMethodId:
+          type: string
+          format: uuid
+        nickname:
+          type: string
+        accountHolderName:
+          type: string
+        bankName:
+          type: string
+        accountType:
+          type: string
+          enum: [checking, savings]
+        routingNumber:
+          type: string
+        accountNumberLast4:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
 
     # ---- preferences
     UpdatePreferencesRequest:

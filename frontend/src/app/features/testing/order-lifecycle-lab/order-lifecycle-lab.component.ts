@@ -15,7 +15,8 @@ interface InstrumentResponse {
   ticker: string;
   market: string;
   name: string;
-  instrumentClass: 'ETF' | 'EQUITY' | 'STOCK' | 'BOND' | 'CASH' | 'CRYPTO';
+  instrumentClass: 'ETF' | 'EQUITY' | 'FX' | 'CASH' | 'CRYPTO';
+  tradingCurrency: 'USD' | 'INR' | 'GBP' | 'EUR' | null;
   logoUrl: string | null;
   description: string | null;
 }
@@ -25,12 +26,17 @@ interface OrderLogResponse {
   orderId: string;
   portfolioId: string;
   instrumentId: string;
-  side: 'BUY' | 'SELL' | 'DEPOSIT' | 'WITHDRAW';
+  side: 'BUY' | 'SELL' | 'DEPOSIT' | 'WITHDRAW' | 'FX';
   quantity: number;
   timestamp: string;
   metadata: string | null;
   status: 'SUBMITTED' | 'PENDING' | 'CANCELLED' | 'ACCEPTED' | 'REJECTED' | 'EXECUTED' | 'FAILED';
   executionPrice: number;
+  quotedPrice: number | null;
+}
+
+interface OrderLogListResponse {
+  orderLogs: OrderLogResponse[];
 }
 
 interface WatchlistItemResponse {
@@ -45,9 +51,78 @@ interface LifecycleOrder {
   side: OrderLogResponse['side'];
   quantity: number;
   instrumentId: string;
-  statuses: { status: OrderLogResponse['status']; timestamp: string }[];
+  statuses: {
+    status: OrderLogResponse['status'];
+    timestamp: string;
+    quotedPrice: number | null;
+    executionPrice: number;
+  }[];
   latestStatus: OrderLogResponse['status'];
   latestTimestamp: string;
+}
+
+interface HoldingResponse {
+  holdingID: string;
+  portfolioID: string;
+  instrumentID: string;
+  currentQuantity: number;
+  cumulativeRealizedPnl: number;
+  updatedAt: string;
+}
+
+interface PositionLotResponse {
+  positionLotId: string;
+  holdingId: string;
+  sourceBuyLogOrderId: string;
+  openedAt: string;
+  originalQuantity: number;
+  remainingQuantity: number;
+  unitCost: number;
+}
+
+interface LotMatchResponse {
+  lotMatchId: string;
+  sellLogOrderId: string;
+  positionLotId: string;
+  holdingId: string;
+  matchedQuantity: number;
+  sellUnitPrice: number;
+  realizedPnlAmount: number;
+  matchedAt: string;
+}
+
+interface CashConversionResponse {
+  orderId: string;
+  logOrderId: string;
+  portfolioId: string;
+  sourceCurrency: 'USD' | 'INR' | 'GBP' | 'EUR';
+  targetCurrency: 'USD' | 'INR' | 'GBP' | 'EUR';
+  sourceAmount: number;
+  conversionRate: number;
+  targetAmount: number;
+  sourceBalanceAfter: number;
+  targetBalanceAfter: number;
+  metadata: string | null;
+  convertedAt: string;
+}
+
+interface InstrumentQuote {
+  symbol: string;
+  price: number;
+  bid: number | null;
+  ask: number | null;
+  asOf: string | null;
+}
+
+interface HoldingWithInstrument {
+  holdingId: string;
+  instrumentId: string;
+  ticker: string;
+  instrumentName: string;
+  instrumentClass: string;
+  quantity: number;
+  realizedPnl: number;
+  updatedAt: string;
 }
 
 @Component({
@@ -65,20 +140,32 @@ export class OrderLifecycleLabComponent implements OnInit, OnDestroy {
   readonly instruments = signal<InstrumentResponse[]>([]);
   readonly orderLogs = signal<OrderLogResponse[]>([]);
   readonly watchlistItems = signal<WatchlistItemResponse[]>([]);
+  readonly holdings = signal<HoldingResponse[]>([]);
+  readonly positionLotsByHolding = signal<Record<string, PositionLotResponse[]>>({});
+  readonly lotMatchesByHolding = signal<Record<string, LotMatchResponse[]>>({});
 
   readonly selectedPortfolioId = signal('');
   readonly selectedInstrumentId = signal('');
+  readonly selectedHoldingId = signal('');
+  readonly selectedCashInstrumentId = signal('');
 
   readonly loading = signal(false);
   readonly submittingOrder = signal(false);
-  readonly creatingInstrument = signal(false);
+  readonly syncingInstrument = signal(false);
+  readonly refreshingQuote = signal(false);
   readonly creatingPortfolio = signal(false);
   readonly depositingCash = signal(false);
   readonly addingWatchlist = signal(false);
+  readonly convertingCash = signal(false);
+  readonly submittingCryptoOrder = signal(false);
+  readonly refreshingCryptoQuote = signal(false);
 
   readonly autoRefresh = signal(true);
   readonly statusMessage = signal<string | null>(null);
   readonly errorMessage = signal<string | null>(null);
+  readonly quote = signal<InstrumentQuote | null>(null);
+  readonly cryptoQuote = signal<InstrumentQuote | null>(null);
+  readonly lastConversion = signal<CashConversionResponse | null>(null);
 
   readonly orderForm = signal({
     side: 'BUY' as OrderLogResponse['side'],
@@ -87,16 +174,38 @@ export class OrderLifecycleLabComponent implements OnInit, OnDestroy {
     orderId: '',
   });
 
-  readonly instrumentForm = signal({
+  readonly cryptoOrderForm = signal({
+    side: 'BUY' as 'BUY' | 'SELL',
+    baseTicker: 'BTC',
+    quoteCurrency: 'USD' as 'USD' | 'INR' | 'GBP' | 'EUR',
+    quantity: 0.01,
+    metadata: 'Crypto order from Dev Testing page',
+    orderId: '',
+  });
+
+  readonly tickerLookupForm = signal({
     ticker: '',
-    market: 'NYSE',
-    name: '',
-    instrumentClass: 'EQUITY' as InstrumentResponse['instrumentClass'],
-    description: '',
   });
 
   readonly watchlistForm = signal({
     name: 'Kafka test watchlist item',
+  });
+
+  readonly portfolioForm = signal({
+    portfolioName: 'Kafka Test Portfolio',
+  });
+
+  readonly depositForm = signal({
+    amount: 1000,
+    metadata: 'Initial cash deposit from Dev Testing page',
+    orderId: '',
+  });
+
+  readonly cashConversionForm = signal({
+    sourceCurrency: 'USD' as CashConversionResponse['sourceCurrency'],
+    targetCurrency: 'INR' as CashConversionResponse['targetCurrency'],
+    sourceAmount: 100,
+    metadata: 'FX conversion from Dev Testing page',
   });
 
   readonly lifecycleOrders = computed<LifecycleOrder[]>(() => {
@@ -123,7 +232,12 @@ export class OrderLifecycleLabComponent implements OnInit, OnDestroy {
           side: latest.side,
           quantity: latest.quantity,
           instrumentId: latest.instrumentId,
-          statuses: sorted.map((item) => ({ status: item.status, timestamp: item.timestamp })),
+          statuses: sorted.map((item) => ({
+            status: item.status,
+            timestamp: item.timestamp,
+            quotedPrice: item.quotedPrice,
+            executionPrice: item.executionPrice,
+          })),
           latestStatus: latest.status,
           latestTimestamp: latest.timestamp,
         };
@@ -138,31 +252,45 @@ export class OrderLifecycleLabComponent implements OnInit, OnDestroy {
     return current?.portfolioName ?? 'None';
   });
 
+  readonly selectedInstrumentDetails = computed(() =>
+    this.instruments().find((i) => i.instrumentId === this.selectedInstrumentId()) ?? null,
+  );
+
+  readonly selectedInstrumentTicker = computed(() => this.selectedInstrumentDetails()?.ticker ?? 'None');
+
+  readonly selectedInstrumentName = computed(() => this.selectedInstrumentDetails()?.name ?? 'None');
+
   readonly cashInstruments = computed(() =>
     this.instruments().filter((instrument) => instrument.instrumentClass === 'CASH'),
   );
 
-  readonly selectedCashInstrumentId = signal('');
+  readonly holdingsWithInstruments = computed<HoldingWithInstrument[]>(() => {
+    const instrumentById = new Map(
+      this.instruments().map((instrument) => [instrument.instrumentId, instrument]),
+    );
 
-  readonly portfolioForm = signal({
-    portfolioName: 'Kafka Test Portfolio',
+    return this.holdings().map((holding) => {
+      const instrument = instrumentById.get(holding.instrumentID);
+      return {
+        holdingId: holding.holdingID,
+        instrumentId: holding.instrumentID,
+        ticker: instrument?.ticker ?? 'UNKNOWN',
+        instrumentName: instrument?.name ?? 'Unknown instrument',
+        instrumentClass: instrument?.instrumentClass ?? 'UNKNOWN',
+        quantity: holding.currentQuantity,
+        realizedPnl: holding.cumulativeRealizedPnl,
+        updatedAt: holding.updatedAt,
+      };
+    });
   });
 
-  readonly depositForm = signal({
-    amount: 1000,
-    metadata: 'Initial cash deposit from lifecycle lab',
-    orderId: '',
-  });
+  readonly selectedHolding = computed(() =>
+    this.holdingsWithInstruments().find((row) => row.holdingId === this.selectedHoldingId()) ?? null,
+  );
 
-  readonly selectedInstrumentTicker = computed(() => {
-    const current = this.instruments().find((i) => i.instrumentId === this.selectedInstrumentId());
-    return current?.ticker ?? 'None';
-  });
+  readonly selectedHoldingLots = computed(() => this.positionLotsByHolding()[this.selectedHoldingId()] ?? []);
 
-  readonly selectedInstrumentName = computed(() => {
-    const current = this.instruments().find((i) => i.instrumentId === this.selectedInstrumentId());
-    return current?.name ?? 'None';
-  });
+  readonly selectedHoldingMatches = computed(() => this.lotMatchesByHolding()[this.selectedHoldingId()] ?? []);
 
   ngOnInit() {
     void this.bootstrapPage();
@@ -185,8 +313,9 @@ export class OrderLifecycleLabComponent implements OnInit, OnDestroy {
       }
 
       await this.refreshLifecycleData();
+      await this.refreshQuote();
     } catch (error) {
-      this.handleError(error, 'Could not initialize lifecycle lab data.');
+      this.handleError(error, 'Could not initialize Dev Testing data.');
     } finally {
       this.loading.set(false);
     }
@@ -196,11 +325,16 @@ export class OrderLifecycleLabComponent implements OnInit, OnDestroy {
     if (!this.selectedPortfolioId()) {
       this.orderLogs.set([]);
       this.watchlistItems.set([]);
+      this.holdings.set([]);
+      this.positionLotsByHolding.set({});
+      this.lotMatchesByHolding.set({});
+      this.selectedHoldingId.set('');
       return;
     }
 
     try {
-      await Promise.all([this.loadOrderLogs(), this.loadWatchlistItems()]);
+      await Promise.all([this.loadOrderLogs(), this.loadWatchlistItems(), this.loadHoldings()]);
+      await this.loadAllHoldingDetails();
     } catch (error) {
       this.handleError(error, 'Unable to refresh lifecycle data.');
     }
@@ -213,6 +347,11 @@ export class OrderLifecycleLabComponent implements OnInit, OnDestroy {
 
   onInstrumentChange(value: string) {
     this.selectedInstrumentId.set(value);
+    this.quote.set(null);
+  }
+
+  onHoldingChange(value: string) {
+    this.selectedHoldingId.set(value);
   }
 
   toggleAutoRefresh() {
@@ -228,51 +367,66 @@ export class OrderLifecycleLabComponent implements OnInit, OnDestroy {
     this.statusMessage.set('Auto refresh paused.');
   }
 
-  async createInstrument() {
-    const payload = this.instrumentForm();
-    if (!payload.ticker.trim() || !payload.market.trim() || !payload.name.trim()) {
-      this.errorMessage.set('Ticker, market, and name are required to create an instrument.');
+  async syncInstrumentByTicker() {
+    const ticker = this.tickerLookupForm().ticker.trim().toUpperCase();
+    if (!ticker) {
+      this.errorMessage.set('Ticker is required to fetch an instrument from API.');
       return;
     }
 
     this.clearMessages();
-    this.creatingInstrument.set(true);
+    this.syncingInstrument.set(true);
 
     try {
-      await firstValueFrom(
-        this.http.post<InstrumentResponse>(`${environment.apiUrl}/api/instruments`, {
-          ticker: payload.ticker.trim().toUpperCase(),
-          market: payload.market.trim().toUpperCase(),
-          name: payload.name.trim(),
-          instrumentClass: payload.instrumentClass,
-          description: payload.description.trim() || null,
-          logoUrl: null,
-        }),
-      );
-
-      await this.loadInstruments();
-
-      const created = this.instruments().find(
-        (instrument) => instrument.ticker === payload.ticker.trim().toUpperCase(),
-      );
-      if (created) {
-        this.selectedInstrumentId.set(created.instrumentId);
+      let synced: InstrumentResponse;
+      try {
+        synced = await firstValueFrom(
+          this.http.post<InstrumentResponse>(
+            `${environment.apiUrl}/api/instruments/sync/${encodeURIComponent(ticker)}`,
+            {},
+          ),
+        );
+      } catch {
+        synced = await firstValueFrom(
+          this.http.get<InstrumentResponse>(
+            `${environment.apiUrl}/api/instruments/ticker/${encodeURIComponent(ticker)}`,
+          ),
+        );
       }
 
-      this.statusMessage.set(
-        'Instrument created. You can now use it for order and watchlist tests.',
-      );
-      this.instrumentForm.set({
-        ticker: '',
-        market: payload.market,
-        name: '',
-        instrumentClass: payload.instrumentClass,
-        description: '',
-      });
+      await this.loadInstruments();
+      this.selectedInstrumentId.set(synced.instrumentId);
+      await this.refreshQuote();
+      this.statusMessage.set(`Instrument loaded for ticker ${ticker}.`);
     } catch (error) {
-      this.handleError(error, 'Failed to create instrument.');
+      this.handleError(error, 'Failed to fetch instrument by ticker.');
     } finally {
-      this.creatingInstrument.set(false);
+      this.syncingInstrument.set(false);
+    }
+  }
+
+  async refreshQuote() {
+    const instrument = this.selectedInstrumentDetails();
+    if (!instrument) {
+      this.quote.set(null);
+      return;
+    }
+
+    this.clearMessages();
+    this.refreshingQuote.set(true);
+
+    try {
+      const resolved = await this.resolveQuote(instrument.ticker);
+      this.quote.set(resolved);
+      this.statusMessage.set(`Quote refreshed for ${instrument.ticker}.`);
+    } catch (error) {
+      this.quote.set(null);
+      this.handleError(
+        error,
+        'Unable to refresh quote data. Ensure the quote API endpoint is available for this environment.',
+      );
+    } finally {
+      this.refreshingQuote.set(false);
     }
   }
 
@@ -317,7 +471,7 @@ export class OrderLifecycleLabComponent implements OnInit, OnDestroy {
     }
 
     if (!cashInstrumentId) {
-      this.errorMessage.set('No cash instrument found. Add/select a USD_CASH instrument first.');
+      this.errorMessage.set('No cash instrument found. Add/select a cash instrument first.');
       return;
     }
 
@@ -351,7 +505,7 @@ export class OrderLifecycleLabComponent implements OnInit, OnDestroy {
 
       await this.refreshLifecycleData();
       this.statusMessage.set(
-        `Deposit submitted for order ${orderId}. Track SUBMITTED → PENDING → ACCEPTED/EXECUTED in timeline.`,
+        `Deposit submitted for order ${orderId}. Track SUBMITTED to EXECUTED in timeline.`,
       );
     } catch (error) {
       this.handleError(error, 'Failed to submit cash deposit.');
@@ -408,12 +562,117 @@ export class OrderLifecycleLabComponent implements OnInit, OnDestroy {
       await this.refreshLifecycleData();
 
       this.statusMessage.set(
-        `Submitted order ${orderId}. Watch the timeline for status transitions from Kafka consumers.`,
+        `Submitted order ${orderId}. Watch timeline for quoted/executed price updates by Kafka stages.`,
       );
     } catch (error) {
       this.handleError(error, 'Failed to submit order log.');
     } finally {
       this.submittingOrder.set(false);
+    }
+  }
+
+  async placeCryptoOrder() {
+    const portfolioId = this.selectedPortfolioId();
+    const payload = this.cryptoOrderForm();
+
+    if (!portfolioId) {
+      this.errorMessage.set('Select a portfolio before submitting a crypto order.');
+      return;
+    }
+
+    if (!payload.baseTicker.trim()) {
+      this.errorMessage.set('Crypto ticker is required.');
+      return;
+    }
+
+    if (payload.quantity <= 0) {
+      this.errorMessage.set('Crypto quantity must be greater than 0.');
+      return;
+    }
+
+    this.clearMessages();
+    this.submittingCryptoOrder.set(true);
+
+    try {
+      const synced = await firstValueFrom(
+        this.http.post<InstrumentResponse>(`${environment.apiUrl}/api/instruments/sync/crypto`, {
+          baseTicker: payload.baseTicker.trim().toUpperCase(),
+          quoteCurrency: payload.quoteCurrency,
+        }),
+      );
+
+      try {
+        const initialCryptoQuote = await this.resolveQuote(synced.ticker);
+        this.cryptoQuote.set(initialCryptoQuote);
+      } catch {
+        this.cryptoQuote.set(null);
+      }
+
+      const orderId = payload.orderId.trim() || crypto.randomUUID();
+      await firstValueFrom(
+        this.http.post<OrderLogResponse>(`${environment.apiUrl}/api/order-logs`, {
+          orderId,
+          portfolioId,
+          instrumentId: synced.instrumentId,
+          side: payload.side,
+          quantity: payload.quantity,
+          metadata: payload.metadata.trim() || null,
+          executionPrice: null,
+        }),
+      );
+
+      this.cryptoOrderForm.set({
+        side: payload.side,
+        baseTicker: payload.baseTicker,
+        quoteCurrency: payload.quoteCurrency,
+        quantity: payload.quantity,
+        metadata: payload.metadata,
+        orderId,
+      });
+
+      await this.loadInstruments();
+      this.selectedInstrumentId.set(synced.instrumentId);
+      await this.refreshLifecycleData();
+      await this.refreshQuote();
+
+      this.statusMessage.set(
+        `Submitted ${payload.side} crypto order ${orderId} for ${synced.ticker}.`,
+      );
+    } catch (error) {
+      this.handleError(error, 'Failed to submit crypto order.');
+    } finally {
+      this.submittingCryptoOrder.set(false);
+    }
+  }
+
+  async refreshCryptoQuote() {
+    const payload = this.cryptoOrderForm();
+    const baseTicker = payload.baseTicker.trim().toUpperCase();
+
+    if (!baseTicker) {
+      this.errorMessage.set('Crypto ticker is required to refresh crypto quote.');
+      return;
+    }
+
+    this.clearMessages();
+    this.refreshingCryptoQuote.set(true);
+
+    try {
+      const synced = await firstValueFrom(
+        this.http.post<InstrumentResponse>(`${environment.apiUrl}/api/instruments/sync/crypto`, {
+          baseTicker,
+          quoteCurrency: payload.quoteCurrency,
+        }),
+      );
+
+      const resolved = await this.resolveQuote(synced.ticker);
+      this.cryptoQuote.set(resolved);
+      this.statusMessage.set(`Crypto quote refreshed for ${resolved.symbol}.`);
+    } catch (error) {
+      this.cryptoQuote.set(null);
+      this.handleError(error, 'Unable to refresh crypto quote data.');
+    } finally {
+      this.refreshingCryptoQuote.set(false);
     }
   }
 
@@ -470,6 +729,51 @@ export class OrderLifecycleLabComponent implements OnInit, OnDestroy {
     }
   }
 
+  async convertCash() {
+    const portfolioId = this.selectedPortfolioId();
+    const form = this.cashConversionForm();
+
+    if (!portfolioId) {
+      this.errorMessage.set('Select a portfolio before converting cash.');
+      return;
+    }
+
+    if (form.sourceCurrency === form.targetCurrency) {
+      this.errorMessage.set('FROM and TO currencies must be different.');
+      return;
+    }
+
+    if (form.sourceAmount <= 0) {
+      this.errorMessage.set('Source amount must be greater than 0.');
+      return;
+    }
+
+    this.clearMessages();
+    this.convertingCash.set(true);
+
+    try {
+      const conversion = await firstValueFrom(
+        this.http.post<CashConversionResponse>(
+          `${environment.apiUrl}/api/holdings/portfolio/${portfolioId}/convert-cash`,
+          {
+            sourceCurrency: form.sourceCurrency,
+            targetCurrency: form.targetCurrency,
+            sourceAmount: form.sourceAmount,
+            metadata: form.metadata.trim() || null,
+          },
+        ),
+      );
+
+      this.lastConversion.set(conversion);
+      await this.refreshLifecycleData();
+      this.statusMessage.set('FX conversion submitted and holdings refreshed.');
+    } catch (error) {
+      this.handleError(error, 'Failed to convert cash.');
+    } finally {
+      this.convertingCash.set(false);
+    }
+  }
+
   private async loadPortfolios() {
     const rows = await firstValueFrom(
       this.http.get<PortfolioResponse[]>(`${environment.apiUrl}/api/portfolios`),
@@ -507,13 +811,15 @@ export class OrderLifecycleLabComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const rows = await firstValueFrom(
-      this.http.get<OrderLogResponse[]>(
+    const response = await firstValueFrom(
+      this.http.get<OrderLogListResponse>(
         `${environment.apiUrl}/api/order-logs/portfolio/${portfolioId}`,
       ),
     );
 
-    const sorted = [...(rows ?? [])].sort(
+    const rows = response?.orderLogs ?? [];
+
+    const sorted = [...rows].sort(
       (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
     );
 
@@ -534,6 +840,66 @@ export class OrderLifecycleLabComponent implements OnInit, OnDestroy {
     );
 
     this.watchlistItems.set(rows ?? []);
+  }
+
+  private async loadHoldings() {
+    const portfolioId = this.selectedPortfolioId();
+    if (!portfolioId) {
+      this.holdings.set([]);
+      this.selectedHoldingId.set('');
+      return;
+    }
+
+    const rows = await firstValueFrom(
+      this.http.get<HoldingResponse[]>(`${environment.apiUrl}/api/holdings/portfolio/${portfolioId}`),
+    );
+
+    this.holdings.set(rows ?? []);
+
+    if (!this.selectedHoldingId() && this.holdings().length > 0) {
+      this.selectedHoldingId.set(this.holdings()[0].holdingID);
+    }
+
+    const stillExists = this.holdings().some((row) => row.holdingID === this.selectedHoldingId());
+    if (!stillExists) {
+      this.selectedHoldingId.set(this.holdings()[0]?.holdingID ?? '');
+    }
+  }
+
+  private async loadAllHoldingDetails() {
+    const details = await Promise.all(
+      this.holdings().map(async (holding) => {
+        const [lots, matches] = await Promise.all([
+          firstValueFrom(
+            this.http.get<PositionLotResponse[]>(
+              `${environment.apiUrl}/api/holdings/${holding.holdingID}/position-lots`,
+            ),
+          ),
+          firstValueFrom(
+            this.http.get<LotMatchResponse[]>(
+              `${environment.apiUrl}/api/holdings/${holding.holdingID}/lot-matches`,
+            ),
+          ),
+        ]);
+
+        return {
+          holdingId: holding.holdingID,
+          lots: lots ?? [],
+          matches: matches ?? [],
+        };
+      }),
+    );
+
+    const lotsByHolding: Record<string, PositionLotResponse[]> = {};
+    const matchesByHolding: Record<string, LotMatchResponse[]> = {};
+
+    for (const row of details) {
+      lotsByHolding[row.holdingId] = row.lots;
+      matchesByHolding[row.holdingId] = row.matches;
+    }
+
+    this.positionLotsByHolding.set(lotsByHolding);
+    this.lotMatchesByHolding.set(matchesByHolding);
   }
 
   private startAutoRefresh() {
@@ -578,6 +944,92 @@ export class OrderLifecycleLabComponent implements OnInit, OnDestroy {
 
     if (response.message) {
       return response.message;
+    }
+
+    return null;
+  }
+
+  private async resolveQuote(ticker: string): Promise<InstrumentQuote> {
+    const trimmed = ticker.trim().toUpperCase();
+    const candidates = [trimmed, `FX:${trimmed}`];
+
+    for (const symbol of candidates) {
+      const resolved = await this.tryResolveQuoteFromSymbol(symbol);
+      if (resolved) {
+        return resolved;
+      }
+    }
+
+    throw new Error(`Quote API did not return price data for ${trimmed}.`);
+  }
+
+  private async tryResolveQuoteFromSymbol(symbol: string): Promise<InstrumentQuote | null> {
+    const encoded = encodeURIComponent(symbol);
+
+    const endpointCandidates = [
+      `${environment.apiUrl}/api/instruments/quotes/${encoded}`,
+      `${environment.apiUrl}/api/instruments/quotes?symbols=${encoded}`,
+    ];
+
+    for (const endpoint of endpointCandidates) {
+      try {
+        const payload = await firstValueFrom(this.http.get<unknown>(endpoint));
+        const parsed = this.parseQuotePayload(payload, symbol);
+        if (parsed) {
+          return parsed;
+        }
+      } catch {
+        // Try next candidate endpoint.
+      }
+    }
+
+    return null;
+  }
+
+  private parseQuotePayload(payload: unknown, symbol: string): InstrumentQuote | null {
+    if (!payload || typeof payload !== 'object') {
+      return null;
+    }
+
+    const root = payload as Record<string, unknown>;
+    const data = root['data'] as Record<string, unknown> | undefined;
+    const nested = root['quote'] as Record<string, unknown> | undefined;
+    const dataNested = data?.['quote'] as Record<string, unknown> | undefined;
+    const quoteCandidate = nested ?? dataNested ?? root;
+
+    const price = this.readNumeric(quoteCandidate, 'price');
+
+    if (price === null) {
+      return null;
+    }
+
+    return {
+      symbol,
+      price,
+      bid: this.readNumeric(quoteCandidate, 'bid'),
+      ask: this.readNumeric(quoteCandidate, 'ask'),
+      asOf: this.readString(quoteCandidate, 'asOf') ?? this.readString(quoteCandidate, 'quotedAt'),
+    };
+  }
+
+  private readNumeric(source: Record<string, unknown>, key: string): number | null {
+    const value = source[key];
+    if (typeof value === 'number') {
+      return Number.isFinite(value) ? value : null;
+    }
+
+    if (typeof value === 'string' && value.trim()) {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+
+    return null;
+  }
+
+  private readString(source: Record<string, unknown>, key: string): string | null {
+    const value = source[key];
+    if (typeof value === 'string' && value.trim()) {
+      return value;
     }
 
     return null;

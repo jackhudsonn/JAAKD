@@ -4,6 +4,7 @@ import io.github.jackhudsonn.jaakd.BackendApplication;
 import io.github.jackhudsonn.jaakd.dto.LotMatchResponse;
 import io.github.jackhudsonn.jaakd.dto.PositionLotResponse;
 import io.github.jackhudsonn.jaakd.event.OrderAcceptedEvent;
+import io.github.jackhudsonn.jaakd.model.CashCurrency;
 import io.github.jackhudsonn.jaakd.model.Holding;
 import io.github.jackhudsonn.jaakd.model.Instrument;
 import io.github.jackhudsonn.jaakd.model.InstrumentClass;
@@ -299,14 +300,14 @@ class OrderLogExecutionIntegrationTest {
     }
 
     private Instrument createCashInstrument() {
-        Instrument instrument = new Instrument("USD", "CASH", "US Dollar Cash", InstrumentClass.CASH);
+        Instrument instrument = new Instrument("USD", "CASH", "US Dollar Cash", InstrumentClass.CASH, CashCurrency.USD);
         entityManager.persist(instrument);
         entityManager.flush();
         return instrument;
     }
 
     private Instrument createEquityInstrument() {
-        Instrument instrument = new Instrument("AAPL", "NASDAQ", "Apple Inc.", InstrumentClass.EQUITY);
+        Instrument instrument = new Instrument("AAPL", "NASDAQ", "Apple Inc.", InstrumentClass.EQUITY, CashCurrency.USD);
         entityManager.persist(instrument);
         entityManager.flush();
         return instrument;

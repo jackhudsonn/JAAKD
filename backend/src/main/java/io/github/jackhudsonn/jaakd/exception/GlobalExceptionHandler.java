@@ -1,6 +1,8 @@
 package io.github.jackhudsonn.jaakd.exception;
 
 import io.github.jackhudsonn.jaakd.dto.ErrorResponse;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,6 +67,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ValidationException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorResponse handleValidation(ValidationException ex) {
+        return new ErrorResponse(Instant.now(), ex.getMessage(), null);
+    }
+
+    @ExceptionHandler(FauxnanceClientException.class)
+    @ResponseStatus(HttpStatus.BAD_GATEWAY)
+    public ErrorResponse handleFauxnanceClient(FauxnanceClientException ex) {
         return new ErrorResponse(Instant.now(), ex.getMessage(), null);
     }
 
@@ -158,6 +166,22 @@ public class GlobalExceptionHandler {
         }
 
         return singleLine.substring(0, MAX_CAUSE_LENGTH) + "...";
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleConstraintViolation(ConstraintViolationException ex) {
+        Map<String, String> details = new LinkedHashMap<>();
+
+        for (ConstraintViolation<?> violation : ex.getConstraintViolations()) {
+            details.putIfAbsent(violation.getPropertyPath().toString(), violation.getMessage());
+        }
+
+        return new ErrorResponse(
+            Instant.now(),
+            "Validation failed",
+            details
+        );
     }
 
     @ExceptionHandler(ForbiddenException.class)

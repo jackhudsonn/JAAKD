@@ -1,6 +1,7 @@
 package io.github.jackhudsonn.jaakd.dto;
 
 import io.github.jackhudsonn.jaakd.model.InstrumentClass;
+import io.github.jackhudsonn.jaakd.model.CashCurrency;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -21,6 +22,9 @@ public record CreateInstrumentRequest(
 
         @NotNull(message = "Instrument class is required")
         InstrumentClass instrumentClass,
+
+        @NotNull(message = "Trading currency is required")
+        CashCurrency tradingCurrency,
 
         @Size(max = 1000, message = "Logo URL must not exceed 1000 characters")
         String logoUrl,

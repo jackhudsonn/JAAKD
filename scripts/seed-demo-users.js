@@ -54,6 +54,16 @@ const USERS = [
       country: "USA",
       zipCode: "73301",
     },
+    paymentMethods: [
+      {
+        nickname: "Primary checking",
+        accountHolderName: "Nina Newbie",
+        bankName: "Austin Community Bank",
+        accountType: "checking",
+        routingNumber: "111000025",
+        accountNumber: "9001203412",
+      },
+    ],
     portfolioName: "Newbie Growth Portfolio",
     widgets: [
       "performance-graph",
@@ -137,6 +147,16 @@ const USERS = [
       country: "USA",
       zipCode: "60601",
     },
+    paymentMethods: [
+      {
+        nickname: "Salary account",
+        accountHolderName: "Ivy Intermediate",
+        bankName: "Midwest Federal Credit Union",
+        accountType: "checking",
+        routingNumber: "021000021",
+        accountNumber: "665544332211",
+      },
+    ],
     portfolioName: "Intermediate Multi-Sector",
     widgets: [
       "watchlist",
@@ -270,6 +290,24 @@ const USERS = [
       country: "USA",
       zipCode: "10001",
     },
+    paymentMethods: [
+      {
+        nickname: "Operations checking",
+        accountHolderName: "Priya Pro",
+        bankName: "Manhattan Financial",
+        accountType: "checking",
+        routingNumber: "026009593",
+        accountNumber: "3322110099887766",
+      },
+      {
+        nickname: "Treasury savings",
+        accountHolderName: "Priya Pro",
+        bankName: "Manhattan Financial",
+        accountType: "savings",
+        routingNumber: "026009593",
+        accountNumber: "4455667788990011",
+      },
+    ],
     portfolioName: "Pro Global Macro",
     widgets: [
       "top-movers",
@@ -758,6 +796,74 @@ async function ensureProfile(cookie, profile) {
   return retry.data;
 }
 
+async function ensurePaymentMethods(cookie, scenario) {
+  const list = await requestJson({
+    method: "GET",
+    path: "/api/payment-methods",
+    cookie,
+    expectedStatuses: [200],
+  });
+
+  const existingSignatures = new Set(
+    (Array.isArray(list.data) ? list.data : []).map((method) => {
+      const nickname = String(method.nickname || "").trim().toLowerCase();
+      const bankName = String(method.bankName || "").trim().toLowerCase();
+      const accountType = String(method.accountType || "").trim().toLowerCase();
+      const accountLast4 = String(method.accountLast4 || "").trim();
+      const routingLast4 = String(method.routingLast4 || "").trim();
+
+      return `${nickname}|${bankName}|${accountType}|${accountLast4}|${routingLast4}`;
+    }),
+  );
+
+  let createdCount = 0;
+  let skippedCount = 0;
+
+  for (const method of scenario.paymentMethods ?? []) {
+    const accountLast4 = method.accountNumber.slice(-4);
+    const routingLast4 = method.routingNumber.slice(-4);
+    const signature = `${method.nickname.trim().toLowerCase()}|${method.bankName
+      .trim()
+      .toLowerCase()}|${method.accountType.trim().toLowerCase()}|${accountLast4}|${routingLast4}`;
+
+    if (existingSignatures.has(signature)) {
+      skippedCount += 1;
+      continue;
+    }
+
+    await requestJson({
+      method: "POST",
+      path: "/api/payment-methods",
+      cookie,
+      body: {
+        nickname: method.nickname,
+        accountHolderName: method.accountHolderName,
+        bankName: method.bankName,
+        accountType: method.accountType,
+        routingNumber: method.routingNumber,
+        accountNumber: method.accountNumber,
+      },
+      expectedStatuses: [201],
+    });
+
+    existingSignatures.add(signature);
+    createdCount += 1;
+  }
+
+  const refreshed = await requestJson({
+    method: "GET",
+    path: "/api/payment-methods",
+    cookie,
+    expectedStatuses: [200],
+  });
+
+  return {
+    createdCount,
+    skippedCount,
+    totalCount: Array.isArray(refreshed.data) ? refreshed.data.length : 0,
+  };
+}
+
 async function ensurePortfolio(cookie, portfolioName) {
   const list = await requestJson({
     method: "GET",
@@ -982,6 +1088,7 @@ async function updatePreferences(cookie, portfolioId, widgets) {
 async function seedScenario(scenario, adminCookie) {
   const cookie = await registerAndLogin(scenario);
   await ensureProfile(cookie, scenario.profile);
+  const paymentMethods = await ensurePaymentMethods(cookie, scenario);
   const portfolio = await ensurePortfolio(cookie, scenario.portfolioName);
   const instrumentsByTicker = await ensureInstruments(adminCookie, scenario);
   const watchlist = await ensureWatchlist(
@@ -1005,6 +1112,9 @@ async function seedScenario(scenario, adminCookie) {
     portfolioId: portfolio.portfolioId,
     watchlistTotal: watchlist.totalCount,
     watchlistCreated: watchlist.createdCount,
+    paymentMethodsTotal: paymentMethods.totalCount,
+    paymentMethodsCreated: paymentMethods.createdCount,
+    paymentMethodsSkipped: paymentMethods.skippedCount,
     ordersSubmitted: orders.submitted,
     ordersSkipped: orders.skipped,
   };
@@ -1059,6 +1169,9 @@ async function main() {
       portfolioId: item.portfolioId,
       watchlistTotal: item.watchlistTotal,
       watchlistCreated: item.watchlistCreated,
+      paymentMethodsTotal: item.paymentMethodsTotal,
+      paymentMethodsCreated: item.paymentMethodsCreated,
+      paymentMethodsSkipped: item.paymentMethodsSkipped,
       ordersSubmitted: item.ordersSubmitted,
       ordersSkipped: item.ordersSkipped,
     })),
