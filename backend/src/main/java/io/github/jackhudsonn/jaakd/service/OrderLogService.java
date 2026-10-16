@@ -6,6 +6,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 
 import io.github.jackhudsonn.jaakd.config.KafkaTopics;
 import io.github.jackhudsonn.jaakd.dto.CreateOrderLogRequest;
+import io.github.jackhudsonn.jaakd.dto.CreateDemoOrderLogRequest;
 import io.github.jackhudsonn.jaakd.event.OrderSubmittedEvent;
 import io.github.jackhudsonn.jaakd.exception.InstrumentNotFoundException;
 import io.github.jackhudsonn.jaakd.exception.InvalidTradeException;
@@ -25,6 +26,7 @@ import io.github.jackhudsonn.jaakd.security.CurrentUserService;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Value;
 
 @Service
 public class OrderLogService {
@@ -39,6 +41,9 @@ public class OrderLogService {
     private final PrivilegedAccessService privilegedAccessService;
     private final QuoteService quoteService;
     private final KafkaTemplate<String, OrderSubmittedEvent> orderSubmittedKafkaTemplate;
+    private final FifoAccountingService fifoAccountingService;
+    @Value("${identity.provider}")
+    private String identityProvider;
 
     public OrderLogService(
         OrderLogRepository orderLogRepository,
@@ -47,7 +52,8 @@ public class OrderLogService {
         CurrentUserService currentUserService,
         PrivilegedAccessService privilegedAccessService,
         QuoteService quoteService,
-        KafkaTemplate<String, OrderSubmittedEvent> orderSubmittedKafkaTemplate
+        KafkaTemplate<String, OrderSubmittedEvent> orderSubmittedKafkaTemplate,
+        FifoAccountingService fifoAccountingService
     ) {
         this.orderLogRepository = orderLogRepository;
         this.portfolioRepository = portfolioRepository;
@@ -56,6 +62,7 @@ public class OrderLogService {
         this.privilegedAccessService = privilegedAccessService;
         this.quoteService = quoteService;
         this.orderSubmittedKafkaTemplate = orderSubmittedKafkaTemplate;
+        this.fifoAccountingService = fifoAccountingService;
     }
 
     public List<OrderLog> getOrderLogsForPortfolio(UUID portfolioId) {
@@ -159,6 +166,64 @@ public class OrderLogService {
         orderSubmittedKafkaTemplate.send(KafkaTopics.ORDER_SUBMITTED, partitionKey, event);
 
         return saved;
+    }
+
+    @Transactional
+    public OrderLog createDemoOrderLog(CreateDemoOrderLogRequest request) {
+        if (!"development".equalsIgnoreCase(identityProvider)) {
+            throw new InvalidTradeException("Demo order fixtures are available only with the development identity provider");
+        }
+
+        UUID userId = currentUserService.getUserId();
+        Portfolio portfolio = portfolioRepository
+            .findOwnedByPortfolioId(request.portfolioId(), userId)
+            .orElseThrow(() -> new PortfolioNotFoundException(request.portfolioId()));
+        Instrument instrument = instrumentRepository
+            .findById(request.instrumentId())
+            .orElseThrow(() -> new InstrumentNotFoundException(request.instrumentId()));
+
+        OrderLog orderLog = new OrderLog(
+            request.orderId(),
+            portfolio,
+            instrument,
+            request.side(),
+            request.quantity()
+        );
+        orderLog.setStatus(request.status());
+        orderLog.setTimeStamp(request.timestamp());
+        orderLog.setMetadata(request.metadata());
+        if (request.executionPrice() != null) {
+            orderLog.setExecutionPrice(request.executionPrice());
+        }
+
+        if (request.status() != OrderStatus.EXECUTED) {
+            // TODO: reserve and release cash when pending orders change lifecycle state.
+            return orderLogRepository.save(orderLog);
+        }
+
+        orderLog.setStatus(OrderStatus.ACCEPTED);
+        OrderLog accepted = orderLogRepository.save(orderLog);
+        FifoAccountingService.ExecutionOutcome outcome = fifoAccountingService.applyExecution(accepted);
+        if (!outcome.succeeded()) {
+            throw new InvalidTradeException(outcome.failureReason());
+        }
+
+        OrderLog executed = new OrderLog(
+            accepted.getOrderId(),
+            accepted.getPortfolio(),
+            accepted.getInstrument(),
+            accepted.getSide(),
+            accepted.getQuantity()
+        );
+        executed.setStatus(OrderStatus.EXECUTED);
+        executed.setTimeStamp(request.timestamp());
+        executed.setMetadata(accepted.getMetadata());
+        executed.setExecutionPrice(
+            outcome.executionPriceUsed() != null
+                ? outcome.executionPriceUsed()
+                : accepted.getExecutionPrice()
+        );
+        return orderLogRepository.save(executed);
     }
 
     private Double resolveQuotedPriceOrThrow(UUID instrumentId, OrderSide side) {

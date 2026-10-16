@@ -67,10 +67,12 @@ public class FifoAccountingService {
 
         Double effectiveExecutionPrice = null;
         if (orderLog.getSide() == OrderSide.BUY || orderLog.getSide() == OrderSide.SELL) {
-            effectiveExecutionPrice = quoteService.getExecutionPrice(
-                orderLog.getInstrument().getInstrumentId(),
-                orderLog.getSide()
-            );
+            effectiveExecutionPrice = orderLog.getExecutionPrice() > 0
+                ? orderLog.getExecutionPrice()
+                : quoteService.getExecutionPrice(
+                    orderLog.getInstrument().getInstrumentId(),
+                    orderLog.getSide()
+                );
             if (effectiveExecutionPrice == null) {
                 return ExecutionOutcome.failed("Failed to retrieve execution price for BUY/SELL order");
             }

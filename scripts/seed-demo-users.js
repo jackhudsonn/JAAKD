@@ -62,42 +62,7 @@ const USERS = [
         instrumentClass: "ETF",
       },
     ],
-    orders: [
-      {
-        key: "usd-deposit-01",
-        ticker: "USD",
-        side: "DEPOSIT",
-        quantity: 10000,
-      },
-      {
-        key: "buy-aapl-01",
-        ticker: "AAPL",
-        side: "BUY",
-        quantity: 12,
-        executionPrice: 192.75,
-      },
-      {
-        key: "buy-msft-01",
-        ticker: "MSFT",
-        side: "BUY",
-        quantity: 8,
-        executionPrice: 415.1,
-      },
-      {
-        key: "buy-tsla-01",
-        ticker: "TSLA",
-        side: "BUY",
-        quantity: 4,
-        executionPrice: 228.35,
-      },
-      {
-        key: "sell-aapl-01",
-        ticker: "AAPL",
-        side: "SELL",
-        quantity: 2,
-        executionPrice: 205.2,
-      },
-    ],
+    orders: [],
   },
   {
     level: "intermediate",
@@ -377,7 +342,7 @@ const USERS = [
         key: "usd-deposit-01",
         ticker: "USD",
         side: "DEPOSIT",
-        quantity: 150000,
+        quantity: 1000000,
       },
       {
         key: "eur-deposit-01",
@@ -512,6 +477,117 @@ const USERS = [
   },
 ];
 
+const PRO_EXTRA_ORDERS = [
+  ["buy-aapl-02", "AAPL", "BUY", 20, 178.4],
+  ["buy-msft-02", "MSFT", "BUY", 15, 396.2],
+  ["buy-nvda-02", "NVDA", "BUY", 25, 108.3],
+  ["buy-amzn-02", "AMZN", "BUY", 18, 164.7],
+  ["buy-googl-02", "GOOGL", "BUY", 22, 151.6],
+  ["buy-meta-02", "META", "BUY", 12, 472.9],
+  ["buy-jpm-02", "JPM", "BUY", 20, 188.2],
+  ["buy-xom-02", "XOM", "BUY", 30, 106.4],
+  ["buy-tlt-02", "TLT", "BUY", 35, 87.5],
+  ["buy-voo-02", "VOO", "BUY", 25, 505.1],
+  ["buy-aapl-03", "AAPL", "BUY", 12, 184.6],
+  ["buy-nvda-03", "NVDA", "BUY", 10, 114.8],
+  ["buy-jpm-03", "JPM", "BUY", 8, 194.3],
+  ["buy-xom-03", "XOM", "BUY", 12, 111.2],
+  ["buy-voo-03", "VOO", "BUY", 14, 512.7],
+  ["sell-aapl-02", "AAPL", "SELL", 5, 201.3],
+  ["sell-msft-02", "MSFT", "SELL", 4, 431.7],
+  ["sell-nvda-02", "NVDA", "SELL", 8, 136.4],
+  ["sell-amzn-02", "AMZN", "SELL", 6, 198.1],
+  ["sell-googl-02", "GOOGL", "SELL", 7, 181.2],
+  ["sell-meta-02", "META", "SELL", 4, 538.5],
+  ["sell-aapl-03", "AAPL", "SELL", 3, 209.7],
+  ["sell-nvda-03", "NVDA", "SELL", 3, 142.5],
+  ["sell-jpm-03", "JPM", "SELL", 2, 217.8],
+  ["sell-xom-03", "XOM", "SELL", 4, 124.1],
+  ["pending-voo-01", "VOO", "BUY", 10, 518.4, "PENDING"],
+  ["rejected-tlt-01", "TLT", "BUY", 12, 93.2, "REJECTED"],
+  ["failed-jpm-01", "JPM", "BUY", 9, 214.6, "FAILED"],
+  ["cancelled-xom-01", "XOM", "SELL", 5, 121.8, "CANCELLED"],
+];
+
+const proScenario = USERS.find((scenario) => scenario.level === "pro");
+for (const [key, ticker, side, quantity, executionPrice, status] of PRO_EXTRA_ORDERS) {
+  proScenario.orders.push({
+    key,
+    ticker,
+    side,
+    quantity,
+    executionPrice,
+    status: status || "EXECUTED",
+  });
+}
+proScenario.orders.push(
+  {
+    key: "usd-deposit-02",
+    ticker: "USD",
+    side: "DEPOSIT",
+    quantity: 125000,
+    status: "EXECUTED",
+  },
+  {
+    key: "usd-withdraw-02",
+    ticker: "USD",
+    side: "WITHDRAW",
+    quantity: 15000,
+    status: "EXECUTED",
+  },
+  {
+    key: "eur-deposit-02",
+    ticker: "EUR",
+    side: "DEPOSIT",
+    quantity: 5000,
+    status: "EXECUTED",
+  },
+  {
+    key: "inr-deposit-02",
+    ticker: "INR",
+    side: "DEPOSIT",
+    quantity: 300000,
+    status: "EXECUTED",
+  },
+  {
+    key: "eur-withdraw-02",
+    ticker: "EUR",
+    side: "WITHDRAW",
+    quantity: 1000,
+    status: "FAILED",
+  },
+);
+
+const intermediateScenario = USERS.find(
+  (scenario) => scenario.level === "intermediate",
+);
+intermediateScenario.orders.push(
+  {
+    key: "pending-googl-01",
+    ticker: "GOOGL",
+    side: "BUY",
+    quantity: 6,
+    executionPrice: 178.2,
+    status: "PENDING",
+  },
+  {
+    key: "rejected-meta-01",
+    ticker: "META",
+    side: "BUY",
+    quantity: 4,
+    executionPrice: 515.4,
+    status: "REJECTED",
+  },
+  {
+    key: "failed-jpm-01",
+    ticker: "JPM",
+    side: "BUY",
+    quantity: 3,
+    executionPrice: 203.1,
+    status: "FAILED",
+  },
+);
+
 const CASH_INSTRUMENTS = [
   {
     ticker: "USD",
@@ -614,17 +690,18 @@ function extractSessionCookie(headers) {
 }
 
 async function registerAndLogin(user) {
-  try {
-    await requestJson({
-      method: "POST",
-      path: "/api/auth/register",
-      body: { email: user.email, password: user.password },
-      expectedStatuses: [201, 409],
-    });
-  } catch (error) {
-    if (error.status !== 409) {
-      throw error;
-    }
+  const registration = await requestJson({
+    method: "POST",
+    path: "/api/auth/register",
+    body: { email: user.email, password: user.password },
+    expectedStatuses: [201, 409],
+  });
+
+  if (registration.status === 409) {
+    throw new Error(
+      `Demo user ${user.email} already exists. Reset the local Postgres volume with ` +
+        "`docker compose down -v && docker compose up -d --build`, then rerun the seed.",
+    );
   }
 
   const login = await requestJson({
@@ -910,7 +987,7 @@ async function seedOrders(cookie, portfolioId, scenario, instrumentsByTicker) {
   let submitted = 0;
   let skipped = 0;
 
-  for (const event of scenario.orders) {
+  for (const [index, event] of scenario.orders.entries()) {
     const metadata = `seed:${scenario.level}:${event.key}`;
 
     if (existingMetadata.has(metadata)) {
@@ -939,9 +1016,18 @@ async function seedOrders(cookie, portfolioId, scenario, instrumentsByTicker) {
       payload.executionPrice = event.executionPrice;
     }
 
+    payload.status = event.status || "EXECUTED";
+    if (event.timestamp) {
+      payload.timestamp = event.timestamp;
+    } else {
+      const timestamp = new Date(Date.UTC(2025, 0, 1));
+      timestamp.setUTCDate(timestamp.getUTCDate() + index * 18);
+      payload.timestamp = timestamp.toISOString().slice(0, 19);
+    }
+
     await requestJson({
       method: "POST",
-      path: "/api/order-logs",
+      path: "/api/order-logs/demo",
       cookie,
       body: payload,
       expectedStatuses: [201],
@@ -1010,6 +1096,12 @@ function printCredentials() {
 }
 
 async function main() {
+  if (process.env.DEV_DEMO_USERS !== "true") {
+    throw new Error(
+      "Demo seeding is disabled. Run with DEV_DEMO_USERS=true to seed local demo accounts.",
+    );
+  }
+
   console.log(`Seeding demo users using backend: ${BACKEND_URL}`);
   printCredentials();
 
