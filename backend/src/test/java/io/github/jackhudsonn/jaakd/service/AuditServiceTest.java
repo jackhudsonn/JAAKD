@@ -318,7 +318,7 @@ class AuditServiceTest {
         AuditPageResponse<AuditHoldingResponse> result = auditService.getHoldings(null, null, null, null, null);
 
         assertEquals(List.of(firstUserId, secondUserId, firstUserId),
-            result.content().stream().map(AuditHoldingResponse::ownerUserId).toList());
+            result.content().stream().map(holding -> holding.ownerUserId()).toList());
         assertEquals("Turing", result.content().get(1).ownerLastName());
     }
 

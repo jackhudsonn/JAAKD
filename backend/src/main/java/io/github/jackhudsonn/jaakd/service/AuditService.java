@@ -174,9 +174,9 @@ public class AuditService {
         Page<Holding> rows = holdingRepository.findByAuditOptionalFilters(userId, portfolioId, instrumentId, pageable);
 
         // Holding only stores the portfolio ID, so resolve owners for the whole page in one lookup.
-        List<UUID> portfolioIds = rows.getContent().stream().map(Holding::getPortfolioID).distinct().toList();
+        List<UUID> portfolioIds = rows.getContent().stream().map(holding -> holding.getPortfolioID()).distinct().toList();
         Map<UUID, Profile> ownersByPortfolioId = portfolioRepository.findAllById(portfolioIds).stream()
-            .collect(Collectors.toMap(Portfolio::getPortfolioId, Portfolio::getProfile));
+            .collect(Collectors.toMap(portfolio -> portfolio.getPortfolioId(), portfolio -> portfolio.getProfile()));
 
         return AuditPageResponse.from(rows.map(row -> toHoldingResponse(row, ownersByPortfolioId.get(row.getPortfolioID()))));
     }
