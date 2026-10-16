@@ -3,6 +3,7 @@ import {
   InstrumentClass,
   InstrumentResponse,
   OrderLogResponse,
+  QuoteResponse,
   WatchlistItemResponse,
 } from '@core/models/api.models';
 import { Holding, InstrumentType, Order, Transaction } from '@core/models';
@@ -82,13 +83,11 @@ const extractStatusReason = (metadata: string | null): string => {
 export const toInstrumentType = (instrumentClass: InstrumentClass): InstrumentType | null => {
   switch (instrumentClass) {
     case 'EQUITY':
-    case 'STOCK':
     case 'ETF':
       return 'stock';
-    case 'BOND':
-      return 'bond';
     case 'CRYPTO':
       return 'crypto';
+    case 'FX':
     case 'CASH':
       return null;
   }
@@ -99,7 +98,7 @@ export const toCash = (holdings: HoldingResponse[], instruments: InstrumentRespo
 
   for (const holding of holdings) {
     const instrument = instrumentsById.get(holding.instrumentID);
-    if (instrument && instrument.instrumentClass === 'CASH') {
+    if (instrument && instrument.instrumentClass === 'CASH' && instrument.ticker === 'USD') {
       return holding.currentQuantity;
     }
   }
@@ -448,3 +447,25 @@ export const toOpenOrders = (
 
   return mapped.sort((a, b) => toTimestamp(b.createdAt) - toTimestamp(a.createdAt));
 };
+
+export const toQuoteSymbols = (instruments: InstrumentResponse[]): string[] =>
+  instruments
+    .filter((instrument) => toInstrumentType(instrument.instrumentClass) !== null)
+    .map((instrument) => instrument.ticker);
+
+export const toQuotePriceBySymbol = (quotes: QuoteResponse[]): Map<string, number> => {
+  const prices = new Map<string, number>();
+
+  for (const quote of quotes) {
+    if (quote.price !== null && quote.price > 0) {
+      prices.set(quote.symbol.toUpperCase(), quote.price);
+    }
+  }
+
+  return prices;
+};
+
+export const toPriceResolver = (prices: Map<string, number>): HoldingPriceResolver => ({
+  isKnownSymbol: (symbol) => prices.has(symbol.toUpperCase()),
+  getPrice: (symbol) => prices.get(symbol.toUpperCase()) ?? 0,
+});
