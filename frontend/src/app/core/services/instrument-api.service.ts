@@ -1,9 +1,10 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-import { InstrumentResponse } from '@core/models/api.models';
+import { InstrumentResponse, QuoteResponse } from '@core/models/api.models';
 import { environment } from '@environments/environment.local';
 
+const MAX_QUOTES_PER_REQUEST = 25;
 @Injectable({
   providedIn: 'root',
 })
@@ -14,5 +15,24 @@ export class InstrumentApiService {
     return firstValueFrom(
       this.httpClient.get<InstrumentResponse[]>(`${environment.apiUrl}/api/instruments`),
     );
+  }
+
+  async getQuotes(symbols: string[]): Promise<QuoteResponse[]> {
+    const chunks: string[][] = [];
+    for (let i = 0; i < symbols.length; i += MAX_QUOTES_PER_REQUEST) {
+      chunks.push(symbols.slice(i, i + MAX_QUOTES_PER_REQUEST));
+    }
+
+    const results = await Promise.all(
+      chunks.map((chunk) =>
+        firstValueFrom(
+          this.httpClient.get<QuoteResponse[]>(`${environment.apiUrl}/api/instruments/quotes`, {
+            params: { symbols: chunk.join(',') },
+          }),
+        ),
+      ),
+    );
+
+    return results.flat();
   }
 }

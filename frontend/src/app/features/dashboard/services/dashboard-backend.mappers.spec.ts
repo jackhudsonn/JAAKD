@@ -1,4 +1,9 @@
-import { HoldingResponse, InstrumentResponse, OrderLogResponse } from '@core/models/api.models';
+import {
+  HoldingResponse,
+  InstrumentResponse,
+  OrderLogResponse,
+  QuoteResponse,
+} from '@core/models/api.models';
 import {
   toCash,
   toHoldings,
@@ -6,6 +11,9 @@ import {
   toLatestPriceBySymbol,
   toOpenOrders,
   toOrders,
+  toPriceResolver,
+  toQuotePriceBySymbol,
+  toQuoteSymbols,
   toTransactions,
   toWatchlist,
 } from './dashboard-backend.mappers';
@@ -25,7 +33,7 @@ const STOCK_INSTRUMENT: InstrumentResponse = {
   ticker: 'MSFT',
   market: 'NASDAQ',
   name: 'Microsoft Corp.',
-  instrumentClass: 'STOCK',
+  instrumentClass: 'EQUITY',
   logoUrl: null,
   description: null,
 };
@@ -35,7 +43,7 @@ const BOND_INSTRUMENT: InstrumentResponse = {
   ticker: 'BND',
   market: 'NASDAQ',
   name: 'Vanguard Bond ETF',
-  instrumentClass: 'BOND',
+  instrumentClass: 'ETF',
   logoUrl: null,
   description: null,
 };
@@ -407,6 +415,79 @@ describe('dashboard-backend.mappers', () => {
       expect(result.get('AAPL')).toBe(100);
       expect(result.get('MSFT')).toBe(220);
       expect(result.has('BND')).toBe(false);
+    });
+  });
+
+  describe('live price helpers', () => {
+    const EUR_CASH_INSTRUMENT: InstrumentResponse = {
+      ...CASH_INSTRUMENT,
+      instrumentId: 'inst-eur',
+      ticker: 'EUR',
+      name: 'Euro',
+    };
+
+    const quote = (symbol: string, price: number | null): QuoteResponse => ({
+      symbol,
+      price,
+      bid: null,
+      ask: null,
+      currency: 'USD',
+      asOf: null,
+      marketState: null,
+    });
+
+    it('toCash returns the USD balance when several cash currencies exist', () => {
+      const holdings: HoldingResponse[] = [
+        {
+          holdingID: 'holding-eur',
+          portfolioID: 'portfolio-1',
+          instrumentID: EUR_CASH_INSTRUMENT.instrumentId,
+          currentQuantity: 300,
+          cumulativeRealizedPnl: 0,
+          updatedAt: '2026-01-01T00:00:00.000Z',
+        },
+        {
+          holdingID: 'holding-usd',
+          portfolioID: 'portfolio-1',
+          instrumentID: CASH_INSTRUMENT.instrumentId,
+          currentQuantity: 5000,
+          cumulativeRealizedPnl: 0,
+          updatedAt: '2026-01-01T00:00:00.000Z',
+        },
+      ];
+
+      expect(toCash(holdings, [EUR_CASH_INSTRUMENT, CASH_INSTRUMENT])).toBe(5000);
+    });
+
+    it('toQuoteSymbols skips cash and FX instruments', () => {
+      const fxInstrument: InstrumentResponse = {
+        ...EQUITY_INSTRUMENT,
+        instrumentId: 'inst-fx',
+        ticker: 'EURUSD',
+        instrumentClass: 'FX',
+      };
+
+      expect(toQuoteSymbols([EQUITY_INSTRUMENT, CASH_INSTRUMENT, fxInstrument])).toEqual(['AAPL']);
+    });
+
+    it('toQuotePriceBySymbol keeps only positive prices', () => {
+      const prices = toQuotePriceBySymbol([
+        quote('aapl', 190),
+        quote('MSFT', null),
+        quote('BND', 0),
+      ]);
+
+      expect(prices.get('AAPL')).toBe(190);
+      expect(prices.has('MSFT')).toBe(false);
+      expect(prices.has('BND')).toBe(false);
+    });
+
+    it('toPriceResolver reads prices case-insensitively', () => {
+      const resolver = toPriceResolver(new Map([['AAPL', 190]]));
+
+      expect(resolver.isKnownSymbol('aapl')).toBe(true);
+      expect(resolver.getPrice('AAPL')).toBe(190);
+      expect(resolver.isKnownSymbol('MSFT')).toBe(false);
     });
   });
 });
