@@ -1,6 +1,8 @@
 package io.github.jackhudsonn.jaakd.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import io.github.jackhudsonn.jaakd.model.Instrument;
@@ -12,29 +14,29 @@ import java.util.UUID;
 
 public interface InstrumentRepository extends JpaRepository<Instrument, UUID> {
 
-    List<Instrument> findByTickerContainingIgnoreCaseOrNameContainingIgnoreCaseOrderByTickerAscInstrumentIdAsc(
-        String tickerQuery,
-        String nameQuery
+    @Query("""
+        SELECT i
+        FROM Instrument i
+        WHERE (:instrumentClass IS NULL OR i.instrumentClass = :instrumentClass)
+          AND (UPPER(i.ticker) LIKE UPPER(CONCAT('%', :query, '%'))
+            OR UPPER(i.name) LIKE UPPER(CONCAT('%', :query, '%')))
+        ORDER BY i.ticker ASC, i.instrumentId ASC
+        """)
+    List<Instrument> findBySearchQueryAndOptionalInstrumentClass(
+        @Param("query") String query,
+        @Param("instrumentClass") InstrumentClass instrumentClass
     );
 
-    Page<Instrument> findByTickerContainingIgnoreCaseOrNameContainingIgnoreCase(
-        String tickerQuery,
-        String nameQuery,
-        Pageable pageable
-    );
-
-    List<Instrument> findByInstrumentClassAndTickerContainingIgnoreCaseOrInstrumentClassAndNameContainingIgnoreCaseOrderByTickerAscInstrumentIdAsc(
-        InstrumentClass tickerClass,
-        String tickerQuery,
-        InstrumentClass nameClass,
-        String nameQuery
-    );
-
-    Page<Instrument> findByInstrumentClassAndTickerContainingIgnoreCaseOrInstrumentClassAndNameContainingIgnoreCase(
-        InstrumentClass tickerClass,
-        String tickerQuery,
-        InstrumentClass nameClass,
-        String nameQuery,
+    @Query("""
+        SELECT i
+        FROM Instrument i
+        WHERE (:instrumentClass IS NULL OR i.instrumentClass = :instrumentClass)
+          AND (UPPER(i.ticker) LIKE UPPER(CONCAT('%', :query, '%'))
+            OR UPPER(i.name) LIKE UPPER(CONCAT('%', :query, '%')))
+        """)
+    Page<Instrument> findBySearchQueryAndOptionalInstrumentClass(
+        @Param("query") String query,
+        @Param("instrumentClass") InstrumentClass instrumentClass,
         Pageable pageable
     );
 

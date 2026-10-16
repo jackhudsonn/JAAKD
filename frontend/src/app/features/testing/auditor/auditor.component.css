@@ -1,11 +1,63 @@
 :host {
   display: block;
+
+  /* Radius */
+  --radius-panel: 0.75rem;
+  --radius-card: 0.6rem;
+  --radius-control: 0.5rem;
+  --radius-input: 0.45rem;
+  --radius-pill: 999px;
+
+  /* Surfaces */
+  --panel-bg: color-mix(in srgb, var(--secondary-bg) 94%, black 6%);
+  --surface-inset: rgba(0, 0, 0, 0.22);
+  --surface-inset-hover: rgba(0, 0, 0, 0.3);
+  --surface-inset-strong: rgba(0, 0, 0, 0.32);
+  --surface-raised: rgba(255, 255, 255, 0.04);
+  --surface-raised-active: rgba(255, 255, 255, 0.06);
+  --surface-raised-hover: rgba(255, 255, 255, 0.09);
+  --surface-header: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(255, 255, 255, 0.2);
+  --border-hover-strong: rgba(255, 255, 255, 0.24);
+
+  /* Brand accents */
+  --focus-ring: color-mix(in srgb, var(--primary) 75%, transparent);
+  --primary-glow: color-mix(in srgb, var(--primary) 20%, transparent);
+  --primary-tint: color-mix(in srgb, var(--primary) 14%, transparent);
+  --primary-tint-hover: color-mix(in srgb, var(--primary) 8%, transparent);
+  --primary-gradient-start: #ff993f;
+  --primary-gradient-end: #ff6f31;
+  --primary-edge: rgba(255, 170, 94, 0.35);
+  --primary-ink: #161412;
+
+  /* Form controls */
+  --placeholder-text: #c4c9c7;
+  --option-text: #111827;
+  --option-bg: #ffffff;
+
+  /* Banners */
+  --banner-success-border: rgba(29, 156, 89, 0.36);
+  --banner-success-bg: rgba(22, 74, 47, 0.36);
+  --banner-success-text: #beffdd;
+  --banner-error-border: rgba(204, 71, 71, 0.42);
+  --banner-error-bg: rgba(76, 27, 27, 0.44);
+  --banner-error-text: #ffdede;
+
+  /* Status chips */
+  --status-submitted-bg: rgba(73, 138, 255, 0.24);
+  --status-submitted-text: #cfe0ff;
+  --status-pending-bg: rgba(255, 215, 89, 0.24);
+  --status-pending-text: #ffeb9a;
+  --status-failed-bg: rgba(255, 113, 113, 0.24);
+  --status-failed-text: #ffd0d0;
+  --status-success-bg: rgba(116, 243, 159, 0.24);
+  --status-success-text: #c8ffdd;
 }
 
 .auditor-page {
-  padding: 1.5rem;
+  padding: var(--space-lg);
   display: grid;
-  gap: 1rem;
+  gap: var(--space-md);
 }
 
 .hero h1 {
@@ -15,34 +67,34 @@
 
 .eyebrow {
   margin: 0;
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--text-secondary);
 }
 
 .subtitle {
-  margin: 0.5rem 0 0;
+  margin: var(--space-xs) 0 0;
   color: var(--text-secondary);
 }
 
 .panel {
-  background: color-mix(in srgb, var(--secondary-bg) 94%, black 6%);
+  background: var(--panel-bg);
   border: 1px solid var(--tertiary-bg-border);
-  border-radius: 0.75rem;
-  padding: 1rem;
+  border-radius: var(--radius-panel);
+  padding: var(--space-md);
   display: grid;
-  gap: 0.75rem;
+  gap: var(--space-sm);
 }
 
 .subpanel {
   border: 1px solid var(--quaternary-bg-border);
-  border-radius: 0.6rem;
-  padding: 0.75rem;
+  border-radius: var(--radius-card);
+  padding: var(--space-sm);
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
-  background: rgba(0, 0, 0, 0.22);
+  background: var(--surface-inset);
 }
 
 .subpanel > * {
@@ -62,38 +114,38 @@
 
 .banner {
   margin: 0;
-  border-radius: 0.5rem;
-  padding: 0.65rem 0.75rem;
+  border-radius: var(--radius-control);
+  padding: 0.65rem var(--space-sm);
   font-size: 0.92rem;
 }
 
 .banner.success {
-  border: 1px solid rgba(29, 156, 89, 0.36);
-  background: rgba(22, 74, 47, 0.36);
-  color: #beffdd;
+  border: 1px solid var(--banner-success-border);
+  background: var(--banner-success-bg);
+  color: var(--banner-success-text);
 }
 
 .banner.error {
-  border: 1px solid rgba(204, 71, 71, 0.42);
-  background: rgba(76, 27, 27, 0.44);
-  color: #ffdede;
+  border: 1px solid var(--banner-error-border);
+  background: var(--banner-error-bg);
+  color: var(--banner-error-text);
 }
 
 .form-grid {
   display: grid;
-  gap: 0.75rem;
+  gap: var(--space-sm);
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
 
 .filter-grid {
   display: grid;
-  gap: 0.75rem;
+  gap: var(--space-sm);
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
 .card-grid {
   display: grid;
-  gap: 0.75rem;
+  gap: var(--space-sm);
   grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
 }
 
@@ -121,40 +173,40 @@ button {
 input,
 select {
   border: 1px solid var(--quaternary-bg-border);
-  border-radius: 0.45rem;
+  border-radius: var(--radius-input);
   padding: 0.45rem 0.55rem;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface-raised);
   color: var(--text-primary);
 }
 
 select option {
-  color: #111827;
-  background: #ffffff;
+  color: var(--option-text);
+  background: var(--option-bg);
 }
 
 input::placeholder {
-  color: #c4c9c7;
+  color: var(--placeholder-text);
 }
 
 input:focus-visible,
 select:focus-visible,
 button:focus-visible {
-  outline: 2px solid rgba(255, 140, 0, 0.75);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
 button {
-  border-radius: 0.5rem;
+  border-radius: var(--radius-control);
   border: 1px solid transparent;
-  padding: 0.5rem 0.85rem;
+  padding: var(--space-xs) 0.85rem;
   cursor: pointer;
   font-weight: 700;
   transition:
-    background-color 120ms cubic-bezier(0.2, 0.8, 0.2, 1),
-    color 120ms cubic-bezier(0.2, 0.8, 0.2, 1),
-    border-color 120ms cubic-bezier(0.2, 0.8, 0.2, 1),
-    transform 120ms cubic-bezier(0.2, 0.8, 0.2, 1),
-    box-shadow 120ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    background-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard),
+    transform var(--duration-fast) var(--ease-standard),
+    box-shadow var(--duration-fast) var(--ease-standard);
 }
 
 button:disabled {
@@ -163,14 +215,14 @@ button:disabled {
 }
 
 .primary {
-  border-color: rgba(255, 170, 94, 0.35);
-  background: linear-gradient(160deg, #ff993f, #ff6f31);
-  color: #161412;
+  border-color: var(--primary-edge);
+  background: linear-gradient(160deg, var(--primary-gradient-start), var(--primary-gradient-end));
+  color: var(--primary-ink);
 }
 
 .primary:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(255, 140, 0, 0.2);
+  box-shadow: 0 4px 10px var(--primary-glow);
 }
 
 .primary:active:not(:disabled) {
@@ -178,18 +230,18 @@ button:disabled {
 }
 
 .ghost {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface-raised);
   border-color: var(--quaternary-bg-border);
   color: var(--text-primary);
 }
 
 .ghost:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.09);
-  border-color: rgba(255, 255, 255, 0.2);
+  background: var(--surface-raised-hover);
+  border-color: var(--border-hover);
 }
 
 .ghost:active:not(:disabled) {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--surface-raised-active);
 }
 
 .button-row {
@@ -201,7 +253,7 @@ button:disabled {
 
 .grid-two {
   display: grid;
-  gap: 0.75rem;
+  gap: var(--space-sm);
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
 }
 
@@ -215,37 +267,37 @@ button:disabled {
 .list-item {
   text-align: left;
   border: 1px solid var(--quaternary-bg-border);
-  background: rgba(0, 0, 0, 0.22);
+  background: var(--surface-inset);
   color: var(--text-primary);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-control);
   padding: 0.55rem;
   display: grid;
   gap: 0.15rem;
   transition:
-    background-color 120ms cubic-bezier(0.2, 0.8, 0.2, 1),
-    border-color 120ms cubic-bezier(0.2, 0.8, 0.2, 1),
-    transform 120ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard),
+    transform var(--duration-fast) var(--ease-standard);
 }
 
 .list-item:hover {
-  border-color: rgba(255, 255, 255, 0.24);
-  background: rgba(0, 0, 0, 0.3);
+  border-color: var(--border-hover-strong);
+  background: var(--surface-inset-hover);
   transform: translateY(-1px);
 }
 
 .list-item.selected {
   border-color: var(--primary-dark);
-  background: rgba(255, 140, 0, 0.14);
+  background: var(--primary-tint);
 }
 
 .inline-stats {
   display: flex;
-  gap: 0.75rem;
+  gap: var(--space-sm);
   flex-wrap: wrap;
 }
 
 .diagnostics-panel {
-  gap: 0.5rem;
+  gap: var(--space-xs);
 }
 
 .diagnostics-grid {
@@ -266,9 +318,9 @@ button:disabled {
 .diagnostics-params pre {
   margin: 0;
   padding: 0.6rem;
-  border-radius: 0.45rem;
+  border-radius: var(--radius-input);
   border: 1px solid var(--quaternary-bg-border);
-  background: rgba(0, 0, 0, 0.32);
+  background: var(--surface-inset-strong);
   color: var(--text-primary);
   overflow: auto;
   font-size: 0.8rem;
@@ -282,7 +334,7 @@ button:disabled {
 .table-wrap {
   overflow: auto;
   border: 1px solid var(--tertiary-bg-border);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-control);
 }
 
 table {
@@ -300,7 +352,7 @@ td {
 }
 
 th {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--surface-header);
   color: var(--text-primary);
   font-weight: 700;
 }
@@ -310,11 +362,11 @@ td {
 }
 
 tbody tr {
-  transition: background-color 120ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: background-color var(--duration-fast) var(--ease-standard);
 }
 
 tbody tr:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface-raised);
 }
 
 .clickable {
@@ -322,7 +374,7 @@ tbody tr:hover {
 }
 
 .clickable:hover {
-  background: rgba(255, 140, 0, 0.08);
+  background: var(--primary-tint-hover);
 }
 
 .timeline-list {
@@ -332,19 +384,19 @@ tbody tr:hover {
 
 .timeline-card {
   border: 1px solid var(--quaternary-bg-border);
-  border-radius: 0.6rem;
+  border-radius: var(--radius-card);
   padding: 0.7rem;
   display: grid;
-  gap: 0.5rem;
-  background: rgba(0, 0, 0, 0.22);
+  gap: var(--space-xs);
+  background: var(--surface-inset);
   transition:
-    background-color 120ms cubic-bezier(0.2, 0.8, 0.2, 1),
-    border-color 120ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard);
 }
 
 .timeline-card:hover {
-  border-color: rgba(255, 255, 255, 0.2);
-  background: rgba(0, 0, 0, 0.3);
+  border-color: var(--border-hover);
+  background: var(--surface-inset-hover);
 }
 
 .status-steps {
@@ -354,55 +406,55 @@ tbody tr:hover {
 
 .status-step {
   display: grid;
-  gap: 0.25rem;
+  gap: var(--space-xxs);
   border: 1px solid var(--quaternary-bg-border);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-control);
   padding: 0.45rem;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--surface-raised-active);
   transition:
-    background-color 120ms cubic-bezier(0.2, 0.8, 0.2, 1),
-    border-color 120ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard);
 }
 
 .status-step:hover {
-  border-color: rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.09);
+  border-color: var(--border-hover);
+  background: var(--surface-raised-hover);
 }
 
 .status-chip {
   display: inline-block;
   width: fit-content;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 0.15rem 0.55rem;
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   font-weight: 600;
 }
 
 .status-submitted {
-  background: rgba(73, 138, 255, 0.24);
-  color: #cfe0ff;
+  background: var(--status-submitted-bg);
+  color: var(--status-submitted-text);
 }
 
 .status-pending {
-  background: rgba(255, 215, 89, 0.24);
-  color: #ffeb9a;
+  background: var(--status-pending-bg);
+  color: var(--status-pending-text);
 }
 
 .status-cancelled,
 .status-failed,
 .status-rejected {
-  background: rgba(255, 113, 113, 0.24);
-  color: #ffd0d0;
+  background: var(--status-failed-bg);
+  color: var(--status-failed-text);
 }
 
 .status-accepted,
 .status-executed {
-  background: rgba(116, 243, 159, 0.24);
-  color: #c8ffdd;
+  background: var(--status-success-bg);
+  color: var(--status-success-text);
 }
 
 @media (max-width: 768px) {
   .auditor-page {
-    padding: 1rem;
+    padding: var(--space-md);
   }
 }

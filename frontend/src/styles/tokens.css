@@ -77,6 +77,10 @@
 
   --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.08);
 
+  /* Motion */
+  --duration-fast: 120ms;
+  --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
+
   /* Layout */
   --header-height: 90px;
   --market-ticker-height: 38px;

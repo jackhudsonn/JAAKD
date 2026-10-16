@@ -17,6 +17,7 @@ import io.github.jackhudsonn.jaakd.model.OrderStatus;
 import io.github.jackhudsonn.jaakd.model.Portfolio;
 import io.github.jackhudsonn.jaakd.model.PositionLot;
 import io.github.jackhudsonn.jaakd.model.Profile;
+import io.github.jackhudsonn.jaakd.model.UserType;
 import io.github.jackhudsonn.jaakd.repository.HoldingRepository;
 import io.github.jackhudsonn.jaakd.repository.LotMatchRepository;
 import io.github.jackhudsonn.jaakd.repository.OrderLogRepository;
@@ -24,6 +25,7 @@ import io.github.jackhudsonn.jaakd.repository.PortfolioRepository;
 import io.github.jackhudsonn.jaakd.repository.PositionLotRepository;
 import io.github.jackhudsonn.jaakd.repository.UserRepository;
 import io.github.jackhudsonn.jaakd.repository.projection.AuditUserSearchProjection;
+import io.github.jackhudsonn.jaakd.security.RequiresUserType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -40,6 +42,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Service
+@RequiresUserType({ UserType.ADMIN, UserType.AUDITOR })
 public class AuditService {
 
     private static final int DEFAULT_PAGE = 0;
@@ -52,7 +55,6 @@ public class AuditService {
     private final HoldingRepository holdingRepository;
     private final PositionLotRepository positionLotRepository;
     private final LotMatchRepository lotMatchRepository;
-    private final PrivilegedAccessService privilegedAccessService;
 
     public AuditService(
         UserRepository userRepository,
@@ -60,8 +62,7 @@ public class AuditService {
         PortfolioRepository portfolioRepository,
         HoldingRepository holdingRepository,
         PositionLotRepository positionLotRepository,
-        LotMatchRepository lotMatchRepository,
-        PrivilegedAccessService privilegedAccessService
+        LotMatchRepository lotMatchRepository
     ) {
         this.userRepository = userRepository;
         this.orderLogRepository = orderLogRepository;
@@ -69,12 +70,9 @@ public class AuditService {
         this.holdingRepository = holdingRepository;
         this.positionLotRepository = positionLotRepository;
         this.lotMatchRepository = lotMatchRepository;
-        this.privilegedAccessService = privilegedAccessService;
     }
 
     public AuditPageResponse<AuditUserSearchResponse> searchUsers(String query, Integer page, Integer size) {
-        privilegedAccessService.ensureAdminOrAuditor();
-
         String normalizedQuery = normalizeOptionalQuery(query);
         int resolvedPage = page == null ? DEFAULT_PAGE : page;
         int resolvedSize = size == null ? DEFAULT_SIZE : size;
@@ -107,8 +105,6 @@ public class AuditService {
         Integer page,
         Integer size
     ) {
-        privilegedAccessService.ensureAdminOrAuditor();
-
         int resolvedPage = page == null ? DEFAULT_PAGE : page;
         int resolvedSize = size == null ? DEFAULT_SIZE : size;
         validatePaging(resolvedPage, resolvedSize);
@@ -145,7 +141,6 @@ public class AuditService {
     }
 
     public AuditPageResponse<PortfolioResponse> getUserPortfolios(UUID userId, Integer page, Integer size) {
-        privilegedAccessService.ensureAdminOrAuditor();
         validateRequiredUuid(userId, "User ID is required");
 
         int resolvedPage = page == null ? DEFAULT_PAGE : page;
@@ -164,8 +159,6 @@ public class AuditService {
         Integer page,
         Integer size
     ) {
-        privilegedAccessService.ensureAdminOrAuditor();
-
         int resolvedPage = page == null ? DEFAULT_PAGE : page;
         int resolvedSize = size == null ? DEFAULT_SIZE : size;
         validatePaging(resolvedPage, resolvedSize);
@@ -200,7 +193,6 @@ public class AuditService {
         Integer page,
         Integer size
     ) {
-        privilegedAccessService.ensureAdminOrAuditor();
         validateRequiredUuid(holdingId, "Holding ID is required");
         validateDateRange(fromDate, toDate);
 
@@ -233,7 +225,6 @@ public class AuditService {
     }
 
     public AuditPageResponse<PositionLotResponse> getHoldingPositionLots(UUID holdingId, Integer page, Integer size) {
-        privilegedAccessService.ensureAdminOrAuditor();
         validateRequiredUuid(holdingId, "Holding ID is required");
 
         holdingRepository.findById(holdingId)
@@ -249,7 +240,6 @@ public class AuditService {
     }
 
     public AuditPageResponse<LotMatchResponse> getHoldingLotMatches(UUID holdingId, Integer page, Integer size) {
-        privilegedAccessService.ensureAdminOrAuditor();
         validateRequiredUuid(holdingId, "Holding ID is required");
 
         holdingRepository.findById(holdingId)

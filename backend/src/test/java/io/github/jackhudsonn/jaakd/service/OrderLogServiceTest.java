@@ -61,9 +61,6 @@ class OrderLogServiceTest {
     private KafkaTemplate<String, OrderSubmittedEvent> orderSubmittedKafkaTemplate;
 
     @Mock
-    private PrivilegedAccessService privilegedAccessService;
-
-    @Mock
     private QuoteService quoteService;
 
     @InjectMocks
@@ -292,7 +289,6 @@ class OrderLogServiceTest {
         java.util.List<OrderLog> result = orderLogService.getOrderLogsForPortfolioDiagnostics(portfolioId);
 
         assertIterableEquals(java.util.List.of(newer, older), result);
-        verify(privilegedAccessService, times(1)).ensureAdminOrAuditor();
     }
 
     @Test
@@ -302,7 +298,6 @@ class OrderLogServiceTest {
 
         assertThrows(PortfolioNotFoundException.class, () -> orderLogService.getOrderLogsForPortfolioDiagnostics(portfolioId));
 
-        verify(privilegedAccessService, times(1)).ensureAdminOrAuditor();
         verify(orderLogRepository, never()).findByPortfolioPortfolioIdOrderByTimestampDesc(portfolioId);
     }
 
