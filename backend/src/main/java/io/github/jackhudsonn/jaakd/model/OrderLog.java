@@ -111,6 +111,10 @@ public class OrderLog {
         this.status = status;
     }
 
+    public void setTimeStamp(LocalDateTime timestamp) {
+        this.timestamp = timestamp;
+    }
+
     public double getExecutionPrice() {
         return executionPrice;
     }
