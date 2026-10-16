@@ -7,7 +7,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
-import org.springframework.dao.DataAccessException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -106,53 +105,6 @@ public class GlobalExceptionHandler {
     public ErrorResponse handleMissingRequestParameter(MissingServletRequestParameterException ex) {
         String message = String.format("Missing required parameter '%s'", ex.getParameterName());
         return new ErrorResponse(Instant.now(), message, null);
-    }
-
-    @ExceptionHandler(DataAccessException.class)
-    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
-    public ErrorResponse handleDataAccess(DataAccessException ex, HttpServletRequest request) {
-        Throwable root = ex.getMostSpecificCause();
-        String rootMessage = root == null ? "unknown" : String.valueOf(root.getMessage());
-        String normalized = rootMessage.toLowerCase();
-
-        String errorType = "db_unknown";
-        String hint = "Check backend datasource environment variables and database reachability from the backend host.";
-
-        if (normalized.contains("password authentication failed") || normalized.contains("authentication failed")) {
-            errorType = "db_auth";
-            hint = "Database authentication failed. Verify datasource username and password on the backend host.";
-        } else if (normalized.contains("connection refused") || normalized.contains("connect timed out") || normalized.contains("timeout") || normalized.contains("could not connect")) {
-            errorType = "db_connectivity";
-            hint = "Backend cannot reach the database host/port. Verify network, host, and port from the backend runtime.";
-        } else if (normalized.contains("could not determine data type of parameter")
-            || normalized.contains("bind")
-            || normalized.contains("parameter") && normalized.contains("type")) {
-            errorType = "db_param_binding";
-            hint = "Database parameter binding failed. Check nullable query parameters used in text functions (UPPER/LIKE) and normalize them in service layer.";
-        } else if (normalized.contains("function upper(bytea) does not exist")
-            || normalized.contains("operator does not exist: bytea")
-            || normalized.contains("bytea")) {
-            errorType = "db_schema_mismatch";
-            hint = "Database schema has binary (bytea) columns where text search is expected. Convert affected columns to TEXT (for example instruments.ticker/name and audit-search text fields).";
-        } else if ((normalized.contains("function") && normalized.contains("does not exist"))
-            || normalized.contains("operator does not exist")
-            || normalized.contains("sqlstate: 42883")) {
-            errorType = "db_sql_grammar";
-            hint = "Database rejected generated SQL (function/operator mismatch). Check query function usage and parameter types for this endpoint.";
-        } else if (normalized.contains("illegal path") || normalized.contains("can't add file system") || normalized.contains("cannot add file system")) {
-            errorType = "db_path_config";
-            hint = "Datasource/JDBC path config is invalid for this OS. Check backend-side JDBC URL options such as ssl cert paths.";
-        }
-
-        // Diagnostics stay in the server log; the client only gets a generic message.
-        log.error("Database access error [{}] for {} {}: {}",
-                errorType, request.getMethod(), request.getRequestURI(), hint, ex);
-
-        return new ErrorResponse(
-                Instant.now(),
-                "The service is temporarily unavailable. Please try again later.",
-                null
-        );
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
