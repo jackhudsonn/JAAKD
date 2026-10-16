@@ -16,6 +16,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
@@ -40,7 +41,7 @@ class PrivilegedAccessServiceTest {
         when(currentUserService.getUserId()).thenReturn(userId);
         when(profileRepository.findById(userId)).thenReturn(Optional.of(profile));
 
-        assertDoesNotThrow(() -> privilegedAccessService.ensureAdminOrAuditor());
+        assertDoesNotThrow(() -> privilegedAccessService.ensureUserType(UserType.ADMIN, UserType.AUDITOR));
     }
 
     @Test
@@ -52,7 +53,7 @@ class PrivilegedAccessServiceTest {
         when(currentUserService.getUserId()).thenReturn(userId);
         when(profileRepository.findById(userId)).thenReturn(Optional.of(profile));
 
-        assertDoesNotThrow(() -> privilegedAccessService.ensureAdminOrAuditor());
+        assertDoesNotThrow(() -> privilegedAccessService.ensureUserType(UserType.ADMIN, UserType.AUDITOR));
     }
 
     @Test
@@ -64,7 +65,11 @@ class PrivilegedAccessServiceTest {
         when(currentUserService.getUserId()).thenReturn(userId);
         when(profileRepository.findById(userId)).thenReturn(Optional.of(profile));
 
-        assertThrows(ForbiddenException.class, () -> privilegedAccessService.ensureAdminOrAuditor());
+        ForbiddenException ex = assertThrows(
+            ForbiddenException.class,
+            () -> privilegedAccessService.ensureUserType(UserType.ADMIN, UserType.AUDITOR)
+        );
+        assertEquals("Admin or auditor user type is required", ex.getMessage());
     }
 
     @Test
@@ -74,7 +79,7 @@ class PrivilegedAccessServiceTest {
         when(currentUserService.getUserId()).thenReturn(userId);
         when(profileRepository.findById(userId)).thenReturn(Optional.empty());
 
-        assertThrows(ForbiddenException.class, () -> privilegedAccessService.ensureAdminOrAuditor());
+        assertThrows(ForbiddenException.class, () -> privilegedAccessService.ensureUserType(UserType.ADMIN, UserType.AUDITOR));
     }
 
     @Test
@@ -86,7 +91,7 @@ class PrivilegedAccessServiceTest {
         when(currentUserService.getUserId()).thenReturn(userId);
         when(profileRepository.findById(userId)).thenReturn(Optional.of(profile));
 
-        assertDoesNotThrow(() -> privilegedAccessService.ensureAdmin());
+        assertDoesNotThrow(() -> privilegedAccessService.ensureUserType(UserType.ADMIN));
     }
 
     @Test
@@ -98,7 +103,11 @@ class PrivilegedAccessServiceTest {
         when(currentUserService.getUserId()).thenReturn(userId);
         when(profileRepository.findById(userId)).thenReturn(Optional.of(profile));
 
-        assertThrows(ForbiddenException.class, () -> privilegedAccessService.ensureAdmin());
+        ForbiddenException ex = assertThrows(
+            ForbiddenException.class,
+            () -> privilegedAccessService.ensureUserType(UserType.ADMIN)
+        );
+        assertEquals("Admin user type is required", ex.getMessage());
     }
 
     @Test
@@ -110,7 +119,7 @@ class PrivilegedAccessServiceTest {
         when(currentUserService.getUserId()).thenReturn(userId);
         when(profileRepository.findById(userId)).thenReturn(Optional.of(profile));
 
-        assertThrows(ForbiddenException.class, () -> privilegedAccessService.ensureAdmin());
+        assertThrows(ForbiddenException.class, () -> privilegedAccessService.ensureUserType(UserType.ADMIN));
     }
 
     @Test
@@ -120,7 +129,7 @@ class PrivilegedAccessServiceTest {
         when(currentUserService.getUserId()).thenReturn(userId);
         when(profileRepository.findById(userId)).thenReturn(Optional.empty());
 
-        assertThrows(ForbiddenException.class, () -> privilegedAccessService.ensureAdmin());
+        assertThrows(ForbiddenException.class, () -> privilegedAccessService.ensureUserType(UserType.ADMIN));
     }
 
     private void setField(Object target, String fieldName, Object value) throws Exception {

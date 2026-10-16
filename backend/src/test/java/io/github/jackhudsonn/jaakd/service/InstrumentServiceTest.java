@@ -41,9 +41,6 @@ class InstrumentServiceTest {
     private InstrumentRepository instrumentRepository;
 
     @Mock
-    private PrivilegedAccessService privilegedAccessService;
-
-    @Mock
     private FauxnanceService fauxnanceService;
 
     @InjectMocks
@@ -51,73 +48,50 @@ class InstrumentServiceTest {
 
     @Test
     void getAllInstruments_doesNotRequireAdmin() {
-        when(instrumentRepository.findByTickerContainingIgnoreCaseOrNameContainingIgnoreCaseOrderByTickerAscInstrumentIdAsc("", ""))
+        when(instrumentRepository.findBySearchQueryAndOptionalInstrumentClass("", null))
             .thenReturn(List.of());
 
         instrumentService.getAllInstruments();
-
-        verify(privilegedAccessService, never()).ensureAdmin();
     }
 
     @Test
     void getAllInstruments_filterByQueryOnly_usesUnpagedFilteredSearch() {
         Instrument instrument = new Instrument("AAPL", "NASDAQ", "Apple", InstrumentClass.EQUITY, CashCurrency.USD);
-        when(instrumentRepository.findByTickerContainingIgnoreCaseOrNameContainingIgnoreCaseOrderByTickerAscInstrumentIdAsc("app", "app"))
+        when(instrumentRepository.findBySearchQueryAndOptionalInstrumentClass("app", null))
             .thenReturn(List.of(instrument));
 
         List<Instrument> result = instrumentService.getAllInstruments(null, " app ", null, null);
 
         assertEquals(1, result.size());
         verify(instrumentRepository, times(1))
-            .findByTickerContainingIgnoreCaseOrNameContainingIgnoreCaseOrderByTickerAscInstrumentIdAsc("app", "app");
-        verify(privilegedAccessService, never()).ensureAdmin();
+            .findBySearchQueryAndOptionalInstrumentClass("app", null);
     }
 
     @Test
     void getAllInstruments_filterByInstrumentTypeOnly_usesUnpagedFilteredSearch() {
-        when(instrumentRepository.findByInstrumentClassAndTickerContainingIgnoreCaseOrInstrumentClassAndNameContainingIgnoreCaseOrderByTickerAscInstrumentIdAsc(
-            InstrumentClass.ETF,
-            "",
-            InstrumentClass.ETF,
-            ""
-        )).thenReturn(List.of());
+        when(instrumentRepository.findBySearchQueryAndOptionalInstrumentClass("", InstrumentClass.ETF))
+            .thenReturn(List.of());
 
         instrumentService.getAllInstruments(InstrumentClass.ETF, null, null, null);
 
         verify(instrumentRepository, times(1))
-            .findByInstrumentClassAndTickerContainingIgnoreCaseOrInstrumentClassAndNameContainingIgnoreCaseOrderByTickerAscInstrumentIdAsc(
-                InstrumentClass.ETF,
-                "",
-                InstrumentClass.ETF,
-                ""
-            );
-        verify(privilegedAccessService, never()).ensureAdmin();
+            .findBySearchQueryAndOptionalInstrumentClass("", InstrumentClass.ETF);
     }
 
     @Test
     void getAllInstruments_filterByTypeAndQuery_usesUnpagedFilteredSearch() {
-        when(instrumentRepository.findByInstrumentClassAndTickerContainingIgnoreCaseOrInstrumentClassAndNameContainingIgnoreCaseOrderByTickerAscInstrumentIdAsc(
-            InstrumentClass.EQUITY,
-            "aap",
-            InstrumentClass.EQUITY,
-            "aap"
-        )).thenReturn(List.of());
+        when(instrumentRepository.findBySearchQueryAndOptionalInstrumentClass("aap", InstrumentClass.EQUITY))
+            .thenReturn(List.of());
 
         instrumentService.getAllInstruments(InstrumentClass.EQUITY, "aap", null, null);
 
         verify(instrumentRepository, times(1))
-            .findByInstrumentClassAndTickerContainingIgnoreCaseOrInstrumentClassAndNameContainingIgnoreCaseOrderByTickerAscInstrumentIdAsc(
-                InstrumentClass.EQUITY,
-                "aap",
-                InstrumentClass.EQUITY,
-                "aap"
-            );
-        verify(privilegedAccessService, never()).ensureAdmin();
+            .findBySearchQueryAndOptionalInstrumentClass("aap", InstrumentClass.EQUITY);
     }
 
     @Test
     void getAllInstruments_emptyResults_returnsEmptyList() {
-        when(instrumentRepository.findByTickerContainingIgnoreCaseOrNameContainingIgnoreCaseOrderByTickerAscInstrumentIdAsc("missing", "missing"))
+        when(instrumentRepository.findBySearchQueryAndOptionalInstrumentClass("missing", null))
             .thenReturn(List.of());
 
         List<Instrument> result = instrumentService.getAllInstruments(null, "missing", null, null);
@@ -129,9 +103,9 @@ class InstrumentServiceTest {
     void getAllInstruments_withPaging_usesPageRequestDefaults() {
         List<Instrument> content = List.of(new Instrument("AAPL", "NASDAQ", "Apple", InstrumentClass.EQUITY, CashCurrency.USD));
         Page<Instrument> page = new PageImpl<>(content);
-        when(instrumentRepository.findByTickerContainingIgnoreCaseOrNameContainingIgnoreCase(
+        when(instrumentRepository.findBySearchQueryAndOptionalInstrumentClass(
             org.mockito.ArgumentMatchers.eq(""),
-            org.mockito.ArgumentMatchers.eq(""),
+            org.mockito.ArgumentMatchers.isNull(),
             org.mockito.ArgumentMatchers.any(Pageable.class)
         ))
             .thenReturn(page);
@@ -141,9 +115,9 @@ class InstrumentServiceTest {
         assertEquals(1, result.size());
 
         org.mockito.ArgumentCaptor<Pageable> pageableCaptor = org.mockito.ArgumentCaptor.forClass(Pageable.class);
-        verify(instrumentRepository, times(1)).findByTickerContainingIgnoreCaseOrNameContainingIgnoreCase(
+        verify(instrumentRepository, times(1)).findBySearchQueryAndOptionalInstrumentClass(
             org.mockito.ArgumentMatchers.eq(""),
-            org.mockito.ArgumentMatchers.eq(""),
+            org.mockito.ArgumentMatchers.isNull(),
             pageableCaptor.capture()
         );
         assertEquals(
@@ -175,8 +149,6 @@ class InstrumentServiceTest {
         when(instrumentRepository.findById(instrumentId)).thenReturn(Optional.of(instrument));
 
         instrumentService.getInstrumentById(instrumentId);
-
-        verify(privilegedAccessService, never()).ensureAdmin();
     }
 
     @Test
@@ -185,8 +157,6 @@ class InstrumentServiceTest {
         when(instrumentRepository.findByTickerIgnoreCase("AAPL")).thenReturn(Optional.of(instrument));
 
         instrumentService.getInstrumentByTicker("AAPL");
-
-        verify(privilegedAccessService, never()).ensureAdmin();
     }
 
     @Test
@@ -206,7 +176,6 @@ class InstrumentServiceTest {
 
         Instrument created = instrumentService.createInstrument(request);
 
-        verify(privilegedAccessService, times(1)).ensureAdmin();
         verify(instrumentRepository, times(1)).save(any(Instrument.class));
         assertEquals("AAPL", created.getTicker());
         assertEquals("NASDAQ", created.getMarket());
@@ -228,7 +197,6 @@ class InstrumentServiceTest {
 
         assertThrows(InstrumentConflictException.class, () -> instrumentService.createInstrument(request));
 
-        verify(privilegedAccessService, times(1)).ensureAdmin();
         verify(instrumentRepository, never()).save(any(Instrument.class));
     }
 
@@ -248,7 +216,6 @@ class InstrumentServiceTest {
 
         Instrument updated = instrumentService.updateInstrument(instrumentId, request);
 
-        verify(privilegedAccessService, times(1)).ensureAdmin();
         assertEquals("Apple Inc.", updated.getName());
         assertEquals("https://example.com/new-aapl.png", updated.getLogoUrl());
         assertEquals("Updated description", updated.getDescription());
@@ -263,7 +230,6 @@ class InstrumentServiceTest {
 
         assertThrows(InstrumentNotFoundException.class, () -> instrumentService.updateInstrument(instrumentId, request));
 
-        verify(privilegedAccessService, times(1)).ensureAdmin();
         verify(instrumentRepository, never()).save(any(Instrument.class));
     }
 
@@ -283,7 +249,6 @@ class InstrumentServiceTest {
 
         Instrument saved = instrumentService.createOrUpdateFromExternalData("aapl");
 
-        verify(privilegedAccessService, times(1)).ensureAdmin();
         assertEquals("AAPL", saved.getTicker());
         assertEquals("NASDAQ", saved.getMarket());
         assertEquals(InstrumentClass.EQUITY, saved.getInstrumentClass());

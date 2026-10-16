@@ -711,18 +711,12 @@ SET
   execFileSync(
     "docker",
     [
-      "exec",
-      "-i",
-      AUDITOR_CONTAINER,
+      "exec", "-i", AUDITOR_CONTAINER,
       "psql",
-      "-U",
-      "postgres",
-      "-d",
-      "jaakd",
-      "-v",
-      "ON_ERROR_STOP=1",
-      "-c",
-      sql,
+      "-U", "postgres",
+      "-d", "jaakd",
+      "-v", "ON_ERROR_STOP=1",
+      "-c", sql,
     ],
     { stdio: "pipe", encoding: "utf8" },
   );

@@ -90,234 +90,67 @@ export class AuditApiService {
   constructor(private readonly httpClient: HttpClient) {}
 
   searchUsers(query?: string, paging?: AuditPaging): Promise<AuditPageResponse<AuditUserSearchResponse>> {
-    let params = new HttpParams();
-
-    if (query?.trim()) {
-      params = params.set('query', query.trim());
-    }
-
-    if (paging?.page !== undefined) {
-      params = params.set('page', paging.page);
-    }
-
-    if (paging?.size !== undefined) {
-      params = params.set('size', paging.size);
-    }
-
-    return firstValueFrom(
-      this.httpClient.get<AuditPageResponse<AuditUserSearchResponse>>(`${environment.apiUrl}/api/audit/users`, {
-        params,
-      }),
-    );
+    return this.getPage('/api/audit/users', buildParams({ query, ...paging }));
   }
 
   searchOrderLogs(request: AuditOrderLogSearchRequest): Promise<AuditPageResponse<AuditOrderLogResponse>> {
-    let params = new HttpParams();
-
-    if (request.date?.trim()) {
-      params = params.set('date', request.date.trim());
-    }
-
-    if (request.fromDate?.trim()) {
-      params = params.set('fromDate', request.fromDate.trim());
-    }
-
-    if (request.toDate?.trim()) {
-      params = params.set('toDate', request.toDate.trim());
-    }
-
-    if (request.userId) {
-      params = params.set('userId', request.userId);
-    }
-
-    if (request.status) {
-      params = params.set('status', request.status);
-    }
-
-    if (request.ticker?.trim()) {
-      params = params.set('ticker', request.ticker.trim());
-    }
-
-    if (request.instrumentId?.trim()) {
-      params = params.set('instrumentId', request.instrumentId.trim());
-    }
-
-    if (request.instrumentType) {
-      params = params.set('instrumentType', request.instrumentType);
-    }
-
-    if (request.orderId) {
-      params = params.set('orderId', request.orderId);
-    }
-
-    if (request.latestOnly) {
-      params = params.set('latestOnly', true);
-    }
-
-    if (request.page !== undefined) {
-      params = params.set('page', request.page);
-    }
-
-    if (request.size !== undefined) {
-      params = params.set('size', request.size);
-    }
-
-    return firstValueFrom(
-      this.httpClient.get<AuditPageResponse<AuditOrderLogResponse>>(`${environment.apiUrl}/api/audit/order-logs`, { params }),
-    );
+    return this.getPage('/api/audit/order-logs', buildParams(request));
   }
 
   listUserPortfolios(userId: string, paging?: AuditPaging): Promise<AuditPageResponse<PortfolioResponse>> {
-    let params = new HttpParams();
-
-    if (paging?.page !== undefined) {
-      params = params.set('page', paging.page);
-    }
-
-    if (paging?.size !== undefined) {
-      params = params.set('size', paging.size);
-    }
-
-    return firstValueFrom(
-      this.httpClient.get<AuditPageResponse<PortfolioResponse>>(`${environment.apiUrl}/api/audit/users/${userId}/portfolios`, {
-        params,
-      }),
-    );
+    return this.getPage(`/api/audit/users/${userId}/portfolios`, buildParams(paging));
   }
 
-  listHoldings(options?:
-    AuditPaging &
-    { userId?: string; portfolioId?: string; instrumentId?: string }
+  listHoldings(
+    options?: AuditPaging & { userId?: string; portfolioId?: string; instrumentId?: string },
   ): Promise<AuditPageResponse<AuditHoldingResponse>> {
-    let params = new HttpParams();
-
-    if (options?.userId?.trim()) {
-      params = params.set('userId', options.userId.trim());
-    }
-
-    if (options?.portfolioId?.trim()) {
-      params = params.set('portfolioId', options.portfolioId.trim());
-    }
-
-    if (options?.instrumentId?.trim()) {
-      params = params.set('instrumentId', options.instrumentId.trim());
-    }
-
-    if (options?.page !== undefined) {
-      params = params.set('page', options.page);
-    }
-
-    if (options?.size !== undefined) {
-      params = params.set('size', options.size);
-    }
-
-    return firstValueFrom(
-      this.httpClient.get<AuditPageResponse<AuditHoldingResponse>>(`${environment.apiUrl}/api/audit/holdings`, {
-        params,
-      }),
-    );
+    return this.getPage('/api/audit/holdings', buildParams(options));
   }
 
   listUserHoldings(
     userId: string,
     options?: AuditPaging & { portfolioId?: string; instrumentId?: string },
   ): Promise<AuditPageResponse<AuditHoldingResponse>> {
-    let params = new HttpParams();
-
-    if (options?.portfolioId) {
-      params = params.set('portfolioId', options.portfolioId);
-    }
-
-    if (options?.instrumentId) {
-      params = params.set('instrumentId', options.instrumentId);
-    }
-
-    if (options?.page !== undefined) {
-      params = params.set('page', options.page);
-    }
-
-    if (options?.size !== undefined) {
-      params = params.set('size', options.size);
-    }
-
-    return firstValueFrom(
-      this.httpClient.get<AuditPageResponse<AuditHoldingResponse>>(`${environment.apiUrl}/api/audit/users/${userId}/holdings`, {
-        params,
-      }),
-    );
+    return this.getPage(`/api/audit/users/${userId}/holdings`, buildParams(options));
   }
 
   listHoldingOrderLogs(
     holdingId: string,
     options?: AuditPaging & { fromDate?: string; toDate?: string; status?: OrderStatus },
   ): Promise<AuditPageResponse<AuditOrderLogResponse>> {
-    let params = new HttpParams();
-
-    if (options?.fromDate?.trim()) {
-      params = params.set('fromDate', options.fromDate.trim());
-    }
-
-    if (options?.toDate?.trim()) {
-      params = params.set('toDate', options.toDate.trim());
-    }
-
-    if (options?.status) {
-      params = params.set('status', options.status);
-    }
-
-    if (options?.page !== undefined) {
-      params = params.set('page', options.page);
-    }
-
-    if (options?.size !== undefined) {
-      params = params.set('size', options.size);
-    }
-
-    return firstValueFrom(
-      this.httpClient.get<AuditPageResponse<AuditOrderLogResponse>>(
-        `${environment.apiUrl}/api/audit/holdings/${holdingId}/order-logs`,
-        { params },
-      ),
-    );
+    return this.getPage(`/api/audit/holdings/${holdingId}/order-logs`, buildParams(options));
   }
 
   listHoldingPositionLots(holdingId: string, paging?: AuditPaging): Promise<AuditPageResponse<PositionLotResponse>> {
-    let params = new HttpParams();
-
-    if (paging?.page !== undefined) {
-      params = params.set('page', paging.page);
-    }
-
-    if (paging?.size !== undefined) {
-      params = params.set('size', paging.size);
-    }
-
-    return firstValueFrom(
-      this.httpClient.get<AuditPageResponse<PositionLotResponse>>(
-        `${environment.apiUrl}/api/audit/holdings/${holdingId}/position-lots`,
-        { params },
-      ),
-    );
+    return this.getPage(`/api/audit/holdings/${holdingId}/position-lots`, buildParams(paging));
   }
 
   listHoldingLotMatches(holdingId: string, paging?: AuditPaging): Promise<AuditPageResponse<LotMatchResponse>> {
-    let params = new HttpParams();
-
-    if (paging?.page !== undefined) {
-      params = params.set('page', paging.page);
-    }
-
-    if (paging?.size !== undefined) {
-      params = params.set('size', paging.size);
-    }
-
-    return firstValueFrom(
-      this.httpClient.get<AuditPageResponse<LotMatchResponse>>(
-        `${environment.apiUrl}/api/audit/holdings/${holdingId}/lot-matches`,
-        {
-          params,
-        },
-      ),
-    );
+    return this.getPage(`/api/audit/holdings/${holdingId}/lot-matches`, buildParams(paging));
   }
+
+  private getPage<T>(path: string, params: HttpParams): Promise<AuditPageResponse<T>> {
+    return firstValueFrom(this.httpClient.get<AuditPageResponse<T>>(`${environment.apiUrl}${path}`, { params }));
+  }
+}
+
+/**
+ * Builds query params from an options object, skipping undefined, null, false, and blank values.
+ * Strings are trimmed; numbers (including 0) and `true` are sent as-is.
+ */
+function buildParams(values?: object): HttpParams {
+  let params = new HttpParams();
+
+  for (const [key, value] of Object.entries(values ?? {})) {
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (trimmed) {
+        params = params.set(key, trimmed);
+      }
+    } else if (typeof value === 'number' || value === true) {
+      params = params.set(key, value);
+    }
+  }
+
+  return params;
 }

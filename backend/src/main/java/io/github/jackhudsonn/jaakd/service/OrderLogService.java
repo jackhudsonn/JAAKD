@@ -17,10 +17,12 @@ import io.github.jackhudsonn.jaakd.model.OrderLog;
 import io.github.jackhudsonn.jaakd.model.OrderSide;
 import io.github.jackhudsonn.jaakd.model.OrderStatus;
 import io.github.jackhudsonn.jaakd.model.Portfolio;
+import io.github.jackhudsonn.jaakd.model.UserType;
 import io.github.jackhudsonn.jaakd.repository.InstrumentRepository;
 import io.github.jackhudsonn.jaakd.repository.OrderLogRepository;
 import io.github.jackhudsonn.jaakd.repository.PortfolioRepository;
 import io.github.jackhudsonn.jaakd.security.CurrentUserService;
+import io.github.jackhudsonn.jaakd.security.RequiresUserType;
 
 import java.util.List;
 import java.util.Optional;
@@ -36,7 +38,6 @@ public class OrderLogService {
     private final PortfolioRepository portfolioRepository;
     private final InstrumentRepository instrumentRepository;
     private final CurrentUserService currentUserService;
-    private final PrivilegedAccessService privilegedAccessService;
     private final QuoteService quoteService;
     private final KafkaTemplate<String, OrderSubmittedEvent> orderSubmittedKafkaTemplate;
 
@@ -45,7 +46,6 @@ public class OrderLogService {
         PortfolioRepository portfolioRepository,
         InstrumentRepository instrumentRepository,
         CurrentUserService currentUserService,
-        PrivilegedAccessService privilegedAccessService,
         QuoteService quoteService,
         KafkaTemplate<String, OrderSubmittedEvent> orderSubmittedKafkaTemplate
     ) {
@@ -53,7 +53,6 @@ public class OrderLogService {
         this.portfolioRepository = portfolioRepository;
         this.instrumentRepository = instrumentRepository;
         this.currentUserService = currentUserService;
-        this.privilegedAccessService = privilegedAccessService;
         this.quoteService = quoteService;
         this.orderSubmittedKafkaTemplate = orderSubmittedKafkaTemplate;
     }
@@ -74,9 +73,8 @@ public class OrderLogService {
         );
     }
 
+    @RequiresUserType({ UserType.ADMIN, UserType.AUDITOR })
     public List<OrderLog> getOrderLogsForPortfolioDiagnostics(UUID portfolioId) {
-        privilegedAccessService.ensureAdminOrAuditor();
-
         portfolioRepository.findById(portfolioId)
             .orElseThrow(() -> new PortfolioNotFoundException(portfolioId));
 

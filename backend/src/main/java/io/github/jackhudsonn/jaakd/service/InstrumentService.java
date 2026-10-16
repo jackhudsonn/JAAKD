@@ -16,7 +16,9 @@ import io.github.jackhudsonn.jaakd.exception.ValidationException;
 import io.github.jackhudsonn.jaakd.model.CashCurrency;
 import io.github.jackhudsonn.jaakd.model.Instrument;
 import io.github.jackhudsonn.jaakd.model.InstrumentClass;
+import io.github.jackhudsonn.jaakd.model.UserType;
 import io.github.jackhudsonn.jaakd.repository.InstrumentRepository;
+import io.github.jackhudsonn.jaakd.security.RequiresUserType;
 import io.github.jackhudsonn.jaakd.model.fauxnance.FauxnanceCandleResponse;
 import io.github.jackhudsonn.jaakd.model.fauxnance.FauxnanceQuoteResponse;
 import io.github.jackhudsonn.jaakd.model.fauxnance.FauxnanceSymbolResponse;
@@ -39,16 +41,13 @@ public class InstrumentService {
     private static final int MAX_QUOTES_BATCH_SIZE = 25;
 
     private final InstrumentRepository instrumentRepository;
-    private final PrivilegedAccessService privilegedAccessService;
     private final FauxnanceService fauxnanceService;
 
     public InstrumentService(
         InstrumentRepository instrumentRepository,
-        PrivilegedAccessService privilegedAccessService,
         FauxnanceService fauxnanceService
     ) {
         this.instrumentRepository = instrumentRepository;
-        this.privilegedAccessService = privilegedAccessService;
         this.fauxnanceService = fauxnanceService;
     }
 
@@ -66,21 +65,7 @@ public class InstrumentService {
         Sort sort = Sort.by(Sort.Order.asc("ticker"), Sort.Order.asc("instrumentId"));
 
         if (page == null && size == null) {
-            if (instrumentType == null) {
-                return instrumentRepository
-                    .findByTickerContainingIgnoreCaseOrNameContainingIgnoreCaseOrderByTickerAscInstrumentIdAsc(
-                        normalizedQuery,
-                        normalizedQuery
-                    );
-            }
-
-            return instrumentRepository
-                .findByInstrumentClassAndTickerContainingIgnoreCaseOrInstrumentClassAndNameContainingIgnoreCaseOrderByTickerAscInstrumentIdAsc(
-                    instrumentType,
-                    normalizedQuery,
-                    instrumentType,
-                    normalizedQuery
-                );
+            return instrumentRepository.findBySearchQueryAndOptionalInstrumentClass(normalizedQuery, instrumentType);
         }
 
         int resolvedPage = page == null ? DEFAULT_PAGE : page;
@@ -88,20 +73,8 @@ public class InstrumentService {
         validatePaging(resolvedPage, resolvedSize);
 
         Pageable pageable = PageRequest.of(resolvedPage, resolvedSize, sort);
-        if (instrumentType == null) {
-            return instrumentRepository
-                .findByTickerContainingIgnoreCaseOrNameContainingIgnoreCase(normalizedQuery, normalizedQuery, pageable)
-                .getContent();
-        }
-
         return instrumentRepository
-            .findByInstrumentClassAndTickerContainingIgnoreCaseOrInstrumentClassAndNameContainingIgnoreCase(
-                instrumentType,
-                normalizedQuery,
-                instrumentType,
-                normalizedQuery,
-                pageable
-            )
+            .findBySearchQueryAndOptionalInstrumentClass(normalizedQuery, instrumentType, pageable)
             .getContent();
     }
 
@@ -116,9 +89,8 @@ public class InstrumentService {
     }
 
     @Transactional
+    @RequiresUserType(UserType.ADMIN)
     public Instrument createInstrument(@NotNull CreateInstrumentRequest request) {
-        privilegedAccessService.ensureAdmin();
-
         // 1. Prevent duplicate tickers
         if (instrumentRepository.existsByTickerIgnoreCase(request.ticker())) {
             throw new InstrumentConflictException(request.ticker());
@@ -140,9 +112,8 @@ public class InstrumentService {
     }
 
     @Transactional
+    @RequiresUserType(UserType.ADMIN)
     public Instrument updateInstrument(@NotNull UUID instrumentId, @NotNull UpdateInstrumentRequest request) {
-        privilegedAccessService.ensureAdmin();
-
         // 1. Fetch existing entity
         Instrument instrument = instrumentRepository.findById(instrumentId)
             .orElseThrow(() -> new InstrumentNotFoundException(instrumentId));
@@ -174,9 +145,8 @@ public class InstrumentService {
     }
 
     @Transactional
+    @RequiresUserType(UserType.ADMIN)
     public Instrument createOrUpdateFromExternalData(@NotBlank String ticker) {
-        privilegedAccessService.ensureAdmin();
-
         String normalizedTicker = normalizeTicker(ticker);
         FauxnanceSymbolResponse symbolResponse = fauxnanceService.getSymbol(normalizedTicker);
 
@@ -199,7 +169,9 @@ public class InstrumentService {
         return instrumentRepository.save(instrument);
     }
 
+    // Annotated as well: its internal call to createOrUpdateFromExternalData bypasses the proxy.
     @Transactional
+    @RequiresUserType(UserType.ADMIN)
     public Instrument createOrUpdateCryptoFromExternalData(@NotBlank String baseTicker, @NotNull CashCurrency quoteCurrency) {
         if (quoteCurrency == null) {
             throw new InvalidInstrumentException("Quote currency is required");

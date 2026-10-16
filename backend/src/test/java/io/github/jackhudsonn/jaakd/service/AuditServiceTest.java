@@ -72,9 +72,6 @@ class AuditServiceTest {
     @Mock
     private LotMatchRepository lotMatchRepository;
 
-    @Mock
-    private PrivilegedAccessService privilegedAccessService;
-
     @InjectMocks
     private AuditService auditService;
 
@@ -87,8 +84,6 @@ class AuditServiceTest {
         when(userRepository.findByAuditSearchQuery(eq("ada"), any(Pageable.class))).thenReturn(page);
 
         AuditPageResponse<AuditUserSearchResponse> result = auditService.searchUsers(" ada ", null, null);
-
-        verify(privilegedAccessService, times(1)).ensureAdminOrAuditor();
 
         ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
         verify(userRepository, times(1)).findByAuditSearchQuery(eq("ada"), pageableCaptor.capture());
@@ -117,7 +112,6 @@ class AuditServiceTest {
 
         auditService.searchUsers("   ", 0, 25);
 
-        verify(privilegedAccessService, times(1)).ensureAdminOrAuditor();
         verify(userRepository, times(1)).findByAuditSearchQuery(eq(""), any(Pageable.class));
     }
 
@@ -127,7 +121,6 @@ class AuditServiceTest {
 
         auditService.searchUsers(null, 0, 25);
 
-        verify(privilegedAccessService, times(1)).ensureAdminOrAuditor();
         verify(userRepository, times(1)).findByAuditSearchQuery(eq(""), any(Pageable.class));
     }
 
@@ -135,7 +128,6 @@ class AuditServiceTest {
     void searchUsers_invalidPage_throwsValidation() {
         assertThrows(ValidationException.class, () -> auditService.searchUsers("x", -1, 25));
 
-        verify(privilegedAccessService, times(1)).ensureAdminOrAuditor();
         verify(userRepository, never()).findByAuditSearchQuery(any(), any(Pageable.class));
     }
 
@@ -143,7 +135,6 @@ class AuditServiceTest {
     void searchUsers_invalidSize_throwsValidation() {
         assertThrows(ValidationException.class, () -> auditService.searchUsers("x", 0, 101));
 
-        verify(privilegedAccessService, times(1)).ensureAdminOrAuditor();
         verify(userRepository, never()).findByAuditSearchQuery(any(), any(Pageable.class));
     }
 
@@ -185,8 +176,6 @@ class AuditServiceTest {
             null
         );
 
-        verify(privilegedAccessService, times(1)).ensureAdminOrAuditor();
-
         ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
         verify(orderLogRepository, times(1)).findAll(any(Specification.class), pageableCaptor.capture());
         assertEquals(
@@ -222,7 +211,6 @@ class AuditServiceTest {
 
         auditService.searchOrderLogs(null, null, null, null, null, null, null, null, null, null, 0, 25);
 
-        verify(privilegedAccessService, times(1)).ensureAdminOrAuditor();
         verify(orderLogRepository, times(1)).findAll(
             any(Specification.class),
             eq(PageRequest.of(0, 25, Sort.by(Sort.Order.desc("timestamp"), Sort.Order.desc("logOrderID"))))
@@ -266,7 +254,6 @@ class AuditServiceTest {
         AuditPageResponse<io.github.jackhudsonn.jaakd.dto.PortfolioResponse> result =
             auditService.getUserPortfolios(userId, null, null);
 
-        verify(privilegedAccessService, times(1)).ensureAdminOrAuditor();
         ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
         verify(portfolioRepository, times(1))
             .findByProfileUserIdOrderByPortfolioIdAsc(eq(userId), pageableCaptor.capture());
@@ -289,7 +276,6 @@ class AuditServiceTest {
 
         AuditPageResponse<AuditHoldingResponse> result = auditService.getUserHoldings(userId, portfolioId, null, 1, 10);
 
-        verify(privilegedAccessService, times(1)).ensureAdminOrAuditor();
         verify(holdingRepository, times(1)).findByAuditOptionalFilters(eq(userId), eq(portfolioId), eq(null), eq(PageRequest.of(1, 10)));
         assertEquals(1, result.content().size());
         assertEquals(userId, result.content().get(0).ownerUserId());
@@ -341,7 +327,6 @@ class AuditServiceTest {
         AuditPageResponse<io.github.jackhudsonn.jaakd.dto.PositionLotResponse> result =
             auditService.getHoldingPositionLots(holdingId, null, null);
 
-        verify(privilegedAccessService, times(1)).ensureAdminOrAuditor();
         verify(holdingRepository, times(1)).findById(holdingId);
         verify(positionLotRepository, times(1)).findByHoldingIdOldestFirst(eq(holdingId), eq(PageRequest.of(0, 25)));
         assertEquals(1, result.content().size());
@@ -368,7 +353,6 @@ class AuditServiceTest {
         AuditPageResponse<io.github.jackhudsonn.jaakd.dto.LotMatchResponse> result =
             auditService.getHoldingLotMatches(holdingId, 0, 25);
 
-        verify(privilegedAccessService, times(1)).ensureAdminOrAuditor();
         verify(holdingRepository, times(1)).findById(holdingId);
         verify(lotMatchRepository, times(1)).findByHoldingIdOldestFirst(eq(holdingId), eq(PageRequest.of(0, 25)));
         assertEquals(1, result.content().size());
