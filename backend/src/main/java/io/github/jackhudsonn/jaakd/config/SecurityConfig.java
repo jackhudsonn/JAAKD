@@ -1,21 +1,20 @@
 package io.github.jackhudsonn.jaakd.config;
 
 import java.util.List;
+import java.time.Instant;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
 import io.github.jackhudsonn.jaakd.security.SessionAuthenticationFilter;
 import io.github.jackhudsonn.jaakd.service.SessionService;
 
@@ -26,7 +25,7 @@ import io.github.jackhudsonn.jaakd.service.SessionService;
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, SessionService sessionService,
+        public SecurityFilterChain securityFilterChain(HttpSecurity http, SessionService sessionService,
             CorsConfigurationSource corsConfigurationSource) throws Exception {
         http
                 // No CSRF token: requests are authenticated by a SameSite=Lax
@@ -40,11 +39,27 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(handling -> handling
-                        .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            response.setStatus(401);
+                            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                        response.getWriter().write(errorJson("Unauthorized"));
+                        })
+                        .accessDeniedHandler((request, response, accessDeniedException) -> {
+                            response.setStatus(403);
+                            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                        response.getWriter().write(errorJson("Forbidden"));
+                        }))
                 .addFilterBefore(new SessionAuthenticationFilter(sessionService), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
+
+            private static String errorJson(String message) {
+            return String.format(
+                "{\"timestamp\":\"%s\",\"message\":\"%s\",\"details\":{}}",
+                Instant.now(),
+                message);
+            }
 
     // Allows the configured frontend origins to call this API with the session
     // cookie. Origins are configuration so deployments set their own.

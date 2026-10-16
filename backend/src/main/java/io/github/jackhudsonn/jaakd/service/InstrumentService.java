@@ -2,6 +2,9 @@ package io.github.jackhudsonn.jaakd.service;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.validation.annotation.Validated;
 
 import io.github.jackhudsonn.jaakd.dto.CreateInstrumentRequest;
@@ -9,13 +12,14 @@ import io.github.jackhudsonn.jaakd.dto.UpdateInstrumentRequest;
 import io.github.jackhudsonn.jaakd.exception.InstrumentConflictException;
 import io.github.jackhudsonn.jaakd.exception.InstrumentNotFoundException;
 import io.github.jackhudsonn.jaakd.exception.InvalidInstrumentException;
+import io.github.jackhudsonn.jaakd.exception.ValidationException;
 import io.github.jackhudsonn.jaakd.model.CashCurrency;
 import io.github.jackhudsonn.jaakd.model.Instrument;
 import io.github.jackhudsonn.jaakd.model.InstrumentClass;
 import io.github.jackhudsonn.jaakd.repository.InstrumentRepository;
-import io.github.jackhudsonn.jaakd.service.fauxnance.FauxnanceCandleResponse;
-import io.github.jackhudsonn.jaakd.service.fauxnance.FauxnanceQuoteResponse;
-import io.github.jackhudsonn.jaakd.service.fauxnance.FauxnanceSymbolResponse;
+import io.github.jackhudsonn.jaakd.model.fauxnance.FauxnanceCandleResponse;
+import io.github.jackhudsonn.jaakd.model.fauxnance.FauxnanceQuoteResponse;
+import io.github.jackhudsonn.jaakd.model.fauxnance.FauxnanceSymbolResponse;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,18 +33,76 @@ import jakarta.validation.constraints.Size;
 @Validated
 public class InstrumentService {
 
+    private static final int DEFAULT_PAGE = 0;
+    private static final int DEFAULT_SIZE = 25;
+    private static final int MAX_SIZE = 100;
     private static final int MAX_QUOTES_BATCH_SIZE = 25;
 
     private final InstrumentRepository instrumentRepository;
+    private final PrivilegedAccessService privilegedAccessService;
     private final FauxnanceService fauxnanceService;
 
-    public InstrumentService(InstrumentRepository instrumentRepository, FauxnanceService fauxnanceService) {
+    public InstrumentService(
+        InstrumentRepository instrumentRepository,
+        PrivilegedAccessService privilegedAccessService,
+        FauxnanceService fauxnanceService
+    ) {
         this.instrumentRepository = instrumentRepository;
+        this.privilegedAccessService = privilegedAccessService;
         this.fauxnanceService = fauxnanceService;
     }
 
     public List<Instrument> getAllInstruments() {
-        return instrumentRepository.findAll();
+        return getAllInstruments(null, null, null, null);
+    }
+
+    public List<Instrument> getAllInstruments(
+        InstrumentClass instrumentType,
+        String query,
+        Integer page,
+        Integer size
+    ) {
+        String normalizedQuery = normalizeQuery(query);
+        Sort sort = Sort.by(Sort.Order.asc("ticker"), Sort.Order.asc("instrumentId"));
+
+        if (page == null && size == null) {
+            if (instrumentType == null) {
+                return instrumentRepository
+                    .findByTickerContainingIgnoreCaseOrNameContainingIgnoreCaseOrderByTickerAscInstrumentIdAsc(
+                        normalizedQuery,
+                        normalizedQuery
+                    );
+            }
+
+            return instrumentRepository
+                .findByInstrumentClassAndTickerContainingIgnoreCaseOrInstrumentClassAndNameContainingIgnoreCaseOrderByTickerAscInstrumentIdAsc(
+                    instrumentType,
+                    normalizedQuery,
+                    instrumentType,
+                    normalizedQuery
+                );
+        }
+
+        int resolvedPage = page == null ? DEFAULT_PAGE : page;
+        int resolvedSize = size == null ? DEFAULT_SIZE : size;
+        validatePaging(resolvedPage, resolvedSize);
+
+        Pageable pageable = PageRequest.of(resolvedPage, resolvedSize, sort);
+        if (instrumentType == null) {
+            return instrumentRepository
+                .findByTickerContainingIgnoreCaseOrNameContainingIgnoreCase(normalizedQuery, normalizedQuery, pageable)
+                .getContent();
+        }
+
+        return instrumentRepository
+            .findByInstrumentClassAndTickerContainingIgnoreCaseOrInstrumentClassAndNameContainingIgnoreCase(
+                instrumentType,
+                normalizedQuery,
+                instrumentType,
+                normalizedQuery,
+                pageable
+            )
+            .getContent();
     }
 
     public Instrument getInstrumentById(@NotNull UUID instrumentId) {
@@ -55,6 +117,8 @@ public class InstrumentService {
 
     @Transactional
     public Instrument createInstrument(@NotNull CreateInstrumentRequest request) {
+        privilegedAccessService.ensureAdmin();
+
         // 1. Prevent duplicate tickers
         if (instrumentRepository.existsByTickerIgnoreCase(request.ticker())) {
             throw new InstrumentConflictException(request.ticker());
@@ -77,6 +141,8 @@ public class InstrumentService {
 
     @Transactional
     public Instrument updateInstrument(@NotNull UUID instrumentId, @NotNull UpdateInstrumentRequest request) {
+        privilegedAccessService.ensureAdmin();
+
         // 1. Fetch existing entity
         Instrument instrument = instrumentRepository.findById(instrumentId)
             .orElseThrow(() -> new InstrumentNotFoundException(instrumentId));
@@ -98,8 +164,19 @@ public class InstrumentService {
         return instrumentRepository.save(instrument);
     }
 
+    private String normalizeQuery(String query) {
+        if (query == null) {
+            return "";
+        }
+
+        String trimmed = query.trim();
+        return trimmed.isEmpty() ? "" : trimmed;
+    }
+
     @Transactional
     public Instrument createOrUpdateFromExternalData(@NotBlank String ticker) {
+        privilegedAccessService.ensureAdmin();
+
         String normalizedTicker = normalizeTicker(ticker);
         FauxnanceSymbolResponse symbolResponse = fauxnanceService.getSymbol(normalizedTicker);
 
@@ -244,4 +321,15 @@ public class InstrumentService {
             );
         }
     }
+
+    private void validatePaging(int page, int size) {
+        if (page < 0) {
+            throw new ValidationException("Page must be greater than or equal to 0");
+        }
+
+        if (size < 1 || size > MAX_SIZE) {
+            throw new ValidationException("Size must be between 1 and 100");
+        }
+    }
+
 }
