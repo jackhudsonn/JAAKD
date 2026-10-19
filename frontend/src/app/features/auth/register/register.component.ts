@@ -120,26 +120,21 @@ export class RegisterComponent {
       return;
     }
 
-    let registered = false;
-
     try {
       await this.authService.register(this.email, this.password);
-      registered = true;
     } catch (error) {
-      if (!(error instanceof HttpErrorResponse) || error.status !== 409) {
-        this.message.set(this.mapErrorToMessage(error));
-        return;
-      }
+      this.message.set(
+        error instanceof HttpErrorResponse && error.status === 409
+          ? 'An account with this email already exists. Please sign in.'
+          : this.mapErrorToMessage(error),
+      );
+      return;
     }
 
     try {
       await this.authService.login(this.email, this.password);
     } catch (error) {
-      this.message.set(
-        registered
-          ? this.mapErrorToMessage(error)
-          : 'An account with this email already exists. Please sign in with your existing password.',
-      );
+      this.message.set(this.mapErrorToMessage(error));
       return;
     }
 
@@ -150,28 +145,22 @@ export class RegisterComponent {
       return;
     } catch (error) {
       if (error instanceof HttpErrorResponse && error.status === 404) {
-        if (registered) {
-          try {
-            await this.profileService.createCurrentProfile({
-              firstName: this.firstName,
-              lastName: this.lastName,
-              dob: this.dob,
-              city: this.city,
-              state: this.state,
-              country: this.country,
-              zipCode: this.zipCode,
-            });
+        try {
+          await this.profileService.createCurrentProfile({
+            firstName: this.firstName,
+            lastName: this.lastName,
+            dob: this.dob,
+            city: this.city,
+            state: this.state,
+            country: this.country,
+            zipCode: this.zipCode,
+          });
 
-            this.message.set('');
-            await this.router.navigate(['/dashboard']);
-          } catch (createError) {
-            this.message.set(this.mapErrorToMessage(createError));
-          }
-          return;
+          this.message.set('');
+          await this.router.navigate(['/dashboard']);
+        } catch (createError) {
+          this.message.set(this.mapErrorToMessage(createError));
         }
-
-        this.message.set('Please complete your profile to continue.');
-        await this.router.navigate(['/profile']);
         return;
       }
 
