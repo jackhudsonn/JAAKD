@@ -125,7 +125,39 @@ pipeline {
                 expression { params.DEPLOY_ENVIRONMENT == 'prod' }
             }
             steps {
-                // TODO: Implement Prod deployment steps
+                // 1) Validate prerequisites and credentials are present.
+                
+
+                // 2) Build and package backend JAR from backend/.
+
+                
+                // 3) Deploy backend artifact to Elastic Beanstalk.
+
+
+                // 4) Set backend runtime env vars:
+                //    - SPRING_DATASOURCE_URL / USERNAME / PASSWORD (Lightsail Postgres)
+                //    - SPRING_KAFKA_BOOTSTRAP_SERVERS (Lightsail Kafka VM)
+                //    - APP_CORS_ALLOWED_ORIGINS, AUTH_COOKIE_SECURE, IDENTITY_PROVIDER
+
+
+                // 5) Verify backend health and auth endpoints via API hostname.
+
+
+                // 6) Build Angular production bundle from frontend/.
+
+
+                // 7) Upload/sync Angular dist assets to S3 website bucket.
+
+
+                // 8) Invalidate CloudFront cache (if enabled) for fresh assets.
+
+
+                // 9) Validate end-to-end flow from S3 frontend -> API -> Postgres/Kafka.
+
+
+                // 10) Publish deployment summary and rollback pointers.
+
+
                 echo("Prod deployment is not yet implemented.")
             }
         }
