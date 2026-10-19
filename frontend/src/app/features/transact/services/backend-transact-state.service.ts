@@ -1,6 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Injectable, computed, signal } from '@angular/core';
 import {
+  CASH_CURRENCIES,
   CashConversionResponse,
   CashCurrency,
   HoldingResponse,
@@ -28,9 +29,9 @@ export class BackendTransactStateService implements TransactStatePort {
   readonly cashCurrencies = computed(() =>
     this.instrumentsData()
       .filter((instrument) => instrument.instrumentClass === 'CASH')
-      .map((instrument) => instrument.ticker as CashCurrency),
+      .map((instrument) => instrument.ticker as CashCurrency)
+      .sort((a, b) => CASH_CURRENCIES.indexOf(a) - CASH_CURRENCIES.indexOf(b)),
   );
-
   private readonly portfolioId = signal<string | null>(null);
   private readonly instrumentsData = signal<InstrumentResponse[]>([]);
   private readonly orderLogsData = signal<OrderLogResponse[]>([]);
