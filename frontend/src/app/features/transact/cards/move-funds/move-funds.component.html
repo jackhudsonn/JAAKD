@@ -6,10 +6,9 @@
     <label for="funds-currency">Currency</label>
 
     <select id="funds-currency" [(ngModel)]="selectedCurrency" [disabled]="submitting()">
-      <option value="USD">USD</option>
-      <option value="EUR">EUR</option>
-      <option value="GBP">GBP</option>
-      <option value="INR">INR</option>
+      @for (currency of currencies(); track currency) {
+        <option [value]="currency">{{ currency }}</option>
+      }
     </select>
   </div>
 

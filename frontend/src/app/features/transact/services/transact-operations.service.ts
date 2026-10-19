@@ -10,7 +10,11 @@ import { TRANSACT_STATE_PORT } from './transact-state.port';
 export class TransactOperationsService {
   private readonly state = inject(TRANSACT_STATE_PORT);
 
-  async deposit(amount: number, method: PaymentMethod, currency = 'USD'): Promise<void> {
+  async deposit(
+    amount: number,
+    method: PaymentMethod,
+    currency: CashCurrency = 'USD',
+  ): Promise<void> {
     if (this.state.backendDataMode && this.state.submitCashMovement) {
       await this.state.submitCashMovement('DEPOSIT', amount, currency);
       return;
@@ -19,7 +23,11 @@ export class TransactOperationsService {
     addMockTransaction('deposit', amount, method);
   }
 
-  async withdraw(amount: number, method: PaymentMethod, currency = 'USD'): Promise<void> {
+  async withdraw(
+    amount: number,
+    method: PaymentMethod,
+    currency: CashCurrency = 'USD',
+  ): Promise<void> {
     if (this.state.backendDataMode && this.state.submitCashMovement) {
       await this.state.submitCashMovement('WITHDRAW', amount, currency);
       return;
@@ -30,16 +38,12 @@ export class TransactOperationsService {
 
   async exchange(
     amount: number,
-    fromCurrency: string,
-    toCurrency: string,
+    fromCurrency: CashCurrency,
+    toCurrency: CashCurrency,
     method: PaymentMethod,
   ): Promise<CashConversionResponse | null> {
     if (this.state.backendDataMode && this.state.convertCash) {
-      return this.state.convertCash(
-        fromCurrency as CashCurrency,
-        toCurrency as CashCurrency,
-        amount,
-      );
+      return this.state.convertCash(fromCurrency, toCurrency, amount);
     }
 
     addMockExchangeTransaction(amount, `${fromCurrency} → ${toCurrency}`, method);

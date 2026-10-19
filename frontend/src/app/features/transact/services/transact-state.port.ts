@@ -8,11 +8,12 @@ export interface TransactStatePort {
   readonly backendDataMode?: boolean;
   readonly loadState?: Signal<'loading' | 'ready' | 'error'>;
   readonly cashBalances?: Signal<Record<string, number>>;
+  readonly cashCurrencies?: Signal<readonly CashCurrency[]>;
   load?(): Promise<void>;
   submitCashMovement?(
     side: 'DEPOSIT' | 'WITHDRAW',
     amount: number,
-    currency?: string,
+    currency?: CashCurrency,
   ): Promise<void>;
   convertCash?(
     fromCurrency: CashCurrency,

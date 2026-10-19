@@ -3,6 +3,7 @@ import { MoveFundsFormComponent } from './cards/move-funds/move-funds.component'
 import { TransactionHistoryComponent } from './cards/transaction-history/transaction-history.component';
 import { CurrencyExchangeComponent } from './cards/currency-exchange/currency-exchange.component';
 import { Deposit, Withdrawal } from '@core/models';
+import { CASH_CURRENCIES } from '@core/models/api.models';
 import {
   ExchangeRequest,
   TransactFacadeService,
@@ -35,6 +36,7 @@ export class TransactComponent implements OnInit {
   readonly exchangeMessage = signal('');
   readonly exchangeError = signal('');
   readonly cashBalances = computed(() => this.transactFacade.cashBalances?.() ?? {});
+  readonly currencies = computed(() => this.transactFacade.cashCurrencies?.() ?? CASH_CURRENCIES);
 
   ngOnInit() {
     void this.transactFacade.load();

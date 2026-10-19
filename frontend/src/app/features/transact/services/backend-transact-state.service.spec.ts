@@ -371,4 +371,10 @@ describe('BackendTransactStateService', () => {
 
     randomUuidSpy.mockRestore();
   });
+
+  it('lists supported currencies from the cash instruments', async () => {
+    await service.load();
+
+    expect(service.cashCurrencies()).toEqual(['EUR', 'USD']);
+  });
 });

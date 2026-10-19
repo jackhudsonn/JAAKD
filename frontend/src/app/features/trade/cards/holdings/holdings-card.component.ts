@@ -15,6 +15,7 @@ import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.
 import { ScrollableListComponent } from '@shared/components/scrollable-list/scrollable-list.component';
 import { startCycleTimer } from '@shared/utils/cycle-timer';
 import { Holding, InstrumentType } from '@core/models';
+import { CASH_CURRENCIES } from '@core/models/api.models';
 import { TRADE_MARKET_DATA_PORT } from '@features/trade/services/trade-market-data.port';
 
 type HoldingsRow =
@@ -52,7 +53,7 @@ const HOLDINGS_FILTER_OPTIONS: { id: HoldingsFilter; label: string }[] = [
 })
 export class HoldingsCardComponent implements OnInit, OnDestroy {
   private readonly marketData = inject(TRADE_MARKET_DATA_PORT);
-  private readonly cashDisplayOrder = ['USD', 'EUR', 'INR'];
+  private readonly cashDisplayOrder: readonly string[] = CASH_CURRENCIES;
 
   readonly holdingsListMinHeight = '255px';
   readonly holdingsListMaxHeight = '255px';

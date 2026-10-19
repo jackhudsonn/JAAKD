@@ -114,6 +114,8 @@ export interface QuoteResponse {
 
 export type CashCurrency = 'USD' | 'EUR' | 'GBP' | 'INR';
 
+export const CASH_CURRENCIES: readonly CashCurrency[] = ['USD', 'EUR', 'GBP', 'INR'];
+
 export interface CashConversionRequest {
   sourceCurrency: CashCurrency;
   targetCurrency: CashCurrency;

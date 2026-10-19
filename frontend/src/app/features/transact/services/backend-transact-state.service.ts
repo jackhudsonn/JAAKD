@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Injectable, signal } from '@angular/core';
+import { Injectable, computed, signal } from '@angular/core';
 import {
   CashConversionResponse,
   CashCurrency,
@@ -25,6 +25,11 @@ export class BackendTransactStateService implements TransactStatePort {
   readonly backendDataMode = true;
   readonly loadState = signal<TransactLoadState>('loading');
   readonly cashBalances = signal<Record<string, number>>({});
+  readonly cashCurrencies = computed(() =>
+    this.instrumentsData()
+      .filter((instrument) => instrument.instrumentClass === 'CASH')
+      .map((instrument) => instrument.ticker as CashCurrency),
+  );
 
   private readonly portfolioId = signal<string | null>(null);
   private readonly instrumentsData = signal<InstrumentResponse[]>([]);
@@ -58,7 +63,7 @@ export class BackendTransactStateService implements TransactStatePort {
   async submitCashMovement(
     side: 'DEPOSIT' | 'WITHDRAW',
     amount: number,
-    currency = 'USD',
+    currency: CashCurrency = 'USD',
   ): Promise<void> {
     const portfolioId = this.portfolioId();
     const cashInstrument = this.instrumentsData().find(

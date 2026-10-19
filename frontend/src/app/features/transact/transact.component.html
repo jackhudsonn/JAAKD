@@ -15,6 +15,7 @@
           [backendDataMode]="backendDataMode"
           [submitting]="submittingAction()"
           [backendError]="actionError()"
+          [currencies]="currencies()"
           (depositSubmitted)="onDeposit($event)"
           (withdrawalSubmitted)="onWithdrawal($event)"
         />
@@ -24,6 +25,7 @@
         <app-currency-exchange
           [backendDataMode]="backendDataMode"
           [balances]="cashBalances()"
+          [currencies]="currencies()"
           [submitting]="submittingAction()"
           [message]="exchangeMessage()"
           [errorMessage]="exchangeError()"
