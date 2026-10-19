@@ -40,4 +40,21 @@ describe('InstrumentApiService', () => {
 
     await expect(promise).resolves.toHaveLength(1);
   });
+
+  it('getQuotes sends GET /api/instruments/quotes with the symbols', async () => {
+    const promise = service.getQuotes(['AAPL', 'MSFT']);
+
+    const req = httpTestingController.expectOne(
+      (request) => request.url === `${environment.apiUrl}/api/instruments/quotes`,
+    );
+    expect(req.request.method).toBe('GET');
+    expect(req.request.params.get('symbols')).toBe('AAPL,MSFT');
+    req.flush([]);
+
+    await expect(promise).resolves.toEqual([]);
+  });
+
+  it('getQuotes makes no request when there are no symbols', async () => {
+    await expect(service.getQuotes([])).resolves.toEqual([]);
+  });
 });

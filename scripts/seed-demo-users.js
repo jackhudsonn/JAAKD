@@ -1,8 +1,46 @@
 #!/usr/bin/env node
 
+const { execFileSync } = require("node:child_process");
 const { randomUUID } = require("node:crypto");
 
 const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8081";
+const AUDITOR_CONTAINER = process.env.AUDITOR_DB_CONTAINER || "jaakd-postgres";
+
+const AUDITOR_ACCOUNT = {
+  userId: "7d01f6ba-39bf-4f09-b6f8-4adcaef2f7f4",
+  email: "auditor@123.com",
+  password: "12345678",
+  role: "AUDITOR",
+  profile: {
+    userType: 2,
+    firstName: "Dev",
+    lastName: "Auditor",
+    city: "Austin",
+    state: "TX",
+    country: "US",
+    zipCode: "73301",
+    username: "dev_auditor",
+  },
+};
+
+// Instrument creation is admin-only, so instruments are created under this account.
+const ADMIN_ACCOUNT = {
+  userId: "3b8f5c1e-9a4d-4f2b-8c6e-1d2a7f9e0b45",
+  email: "admin@123.com",
+  password: "12345678",
+  role: "ADMIN",
+  profile: {
+    userType: 1,
+    firstName: "Dev",
+    lastName: "Admin",
+    city: "Austin",
+    state: "TX",
+    country: "US",
+    zipCode: "73301",
+    username: "dev_admin",
+  },
+};
+console.log(`Using backend URL: ${BACKEND_URL}`);
 
 const USERS = [
   {
@@ -17,6 +55,16 @@ const USERS = [
       country: "USA",
       zipCode: "73301",
     },
+    paymentMethods: [
+      {
+        nickname: "Primary checking",
+        accountHolderName: "Nina Newbie",
+        bankName: "Austin Community Bank",
+        accountType: "checking",
+        routingNumber: "111000025",
+        accountNumber: "9001203412",
+      },
+    ],
     portfolioName: "Newbie Growth Portfolio",
     widgets: [
       "performance-graph",
@@ -30,19 +78,19 @@ const USERS = [
         ticker: "AAPL",
         market: "NASDAQ",
         name: "Apple Inc",
-        instrumentClass: "STOCK",
+        instrumentClass: "EQUITY",
       },
       {
         ticker: "MSFT",
         market: "NASDAQ",
         name: "Microsoft Corp",
-        instrumentClass: "STOCK",
+        instrumentClass: "EQUITY",
       },
       {
         ticker: "TSLA",
         market: "NASDAQ",
         name: "Tesla Inc",
-        instrumentClass: "STOCK",
+        instrumentClass: "EQUITY",
       },
       {
         ticker: "VOO",
@@ -100,6 +148,16 @@ const USERS = [
       country: "USA",
       zipCode: "60601",
     },
+    paymentMethods: [
+      {
+        nickname: "Salary account",
+        accountHolderName: "Ivy Intermediate",
+        bankName: "Midwest Federal Credit Union",
+        accountType: "checking",
+        routingNumber: "021000021",
+        accountNumber: "665544332211",
+      },
+    ],
     portfolioName: "Intermediate Multi-Sector",
     widgets: [
       "watchlist",
@@ -124,37 +182,37 @@ const USERS = [
         ticker: "NVDA",
         market: "NASDAQ",
         name: "NVIDIA Corp",
-        instrumentClass: "STOCK",
+        instrumentClass: "EQUITY",
       },
       {
         ticker: "AMZN",
         market: "NASDAQ",
         name: "Amazon.com Inc",
-        instrumentClass: "STOCK",
+        instrumentClass: "EQUITY",
       },
       {
         ticker: "GOOGL",
         market: "NASDAQ",
         name: "Alphabet Inc Class A",
-        instrumentClass: "STOCK",
+        instrumentClass: "EQUITY",
       },
       {
         ticker: "META",
         market: "NASDAQ",
         name: "Meta Platforms Inc",
-        instrumentClass: "STOCK",
+        instrumentClass: "EQUITY",
       },
       {
         ticker: "JPM",
         market: "NYSE",
         name: "JPMorgan Chase & Co",
-        instrumentClass: "STOCK",
+        instrumentClass: "EQUITY",
       },
       {
         ticker: "XOM",
         market: "NYSE",
         name: "Exxon Mobil Corp",
-        instrumentClass: "STOCK",
+        instrumentClass: "EQUITY",
       },
       {
         ticker: "VOO",
@@ -233,6 +291,24 @@ const USERS = [
       country: "USA",
       zipCode: "10001",
     },
+    paymentMethods: [
+      {
+        nickname: "Operations checking",
+        accountHolderName: "Priya Pro",
+        bankName: "Manhattan Financial",
+        accountType: "checking",
+        routingNumber: "026009593",
+        accountNumber: "3322110099887766",
+      },
+      {
+        nickname: "Treasury savings",
+        accountHolderName: "Priya Pro",
+        bankName: "Manhattan Financial",
+        accountType: "savings",
+        routingNumber: "026009593",
+        accountNumber: "4455667788990011",
+      },
+    ],
     portfolioName: "Pro Global Macro",
     widgets: [
       "top-movers",
@@ -252,7 +328,6 @@ const USERS = [
       "JPM",
       "XOM",
       "VOO",
-      "BNDX",
       "TLT",
       "BTC",
       "ETH",
@@ -265,49 +340,49 @@ const USERS = [
         ticker: "AAPL",
         market: "NASDAQ",
         name: "Apple Inc",
-        instrumentClass: "STOCK",
+        instrumentClass: "EQUITY",
       },
       {
         ticker: "MSFT",
         market: "NASDAQ",
         name: "Microsoft Corp",
-        instrumentClass: "STOCK",
+        instrumentClass: "EQUITY",
       },
       {
         ticker: "NVDA",
         market: "NASDAQ",
         name: "NVIDIA Corp",
-        instrumentClass: "STOCK",
+        instrumentClass: "EQUITY",
       },
       {
         ticker: "AMZN",
         market: "NASDAQ",
         name: "Amazon.com Inc",
-        instrumentClass: "STOCK",
+        instrumentClass: "EQUITY",
       },
       {
         ticker: "GOOGL",
         market: "NASDAQ",
         name: "Alphabet Inc Class A",
-        instrumentClass: "STOCK",
+        instrumentClass: "EQUITY",
       },
       {
         ticker: "META",
         market: "NASDAQ",
         name: "Meta Platforms Inc",
-        instrumentClass: "STOCK",
+        instrumentClass: "EQUITY",
       },
       {
         ticker: "JPM",
         market: "NYSE",
         name: "JPMorgan Chase & Co",
-        instrumentClass: "STOCK",
+        instrumentClass: "EQUITY",
       },
       {
         ticker: "XOM",
         market: "NYSE",
         name: "Exxon Mobil Corp",
-        instrumentClass: "STOCK",
+        instrumentClass: "EQUITY",
       },
       {
         ticker: "VOO",
@@ -316,16 +391,10 @@ const USERS = [
         instrumentClass: "ETF",
       },
       {
-        ticker: "BNDX",
-        market: "NASDAQ",
-        name: "Vanguard Total International Bond ETF",
-        instrumentClass: "ETF",
-      },
-      {
         ticker: "TLT",
         market: "NASDAQ",
         name: "iShares 20+ Year Treasury Bond ETF",
-        instrumentClass: "BOND",
+        instrumentClass: "ETF",
       },
       {
         ticker: "BTC",
@@ -423,13 +492,6 @@ const USERS = [
         executionPrice: 118.3,
       },
       {
-        key: "buy-bndx-01",
-        ticker: "BNDX",
-        side: "BUY",
-        quantity: 120,
-        executionPrice: 49.25,
-      },
-      {
         key: "buy-tlt-01",
         ticker: "TLT",
         side: "BUY",
@@ -493,6 +555,7 @@ const CASH_INSTRUMENTS = [
     market: "INTERNAL",
     name: "US Dollar Cash Balance",
     instrumentClass: "CASH",
+    tradingCurrency: "USD",
     description: "Base cash ledger for USD balances",
   },
   {
@@ -500,6 +563,7 @@ const CASH_INSTRUMENTS = [
     market: "INTERNAL",
     name: "Indian Rupee Cash Balance",
     instrumentClass: "CASH",
+    tradingCurrency: "INR",
     description: "Cash ledger instrument for INR balances",
   },
   {
@@ -507,6 +571,7 @@ const CASH_INSTRUMENTS = [
     market: "INTERNAL",
     name: "Euro Cash Balance",
     instrumentClass: "CASH",
+    tradingCurrency: "EUR",
     description: "Cash ledger instrument for EUR balances",
   },
 ];
@@ -528,11 +593,22 @@ async function requestJson({
     headers.Cookie = cookie;
   }
 
-  const response = await fetch(`${BACKEND_URL}${path}`, {
-    method,
-    headers,
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
+  let response;
+
+  try {
+    response = await fetch(`${BACKEND_URL}${path}`, {
+      method,
+      headers,
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+  } catch (error) {
+    const cause = error?.cause?.code || error?.cause?.message || error.message;
+    throw new Error(
+      `Unable to reach the backend at ${BACKEND_URL} while requesting ${method} ${path}: ${cause}. ` +
+        "Start the backend with `docker compose up -d --build` or set BACKEND_URL to a reachable backend.",
+      { cause: error },
+    );
+  }
 
   const rawText = await response.text();
   let parsed = null;
@@ -551,7 +627,7 @@ async function requestJson({
         ? parsed.message
         : `HTTP ${response.status} from ${method} ${path}`;
 
-    const error = new Error(message);
+    const error = new Error(`${message} (${method} ${path})`);
     error.status = response.status;
     error.body = parsed;
     throw error;
@@ -562,6 +638,89 @@ async function requestJson({
     data: parsed,
     headers: response.headers,
   };
+}
+
+function sqlLiteral(value) {
+  if (value === null || value === undefined) {
+    return "NULL";
+  }
+
+  return `'${String(value).replace(/'/g, "''")}'`;
+}
+
+function ensurePrivilegedAccount(account) {
+  const sql = `
+INSERT INTO users ("userID", email, roles)
+VALUES (
+  ${sqlLiteral(account.userId)},
+  ${sqlLiteral(account.email)},
+  ${sqlLiteral(`{${account.role}}`)}
+)
+ON CONFLICT ("userID") DO UPDATE
+SET
+  email = EXCLUDED.email,
+  roles = EXCLUDED.roles;
+
+INSERT INTO profiles (
+  "userID",
+  "userType",
+  "firstName",
+  "lastName",
+  city,
+  state,
+  country,
+  "zipCode",
+  username,
+  avatar
+)
+VALUES (
+  ${sqlLiteral(account.userId)},
+  ${account.profile.userType},
+  ${sqlLiteral(account.profile.firstName)},
+  ${sqlLiteral(account.profile.lastName)},
+  ${sqlLiteral(account.profile.city)},
+  ${sqlLiteral(account.profile.state)},
+  ${sqlLiteral(account.profile.country)},
+  ${sqlLiteral(account.profile.zipCode)},
+  ${sqlLiteral(account.profile.username)},
+  NULL
+)
+ON CONFLICT ("userID") DO UPDATE
+SET
+  "userType" = EXCLUDED."userType",
+  "firstName" = EXCLUDED."firstName",
+  "lastName" = EXCLUDED."lastName",
+  city = EXCLUDED.city,
+  state = EXCLUDED.state,
+  country = EXCLUDED.country,
+  "zipCode" = EXCLUDED."zipCode",
+  username = EXCLUDED.username,
+  avatar = EXCLUDED.avatar;
+
+INSERT INTO development_credentials ("userID", email, "passwordHash")
+VALUES (
+  ${sqlLiteral(account.userId)},
+  ${sqlLiteral(account.email)},
+  crypt(${sqlLiteral(account.password)}, gen_salt('bf'))
+)
+ON CONFLICT (email) DO UPDATE
+SET
+  "userID" = EXCLUDED."userID",
+  "passwordHash" = EXCLUDED."passwordHash";
+`;
+
+  execFileSync(
+    "docker",
+    [
+      "exec", "-i", AUDITOR_CONTAINER,
+      "psql",
+      "-U", "postgres",
+      "-d", "jaakd",
+      "-v", "ON_ERROR_STOP=1",
+      "-c", sql,
+    ],
+    { stdio: "pipe", encoding: "utf8" },
+  );
 }
 
 function extractSessionCookie(headers) {
@@ -632,6 +791,76 @@ async function ensureProfile(cookie, profile) {
   return retry.data;
 }
 
+async function ensurePaymentMethods(cookie, scenario) {
+  const list = await requestJson({
+    method: "GET",
+    path: "/api/payment-methods",
+    cookie,
+    expectedStatuses: [200],
+  });
+
+  const existingSignatures = new Set(
+    (Array.isArray(list.data) ? list.data : []).map((method) => {
+      const nickname = String(method.nickname || "").trim().toLowerCase();
+      const bankName = String(method.bankName || "").trim().toLowerCase();
+      const accountType = String(method.accountType || "").trim().toLowerCase();
+      const accountLast4 = String(method.accountNumberLast4 || "").trim();
+      const routingLast4 = String(method.routingNumber || "")
+        .trim()
+        .slice(-4);
+
+      return `${nickname}|${bankName}|${accountType}|${accountLast4}|${routingLast4}`;
+    }),
+  );
+
+  let createdCount = 0;
+  let skippedCount = 0;
+
+  for (const method of scenario.paymentMethods ?? []) {
+    const accountLast4 = method.accountNumber.slice(-4);
+    const routingLast4 = method.routingNumber.slice(-4);
+    const signature = `${method.nickname.trim().toLowerCase()}|${method.bankName
+      .trim()
+      .toLowerCase()}|${method.accountType.trim().toLowerCase()}|${accountLast4}|${routingLast4}`;
+
+    if (existingSignatures.has(signature)) {
+      skippedCount += 1;
+      continue;
+    }
+
+    await requestJson({
+      method: "POST",
+      path: "/api/payment-methods",
+      cookie,
+      body: {
+        nickname: method.nickname,
+        accountHolderName: method.accountHolderName,
+        bankName: method.bankName,
+        accountType: method.accountType,
+        routingNumber: method.routingNumber,
+        accountNumber: method.accountNumber,
+      },
+      expectedStatuses: [201],
+    });
+
+    existingSignatures.add(signature);
+    createdCount += 1;
+  }
+
+  const refreshed = await requestJson({
+    method: "GET",
+    path: "/api/payment-methods",
+    cookie,
+    expectedStatuses: [200],
+  });
+
+  return {
+    createdCount,
+    skippedCount,
+    totalCount: Array.isArray(refreshed.data) ? refreshed.data.length : 0,
+  };
+}
+
 async function ensurePortfolio(cookie, portfolioName) {
   const list = await requestJson({
     method: "GET",
@@ -682,6 +911,7 @@ async function ensureInstrument(cookie, instrument) {
       market: instrument.market,
       name: instrument.name,
       instrumentClass: instrument.instrumentClass,
+      tradingCurrency: instrument.tradingCurrency || "USD",
       logoUrl: instrument.logoUrl || null,
       description: instrument.description || null,
     },
@@ -853,11 +1083,12 @@ async function updatePreferences(cookie, portfolioId, widgets) {
   });
 }
 
-async function seedScenario(scenario) {
+async function seedScenario(scenario, adminCookie) {
   const cookie = await registerAndLogin(scenario);
   await ensureProfile(cookie, scenario.profile);
+  const paymentMethods = await ensurePaymentMethods(cookie, scenario);
   const portfolio = await ensurePortfolio(cookie, scenario.portfolioName);
-  const instrumentsByTicker = await ensureInstruments(cookie, scenario);
+  const instrumentsByTicker = await ensureInstruments(adminCookie, scenario);
   const watchlist = await ensureWatchlist(
     cookie,
     portfolio.portfolioId,
@@ -879,6 +1110,9 @@ async function seedScenario(scenario) {
     portfolioId: portfolio.portfolioId,
     watchlistTotal: watchlist.totalCount,
     watchlistCreated: watchlist.createdCount,
+    paymentMethodsTotal: paymentMethods.totalCount,
+    paymentMethodsCreated: paymentMethods.createdCount,
+    paymentMethodsSkipped: paymentMethods.skippedCount,
     ordersSubmitted: orders.submitted,
     ordersSkipped: orders.skipped,
   };
@@ -887,11 +1121,23 @@ async function seedScenario(scenario) {
 function printCredentials() {
   console.log("Demo user credentials:");
   console.table(
-    USERS.map((user) => ({
-      level: user.level,
-      email: user.email,
-      password: user.password,
-    })),
+    [
+      ...USERS.map((user) => ({
+        level: user.level,
+        email: user.email,
+        password: user.password,
+      })),
+      {
+        level: "auditor",
+        email: AUDITOR_ACCOUNT.email,
+        password: AUDITOR_ACCOUNT.password,
+      },
+      {
+        level: "admin",
+        email: ADMIN_ACCOUNT.email,
+        password: ADMIN_ACCOUNT.password,
+      },
+    ],
   );
 }
 
@@ -899,11 +1145,16 @@ async function main() {
   console.log(`Seeding demo users using backend: ${BACKEND_URL}`);
   printCredentials();
 
+  ensurePrivilegedAccount(AUDITOR_ACCOUNT);
+  ensurePrivilegedAccount(ADMIN_ACCOUNT);
+  console.log(`Auditor and admin accounts seeded in ${AUDITOR_CONTAINER}.`);
+  const adminCookie = await registerAndLogin(ADMIN_ACCOUNT);
+
   const summaries = [];
 
   for (const scenario of USERS) {
     console.log(`Seeding level: ${scenario.level}`);
-    const summary = await seedScenario(scenario);
+    const summary = await seedScenario(scenario, adminCookie);
     summaries.push(summary);
     console.log(`Finished level: ${scenario.level}`);
   }
@@ -916,6 +1167,9 @@ async function main() {
       portfolioId: item.portfolioId,
       watchlistTotal: item.watchlistTotal,
       watchlistCreated: item.watchlistCreated,
+      paymentMethodsTotal: item.paymentMethodsTotal,
+      paymentMethodsCreated: item.paymentMethodsCreated,
+      paymentMethodsSkipped: item.paymentMethodsSkipped,
       ordersSubmitted: item.ordersSubmitted,
       ordersSkipped: item.ordersSkipped,
     })),

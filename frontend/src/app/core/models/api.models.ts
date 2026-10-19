@@ -1,7 +1,5 @@
-export type InstrumentClass = 'ETF' | 'EQUITY' | 'STOCK' | 'BOND' | 'CASH' | 'CRYPTO';
-
-export type OrderSide = 'BUY' | 'SELL' | 'DEPOSIT' | 'WITHDRAW';
-
+export type InstrumentClass = 'EQUITY' | 'ETF' | 'FX' | 'CRYPTO' | 'CASH';
+export type OrderSide = 'BUY' | 'SELL' | 'DEPOSIT' | 'WITHDRAW' | 'FX';
 export type OrderStatus =
   'SUBMITTED' | 'PENDING' | 'CANCELLED' | 'ACCEPTED' | 'REJECTED' | 'EXECUTED' | 'FAILED';
 
@@ -79,4 +77,37 @@ export interface PreferencesResponse {
   dashboardWidgets: string[];
   createdAt: string;
   updatedAt: string;
+}
+
+export type BankAccountType = 'checking' | 'savings';
+
+export interface CreatePaymentMethodRequest {
+  nickname: string;
+  accountHolderName: string;
+  bankName: string;
+  accountType: BankAccountType;
+  routingNumber: string;
+  accountNumber: string;
+}
+
+export interface PaymentMethodResponse {
+  paymentMethodId: string;
+  nickname: string;
+  accountHolderName: string;
+  bankName: string;
+  accountType: BankAccountType;
+  routingNumber: string;
+  accountNumberLast4: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface QuoteResponse {
+  symbol: string;
+  price: number | null;
+  bid: number | null;
+  ask: number | null;
+  currency: string | null;
+  asOf: string | null;
+  marketState: string | null;
 }

@@ -9,6 +9,8 @@ import io.github.jackhudsonn.jaakd.model.InstrumentClass;
 import io.github.jackhudsonn.jaakd.model.OrderLog;
 import io.github.jackhudsonn.jaakd.model.OrderSide;
 import io.github.jackhudsonn.jaakd.model.OrderStatus;
+import io.github.jackhudsonn.jaakd.model.UserType;
+import io.github.jackhudsonn.jaakd.security.RequiresUserType;
 import io.github.jackhudsonn.jaakd.repository.HoldingRepository;
 import io.github.jackhudsonn.jaakd.repository.InstrumentRepository;
 import io.github.jackhudsonn.jaakd.repository.OrderLogRepository;
@@ -36,25 +38,21 @@ public class PortfolioReconciliationService {
     private final OrderLogRepository orderLogRepository;
     private final HoldingRepository holdingRepository;
     private final InstrumentRepository instrumentRepository;
-    private final PrivilegedAccessService privilegedAccessService;
 
     public PortfolioReconciliationService(
         PortfolioRepository portfolioRepository,
         OrderLogRepository orderLogRepository,
         HoldingRepository holdingRepository,
-        InstrumentRepository instrumentRepository,
-        PrivilegedAccessService privilegedAccessService
+        InstrumentRepository instrumentRepository
     ) {
         this.portfolioRepository = portfolioRepository;
         this.orderLogRepository = orderLogRepository;
         this.holdingRepository = holdingRepository;
         this.instrumentRepository = instrumentRepository;
-        this.privilegedAccessService = privilegedAccessService;
     }
 
+    @RequiresUserType({ UserType.ADMIN, UserType.AUDITOR })
     public PortfolioReconciliationResponse reconcilePortfolio(UUID portfolioId) {
-        privilegedAccessService.ensureAdminOrAuditor();
-
         portfolioRepository.findById(portfolioId)
             .orElseThrow(() -> new PortfolioNotFoundException(portfolioId));
 

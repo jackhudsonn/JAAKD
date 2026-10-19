@@ -1,6 +1,8 @@
 package io.github.jackhudsonn.jaakd.repository;
 
 import io.github.jackhudsonn.jaakd.model.LotMatch;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,6 +15,17 @@ public interface LotMatchRepository extends JpaRepository<LotMatch, UUID> {
     boolean existsBySellLogOrderID(UUID sellLogOrderID);
 
     List<LotMatch> findBySellLogOrderID(UUID sellLogOrderID);
+
+        @Query("""
+                SELECT lm
+                FROM LotMatch lm
+                WHERE lm.holdingID = :holdingId
+                ORDER BY lm.matchedAt ASC, lm.lotMatchID ASC
+                """)
+        Page<LotMatch> findByHoldingIdOldestFirst(
+                @Param("holdingId") UUID holdingId,
+                Pageable pageable
+        );
 
         @Query("""
                 SELECT lm

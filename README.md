@@ -84,10 +84,6 @@ Frontend dependencies live in a Docker volume, not in your working copy. Install
 docker exec -it jaakd-frontend npm install <package>
 ```
 
-### Accounts
-
-Sign-in uses the development identity provider, so accounts exist only in your local database. After `docker-compose down -v`, register again.
-
 ### Stop or reset
 
 - `docker-compose down` stops everything and keeps your data.

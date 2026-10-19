@@ -20,15 +20,16 @@ import io.github.jackhudsonn.jaakd.repository.OrderLogRepository;
 import io.github.jackhudsonn.jaakd.repository.PortfolioRepository;
 import io.github.jackhudsonn.jaakd.repository.PositionLotRepository;
 import jakarta.persistence.EntityManager;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import io.github.jackhudsonn.jaakd.security.AuthenticatedUser;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -39,6 +40,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(
@@ -83,6 +85,11 @@ class OrderLogExecutionIntegrationTest {
 
     @Autowired
     private EntityManager entityManager;
+
+    @BeforeEach
+    void stubExecutionPrice() {
+        when(quoteService.getExecutionPrice(any(UUID.class), any())).thenReturn(100.0);
+    }
 
     @Test
     void markExecuted_depositThenWithdraw_updatesCashHoldingWithoutLotRows() {

@@ -16,6 +16,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
@@ -40,7 +41,7 @@ class PrivilegedAccessServiceTest {
         when(currentUserService.getUserId()).thenReturn(userId);
         when(profileRepository.findById(userId)).thenReturn(Optional.of(profile));
 
-        assertDoesNotThrow(() -> privilegedAccessService.ensureAdminOrAuditor());
+        assertDoesNotThrow(() -> privilegedAccessService.ensureUserType(UserType.ADMIN, UserType.AUDITOR));
     }
 
     @Test
@@ -52,7 +53,7 @@ class PrivilegedAccessServiceTest {
         when(currentUserService.getUserId()).thenReturn(userId);
         when(profileRepository.findById(userId)).thenReturn(Optional.of(profile));
 
-        assertDoesNotThrow(() -> privilegedAccessService.ensureAdminOrAuditor());
+        assertDoesNotThrow(() -> privilegedAccessService.ensureUserType(UserType.ADMIN, UserType.AUDITOR));
     }
 
     @Test
@@ -64,7 +65,11 @@ class PrivilegedAccessServiceTest {
         when(currentUserService.getUserId()).thenReturn(userId);
         when(profileRepository.findById(userId)).thenReturn(Optional.of(profile));
 
-        assertThrows(ForbiddenException.class, () -> privilegedAccessService.ensureAdminOrAuditor());
+        ForbiddenException ex = assertThrows(
+            ForbiddenException.class,
+            () -> privilegedAccessService.ensureUserType(UserType.ADMIN, UserType.AUDITOR)
+        );
+        assertEquals("Admin or auditor user type is required", ex.getMessage());
     }
 
     @Test
@@ -74,7 +79,57 @@ class PrivilegedAccessServiceTest {
         when(currentUserService.getUserId()).thenReturn(userId);
         when(profileRepository.findById(userId)).thenReturn(Optional.empty());
 
-        assertThrows(ForbiddenException.class, () -> privilegedAccessService.ensureAdminOrAuditor());
+        assertThrows(ForbiddenException.class, () -> privilegedAccessService.ensureUserType(UserType.ADMIN, UserType.AUDITOR));
+    }
+
+    @Test
+    void ensureAdmin_allowsAdmin() throws Exception {
+        UUID userId = UUID.randomUUID();
+        Profile profile = new Profile(UserType.ADMIN.getCode());
+        setField(profile, "userId", userId);
+
+        when(currentUserService.getUserId()).thenReturn(userId);
+        when(profileRepository.findById(userId)).thenReturn(Optional.of(profile));
+
+        assertDoesNotThrow(() -> privilegedAccessService.ensureUserType(UserType.ADMIN));
+    }
+
+    @Test
+    void ensureAdmin_blocksAuditor() throws Exception {
+        UUID userId = UUID.randomUUID();
+        Profile profile = new Profile(UserType.AUDITOR.getCode());
+        setField(profile, "userId", userId);
+
+        when(currentUserService.getUserId()).thenReturn(userId);
+        when(profileRepository.findById(userId)).thenReturn(Optional.of(profile));
+
+        ForbiddenException ex = assertThrows(
+            ForbiddenException.class,
+            () -> privilegedAccessService.ensureUserType(UserType.ADMIN)
+        );
+        assertEquals("Admin user type is required", ex.getMessage());
+    }
+
+    @Test
+    void ensureAdmin_blocksRetailClient() throws Exception {
+        UUID userId = UUID.randomUUID();
+        Profile profile = new Profile(UserType.RETAIL_CLIENT.getCode());
+        setField(profile, "userId", userId);
+
+        when(currentUserService.getUserId()).thenReturn(userId);
+        when(profileRepository.findById(userId)).thenReturn(Optional.of(profile));
+
+        assertThrows(ForbiddenException.class, () -> privilegedAccessService.ensureUserType(UserType.ADMIN));
+    }
+
+    @Test
+    void ensureAdmin_blocksMissingProfile() {
+        UUID userId = UUID.randomUUID();
+
+        when(currentUserService.getUserId()).thenReturn(userId);
+        when(profileRepository.findById(userId)).thenReturn(Optional.empty());
+
+        assertThrows(ForbiddenException.class, () -> privilegedAccessService.ensureUserType(UserType.ADMIN));
     }
 
     private void setField(Object target, String fieldName, Object value) throws Exception {

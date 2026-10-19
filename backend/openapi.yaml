@@ -33,6 +33,8 @@ tags:
     description: Instruments a user is watching, per portfolio
   - name: Preferences
     description: Portfolio-scoped user preferences such as dashboard widget order/selection
+  - name: PaymentMethods
+    description: User-managed bank payment methods for deposits and withdrawals
   - name: Profile
     description: The signed-in user's profile
   - name: Orders
@@ -296,9 +298,9 @@ paths:
                 items:
                   $ref: "#/components/schemas/PositionLotResponse"
               example:
-                - positionLotID: 31f46f28-0d42-4c19-95de-77561f6fc2c4
-                  holdingID: 3f6c1a2e-8b4d-4c1a-9e2f-1a2b3c4d5e6f
-                  sourceBuyLogOrderID: 6e8b3bca-9d8a-4028-9d5f-136dca4deec5
+                - positionLotId: 31f46f28-0d42-4c19-95de-77561f6fc2c4
+                  holdingId: 3f6c1a2e-8b4d-4c1a-9e2f-1a2b3c4d5e6f
+                  sourceBuyLogOrderId: 6e8b3bca-9d8a-4028-9d5f-136dca4deec5
                   openedAt: "2026-09-25T09:30:00Z"
                   originalQuantity: 100.00
                   remainingQuantity: 40.00
@@ -330,10 +332,10 @@ paths:
                 items:
                   $ref: "#/components/schemas/LotMatchResponse"
               example:
-                - lotMatchID: 0f0d4025-f962-4faf-988a-ec6f71f698c2
-                  sellLogOrderID: 4e261f03-c0dc-4653-ae7b-ece8f26d0a9e
-                  positionLotID: 31f46f28-0d42-4c19-95de-77561f6fc2c4
-                  holdingID: 3f6c1a2e-8b4d-4c1a-9e2f-1a2b3c4d5e6f
+                - lotMatchId: 0f0d4025-f962-4faf-988a-ec6f71f698c2
+                  sellLogOrderId: 4e261f03-c0dc-4653-ae7b-ece8f26d0a9e
+                  positionLotId: 31f46f28-0d42-4c19-95de-77561f6fc2c4
+                  holdingId: 3f6c1a2e-8b4d-4c1a-9e2f-1a2b3c4d5e6f
                   matchedQuantity: 60.00
                   sellUnitPrice: 11.20
                   realizedPnlAmount: 42.00
@@ -350,7 +352,39 @@ paths:
     get:
       tags: [Instruments]
       summary: List all instruments
+      description: |
+        Returns instruments for authenticated users.
+        Optional filters:
+        - `query`: case-insensitive contains match on ticker or name.
+        - `instrumentType`: exact instrument class match.
+        Optional paging:
+        - `page` (default `0` when paging is used)
+        - `size` (default `25`, max `100` when paging is used)
       operationId: getAllInstruments
+      parameters:
+        - name: instrumentType
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/InstrumentClass"
+        - name: query
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
       responses:
         "200":
           description: All instruments
@@ -489,29 +523,6 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "404":
           $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/ServerError"
-
-  /api/instruments/sync/{ticker}:
-    post:
-      tags: [Instruments]
-      summary: Refresh an instrument from an external market-data provider
-      description: >
-        NOT IMPLEMENTED YET - the service currently throws, so this returns 500.
-        Kept so the frontend can wire it up; will fetch and upsert instrument data
-        once a market-data provider is chosen.
-      operationId: syncInstrumentFromExternalApi
-      parameters:
-        - $ref: "#/components/parameters/Ticker"
-      responses:
-        "200":
-          description: Instrument created or updated from external data
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/InstrumentResponse"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
         "500":
           $ref: "#/components/responses/ServerError"
 
@@ -1025,6 +1036,66 @@ paths:
         "500":
           $ref: "#/components/responses/ServerError"
 
+  # ---------------------------------------------------------- PaymentMethods
+  /api/payment-methods:
+    get:
+      tags: [PaymentMethods]
+      summary: List the signed-in user's payment methods
+      operationId: listCurrentUserPaymentMethods
+      responses:
+        "200":
+          description: Payment methods
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PaymentMethodResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    post:
+      tags: [PaymentMethods]
+      summary: Create a bank payment method for the signed-in user
+      operationId: createCurrentUserPaymentMethod
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePaymentMethodRequest"
+      responses:
+        "201":
+          description: Payment method created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentMethodResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/payment-methods/{paymentMethodId}:
+    delete:
+      tags: [PaymentMethods]
+      summary: Delete a signed-in user's payment method
+      operationId: deleteCurrentUserPaymentMethod
+      parameters:
+        - $ref: "#/components/parameters/PaymentMethodId"
+      responses:
+        "204":
+          description: Payment method deleted
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
   # ------------------------------------------------------------- Preferences
   /api/preferences/portfolio/{portfolioId}:
     get:
@@ -1182,6 +1253,452 @@ paths:
         "500":
           $ref: "#/components/responses/ServerError"
 
+  # ------------------------------------------------------------------- Audit
+  /api/audit/users:
+    get:
+      tags: [Audit]
+      summary: Search users for audit workflows
+      description: |
+        Restricted to ADMIN or AUDITOR user types.
+        Case-insensitive search across users.email, profiles.username,
+        profiles.firstName, and profiles.lastName.
+      operationId: searchAuditUsers
+      parameters:
+        - name: query
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+      responses:
+        "200":
+          description: Matching users
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditUserSearchPageResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/audit/order-logs:
+    get:
+      tags: [Audit]
+      summary: Search order logs for audit workflows
+      description: |
+        Restricted to ADMIN or AUDITOR user types.
+        If `date` is provided, filtering uses day boundaries:
+        - start = date at 00:00 (inclusive)
+        - end = next day at 00:00 (exclusive)
+        `fromDate` and `toDate` define an optional inclusive date range.
+        If provided, date range takes precedence over `date`.
+        Optional filters: userId, status, ticker, instrumentId, instrumentType, orderId, latestOnly.
+      operationId: searchAuditOrderLogs
+      parameters:
+        - name: userId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: fromDate
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: toDate
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/OrderStatus"
+        - name: ticker
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 20
+        - name: instrumentId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: instrumentType
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/InstrumentClass"
+        - name: orderId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: latestOnly
+          in: query
+          required: false
+          description: When true, return only the most recent log row per order (one row per order).
+          schema:
+            type: boolean
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+      responses:
+        "200":
+          description: Matching order logs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditOrderLogPageResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/audit/users/{userId}/portfolios:
+    get:
+      tags: [Audit]
+      summary: List portfolios for a user (audit)
+      description: Restricted to ADMIN or AUDITOR user types.
+      operationId: getAuditUserPortfolios
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+      responses:
+        "200":
+          description: User portfolios
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditPortfolioPageResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/audit/holdings:
+    get:
+      tags: [Audit]
+      summary: List holdings across users (audit)
+      description: Restricted to ADMIN or AUDITOR user types.
+      operationId: getAuditHoldings
+      parameters:
+        - name: userId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: portfolioId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: instrumentId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+      responses:
+        "200":
+          description: Holdings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditHoldingPageResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/audit/users/{userId}/holdings:
+    get:
+      tags: [Audit]
+      summary: List holdings for a user (audit)
+      description: Restricted to ADMIN or AUDITOR user types.
+      operationId: getAuditUserHoldings
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: portfolioId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: instrumentId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+      responses:
+        "200":
+          description: User holdings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditHoldingPageResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/audit/holdings/{holdingId}/order-logs:
+    get:
+      tags: [Audit]
+      summary: List order logs for a holding context (audit)
+      description: Restricted to ADMIN or AUDITOR user types.
+      operationId: getAuditHoldingOrderLogs
+      parameters:
+        - $ref: "#/components/parameters/HoldingId"
+        - name: fromDate
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: toDate
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/OrderStatus"
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+      responses:
+        "200":
+          description: Holding-context order logs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditOrderLogPageResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/audit/holdings/{holdingId}/position-lots:
+    get:
+      tags: [Audit]
+      summary: List position lots for a holding (audit)
+      description: Restricted to ADMIN or AUDITOR user types.
+      operationId: getAuditHoldingPositionLots
+      parameters:
+        - $ref: "#/components/parameters/HoldingId"
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+      responses:
+        "200":
+          description: Position lots
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditPositionLotPageResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/audit/holdings/{holdingId}/lot-matches:
+    get:
+      tags: [Audit]
+      summary: List lot matches for a holding (audit)
+      description: Restricted to ADMIN or AUDITOR user types.
+      operationId: getAuditHoldingLotMatches
+      parameters:
+        - $ref: "#/components/parameters/HoldingId"
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+      responses:
+        "200":
+          description: Lot matches
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditLotMatchPageResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
 components:
   securitySchemes:
     sessionCookie:
@@ -1233,6 +1750,13 @@ components:
       schema:
         type: string
         format: uuid
+    PaymentMethodId:
+      name: paymentMethodId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
     Ticker:
       name: ticker
       in: path
@@ -1255,11 +1779,15 @@ components:
             details:
               currentQuantity: Current quantity must be greater than 0
     Unauthorized:
-      description: Missing, expired or invalid session
+      description: Missing, expired or invalid session. Returned as structured `ErrorResponse` JSON by security handlers.
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/ErrorResponse"
+          example:
+            timestamp: "2026-10-14T13:30:00Z"
+            message: Unauthorized
+            details: {}
     ChallengeRequired:
       description: |
         The identity provider requires another step before a session is created.
@@ -1276,7 +1804,7 @@ components:
               challenge: MFA
               continuation: opaque-continuation-token
     Forbidden:
-      description: Authenticated but not authorized for this operation
+      description: Authenticated but not authorized for this operation. Returned as structured `ErrorResponse` JSON.
       content:
         application/json:
           schema:
@@ -1318,9 +1846,11 @@ components:
         message:
           type: string
         details:
-          type: object
-          additionalProperties:
-            type: string
+          anyOf:
+            - type: object
+              additionalProperties:
+                type: string
+            - type: "null"
 
     # ---- auth
     RegisterRequest:
@@ -1361,7 +1891,7 @@ components:
     # ---- enums
     InstrumentClass:
       type: string
-      enum: [ETF, EQUITY, STOCK, BOND, USD, GBP, CRYPTO]
+      enum: [ETF, EQUITY, STOCK, BOND, CASH, CRYPTO]
     OrderSide:
       type: string
       enum: [BUY, SELL, DEPOSIT, WITHDRAW]
@@ -1401,13 +1931,13 @@ components:
       type: object
       description: One FIFO BUY lot attached to a holding.
       properties:
-        positionLotID:
+        positionLotId:
           type: string
           format: uuid
-        holdingID:
+        holdingId:
           type: string
           format: uuid
-        sourceBuyLogOrderID:
+        sourceBuyLogOrderId:
           type: string
           format: uuid
         openedAt:
@@ -1427,16 +1957,16 @@ components:
       type: object
       description: One FIFO SELL-to-BUY match slice for a holding.
       properties:
-        lotMatchID:
+        lotMatchId:
           type: string
           format: uuid
-        sellLogOrderID:
+        sellLogOrderId:
           type: string
           format: uuid
-        positionLotID:
+        positionLotId:
           type: string
           format: uuid
-        holdingID:
+        holdingId:
           type: string
           format: uuid
         matchedQuantity:
@@ -1565,6 +2095,158 @@ components:
           type: string
           format: date-time
 
+    AuditUserSearchResponse:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        username:
+          type: [string, "null"]
+        firstName:
+          type: [string, "null"]
+        lastName:
+          type: [string, "null"]
+
+    AuditUserSearchPageResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuditUserSearchResponse"
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+        hasNext:
+          type: boolean
+
+    AuditOwnerFields:
+      type: object
+      description: Owner of the portfolio a row belongs to (portfolio -> profile).
+      properties:
+        ownerUserId:
+          type: [string, "null"]
+          format: uuid
+        ownerFirstName:
+          type: [string, "null"]
+        ownerLastName:
+          type: [string, "null"]
+
+    AuditOrderLogResponse:
+      allOf:
+        - $ref: "#/components/schemas/OrderLogResponse"
+        - $ref: "#/components/schemas/AuditOwnerFields"
+
+    AuditHoldingResponse:
+      allOf:
+        - $ref: "#/components/schemas/HoldingResponse"
+        - $ref: "#/components/schemas/AuditOwnerFields"
+
+    AuditOrderLogPageResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuditOrderLogResponse"
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+        hasNext:
+          type: boolean
+
+    AuditPortfolioPageResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/PortfolioResponse"
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+        hasNext:
+          type: boolean
+
+    AuditHoldingPageResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuditHoldingResponse"
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+        hasNext:
+          type: boolean
+
+    AuditPositionLotPageResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/PositionLotResponse"
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+        hasNext:
+          type: boolean
+
+    AuditLotMatchPageResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/LotMatchResponse"
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+        hasNext:
+          type: boolean
+
     # ---- portfolios
     CreatePortfolioRequest:
       type: object
@@ -1680,6 +2362,9 @@ components:
         executionPrice:
           type: number
           format: double
+        quotedPrice:
+          type: [number, "null"]
+          format: double
 
     # ---- watchlists
     CreateWatchlistItemRequest:
@@ -1715,6 +2400,59 @@ components:
           format: uuid
         name:
           type: [string, "null"]
+
+    # ---- payment methods
+    CreatePaymentMethodRequest:
+      type: object
+      required:
+        [nickname, accountHolderName, bankName, accountType, routingNumber, accountNumber]
+      properties:
+        nickname:
+          type: string
+          minLength: 1
+          maxLength: 100
+        accountHolderName:
+          type: string
+          minLength: 1
+          maxLength: 120
+        bankName:
+          type: string
+          minLength: 1
+          maxLength: 120
+        accountType:
+          type: string
+          enum: [checking, savings]
+        routingNumber:
+          type: string
+          pattern: '^\d{9}$'
+        accountNumber:
+          type: string
+          pattern: '^\d{4,17}$'
+    PaymentMethodResponse:
+      type: object
+      properties:
+        paymentMethodId:
+          type: string
+          format: uuid
+        nickname:
+          type: string
+        accountHolderName:
+          type: string
+        bankName:
+          type: string
+        accountType:
+          type: string
+          enum: [checking, savings]
+        routingNumber:
+          type: string
+        accountNumberLast4:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
 
     # ---- preferences
     UpdatePreferencesRequest:

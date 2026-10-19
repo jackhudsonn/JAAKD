@@ -47,7 +47,7 @@ export class BackendTransactStateService implements TransactStatePort {
   async submitCashMovement(side: 'DEPOSIT' | 'WITHDRAW', amount: number): Promise<void> {
     const portfolioId = this.portfolioId();
     const cashInstrument = this.instrumentsData().find(
-      (instrument) => instrument.instrumentClass === 'CASH',
+      (instrument) => instrument.instrumentClass === 'CASH' && instrument.ticker === 'USD',
     );
 
     if (!portfolioId || !cashInstrument) {

@@ -115,6 +115,7 @@ describe('BackendDashboardStateService', () => {
 
   const instrumentApiService = {
     list: vi.fn(async () => instruments),
+    getQuotes: vi.fn(async () => []),
   };
 
   const orderLogApiService = {

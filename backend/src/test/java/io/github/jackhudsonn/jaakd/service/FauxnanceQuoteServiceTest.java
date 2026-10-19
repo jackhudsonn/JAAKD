@@ -4,7 +4,7 @@ import io.github.jackhudsonn.jaakd.model.Instrument;
 import io.github.jackhudsonn.jaakd.model.CashCurrency;
 import io.github.jackhudsonn.jaakd.model.InstrumentClass;
 import io.github.jackhudsonn.jaakd.model.OrderSide;
-import io.github.jackhudsonn.jaakd.service.fauxnance.FauxnanceQuoteResponse;
+import io.github.jackhudsonn.jaakd.model.fauxnance.FauxnanceQuoteResponse;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

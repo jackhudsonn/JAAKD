@@ -6,6 +6,7 @@ import { NavbarComponent } from '@shared/components/navbar/navbar.component';
 import { MarketTickerItem, MarketTickerService } from '@core/services/market-ticker.service';
 import { NgTemplateOutlet } from '@angular/common';
 import { formatPercentageChange } from '@shared/utils/format-percentage-change';
+import { isAdminOrAuditor } from '@core/models/profile.model';
 @Component({
   selector: 'app-shell',
   standalone: true,
@@ -16,6 +17,7 @@ import { formatPercentageChange } from '@shared/utils/format-percentage-change';
 export class ShellComponent implements OnInit {
   userEmail = signal<string | null>(null);
   displayName = signal<string | null>(null);
+  canAccessAuditor = signal(false);
   marketTicker: MarketTickerItem[] = [];
   tickerLoopItems: MarketTickerItem[] = [];
   readonly formatChange = formatPercentageChange;
@@ -37,8 +39,10 @@ export class ShellComponent implements OnInit {
       const profile = await this.profileService.getCurrentProfile();
       const profileName = [profile.firstName, profile.lastName].filter(Boolean).join(' ').trim();
       this.displayName.set(profileName || null);
+      this.canAccessAuditor.set(isAdminOrAuditor(profile.userType));
     } catch {
       this.displayName.set(null);
+      this.canAccessAuditor.set(false);
     }
   }
 

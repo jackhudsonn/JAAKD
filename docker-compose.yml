@@ -2,7 +2,7 @@ x-jaakd-app-db-password: &jaakd-app-db-password ${JAAKD_APP_DB_PASSWORD:?JAAKD_A
 
 services:
   jaakd-postgres:
-    image: postgres:16
+    image: postgres:18
     container_name: jaakd-postgres
     restart: unless-stopped
     environment:
@@ -18,7 +18,7 @@ services:
     ports:
       - "127.0.0.1:5433:5432"
     volumes:
-      - jaakd-postgres-data:/var/lib/postgresql/data
+      - jaakd-postgres-data:/var/lib/postgresql
       - ./backend/db/init:/docker-entrypoint-initdb.d:ro
       # Development-only credential store; applied by 02-development-credentials.sh
       # and absent in production. Not part of the application schema.
@@ -72,7 +72,7 @@ services:
       - jaakd-frontend-node-modules:/app/node_modules
 
   jaakd-kafka:
-    image: apache/kafka:3.9.2
+    image: apache/kafka:4.3.1
     container_name: jaakd-kafka
     restart: unless-stopped
     healthcheck:
