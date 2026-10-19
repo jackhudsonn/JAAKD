@@ -13,6 +13,7 @@ interface PendingFundsAction {
   action: FundsAction;
   amount: number;
   method: PaymentMethod;
+  currency: string;
 }
 
 @Component({
@@ -29,7 +30,7 @@ export class MoveFundsFormComponent implements OnInit {
   private readonly router = inject(Router);
 
   amount: number | null = null;
-  selectedCurrency: 'USD' | 'EUR' | 'INR' = 'USD';
+  selectedCurrency: 'USD' | 'EUR' | 'GBP' | 'INR' = 'USD';
   selectedMethodId = '';
   error = signal('');
   pendingAction = signal<PendingFundsAction | null>(null);
@@ -63,10 +64,6 @@ export class MoveFundsFormComponent implements OnInit {
       return;
     }
 
-    if (this.backendDataMode()) {
-      this.selectedCurrency = 'USD';
-    }
-
     if (!this.hasPaymentOptions()) {
       this.error.set('Select Add + from Payment Method to create one first.');
       return;
@@ -89,6 +86,7 @@ export class MoveFundsFormComponent implements OnInit {
       action,
       amount: this.amount,
       method: selectedMethod,
+      currency: this.selectedCurrency,
     });
   }
 
@@ -106,11 +104,13 @@ export class MoveFundsFormComponent implements OnInit {
       this.depositSubmitted.emit({
         amount: pendingAction.amount,
         method: pendingAction.method,
+        currency: pendingAction.currency,
       });
     } else {
       this.withdrawalSubmitted.emit({
         amount: pendingAction.amount,
         method: pendingAction.method,
+        currency: pendingAction.currency,
       });
     }
 

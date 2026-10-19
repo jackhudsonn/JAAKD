@@ -20,11 +20,16 @@
         />
       </div>
 
-      @if (!backendDataMode) {
-        <div class="top-slot">
-          <app-currency-exchange (exchangeSubmitted)="onExchange($event)" />
-        </div>
-      }
+      <div class="top-slot">
+        <app-currency-exchange
+          [backendDataMode]="backendDataMode"
+          [balances]="cashBalances()"
+          [submitting]="submittingAction()"
+          [message]="exchangeMessage()"
+          [errorMessage]="exchangeError()"
+          (exchangeSubmitted)="onExchange($event)"
+        />
+      </div>
 
       <div class="history-slot">
         <app-transaction-history [transactions]="transactions()" />

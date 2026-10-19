@@ -58,9 +58,11 @@ export interface Transaction {
 export interface Deposit {
   amount: number;
   method: PaymentMethod;
+  currency?: string;
 }
 
 export interface Withdrawal {
   amount: number;
   method: PaymentMethod;
+  currency?: string;
 }

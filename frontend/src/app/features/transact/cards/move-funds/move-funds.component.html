@@ -5,15 +5,12 @@
   <div class="form-field">
     <label for="funds-currency">Currency</label>
 
-    @if (backendDataMode()) {
-      <p id="funds-currency" class="fixed-value">USD</p>
-    } @else {
-      <select id="funds-currency" [(ngModel)]="selectedCurrency">
-        <option value="USD">USD</option>
-        <option value="EUR">EUR</option>
-        <option value="INR">INR</option>
-      </select>
-    }
+    <select id="funds-currency" [(ngModel)]="selectedCurrency" [disabled]="submitting()">
+      <option value="USD">USD</option>
+      <option value="EUR">EUR</option>
+      <option value="GBP">GBP</option>
+      <option value="INR">INR</option>
+    </select>
   </div>
 
   <div class="form-field">
@@ -84,9 +81,9 @@
   >
     <p class="confirm-copy">
       @if (pendingAction.action === 'deposit') {
-        Deposit {{ pendingAction.amount }} {{ selectedCurrency }} into your account?
+        Deposit {{ pendingAction.amount }} {{ pendingAction.currency }} into your account?
       } @else {
-        Withdraw {{ pendingAction.amount }} {{ selectedCurrency }} from your account?
+        Withdraw {{ pendingAction.amount }} {{ pendingAction.currency }} from your account?
       }
     </p>
 

@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { Deposit, Withdrawal } from '@core/models';
+import { CashConversionResponse } from '@core/models/api.models';
 import { TransactOperationsService } from './transact-operations.service';
 import { TRANSACT_STATE_PORT } from './transact-state.port';
 
@@ -19,21 +20,22 @@ export class TransactFacadeService {
   readonly transactions = this.state.transactions.asReadonly();
   readonly backendDataMode = this.state.backendDataMode ?? false;
   readonly loadState = this.state.loadState;
+  readonly cashBalances = this.state.cashBalances;
 
   async load(): Promise<void> {
     await this.state.load?.();
   }
 
   async submitDeposit(deposit: Deposit): Promise<void> {
-    await this.operations.deposit(deposit.amount, deposit.method);
+    await this.operations.deposit(deposit.amount, deposit.method, deposit.currency);
   }
 
   async submitWithdrawal(withdrawal: Withdrawal): Promise<void> {
-    await this.operations.withdraw(withdrawal.amount, withdrawal.method);
+    await this.operations.withdraw(withdrawal.amount, withdrawal.method, withdrawal.currency);
   }
 
-  async submitExchange(request: ExchangeRequest): Promise<void> {
-    await this.operations.exchange(
+  submitExchange(request: ExchangeRequest): Promise<CashConversionResponse | null> {
+    return this.operations.exchange(
       request.amount,
       request.fromCurrency,
       request.toCurrency,

@@ -1,4 +1,4 @@
-import { Component, computed, signal } from '@angular/core';
+import { Component, computed, input, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DecimalPipe } from '@angular/common';
 import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
@@ -7,7 +7,7 @@ import { output } from '@angular/core';
 import { ExchangeRequest } from '@features/transact/services/transact-facade.service';
 import { ConfirmActionsComponent } from '../../components/confirm-actions/confirm-actions.component';
 
-type SupportedCurrency = 'USD' | 'EUR' | 'INR';
+type SupportedCurrency = 'USD' | 'EUR' | 'GBP' | 'INR';
 
 @Component({
   selector: 'app-currency-exchange',
@@ -18,12 +18,13 @@ type SupportedCurrency = 'USD' | 'EUR' | 'INR';
 })
 export class CurrencyExchangeComponent {
   // TODO: Fetch supported currencies from backend instead of hardcoding frontend options.
-  readonly currencies: readonly SupportedCurrency[] = ['USD', 'EUR', 'INR'];
+  readonly currencies: readonly SupportedCurrency[] = ['USD', 'EUR', 'GBP', 'INR'];
 
   // Mock conversion rates relative to one USD.
   private readonly ratesByUsd: Record<SupportedCurrency, number> = {
     USD: 1,
     EUR: 0.92,
+    GBP: 0.79,
     INR: 83.2,
   };
 
@@ -33,6 +34,14 @@ export class CurrencyExchangeComponent {
   pendingExchange = signal<ExchangeRequest | null>(null);
 
   exchangeSubmitted = output<ExchangeRequest>();
+
+  backendDataMode = input(false);
+  balances = input<Record<string, number>>({});
+  submitting = input(false);
+  message = input('');
+  errorMessage = input('');
+
+  fromBalance = computed(() => this.balances()[this.fromCurrency()] ?? 0);
 
   convertedAmount = computed(() => {
     const value = this.amount();
@@ -56,6 +65,10 @@ export class CurrencyExchangeComponent {
   requestExchange() {
     const currentAmount = this.amount();
     if (!currentAmount || currentAmount <= 0) {
+      return;
+    }
+
+    if (this.fromCurrency() === this.toCurrency()) {
       return;
     }
 
