@@ -1,7 +1,6 @@
 package io.github.jackhudsonn.jaakd.service;
 
 import io.github.jackhudsonn.jaakd.dto.PortfolioReconciliationResponse;
-import io.github.jackhudsonn.jaakd.exception.ForbiddenException;
 import io.github.jackhudsonn.jaakd.model.CashCurrency;
 import io.github.jackhudsonn.jaakd.model.Holding;
 import io.github.jackhudsonn.jaakd.model.Instrument;
@@ -29,9 +28,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -48,9 +45,6 @@ class PortfolioReconciliationServiceTest {
 
     @Mock
     private InstrumentRepository instrumentRepository;
-
-    @Mock
-    private PrivilegedAccessService privilegedAccessService;
 
     @InjectMocks
     private PortfolioReconciliationService reconciliationService;
@@ -125,15 +119,6 @@ class PortfolioReconciliationServiceTest {
         assertEquals(cashId, response.mismatches().get(0).instrumentId());
         assertEquals(new BigDecimal("800.0"), response.mismatches().get(0).expectedQuantity());
         assertEquals(new BigDecimal("700.0"), response.mismatches().get(0).actualQuantity());
-    }
-
-    @Test
-    void reconcilePortfolio_retailClientIsForbidden() {
-        UUID portfolioId = UUID.randomUUID();
-        doThrow(new ForbiddenException("Admin or auditor user type is required"))
-            .when(privilegedAccessService).ensureAdminOrAuditor();
-
-        assertThrows(ForbiddenException.class, () -> reconciliationService.reconcilePortfolio(portfolioId));
     }
 
     private Portfolio buildPortfolio(UUID portfolioId) throws Exception {

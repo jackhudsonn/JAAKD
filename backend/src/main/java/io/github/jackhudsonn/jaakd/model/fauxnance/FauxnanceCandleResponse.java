@@ -1,4 +1,4 @@
-package io.github.jackhudsonn.jaakd.service.fauxnance;
+package io.github.jackhudsonn.jaakd.model.fauxnance;
 
 import java.util.List;
 
