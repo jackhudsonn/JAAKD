@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import io.github.jackhudsonn.jaakd.dto.CreateOrderLogRequest;
+import io.github.jackhudsonn.jaakd.dto.CreateDemoOrderLogRequest;
 import io.github.jackhudsonn.jaakd.dto.OrderLogListResponse;
 import io.github.jackhudsonn.jaakd.dto.OrderLogResponse;
 import io.github.jackhudsonn.jaakd.model.OrderLog;
@@ -73,6 +74,12 @@ public class OrderLogController {
 	public OrderLogResponse createOrderLog(@Valid @RequestBody CreateOrderLogRequest request) {
 		OrderLog created = orderLogService.createOrderLog(request);
 		return toResponse(created);
+	}
+
+	@PostMapping("/demo")
+	@ResponseStatus(HttpStatus.CREATED)
+	public OrderLogResponse createDemoOrderLog(@Valid @RequestBody CreateDemoOrderLogRequest request) {
+		return toResponse(orderLogService.createDemoOrderLog(request));
 	}
 
 	@PostMapping("/{orderId}/cancel")

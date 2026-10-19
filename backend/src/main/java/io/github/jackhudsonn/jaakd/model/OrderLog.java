@@ -95,6 +95,10 @@ public class OrderLog {
         return timestamp;
     }
 
+    public void setTimeStamp(LocalDateTime timestamp) {
+        this.timestamp = timestamp;
+    }
+
     public OrderSide getSide() {
         return side;
     }
