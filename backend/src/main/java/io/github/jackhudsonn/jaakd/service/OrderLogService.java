@@ -54,7 +54,7 @@ public class OrderLogService {
         QuoteService quoteService,
         KafkaTemplate<String, OrderSubmittedEvent> orderSubmittedKafkaTemplate,
         FifoAccountingService fifoAccountingService,
-        @Value("${app.demo-fixtures.enabled:false}") boolean demoFixturesEnabled
+        @Value("${app.demo-fixtures.enabled}") boolean demoFixturesEnabled
     ) {
         this.orderLogRepository = orderLogRepository;
         this.portfolioRepository = portfolioRepository;
