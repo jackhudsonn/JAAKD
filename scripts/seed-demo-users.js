@@ -40,6 +40,7 @@ const ADMIN_ACCOUNT = {
     username: "dev_admin",
   },
 };
+console.log(`Using backend URL: ${BACKEND_URL}`);
 
 const USERS = [
   {
@@ -77,19 +78,19 @@ const USERS = [
         ticker: "AAPL",
         market: "NASDAQ",
         name: "Apple Inc",
-        instrumentClass: "STOCK",
+        instrumentClass: "EQUITY",
       },
       {
         ticker: "MSFT",
         market: "NASDAQ",
         name: "Microsoft Corp",
-        instrumentClass: "STOCK",
+        instrumentClass: "EQUITY",
       },
       {
         ticker: "TSLA",
         market: "NASDAQ",
         name: "Tesla Inc",
-        instrumentClass: "STOCK",
+        instrumentClass: "EQUITY",
       },
       {
         ticker: "VOO",
@@ -181,37 +182,37 @@ const USERS = [
         ticker: "NVDA",
         market: "NASDAQ",
         name: "NVIDIA Corp",
-        instrumentClass: "STOCK",
+        instrumentClass: "EQUITY",
       },
       {
         ticker: "AMZN",
         market: "NASDAQ",
         name: "Amazon.com Inc",
-        instrumentClass: "STOCK",
+        instrumentClass: "EQUITY",
       },
       {
         ticker: "GOOGL",
         market: "NASDAQ",
         name: "Alphabet Inc Class A",
-        instrumentClass: "STOCK",
+        instrumentClass: "EQUITY",
       },
       {
         ticker: "META",
         market: "NASDAQ",
         name: "Meta Platforms Inc",
-        instrumentClass: "STOCK",
+        instrumentClass: "EQUITY",
       },
       {
         ticker: "JPM",
         market: "NYSE",
         name: "JPMorgan Chase & Co",
-        instrumentClass: "STOCK",
+        instrumentClass: "EQUITY",
       },
       {
         ticker: "XOM",
         market: "NYSE",
         name: "Exxon Mobil Corp",
-        instrumentClass: "STOCK",
+        instrumentClass: "EQUITY",
       },
       {
         ticker: "VOO",
@@ -327,7 +328,6 @@ const USERS = [
       "JPM",
       "XOM",
       "VOO",
-      "BNDX",
       "TLT",
       "BTC",
       "ETH",
@@ -340,49 +340,49 @@ const USERS = [
         ticker: "AAPL",
         market: "NASDAQ",
         name: "Apple Inc",
-        instrumentClass: "STOCK",
+        instrumentClass: "EQUITY",
       },
       {
         ticker: "MSFT",
         market: "NASDAQ",
         name: "Microsoft Corp",
-        instrumentClass: "STOCK",
+        instrumentClass: "EQUITY",
       },
       {
         ticker: "NVDA",
         market: "NASDAQ",
         name: "NVIDIA Corp",
-        instrumentClass: "STOCK",
+        instrumentClass: "EQUITY",
       },
       {
         ticker: "AMZN",
         market: "NASDAQ",
         name: "Amazon.com Inc",
-        instrumentClass: "STOCK",
+        instrumentClass: "EQUITY",
       },
       {
         ticker: "GOOGL",
         market: "NASDAQ",
         name: "Alphabet Inc Class A",
-        instrumentClass: "STOCK",
+        instrumentClass: "EQUITY",
       },
       {
         ticker: "META",
         market: "NASDAQ",
         name: "Meta Platforms Inc",
-        instrumentClass: "STOCK",
+        instrumentClass: "EQUITY",
       },
       {
         ticker: "JPM",
         market: "NYSE",
         name: "JPMorgan Chase & Co",
-        instrumentClass: "STOCK",
+        instrumentClass: "EQUITY",
       },
       {
         ticker: "XOM",
         market: "NYSE",
         name: "Exxon Mobil Corp",
-        instrumentClass: "STOCK",
+        instrumentClass: "EQUITY",
       },
       {
         ticker: "VOO",
@@ -391,16 +391,10 @@ const USERS = [
         instrumentClass: "ETF",
       },
       {
-        ticker: "BNDX",
-        market: "NASDAQ",
-        name: "Vanguard Total International Bond ETF",
-        instrumentClass: "ETF",
-      },
-      {
         ticker: "TLT",
         market: "NASDAQ",
         name: "iShares 20+ Year Treasury Bond ETF",
-        instrumentClass: "BOND",
+        instrumentClass: "ETF",
       },
       {
         ticker: "BTC",
@@ -498,13 +492,6 @@ const USERS = [
         executionPrice: 118.3,
       },
       {
-        key: "buy-bndx-01",
-        ticker: "BNDX",
-        side: "BUY",
-        quantity: 120,
-        executionPrice: 49.25,
-      },
-      {
         key: "buy-tlt-01",
         ticker: "TLT",
         side: "BUY",
@@ -568,6 +555,7 @@ const CASH_INSTRUMENTS = [
     market: "INTERNAL",
     name: "US Dollar Cash Balance",
     instrumentClass: "CASH",
+    tradingCurrency: "USD",
     description: "Base cash ledger for USD balances",
   },
   {
@@ -575,6 +563,7 @@ const CASH_INSTRUMENTS = [
     market: "INTERNAL",
     name: "Indian Rupee Cash Balance",
     instrumentClass: "CASH",
+    tradingCurrency: "INR",
     description: "Cash ledger instrument for INR balances",
   },
   {
@@ -582,6 +571,7 @@ const CASH_INSTRUMENTS = [
     market: "INTERNAL",
     name: "Euro Cash Balance",
     instrumentClass: "CASH",
+    tradingCurrency: "EUR",
     description: "Cash ledger instrument for EUR balances",
   },
 ];
@@ -603,11 +593,22 @@ async function requestJson({
     headers.Cookie = cookie;
   }
 
-  const response = await fetch(`${BACKEND_URL}${path}`, {
-    method,
-    headers,
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
+  let response;
+
+  try {
+    response = await fetch(`${BACKEND_URL}${path}`, {
+      method,
+      headers,
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+  } catch (error) {
+    const cause = error?.cause?.code || error?.cause?.message || error.message;
+    throw new Error(
+      `Unable to reach the backend at ${BACKEND_URL} while requesting ${method} ${path}: ${cause}. ` +
+        "Start the backend with `docker compose up -d --build` or set BACKEND_URL to a reachable backend.",
+      { cause: error },
+    );
+  }
 
   const rawText = await response.text();
   let parsed = null;
@@ -626,7 +627,7 @@ async function requestJson({
         ? parsed.message
         : `HTTP ${response.status} from ${method} ${path}`;
 
-    const error = new Error(message);
+    const error = new Error(`${message} (${method} ${path})`);
     error.status = response.status;
     error.body = parsed;
     throw error;
@@ -803,8 +804,10 @@ async function ensurePaymentMethods(cookie, scenario) {
       const nickname = String(method.nickname || "").trim().toLowerCase();
       const bankName = String(method.bankName || "").trim().toLowerCase();
       const accountType = String(method.accountType || "").trim().toLowerCase();
-      const accountLast4 = String(method.accountLast4 || "").trim();
-      const routingLast4 = String(method.routingLast4 || "").trim();
+      const accountLast4 = String(method.accountNumberLast4 || "").trim();
+      const routingLast4 = String(method.routingNumber || "")
+        .trim()
+        .slice(-4);
 
       return `${nickname}|${bankName}|${accountType}|${accountLast4}|${routingLast4}`;
     }),
@@ -908,6 +911,7 @@ async function ensureInstrument(cookie, instrument) {
       market: instrument.market,
       name: instrument.name,
       instrumentClass: instrument.instrumentClass,
+      tradingCurrency: instrument.tradingCurrency || "USD",
       logoUrl: instrument.logoUrl || null,
       description: instrument.description || null,
     },

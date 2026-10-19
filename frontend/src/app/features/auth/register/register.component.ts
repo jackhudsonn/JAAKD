@@ -35,9 +35,9 @@ export class RegisterComponent {
   state = '';
   country = '';
   zipCode = '';
-  countries: CountryOption[] = [];
-  states: string[] = [];
-  cities: string[] = [];
+  countries = signal<CountryOption[]>([]);
+  states = signal<string[]>([]);
+  cities = signal<string[]>([]);
 
   countryCode = '';
   get maxDob() {
@@ -55,7 +55,7 @@ export class RegisterComponent {
     void this.loadCountries();
   }
   private async loadCountries() {
-    this.countries = await this.locationDataService.getCountries();
+    this.countries.set(await this.locationDataService.getCountries());
   }
 
   togglePasswordVisibility() {
@@ -66,13 +66,15 @@ export class RegisterComponent {
     this.showConfirmPassword = !this.showConfirmPassword;
   }
   async onCountryChange() {
-    this.states = await this.locationDataService.getStates(this.countryCode);
+    this.states.set(await this.locationDataService.getStates(this.countryCode));
 
     this.state = '';
     this.city = '';
-    this.cities = [];
+    this.cities.set([]);
 
-    const selectedCountry = this.countries.find((country) => country.code === this.countryCode);
+    const selectedCountry = this.countries().find(
+      (country) => country.code === this.countryCode,
+    );
 
     this.country = selectedCountry?.name ?? '';
   }
@@ -80,7 +82,7 @@ export class RegisterComponent {
   async onStateChange() {
     this.city = '';
 
-    this.cities = await this.locationDataService.getCities(this.countryCode, this.state);
+    this.cities.set(await this.locationDataService.getCities(this.countryCode, this.state));
   }
 
   async signUp() {
