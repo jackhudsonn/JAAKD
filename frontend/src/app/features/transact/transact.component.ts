@@ -3,6 +3,7 @@ import { MoveFundsFormComponent } from './cards/move-funds/move-funds.component'
 import { TransactionHistoryComponent } from './cards/transaction-history/transaction-history.component';
 import { CurrencyExchangeComponent } from './cards/currency-exchange/currency-exchange.component';
 import { Deposit, Withdrawal } from '@core/models';
+import { CASH_CURRENCIES } from '@core/models/api.models';
 import {
   ExchangeRequest,
   TransactFacadeService,
@@ -32,6 +33,10 @@ export class TransactComponent implements OnInit {
   readonly loadState = computed(() => this.transactFacade.loadState?.() ?? 'ready');
   readonly actionError = signal('');
   readonly submittingAction = signal(false);
+  readonly exchangeMessage = signal('');
+  readonly exchangeError = signal('');
+  readonly cashBalances = computed(() => this.transactFacade.cashBalances?.() ?? {});
+  readonly currencies = computed(() => this.transactFacade.cashCurrencies?.() ?? CASH_CURRENCIES);
 
   ngOnInit() {
     void this.transactFacade.load();
@@ -63,8 +68,29 @@ export class TransactComponent implements OnInit {
     }
   }
 
-  onExchange(request: ExchangeRequest) {
-    void this.transactFacade.submitExchange(request);
+  async onExchange(request: ExchangeRequest) {
+    this.exchangeMessage.set('');
+    this.exchangeError.set('');
+    this.submittingAction.set(true);
+
+    try {
+      const result = await this.transactFacade.submitExchange(request);
+      if (result) {
+        this.exchangeMessage.set(
+          `Exchanged ${result.sourceAmount} ${result.sourceCurrency} for ` +
+            `${result.targetAmount.toFixed(2)} ${result.targetCurrency} ` +
+            `(1 ${result.sourceCurrency} = ${result.conversionRate} ${result.targetCurrency}).`,
+        );
+      }
+    } catch (error) {
+      this.exchangeError.set(
+        error instanceof Error && error.message.trim().length > 0
+          ? error.message
+          : 'The exchange could not be completed.',
+      );
+    } finally {
+      this.submittingAction.set(false);
+    }
   }
 
   retryLoad() {

@@ -1,4 +1,9 @@
-<app-widget-card title="Currency Exchange" subtitle="Quick mock conversion preview">
+<app-widget-card
+  title="Currency Exchange"
+  [subtitle]="
+    backendDataMode() ? 'Convert between your cash balances' : 'Quick mock conversion preview'
+  "
+>
   <div class="exchange-form">
     <div class="form-field">
       <label for="exchange-amount">Amount</label>
@@ -21,7 +26,7 @@
           [ngModel]="fromCurrency()"
           (ngModelChange)="fromCurrency.set($event)"
         >
-          @for (currency of currencies; track currency) {
+          @for (currency of currencies(); track currency) {
             <option [value]="currency">{{ currency }}</option>
           }
         </select>
@@ -30,7 +35,7 @@
       <div class="form-field">
         <label for="to-currency">To</label>
         <select id="to-currency" [ngModel]="toCurrency()" (ngModelChange)="toCurrency.set($event)">
-          @for (currency of currencies; track currency) {
+          @for (currency of currencies(); track currency) {
             <option [value]="currency">{{ currency }}</option>
           }
         </select>
@@ -40,15 +45,32 @@
 
   <div class="exchange-result">
     <div class="exchange-summary">
-      <p class="exchange-total">{{ convertedAmount() | number: '1.2-2' }} {{ toCurrency() }}</p>
+      @if (backendDataMode()) {
+        <p class="exchange-rate">
+          Available: {{ fromBalance() | number: '1.2-2' }} {{ fromCurrency() }}
+        </p>
+        @if (message()) {
+          <p class="exchange-rate">{{ message() }}</p>
+        }
+        @if (errorMessage()) {
+          <p class="form-error">{{ errorMessage() }}</p>
+        }
+      } @else {
+        <p class="exchange-total">{{ convertedAmount() | number: '1.2-2' }} {{ toCurrency() }}</p>
 
-      <p class="exchange-rate">
-        1 {{ fromCurrency() }} = {{ quoteRate() | number: '1.2-4' }} {{ toCurrency() }}
-      </p>
+        <p class="exchange-rate">
+          1 {{ fromCurrency() }} = {{ quoteRate() | number: '1.2-4' }} {{ toCurrency() }}
+        </p>
+      }
     </div>
 
     <div class="exchange-actions">
-      <button type="button" class="btn btn-primary swap-button" (click)="requestExchange()">
+      <button
+        type="button"
+        class="btn btn-primary swap-button"
+        [disabled]="submitting()"
+        (click)="requestExchange()"
+      >
         Swap
       </button>
     </div>

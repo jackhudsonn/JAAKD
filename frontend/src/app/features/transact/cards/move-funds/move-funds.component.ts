@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
 import { ModalComponent } from '@shared/components/modal/modal.component';
 import { Deposit, PaymentMethod, Withdrawal } from '@core/models';
+import { CASH_CURRENCIES, CashCurrency } from '@core/models/api.models';
 import { PaymentMethodsStore } from '@features/payment/services/payment-methods.store';
 import { ConfirmActionsComponent } from '../../components/confirm-actions/confirm-actions.component';
 
@@ -13,6 +14,7 @@ interface PendingFundsAction {
   action: FundsAction;
   amount: number;
   method: PaymentMethod;
+  currency: CashCurrency;
 }
 
 @Component({
@@ -29,13 +31,14 @@ export class MoveFundsFormComponent implements OnInit {
   private readonly router = inject(Router);
 
   amount: number | null = null;
-  selectedCurrency: 'USD' | 'EUR' | 'INR' = 'USD';
+  selectedCurrency: CashCurrency = 'USD';
   selectedMethodId = '';
   error = signal('');
   pendingAction = signal<PendingFundsAction | null>(null);
   backendDataMode = input(false);
   submitting = input(false);
   backendError = input('');
+  currencies = input<readonly CashCurrency[]>(CASH_CURRENCIES);
 
   paymentOptions = this.paymentMethodsStore.transactOptions;
   hasPaymentOptions = computed(() => this.paymentOptions().length > 0);
@@ -63,10 +66,6 @@ export class MoveFundsFormComponent implements OnInit {
       return;
     }
 
-    if (this.backendDataMode()) {
-      this.selectedCurrency = 'USD';
-    }
-
     if (!this.hasPaymentOptions()) {
       this.error.set('Select Add + from Payment Method to create one first.');
       return;
@@ -89,6 +88,7 @@ export class MoveFundsFormComponent implements OnInit {
       action,
       amount: this.amount,
       method: selectedMethod,
+      currency: this.selectedCurrency,
     });
   }
 
@@ -106,11 +106,13 @@ export class MoveFundsFormComponent implements OnInit {
       this.depositSubmitted.emit({
         amount: pendingAction.amount,
         method: pendingAction.method,
+        currency: pendingAction.currency,
       });
     } else {
       this.withdrawalSubmitted.emit({
         amount: pendingAction.amount,
         method: pendingAction.method,
+        currency: pendingAction.currency,
       });
     }
 

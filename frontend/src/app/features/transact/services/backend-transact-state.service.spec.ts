@@ -3,7 +3,9 @@ import { OrderLogResponse } from '@core/models/api.models';
 import { InstrumentApiService } from '@core/services/instrument-api.service';
 import { OrderLogApiService } from '@core/services/order-log-api.service';
 import { PortfolioApiService } from '@core/services/portfolio-api.service';
+import { HoldingApiService } from '@core/services/holding-api.service';
 import { BackendTransactStateService } from './backend-transact-state.service';
+import { HttpErrorResponse } from '@angular/common/http';
 
 describe('BackendTransactStateService', () => {
   const portfolio = { portfolioId: 'portfolio-1', portfolioName: 'Main' };
@@ -60,6 +62,27 @@ describe('BackendTransactStateService', () => {
   const instrumentApiService = {
     list: vi.fn(async () => instruments),
   };
+  const holdingApiService = {
+    listByPortfolio: vi.fn(async () => [
+      {
+        holdingID: 'holding-usd',
+        portfolioID: 'portfolio-1',
+        instrumentID: 'inst-cash',
+        currentQuantity: 5000,
+        cumulativeRealizedPnl: 0,
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      },
+      {
+        holdingID: 'holding-eur',
+        portfolioID: 'portfolio-1',
+        instrumentID: 'inst-eur',
+        currentQuantity: 200,
+        cumulativeRealizedPnl: 0,
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      },
+    ]),
+    convertCash: vi.fn(),
+  };
 
   const orderLogApiService = {
     listByPortfolio: vi.fn(async () => orderLogs),
@@ -100,6 +123,7 @@ describe('BackendTransactStateService', () => {
         { provide: PortfolioApiService, useValue: portfolioApiService },
         { provide: InstrumentApiService, useValue: instrumentApiService },
         { provide: OrderLogApiService, useValue: orderLogApiService },
+        { provide: HoldingApiService, useValue: holdingApiService },
       ],
     });
 
@@ -278,5 +302,79 @@ describe('BackendTransactStateService', () => {
     ).toBe('pending');
 
     randomUuidSpy.mockRestore();
+  });
+
+  it('builds cash balances per currency', async () => {
+    await service.load();
+
+    expect(service.cashBalances()).toEqual({ USD: 5000, EUR: 200 });
+  });
+
+  it('converts cash and refreshes', async () => {
+    holdingApiService.convertCash.mockResolvedValueOnce({ targetAmount: 92 });
+    await service.load();
+
+    const result = await service.convertCash('USD', 'EUR', 100);
+
+    expect(holdingApiService.convertCash).toHaveBeenCalledWith('portfolio-1', {
+      sourceCurrency: 'USD',
+      targetCurrency: 'EUR',
+      sourceAmount: 100,
+    });
+    expect(result).toEqual({ targetAmount: 92 });
+  });
+
+  it('shows the backend message when conversion fails', async () => {
+    holdingApiService.convertCash.mockRejectedValueOnce(
+      new HttpErrorResponse({
+        status: 400,
+        error: { message: 'Insufficient source cash balance' },
+      }),
+    );
+    await service.load();
+
+    await expect(service.convertCash('USD', 'EUR', 999999)).rejects.toThrow(
+      'Insufficient source cash balance',
+    );
+  });
+  it('deposits into the chosen currency', async () => {
+    const randomUuidSpy = vi
+      .spyOn(crypto, 'randomUUID')
+      .mockReturnValue('22222222-2222-2222-2222-222222222222');
+
+    orderLogApiService.submit.mockImplementationOnce(async () => {
+      orderLogs = [
+        {
+          logOrderId: 'log-eur',
+          orderId: '22222222-2222-2222-2222-222222222222',
+          portfolioId: portfolio.portfolioId,
+          instrumentId: 'inst-eur',
+          side: 'DEPOSIT',
+          quantity: 50,
+          timestamp: '2026-01-01T01:00:00.000Z',
+          metadata: null,
+          status: 'EXECUTED',
+          executionPrice: 0,
+          quotedPrice: null,
+        },
+      ];
+
+      return orderLogs[0];
+    });
+
+    await service.load();
+    await service.submitCashMovement('DEPOSIT', 50, 'EUR');
+
+    expect(orderLogApiService.submit).toHaveBeenCalledWith(
+      expect.objectContaining({ instrumentId: 'inst-eur', side: 'DEPOSIT', quantity: 50 }),
+    );
+
+    randomUuidSpy.mockRestore();
+  });
+
+  it('lists supported currencies from the cash instruments', async () => {
+    await service.load();
+
+    expect(service.cashCurrencies()).toEqual(['USD', 'EUR']);
   });
 });

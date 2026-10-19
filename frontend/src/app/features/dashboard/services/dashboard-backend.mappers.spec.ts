@@ -255,6 +255,31 @@ describe('dashboard-backend.mappers', () => {
   });
 
   describe('toTransactions', () => {
+    it('maps FX rows to exchange transactions with a currency label', () => {
+      const result = toTransactions([
+        createOrderLog({
+          orderId: 'fx-1',
+          instrumentId: CASH_INSTRUMENT.instrumentId,
+          side: 'FX',
+          quantity: 100,
+          status: 'EXECUTED',
+          metadata: 'fxConversion=true;sourceCurrency=USD;targetCurrency=EUR;sourceAmount=100',
+        }),
+      ]);
+
+      expect(result).toEqual([
+        {
+          id: 'fx-1',
+          type: 'exchange',
+          typeLabel: 'USD → EUR',
+          amount: 100,
+          method: 'bank_transfer',
+          status: 'completed',
+          createdAt: '2026-01-01T00:00:00.000Z',
+        },
+      ]);
+    });
+
     it('maps DEPOSIT and WITHDRAW order logs into transactions newest first', () => {
       const orderLogs: OrderLogResponse[] = [
         createOrderLog({

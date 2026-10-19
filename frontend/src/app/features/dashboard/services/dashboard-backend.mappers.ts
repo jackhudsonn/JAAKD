@@ -258,6 +258,22 @@ export const toOrders = (
     .map(({ order }) => order);
 };
 
+const readMetadataValue = (metadata: string | null, key: string): string | null => {
+  if (!metadata) {
+    return null;
+  }
+
+  for (const part of metadata.split(';')) {
+    const [name, ...rest] = part.split('=');
+    if (name.trim() === key) {
+      const value = rest.join('=').trim();
+      return value.length > 0 ? value : null;
+    }
+  }
+
+  return null;
+};
+
 export const toTransactions = (orderLogs: OrderLogResponse[]): Transaction[] => {
   const grouped = new Map<string, OrderLogResponse[]>();
 
@@ -280,7 +296,7 @@ export const toTransactions = (orderLogs: OrderLogResponse[]): Transaction[] => 
     const firstRow = sortedByTime[0];
     const newestRow = sortedByTime[sortedByTime.length - 1];
 
-    if (newestRow.side !== 'DEPOSIT' && newestRow.side !== 'WITHDRAW') {
+    if (newestRow.side !== 'DEPOSIT' && newestRow.side !== 'WITHDRAW' && newestRow.side !== 'FX') {
       continue;
     }
 
@@ -301,10 +317,17 @@ export const toTransactions = (orderLogs: OrderLogResponse[]): Transaction[] => 
         break;
     }
 
+    const isExchange = newestRow.side === 'FX';
+    const sourceCurrency = readMetadataValue(newestRow.metadata, 'sourceCurrency');
+    const targetCurrency = readMetadataValue(newestRow.metadata, 'targetCurrency');
+
     mappedWithSortKey.push({
       transaction: {
         id: newestRow.orderId,
-        type: newestRow.side === 'DEPOSIT' ? 'deposit' : 'withdrawal',
+        type: isExchange ? 'exchange' : newestRow.side === 'DEPOSIT' ? 'deposit' : 'withdrawal',
+        ...(isExchange && sourceCurrency && targetCurrency
+          ? { typeLabel: `${sourceCurrency} → ${targetCurrency}` }
+          : {}),
         amount: newestRow.quantity,
         method: 'bank_transfer',
         status,
