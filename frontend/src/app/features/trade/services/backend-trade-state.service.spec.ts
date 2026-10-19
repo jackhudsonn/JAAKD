@@ -82,6 +82,7 @@ describe('BackendTradeStateService', () => {
   };
   const instrumentApiService = {
     list: vi.fn(async () => instruments),
+    getQuotes: vi.fn(async () => []),
   };
   const orderLogApiService = {
     listByPortfolio: vi.fn(async () => orderLogs),

@@ -17,6 +17,9 @@ import {
   toHoldings,
   toLatestPriceBySymbol,
   toOrders,
+  toPriceResolver,
+  toQuotePriceBySymbol,
+  toQuoteSymbols,
   toWatchlist,
 } from '@features/dashboard/services/dashboard-backend.mappers';
 import { TradePlaceOrderRequest } from './trade-order-engine.service';
@@ -43,6 +46,7 @@ export class BackendTradeStateService implements TradeStatePort {
   readonly watchlistItemsData = signal<WatchlistItemResponse[]>([]);
 
   private readonly portfolioId = signal<string | null>(null);
+  private readonly quotePriceBySymbol = signal<Map<string, number>>(new Map());
 
   constructor(
     private portfolioApiService: PortfolioApiService,
@@ -60,7 +64,7 @@ export class BackendTradeStateService implements TradeStatePort {
     this.watchlists.set([]);
 
     try {
-      await this.refresh();
+      await this.refresh(true);
 
       this.loadState.set('ready');
     } catch (error) {
@@ -70,6 +74,7 @@ export class BackendTradeStateService implements TradeStatePort {
       this.orderLogsData.set([]);
       this.watchlistItemsData.set([]);
       this.latestPriceBySymbolData.set(new Map());
+      this.quotePriceBySymbol.set(new Map());
       this.accountCash.set(0);
       this.holdings.set([]);
       this.orders.set([]);
@@ -155,8 +160,17 @@ export class BackendTradeStateService implements TradeStatePort {
     await this.watchlistApiService.remove(existingItem.listItemId);
     await this.refresh();
   }
+  private async loadQuotes(instruments: InstrumentResponse[]): Promise<void> {
+    try {
+      const quotes = await this.instrumentApiService.getQuotes(toQuoteSymbols(instruments));
+      this.quotePriceBySymbol.set(toQuotePriceBySymbol(quotes));
+    } catch (error) {
+      console.error('BackendTradeStateService.loadQuotes failed', error);
+      this.quotePriceBySymbol.set(new Map());
+    }
+  }
 
-  private async refresh(): Promise<void> {
+  private async refresh(includeQuotes = false): Promise<void> {
     const portfolio = await this.portfolioApiService.ensureDefault();
 
     const [holdings, instruments, orderLogs, watchlistItems] = await Promise.all([
@@ -166,18 +180,20 @@ export class BackendTradeStateService implements TradeStatePort {
       this.watchlistApiService.listByPortfolio(portfolio.portfolioId),
     ]);
 
+    if (includeQuotes) {
+      await this.loadQuotes(instruments);
+    }
+
     this.portfolioId.set(portfolio.portfolioId);
     this.instrumentsData.set(instruments);
     this.orderLogsData.set(orderLogs);
     this.watchlistItemsData.set(watchlistItems);
-    this.latestPriceBySymbolData.set(toLatestPriceBySymbol(orderLogs, instruments));
-
+    this.latestPriceBySymbolData.set(
+      new Map([...toLatestPriceBySymbol(orderLogs, instruments), ...this.quotePriceBySymbol()]),
+    );
     this.accountCash.set(toCash(holdings, instruments));
     this.holdings.set(
-      toHoldings(holdings, instruments, orderLogs, {
-        isKnownSymbol: () => false,
-        getPrice: () => 0,
-      }),
+      toHoldings(holdings, instruments, orderLogs, toPriceResolver(this.quotePriceBySymbol())),
     );
     this.orders.set(toOrders(orderLogs, instruments));
     this.watchlists.set([toWatchlist(watchlistItems, instruments)]);

@@ -14,6 +14,9 @@ import {
   toHoldings,
   toOpenOrders,
   toInstrumentType,
+  toPriceResolver,
+  toQuotePriceBySymbol,
+  toQuoteSymbols,
   toTransactions,
   toWatchlist,
 } from './dashboard-backend.mappers';
@@ -82,13 +85,17 @@ export class BackendDashboardStateService implements DashboardStatePort {
         this.watchlistApiService.listByPortfolio(portfolio.portfolioId),
       ]);
 
+      let quotePrices = new Map<string, number>();
+      try {
+        quotePrices = toQuotePriceBySymbol(
+          await this.instrumentApiService.getQuotes(toQuoteSymbols(instruments)),
+        );
+      } catch (error) {
+        console.error('BackendDashboardStateService quotes failed', error);
+      }
+
       this.accountCash.set(toCash(holdings, instruments));
-      this.holdings.set(
-        toHoldings(holdings, instruments, orderLogs, {
-          isKnownSymbol: () => false,
-          getPrice: () => 0,
-        }),
-      );
+      this.holdings.set(toHoldings(holdings, instruments, orderLogs, toPriceResolver(quotePrices)));
       this.orders.set(toOpenOrders(orderLogs, instruments));
       this.transactions.set(toTransactions(orderLogs));
       this.watchlists.set([toWatchlist(watchlistItems, instruments)]);

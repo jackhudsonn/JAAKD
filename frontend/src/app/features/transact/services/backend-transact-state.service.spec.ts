@@ -9,6 +9,15 @@ describe('BackendTransactStateService', () => {
   const portfolio = { portfolioId: 'portfolio-1', portfolioName: 'Main' };
   const instruments = [
     {
+      instrumentId: 'inst-eur',
+      ticker: 'EUR',
+      market: 'INTERNAL',
+      name: 'Euro',
+      instrumentClass: 'CASH' as const,
+      logoUrl: null,
+      description: null,
+    },
+    {
       instrumentId: 'inst-cash',
       ticker: 'USD',
       market: 'CASH',
