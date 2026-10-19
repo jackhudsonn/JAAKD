@@ -72,11 +72,11 @@ This page uses `/api/audit/**` endpoints and is intended for `AUDITOR` or `ADMIN
 
 ## Development setup
 
-The backend is expected to run in Docker, where Compose supplies its configuration as environment variables. Running it on the host is a convenience: `spring.config.import` reads the `.env` in the project directory for `IDENTITY_PROVIDER` and `AUTH_COOKIE_SECURE`, and the run environment supplies the datasource, because a host process reaches Postgres on `localhost:5433` rather than the compose service name.
+The backend is expected to run in Docker, where Compose supplies its configuration as environment variables. Running it on the host is a convenience: `spring.config.import` reads the `.env` in the project directory for `SPRING_PROFILES_ACTIVE`, `IDENTITY_PROVIDER`, and `AUTH_COOKIE_SECURE`, and the run environment supplies the datasource, because a host process reaches Postgres on `localhost:5433` rather than the compose service name. Spring profiles select environment-specific YAML; `IDENTITY_PROVIDER` only selects the authentication adapter.
 
 ### Backend (without Docker)
 
-The `.env` in the project directory must exist. `spring-boot:run` reads it for `IDENTITY_PROVIDER` and `AUTH_COOKIE_SECURE`; set `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, and `SPRING_DATASOURCE_PASSWORD` in the run environment (`jdbc:postgresql://localhost:5433/jaakd`, `jaakd_app`, and the `JAAKD_APP_DB_PASSWORD` value).
+The `.env` in the project directory must exist. `spring-boot:run` reads it for `SPRING_PROFILES_ACTIVE`, `IDENTITY_PROVIDER`, and `AUTH_COOKIE_SECURE`; set `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, and `SPRING_DATASOURCE_PASSWORD` in the run environment (`jdbc:postgresql://localhost:5433/jaakd`, `jaakd_app`, and the `JAAKD_APP_DB_PASSWORD` value).
 
 ```powershell
 ./mvnw spring-boot:run

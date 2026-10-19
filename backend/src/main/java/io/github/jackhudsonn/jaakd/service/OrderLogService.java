@@ -3,15 +3,18 @@ package io.github.jackhudsonn.jaakd.service;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.beans.factory.annotation.Value;
 
 import io.github.jackhudsonn.jaakd.config.KafkaTopics;
 import io.github.jackhudsonn.jaakd.dto.CreateOrderLogRequest;
+import io.github.jackhudsonn.jaakd.dto.CreateDemoOrderLogRequest;
 import io.github.jackhudsonn.jaakd.event.OrderSubmittedEvent;
 import io.github.jackhudsonn.jaakd.exception.InstrumentNotFoundException;
 import io.github.jackhudsonn.jaakd.exception.InvalidTradeException;
 import io.github.jackhudsonn.jaakd.exception.OrderCancellationConflictException;
 import io.github.jackhudsonn.jaakd.exception.OrderLogNotFoundException;
 import io.github.jackhudsonn.jaakd.exception.PortfolioNotFoundException;
+import io.github.jackhudsonn.jaakd.exception.ForbiddenException;
 import io.github.jackhudsonn.jaakd.model.Instrument;
 import io.github.jackhudsonn.jaakd.model.OrderLog;
 import io.github.jackhudsonn.jaakd.model.OrderSide;
@@ -40,6 +43,8 @@ public class OrderLogService {
     private final CurrentUserService currentUserService;
     private final QuoteService quoteService;
     private final KafkaTemplate<String, OrderSubmittedEvent> orderSubmittedKafkaTemplate;
+    private final FifoAccountingService fifoAccountingService;
+    private final boolean demoFixturesEnabled;
 
     public OrderLogService(
         OrderLogRepository orderLogRepository,
@@ -47,7 +52,9 @@ public class OrderLogService {
         InstrumentRepository instrumentRepository,
         CurrentUserService currentUserService,
         QuoteService quoteService,
-        KafkaTemplate<String, OrderSubmittedEvent> orderSubmittedKafkaTemplate
+        KafkaTemplate<String, OrderSubmittedEvent> orderSubmittedKafkaTemplate,
+        FifoAccountingService fifoAccountingService,
+        @Value("${app.demo-fixtures.enabled}") boolean demoFixturesEnabled
     ) {
         this.orderLogRepository = orderLogRepository;
         this.portfolioRepository = portfolioRepository;
@@ -55,6 +62,8 @@ public class OrderLogService {
         this.currentUserService = currentUserService;
         this.quoteService = quoteService;
         this.orderSubmittedKafkaTemplate = orderSubmittedKafkaTemplate;
+        this.fifoAccountingService = fifoAccountingService;
+        this.demoFixturesEnabled = demoFixturesEnabled;
     }
 
     public List<OrderLog> getOrderLogsForPortfolio(UUID portfolioId) {
@@ -157,6 +166,43 @@ public class OrderLogService {
         orderSubmittedKafkaTemplate.send(KafkaTopics.ORDER_SUBMITTED, partitionKey, event);
 
         return saved;
+    }
+
+    @Transactional
+    @RequiresUserType(UserType.ADMIN)
+    public OrderLog createDemoOrderLog(CreateDemoOrderLogRequest request) {
+        if (!demoFixturesEnabled) {
+            throw new ForbiddenException("Demo order fixtures are disabled");
+        }
+
+        Portfolio portfolio = portfolioRepository.findById(request.portfolioId())
+            .orElseThrow(() -> new PortfolioNotFoundException(request.portfolioId()));
+        Instrument instrument = instrumentRepository.findById(request.instrumentId())
+            .orElseThrow(() -> new InstrumentNotFoundException(request.instrumentId()));
+
+        OrderLog orderLog = new OrderLog(
+            request.orderId(), portfolio, instrument, request.side(), request.quantity()
+        );
+        orderLog.setStatus(request.status());
+        orderLog.setTimeStamp(request.timestamp());
+        orderLog.setMetadata(request.metadata());
+        if (request.executionPrice() != null) {
+            orderLog.setExecutionPrice(request.executionPrice());
+        }
+        orderLog.setQuotedPrice(request.quotedPrice());
+
+        if (request.status() == OrderStatus.EXECUTED) {
+            orderLog.setStatus(OrderStatus.ACCEPTED);
+            orderLog = orderLogRepository.save(orderLog);
+            FifoAccountingService.ExecutionOutcome outcome = fifoAccountingService.applyDemoExecution(orderLog);
+            if (!outcome.succeeded()) {
+                throw new InvalidTradeException(outcome.failureReason());
+            }
+            orderLog.setStatus(OrderStatus.EXECUTED);
+            return orderLogRepository.save(orderLog);
+        }
+
+        return orderLogRepository.save(orderLog);
     }
 
     private Double resolveQuotedPriceOrThrow(UUID instrumentId, OrderSide side) {

@@ -46,6 +46,8 @@ spring:
       properties:
         spring.json.trusted.packages: io.github.jackhudsonn.jaakd.event
 app:
+  demo-fixtures:
+    enabled: false
   cors:
     # Same-origin is the normal case (the dev-server proxy, or a reverse proxy in
     # front of a deployed build); CORS is only exercised by a genuinely
