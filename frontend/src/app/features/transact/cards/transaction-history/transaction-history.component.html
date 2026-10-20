@@ -64,7 +64,9 @@
           {{ formatLabel(transaction.type) }}
         </span>
 
-        <span class="transaction-amount">${{ transaction.amount | number: '1.2-2' }}</span>
+        <span class="transaction-amount">{{
+          transaction.amount | currency: transaction.currency ?? 'USD'
+        }}</span>
         <span class="transaction-method">
           {{
             transaction.type === 'exchange'

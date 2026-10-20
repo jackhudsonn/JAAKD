@@ -256,16 +256,19 @@ describe('dashboard-backend.mappers', () => {
 
   describe('toTransactions', () => {
     it('maps FX rows to exchange transactions with a currency label', () => {
-      const result = toTransactions([
-        createOrderLog({
-          orderId: 'fx-1',
-          instrumentId: CASH_INSTRUMENT.instrumentId,
-          side: 'FX',
-          quantity: 100,
-          status: 'EXECUTED',
-          metadata: 'fxConversion=true;sourceCurrency=USD;targetCurrency=EUR;sourceAmount=100',
-        }),
-      ]);
+      const result = toTransactions(
+        [
+          createOrderLog({
+            orderId: 'fx-1',
+            instrumentId: CASH_INSTRUMENT.instrumentId,
+            side: 'FX',
+            quantity: 100,
+            status: 'EXECUTED',
+            metadata: 'fxConversion=true;sourceCurrency=USD;targetCurrency=EUR;sourceAmount=100',
+          }),
+        ],
+        [],
+      );
 
       expect(result).toEqual([
         {
@@ -273,6 +276,7 @@ describe('dashboard-backend.mappers', () => {
           type: 'exchange',
           typeLabel: 'USD → EUR',
           amount: 100,
+          currency: 'USD',
           method: 'bank_transfer',
           status: 'completed',
           createdAt: '2026-01-01T00:00:00.000Z',
@@ -326,7 +330,7 @@ describe('dashboard-backend.mappers', () => {
         }),
       ];
 
-      const result = toTransactions(orderLogs);
+      const result = toTransactions(orderLogs, []);
 
       expect(result.map((transaction) => transaction.id)).toEqual([
         'txn-pending',
@@ -354,6 +358,56 @@ describe('dashboard-backend.mappers', () => {
       expect(result.find((transaction) => transaction.id === 'txn-pending')?.status).toBe(
         'pending',
       );
+    });
+
+    it('sets the currency from the cash instrument ticker', () => {
+      const eurInstrument: InstrumentResponse = {
+        ...CASH_INSTRUMENT,
+        instrumentId: 'inst-cash-eur',
+        ticker: 'EUR',
+        name: 'Euro',
+      };
+
+      const result = toTransactions(
+        [
+          createOrderLog({
+            orderId: 'eur-deposit',
+            instrumentId: eurInstrument.instrumentId,
+            side: 'DEPOSIT',
+            quantity: 100,
+            status: 'EXECUTED',
+          }),
+        ],
+        [CASH_INSTRUMENT, eurInstrument],
+      );
+
+      expect(result[0]?.currency).toBe('EUR');
+    });
+
+    it('leaves the currency unset when it is not a known cash currency', () => {
+      const result = toTransactions(
+        [
+          createOrderLog({
+            orderId: 'unknown-instrument',
+            instrumentId: 'inst-missing',
+            side: 'DEPOSIT',
+            status: 'EXECUTED',
+          }),
+          createOrderLog({
+            orderId: 'unknown-fx',
+            instrumentId: CASH_INSTRUMENT.instrumentId,
+            side: 'FX',
+            status: 'EXECUTED',
+            metadata: 'sourceCurrency=JPY;targetCurrency=USD',
+          }),
+        ],
+        [CASH_INSTRUMENT],
+      );
+
+      expect(result).toHaveLength(2);
+      for (const transaction of result) {
+        expect(transaction.currency).toBeUndefined();
+      }
     });
   });
 
