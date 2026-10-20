@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Router, RouterLink } from '@angular/router';
@@ -15,6 +15,7 @@ import {
   isAtLeast18,
   isValidPostalCode,
 } from '@shared/utils/profile-validation';
+import { ToastService } from '@shared/components/toast/toast.service';
 @Component({
   selector: 'app-register',
   standalone: true,
@@ -23,6 +24,8 @@ import {
   styleUrl: './register.component.css',
 })
 export class RegisterComponent {
+  private readonly toastService = inject(ToastService);
+
   firstName = '';
   lastName = '';
   email = '';
@@ -43,8 +46,6 @@ export class RegisterComponent {
   get maxDob() {
     return getLatestEligibleDob();
   }
-
-  message = signal('');
 
   constructor(
     private authService: AuthService,
@@ -97,33 +98,33 @@ export class RegisterComponent {
       !this.city ||
       !this.zipCode
     ) {
-      this.message.set('Please complete all required fields.');
+      this.toastService.error('Please complete all required fields.');
       return;
     }
 
     if (this.password.length < 8) {
-      this.message.set('Password must be at least 8 characters.');
+      this.toastService.error('Password must be at least 8 characters.');
       return;
     }
 
     if (this.password !== this.confirmPassword) {
-      this.message.set('Passwords do not match.');
+      this.toastService.error('Passwords do not match.');
       return;
     }
     if (!isAtLeast18(this.dob)) {
-      this.message.set('You must be at least 18 years old to create an account.');
+      this.toastService.error('You must be at least 18 years old to create an account.');
       return;
     }
 
     if (!isValidPostalCode(this.countryCode, this.zipCode)) {
-      this.message.set('Enter a valid ZIP / postal code.');
+      this.toastService.error('Enter a valid ZIP / postal code.');
       return;
     }
 
     try {
       await this.authService.register(this.email, this.password);
     } catch (error) {
-      this.message.set(
+      this.toastService.error(
         error instanceof HttpErrorResponse && error.status === 409
           ? 'An account with this email already exists. Please sign in.'
           : this.mapErrorToMessage(error),
@@ -134,13 +135,13 @@ export class RegisterComponent {
     try {
       await this.authService.login(this.email, this.password);
     } catch (error) {
-      this.message.set(this.mapErrorToMessage(error));
+      this.toastService.error(this.mapErrorToMessage(error));
       return;
     }
 
     try {
       await this.profileService.getCurrentProfile();
-      this.message.set('');
+      this.toastService.success('Account created successfully.');
       await this.router.navigate(['/dashboard']);
       return;
     } catch (error) {
@@ -156,15 +157,15 @@ export class RegisterComponent {
             zipCode: this.zipCode,
           });
 
-          this.message.set('');
+          this.toastService.success('Account created successfully.');
           await this.router.navigate(['/dashboard']);
         } catch (createError) {
-          this.message.set(this.mapErrorToMessage(createError));
+          this.toastService.error(this.mapErrorToMessage(createError));
         }
         return;
       }
 
-      this.message.set(this.mapErrorToMessage(error));
+      this.toastService.error(this.mapErrorToMessage(error));
     }
   }
 

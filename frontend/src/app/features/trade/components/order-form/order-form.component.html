@@ -85,10 +85,6 @@
     <p class="order-hint">Indicative price unavailable. The order fills at the current quote.</p>
   }
 
-  @if (error()) {
-    <p class="form-error">{{ error() }}</p>
-  }
-
   <div class="form-actions" [class.with-back]="showBackButton()">
     @if (showBackButton()) {
       <button type="button" class="btn btn-secondary form-back" (click)="onBack()">
