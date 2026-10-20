@@ -84,30 +84,16 @@
       </div>
     } @else {
       <div class="trade-view">
-        @if (confirmation(); as order) {
-          <div class="order-confirmation">
-            <p>
-              Order placed: {{ order.type === 'buy' ? 'Buy' : 'Sell' }} {{ order.quantity }}
-              {{ symbol() }}
-              {{
-                order.kind === 'market'
-                  ? 'at market'
-                  : 'at limit ' + (order.limitPrice | number: '1.2-2')
-              }}.
-            </p>
-          </div>
-        } @else {
-          <app-order-form
-            [currentPrice]="currentPrice()"
-            [ownedQuantity]="ownedQuantity()"
-            [accountCash]="accountCash()"
-            [backendDataMode]="backendDataMode()"
-            [showBackButton]="true"
-            backLabel="← Back"
-            (backPressed)="openAnalysisView()"
-            (placed)="onOrderPlaced($event)"
-          />
-        }
+        <app-order-form
+          [currentPrice]="currentPrice()"
+          [ownedQuantity]="ownedQuantity()"
+          [accountCash]="accountCash()"
+          [backendDataMode]="backendDataMode()"
+          [showBackButton]="true"
+          backLabel="← Back"
+          (backPressed)="openAnalysisView()"
+          (placed)="onOrderPlaced($event)"
+        />
       </div>
     }
   </div>

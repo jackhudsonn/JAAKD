@@ -6,6 +6,7 @@ import {
 } from '@features/payment/services/payment-methods.store';
 import { ModalComponent } from '@shared/components/modal/modal.component';
 import { ScrollableListComponent } from '@shared/components/scrollable-list/scrollable-list.component';
+import { ToastService } from '@shared/components/toast/toast.service';
 
 @Component({
   selector: 'app-saved-methods-popup',
@@ -16,10 +17,10 @@ import { ScrollableListComponent } from '@shared/components/scrollable-list/scro
 })
 export class SavedMethodsPopupComponent {
   private readonly paymentMethodsStore = inject(PaymentMethodsStore);
+  private readonly toastService = inject(ToastService);
 
   readonly methods = this.paymentMethodsStore.methods;
   readonly removingMethodId = signal<string | null>(null);
-  readonly statusMessage = signal('');
 
   readonly closed = output<void>();
 
@@ -32,9 +33,11 @@ export class SavedMethodsPopupComponent {
 
     try {
       await this.paymentMethodsStore.removeMethod(methodId);
-      this.statusMessage.set('Payment method removed.');
+      this.toastService.success('Payment method removed.');
     } catch (error) {
-      this.statusMessage.set(error instanceof Error ? error.message : 'Unable to remove payment method.');
+      this.toastService.error(
+        error instanceof Error ? error.message : 'Unable to remove payment method.',
+      );
     } finally {
       this.removingMethodId.set(null);
     }

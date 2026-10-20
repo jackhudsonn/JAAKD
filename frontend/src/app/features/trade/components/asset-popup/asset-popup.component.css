@@ -201,26 +201,6 @@
   width: 100%;
 }
 
-.order-confirmation {
-  display: flex;
-  flex-direction: column;
-
-  gap: var(--space-md);
-
-  padding: var(--space-md);
-
-  background: rgba(79, 196, 106, 0.1);
-  border: 1px solid var(--success);
-  border-radius: var(--radius-sm);
-}
-
-.order-confirmation p {
-  margin: 0;
-
-  color: var(--secondary-light);
-  font-size: var(--font-size-sm);
-}
-
 @media (max-width: 600px) {
   .performance-stats {
     grid-template-columns: 1fr;

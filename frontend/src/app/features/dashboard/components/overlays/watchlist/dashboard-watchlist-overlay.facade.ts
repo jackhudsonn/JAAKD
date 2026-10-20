@@ -5,6 +5,7 @@ import {
   DashboardMarketAsset,
 } from '@features/dashboard/services/dashboard-market-data.port';
 import { DASHBOARD_STATE_PORT } from '@features/dashboard/services/dashboard-state.port';
+import { ToastService } from '@shared/components/toast/toast.service';
 
 export interface DashboardWatchlistAssetSummary {
   symbol: string;
@@ -41,6 +42,7 @@ const WATCHLIST_NAME_PATTERN = /^[A-Za-z0-9' -]+$/;
 export class DashboardWatchlistOverlayFacade {
   private readonly marketData = inject(DASHBOARD_MARKET_DATA_PORT);
   private readonly state = inject(DASHBOARD_STATE_PORT);
+  private readonly toastService = inject(ToastService);
 
   private readonly watchlists = this.state.watchlists;
   private readonly activeWatchlistId = this.state.activeWatchlistId;
@@ -48,11 +50,9 @@ export class DashboardWatchlistOverlayFacade {
 
   readonly watchlistDialogMode = signal<'create' | 'edit' | null>(null);
   readonly watchlistNameDraft = signal('');
-  readonly watchlistDialogError = signal<string | null>(null);
   readonly watchlistSearchOpen = signal(false);
   readonly watchlistSearch = signal('');
   readonly watchlistSearchInstrument = signal<DashboardInstrumentFilter>('all');
-  readonly watchlistSearchError = signal<string | null>(null);
   readonly selectedWatchlistSymbol = signal<string | null>(null);
 
   readonly instrumentOptions = INSTRUMENT_OPTIONS;
@@ -169,11 +169,10 @@ export class DashboardWatchlistOverlayFacade {
 
   requestCreateWatchlist() {
     this.watchlistNameDraft.set('');
-    this.watchlistDialogError.set(null);
     this.watchlistDialogMode.set('create');
 
     if (!this.canCreateWatchlist()) {
-      this.watchlistDialogError.set(`You can create up to ${this.maxWatchlists} watchlists.`);
+      this.toastService.error(`You can create up to ${this.maxWatchlists} watchlists.`);
     }
   }
 
@@ -184,7 +183,6 @@ export class DashboardWatchlistOverlayFacade {
     }
 
     this.watchlistNameDraft.set(active.name);
-    this.watchlistDialogError.set(null);
     this.watchlistDialogMode.set('edit');
   }
 
@@ -201,35 +199,26 @@ export class DashboardWatchlistOverlayFacade {
     this.selectedWatchlistSymbol.set(null);
     this.watchlistSearch.set('');
     this.watchlistSearchInstrument.set('all');
-    this.watchlistSearchError.set(null);
     this.watchlistSearchOpen.set(true);
   }
 
   closeWatchlistDialog() {
     this.watchlistDialogMode.set(null);
     this.watchlistNameDraft.set('');
-    this.watchlistDialogError.set(null);
   }
 
   closeWatchlistSearchPopup() {
     this.watchlistSearchOpen.set(false);
     this.watchlistSearch.set('');
     this.watchlistSearchInstrument.set('all');
-    this.watchlistSearchError.set(null);
   }
 
   onWatchlistNameInput(value: string) {
     this.watchlistNameDraft.set(value);
-    if (this.watchlistDialogError()) {
-      this.watchlistDialogError.set(null);
-    }
   }
 
   onWatchlistSearchChange(value: string) {
     this.watchlistSearch.set(value);
-    if (this.watchlistSearchError()) {
-      this.watchlistSearchError.set(null);
-    }
   }
 
   setWatchlistInstrumentFilter(type: DashboardInstrumentFilter) {
@@ -247,7 +236,7 @@ export class DashboardWatchlistOverlayFacade {
     }
 
     if (!this.canCreateWatchlist()) {
-      this.watchlistDialogError.set(`You can create up to ${this.maxWatchlists} watchlists.`);
+      this.toastService.error(`You can create up to ${this.maxWatchlists} watchlists.`);
       return;
     }
 
@@ -280,6 +269,7 @@ export class DashboardWatchlistOverlayFacade {
 
     this.watchlists.update((current) => [...current, { id, name: trimmedName, symbols: [] }]);
     this.activeWatchlistId.set(id);
+    this.toastService.success(`Created watchlist "${trimmedName}".`);
     this.closeWatchlistDialog();
   }
 
@@ -329,7 +319,7 @@ export class DashboardWatchlistOverlayFacade {
     }
 
     if (active.symbols.includes(symbol)) {
-      this.watchlistSearchError.set(`${symbol} is already in this watchlist.`);
+      this.toastService.error(`${symbol} is already in this watchlist.`);
       return;
     }
 
@@ -350,8 +340,8 @@ export class DashboardWatchlistOverlayFacade {
           : watchlist,
       ),
     );
-
-    this.watchlistSearchError.set(null);
+    this.toastService.success(`Added ${symbol} to "${active.name}".`);
+    this.closeWatchlistSearchPopup();
   }
 
   async removeSelectedWatchlistAsset(): Promise<void> {
@@ -378,6 +368,7 @@ export class DashboardWatchlistOverlayFacade {
       ),
     );
 
+    this.toastService.success(`Removed ${selected.symbol} from "${active.name}".`);
     this.closeWatchlistAssetPopup();
   }
 
@@ -393,7 +384,7 @@ export class DashboardWatchlistOverlayFacade {
   private async saveEditedWatchlistName() {
     const active = this.activeWatchlist();
     if (!active) {
-      this.watchlistDialogError.set('Select a watchlist first.');
+      this.toastService.error('Select a watchlist first.');
       return;
     }
 
@@ -423,6 +414,7 @@ export class DashboardWatchlistOverlayFacade {
       ),
     );
 
+    this.toastService.success(`Renamed watchlist to "${trimmedName}".`);
     this.closeWatchlistDialog();
   }
 

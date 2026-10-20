@@ -13,7 +13,6 @@ import { DashboardWatchlistAssetSummary } from './dashboard-watchlist-overlay.fa
 export class WatchlistDialogOverlaysComponent {
   watchlistDialogMode = input<'create' | 'edit' | null>(null);
   watchlistNameDraft = input('');
-  watchlistDialogError = input<string | null>(null);
   canCreateWatchlist = input(false);
   canDeleteActive = input(false);
   maxWatchlists = input(0);

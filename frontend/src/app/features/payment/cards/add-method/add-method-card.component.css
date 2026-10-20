@@ -43,14 +43,6 @@
   width: 180px;
 }
 
-.status-message {
-  margin-top: calc(-1 * var(--space-xxs));
-  margin-bottom: var(--space-md);
-
-  color: var(--success);
-  font-size: var(--font-size-sm);
-}
-
 @media (max-width: 900px) {
   .form-layout {
     grid-template-columns: 1fr;

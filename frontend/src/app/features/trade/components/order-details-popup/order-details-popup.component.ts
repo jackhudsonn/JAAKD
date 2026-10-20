@@ -19,4 +19,9 @@ export class OrderDetailsPopupComponent {
   cancel = output<string>();
 
   formatLabel = formatLabel;
+
+  canCancelOrder() {
+    const status = this.order().status;
+    return status === 'pending' || status === 'open';
+  }
 }
