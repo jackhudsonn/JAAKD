@@ -111,3 +111,29 @@ export interface QuoteResponse {
   asOf: string | null;
   marketState: string | null;
 }
+
+export type CashCurrency = 'USD' | 'EUR' | 'GBP' | 'INR';
+
+export const CASH_CURRENCIES: readonly CashCurrency[] = ['USD', 'EUR', 'GBP', 'INR'];
+
+export interface CashConversionRequest {
+  sourceCurrency: CashCurrency;
+  targetCurrency: CashCurrency;
+  sourceAmount: number;
+  metadata?: string | null;
+}
+
+export interface CashConversionResponse {
+  orderId: string;
+  logOrderId: string;
+  portfolioId: string;
+  sourceCurrency: CashCurrency;
+  targetCurrency: CashCurrency;
+  sourceAmount: number;
+  conversionRate: number;
+  targetAmount: number;
+  sourceBalanceAfter: number;
+  targetBalanceAfter: number;
+  metadata: string | null;
+  convertedAt: string;
+}

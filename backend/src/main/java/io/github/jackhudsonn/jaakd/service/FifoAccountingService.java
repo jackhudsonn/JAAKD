@@ -61,16 +61,23 @@ public class FifoAccountingService {
 
     // Execution pricing is resolved internally via QuoteService for BUY/SELL.
     public ExecutionOutcome applyExecution(OrderLog orderLog) {
+        return applyExecution(orderLog, false);
+    }
+
+    public ExecutionOutcome applyDemoExecution(OrderLog orderLog) {
+        return applyExecution(orderLog, true);
+    }
+
+    private ExecutionOutcome applyExecution(OrderLog orderLog, boolean useAuthoredPrice) {
         if (orderLog.getStatus() != OrderStatus.ACCEPTED) {
             return ExecutionOutcome.failed("Order must be ACCEPTED before execution accounting");
         }
 
         Double effectiveExecutionPrice = null;
         if (orderLog.getSide() == OrderSide.BUY || orderLog.getSide() == OrderSide.SELL) {
-            effectiveExecutionPrice = quoteService.getExecutionPrice(
-                orderLog.getInstrument().getInstrumentId(),
-                orderLog.getSide()
-            );
+            effectiveExecutionPrice = useAuthoredPrice && orderLog.getExecutionPrice() > 0
+                ? orderLog.getExecutionPrice()
+                : quoteService.getExecutionPrice(orderLog.getInstrument().getInstrumentId(), orderLog.getSide());
             if (effectiveExecutionPrice == null) {
                 return ExecutionOutcome.failed("Failed to retrieve execution price for BUY/SELL order");
             }

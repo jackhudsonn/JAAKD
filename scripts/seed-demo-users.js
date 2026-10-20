@@ -99,42 +99,7 @@ const USERS = [
         instrumentClass: "ETF",
       },
     ],
-    orders: [
-      {
-        key: "usd-deposit-01",
-        ticker: "USD",
-        side: "DEPOSIT",
-        quantity: 10000,
-      },
-      {
-        key: "buy-aapl-01",
-        ticker: "AAPL",
-        side: "BUY",
-        quantity: 12,
-        executionPrice: 192.75,
-      },
-      {
-        key: "buy-msft-01",
-        ticker: "MSFT",
-        side: "BUY",
-        quantity: 8,
-        executionPrice: 415.1,
-      },
-      {
-        key: "buy-tsla-01",
-        ticker: "TSLA",
-        side: "BUY",
-        quantity: 4,
-        executionPrice: 228.35,
-      },
-      {
-        key: "sell-aapl-01",
-        ticker: "AAPL",
-        side: "SELL",
-        quantity: 2,
-        executionPrice: 205.2,
-      },
-    ],
+    orders: [],
   },
   {
     level: "intermediate",
@@ -277,6 +242,30 @@ const USERS = [
         side: "WITHDRAW",
         quantity: 2500,
       },
+      {
+        key: "pending-voo-01",
+        ticker: "VOO",
+        side: "BUY",
+        quantity: 3,
+        status: "PENDING",
+        executionPrice: 535.2,
+      },
+      {
+        key: "rejected-amzn-01",
+        ticker: "AMZN",
+        side: "BUY",
+        quantity: 2,
+        status: "REJECTED",
+        executionPrice: 190.1,
+      },
+      {
+        key: "failed-googl-01",
+        ticker: "GOOGL",
+        side: "BUY",
+        quantity: 2,
+        status: "FAILED",
+        executionPrice: 178.4,
+      },
     ],
   },
   {
@@ -417,6 +406,12 @@ const USERS = [
         quantity: 150000,
       },
       {
+        key: "usd-deposit-02",
+        ticker: "USD",
+        side: "DEPOSIT",
+        quantity: 250000,
+      },
+      {
         key: "eur-deposit-01",
         ticker: "EUR",
         side: "DEPOSIT",
@@ -544,6 +539,38 @@ const USERS = [
         ticker: "INR",
         side: "WITHDRAW",
         quantity: 250000,
+      },
+      {
+        key: "pending-tlt-01",
+        ticker: "TLT",
+        side: "BUY",
+        quantity: 5,
+        status: "PENDING",
+        executionPrice: 92.3,
+      },
+      {
+        key: "rejected-eth-01",
+        ticker: "ETH",
+        side: "BUY",
+        quantity: 1,
+        status: "REJECTED",
+        executionPrice: 3300,
+      },
+      {
+        key: "failed-xom-01",
+        ticker: "XOM",
+        side: "BUY",
+        quantity: 4,
+        status: "FAILED",
+        executionPrice: 120.2,
+      },
+      {
+        key: "cancelled-aapl-01",
+        ticker: "AAPL",
+        side: "BUY",
+        quantity: 3,
+        status: "CANCELLED",
+        executionPrice: 198.6,
       },
     ],
   },
@@ -1013,11 +1040,17 @@ async function ensureWatchlist(
   };
 }
 
-async function seedOrders(cookie, portfolioId, scenario, instrumentsByTicker) {
+async function seedOrders(
+  ownerCookie,
+  adminCookie,
+  portfolioId,
+  scenario,
+  instrumentsByTicker,
+) {
   const list = await requestJson({
     method: "GET",
     path: `/api/order-logs/portfolio/${portfolioId}`,
-    cookie,
+    cookie: ownerCookie,
     expectedStatuses: [200],
   });
 
@@ -1030,7 +1063,7 @@ async function seedOrders(cookie, portfolioId, scenario, instrumentsByTicker) {
   let submitted = 0;
   let skipped = 0;
 
-  for (const event of scenario.orders) {
+  for (const [index, event] of scenario.orders.entries()) {
     const metadata = `seed:${scenario.level}:${event.key}`;
 
     if (existingMetadata.has(metadata)) {
@@ -1053,6 +1086,10 @@ async function seedOrders(cookie, portfolioId, scenario, instrumentsByTicker) {
       side: event.side,
       quantity: event.quantity,
       metadata,
+      status: event.status || "EXECUTED",
+      timestamp:
+        event.timestamp ||
+        `2025-${String(Math.min(index + 1, 12)).padStart(2, "0")}-15T12:00:00`,
     };
 
     if (event.executionPrice !== undefined) {
@@ -1061,8 +1098,8 @@ async function seedOrders(cookie, portfolioId, scenario, instrumentsByTicker) {
 
     await requestJson({
       method: "POST",
-      path: "/api/order-logs",
-      cookie,
+      path: "/api/order-logs/demo",
+      cookie: adminCookie,
       body: payload,
       expectedStatuses: [201],
     });
@@ -1097,6 +1134,7 @@ async function seedScenario(scenario, adminCookie) {
   );
   const orders = await seedOrders(
     cookie,
+    adminCookie,
     portfolio.portfolioId,
     scenario,
     instrumentsByTicker,

@@ -1,3 +1,4 @@
+import { CashCurrency } from './api.models';
 // Domain interfaces — expand as the backend API is defined
 
 export type InstrumentType = 'crypto' | 'stock' | 'bond';
@@ -58,9 +59,11 @@ export interface Transaction {
 export interface Deposit {
   amount: number;
   method: PaymentMethod;
+  currency: CashCurrency;
 }
 
 export interface Withdrawal {
   amount: number;
   method: PaymentMethod;
+  currency: CashCurrency;
 }

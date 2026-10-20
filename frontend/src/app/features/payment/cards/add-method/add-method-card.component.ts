@@ -8,6 +8,7 @@ import {
   PaymentMethodsStore,
 } from '@features/payment/services/payment-methods.store';
 import { SavedMethodsPopupComponent } from '@features/payment/components/saved-methods-popup/saved-methods-popup.component';
+import { ToastService } from '@shared/components/toast/toast.service';
 
 @Component({
   selector: 'app-add-method-card',
@@ -18,9 +19,8 @@ import { SavedMethodsPopupComponent } from '@features/payment/components/saved-m
 })
 export class AddMethodCardComponent {
   private readonly paymentMethodsStore = inject(PaymentMethodsStore);
+  private readonly toastService = inject(ToastService);
 
-  formError = signal('');
-  statusMessage = signal('');
   submitting = signal(false);
   showingSavedMethods = signal(false);
 
@@ -36,8 +36,6 @@ export class AddMethodCardComponent {
       return;
     }
 
-    this.formError.set('');
-    this.statusMessage.set('');
     await this.addBankAccount();
   }
 
@@ -49,12 +47,12 @@ export class AddMethodCardComponent {
     const accountDigits = this.bankAccountNumber.replace(/\D/g, '');
 
     if (!nickname || !accountHolderName || !bankName) {
-      this.formError.set('Enter a nickname, account holder name, and bank name.');
+      this.toastService.error('Enter a nickname, account holder name, and bank name.');
       return;
     }
 
     if (routingDigits.length !== this.bankRoutingNumber.length || routingDigits.length !== ROUTING_NUMBER_LENGTH) {
-      this.formError.set(`Routing number must be exactly ${ROUTING_NUMBER_LENGTH} digits.`);
+      this.toastService.error(`Routing number must be exactly ${ROUTING_NUMBER_LENGTH} digits.`);
       return;
     }
 
@@ -63,7 +61,9 @@ export class AddMethodCardComponent {
       accountDigits.length < ACCOUNT_NUMBER_MIN_LENGTH ||
       accountDigits.length > ACCOUNT_NUMBER_MAX_LENGTH
     ) {
-      this.formError.set(`Account number must be ${ACCOUNT_NUMBER_MIN_LENGTH} to ${ACCOUNT_NUMBER_MAX_LENGTH} digits.`);
+      this.toastService.error(
+        `Account number must be ${ACCOUNT_NUMBER_MIN_LENGTH} to ${ACCOUNT_NUMBER_MAX_LENGTH} digits.`,
+      );
       return;
     }
 
@@ -85,18 +85,18 @@ export class AddMethodCardComponent {
       this.bankRoutingNumber = '';
       this.bankAccountNumber = '';
       this.bankAccountType = 'checking';
-      this.statusMessage.set('Bank account added.');
+      this.toastService.success('Bank account added.');
     } catch (error) {
-      this.formError.set(error instanceof Error ? error.message : 'Unable to add payment method.');
+      this.toastService.error(
+        error instanceof Error ? error.message : 'Unable to add payment method.',
+      );
     }
-    
+
     this.submitting.set(false);
   }
 
   showSavedMethods() {
     this.showingSavedMethods.set(true);
-    this.statusMessage.set('');
-    this.formError.set('');
   }
 
   closeSavedMethods() {

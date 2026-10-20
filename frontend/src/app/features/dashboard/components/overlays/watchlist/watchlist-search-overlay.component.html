@@ -30,10 +30,6 @@
         {{ activeWatchlistSymbolCount() }}/{{ maxHoldingsPerWatchlist() }} items
       </p>
 
-      @if (watchlistSearchError()) {
-        <p class="form-error">{{ watchlistSearchError() }}</p>
-      }
-
       <app-scrollable-list
         [items]="watchlistSearchRows()"
         [trackBy]="trackByWatchlistSearchSymbol"

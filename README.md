@@ -24,12 +24,17 @@ cp .env.example .env
 
 - `POSTGRES_PASSWORD` — the Postgres superuser password.
 - `JAAKD_APP_DB_PASSWORD` — the application-role password.
+- `SPRING_PROFILES_ACTIVE` — the Spring configuration profile, normally `development` for local work.
 - `IDENTITY_PROVIDER` — the identity provider adapter. Only `development` is implemented today.
 - `AUTH_COOKIE_SECURE` — whether the session cookie is sent only over HTTPS.
 - `FAUXNANCE_BASE_URL` — the Fauxnance API url 
 - `FAUXNANCE_API_KEY` — the Fauxance API Key
 
 Generate each password with `openssl rand -hex 32` and never commit `.env`. After pulling, compare it with `.env.example` and add any new settings.
+
+Spring profiles control application behavior separately from authentication
+providers. The base configuration disables demo fixtures; the development
+profile enables them for the local admin-only seed endpoint.
 
 Postgres reads these passwords only when it first creates the database. If you change them later, run `docker-compose down -v` and start again (see "Stop or reset").
 

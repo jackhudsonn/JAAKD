@@ -41,4 +41,25 @@ describe('HoldingApiService', () => {
 
     await expect(promise).resolves.toHaveLength(1);
   });
+
+  it('convertCash sends POST /api/holdings/portfolio/{portfolioId}/convert-cash', async () => {
+    const promise = service.convertCash('portfolio-1', {
+      sourceCurrency: 'USD',
+      targetCurrency: 'EUR',
+      sourceAmount: 100,
+    });
+
+    const req = httpTestingController.expectOne(
+      `${environment.apiUrl}/api/holdings/portfolio/portfolio-1/convert-cash`,
+    );
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({
+      sourceCurrency: 'USD',
+      targetCurrency: 'EUR',
+      sourceAmount: 100,
+    });
+    req.flush({ targetAmount: 92 });
+
+    await expect(promise).resolves.toEqual({ targetAmount: 92 });
+  });
 });

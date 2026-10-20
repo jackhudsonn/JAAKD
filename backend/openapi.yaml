@@ -883,6 +883,34 @@ paths:
         "500":
           $ref: "#/components/responses/ServerError"
 
+  /api/order-logs/demo:
+    post:
+      tags: [OrderLogs]
+      summary: Create a historical demo order-log entry
+      description: Development-profile, admin-only endpoint used by the local demo seed script.
+      operationId: createDemoOrderLog
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDemoOrderLogRequest"
+      responses:
+        "201":
+          description: Demo order log entry created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderLogResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
   /api/order-logs/{orderId}/cancel:
     post:
       tags: [OrderLogs]
@@ -2330,6 +2358,39 @@ components:
           type: [string, "null"]
           maxLength: 4000
         executionPrice:
+          type: [number, "null"]
+          format: double
+    CreateDemoOrderLogRequest:
+      type: object
+      required: [orderId, portfolioId, instrumentId, side, quantity, status, timestamp]
+      properties:
+        orderId:
+          type: string
+          format: uuid
+        portfolioId:
+          type: string
+          format: uuid
+        instrumentId:
+          type: string
+          format: uuid
+        side:
+          $ref: "#/components/schemas/OrderSide"
+        quantity:
+          type: number
+          format: double
+          minimum: 0.000001
+        status:
+          $ref: "#/components/schemas/OrderStatus"
+        timestamp:
+          type: string
+          format: date-time
+        metadata:
+          type: [string, "null"]
+          maxLength: 4000
+        executionPrice:
+          type: [number, "null"]
+          format: double
+        quotedPrice:
           type: [number, "null"]
           format: double
     OrderLogResponse:

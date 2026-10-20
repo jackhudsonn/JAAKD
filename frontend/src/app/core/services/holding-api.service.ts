@@ -1,7 +1,11 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-import { HoldingResponse } from '@core/models/api.models';
+import {
+  CashConversionRequest,
+  CashConversionResponse,
+  HoldingResponse,
+} from '@core/models/api.models';
 import { environment } from '@environments/environment.local';
 
 @Injectable({
@@ -14,6 +18,17 @@ export class HoldingApiService {
     return firstValueFrom(
       this.httpClient.get<HoldingResponse[]>(
         `${environment.apiUrl}/api/holdings/portfolio/${portfolioId}`,
+      ),
+    );
+  }
+  convertCash(
+    portfolioId: string,
+    request: CashConversionRequest,
+  ): Promise<CashConversionResponse> {
+    return firstValueFrom(
+      this.httpClient.post<CashConversionResponse>(
+        `${environment.apiUrl}/api/holdings/portfolio/${portfolioId}/convert-cash`,
+        request,
       ),
     );
   }
