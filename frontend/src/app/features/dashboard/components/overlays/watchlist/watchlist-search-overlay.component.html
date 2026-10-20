@@ -27,7 +27,9 @@
       </div>
 
       <p class="watchlist-search-capacity">
-        {{ activeWatchlistSymbolCount() }}/{{ maxHoldingsPerWatchlist() }} items
+        {{ activeWatchlistSymbolCount() }}/{{
+          maxHoldingsPerWatchlist() === null ? '∞' : maxHoldingsPerWatchlist()
+        }} items
       </p>
 
       @if (watchlistSearchError()) {

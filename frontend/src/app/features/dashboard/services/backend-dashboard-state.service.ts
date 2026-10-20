@@ -18,7 +18,7 @@ import {
   toQuotePriceBySymbol,
   toQuoteSymbols,
   toTransactions,
-  toWatchlist,
+  toWatchlists,
 } from './dashboard-backend.mappers';
 
 export type DashboardLoadState = 'loading' | 'ready' | 'error';
@@ -43,7 +43,6 @@ export class BackendDashboardStateService implements DashboardStatePort {
 
   readonly loadState = signal<DashboardLoadState>('loading');
   private readonly portfolioId = signal<string | null>(null);
-  private readonly watchlistItemIdByInstrumentId = signal<Map<string, string>>(new Map());
 
   constructor(
     private portfolioApiService: PortfolioApiService,
@@ -61,12 +60,11 @@ export class BackendDashboardStateService implements DashboardStatePort {
     this.orders.set([]);
     this.transactions.set([]);
     this.watchlists.set([]);
-    this.activeWatchlistId.set('watchlist');
+    this.activeWatchlistId.set('');
     this.dashboardOpenOrders.set([]);
     this.backendWatchlistInstrumentOptions.set([]);
     this.dashboardWidgets.set(null);
     this.portfolioId.set(null);
-    this.watchlistItemIdByInstrumentId.set(new Map());
 
     try {
       const portfolio = await this.portfolioApiService.ensureDefault();
@@ -78,11 +76,11 @@ export class BackendDashboardStateService implements DashboardStatePort {
         this.dashboardWidgets.set([...initialWidgets]);
       }
 
-      const [holdings, instruments, orderLogs, watchlistItems] = await Promise.all([
+      const [holdings, instruments, orderLogs, watchlists] = await Promise.all([
         this.holdingApiService.listByPortfolio(portfolio.portfolioId),
         this.instrumentApiService.list(),
         this.orderLogApiService.listByPortfolio(portfolio.portfolioId),
-        this.watchlistApiService.listByPortfolio(portfolio.portfolioId),
+        this.watchlistApiService.list(),
       ]);
 
       let quotePrices = new Map<string, number>();
@@ -98,8 +96,9 @@ export class BackendDashboardStateService implements DashboardStatePort {
       this.holdings.set(toHoldings(holdings, instruments, orderLogs, toPriceResolver(quotePrices)));
       this.orders.set(toOpenOrders(orderLogs, instruments));
       this.transactions.set(toTransactions(orderLogs));
-      this.watchlists.set([toWatchlist(watchlistItems, instruments)]);
-      this.activeWatchlistId.set('watchlist');
+      const mappedWatchlists = toWatchlists(watchlists, instruments);
+      this.watchlists.set(mappedWatchlists);
+      this.activeWatchlistId.set(mappedWatchlists[0]?.id ?? '');
       this.dashboardOpenOrders.set([]);
       this.backendWatchlistInstrumentOptions.set(
         instruments
@@ -123,9 +122,6 @@ export class BackendDashboardStateService implements DashboardStatePort {
         this.dashboardWidgets.set([...widgets]);
       });
 
-      this.watchlistItemIdByInstrumentId.set(
-        new Map(watchlistItems.map((item) => [item.instrumentId, item.listItemId])),
-      );
       this.portfolioId.set(portfolio.portfolioId);
       this.loadState.set('ready');
     } catch {
@@ -134,22 +130,16 @@ export class BackendDashboardStateService implements DashboardStatePort {
       this.orders.set([]);
       this.transactions.set([]);
       this.watchlists.set([]);
-      this.activeWatchlistId.set('watchlist');
+      this.activeWatchlistId.set('');
       this.dashboardOpenOrders.set([]);
       this.backendWatchlistInstrumentOptions.set([]);
       this.dashboardWidgets.set(null);
       this.portfolioId.set(null);
-      this.watchlistItemIdByInstrumentId.set(new Map());
       this.loadState.set('error');
     }
   }
 
-  async setWatchlistMembership(symbol: string, included: boolean): Promise<void> {
-    const portfolioId = this.portfolioId();
-    if (!portfolioId) {
-      return;
-    }
-
+  async setWatchlistMembership(symbol: string, watchlistId: string, included: boolean): Promise<void> {
     const normalizedSymbol = symbol.trim().toUpperCase();
     const selectedInstrument = this.backendWatchlistInstrumentOptions().find(
       (instrument) => instrument.symbol.trim().toUpperCase() === normalizedSymbol,
@@ -159,7 +149,11 @@ export class BackendDashboardStateService implements DashboardStatePort {
       return;
     }
 
-    const watchlist = this.watchlists()[0];
+    const watchlist = this.watchlists().find((entry) => entry.id === watchlistId);
+    if (!watchlist) {
+      return;
+    }
+
     const existingSymbols = new Set(watchlist?.symbols ?? []);
 
     if (included) {
@@ -167,10 +161,8 @@ export class BackendDashboardStateService implements DashboardStatePort {
         return;
       }
 
-      await this.watchlistApiService.add({
-        portfolioId,
+      await this.watchlistApiService.addItem(watchlistId, {
         instrumentId: selectedInstrument.instrumentId,
-        name: 'Watchlist',
       });
       await this.load();
       return;
@@ -180,15 +172,31 @@ export class BackendDashboardStateService implements DashboardStatePort {
       return;
     }
 
-    const matchingItemId = this.watchlistItemIdByInstrumentId().get(
-      selectedInstrument.instrumentId,
-    );
+    const watchlists = await this.watchlistApiService.list();
+    const listItemId = watchlists
+      .find((entry) => entry.watchlistId === watchlistId)
+      ?.items.find((item) => item.instrumentId === selectedInstrument.instrumentId)?.listItemId;
 
-    if (!matchingItemId) {
+    if (!listItemId) {
       return;
     }
 
-    await this.watchlistApiService.remove(matchingItemId);
+    await this.watchlistApiService.removeItem(watchlistId, listItemId);
+    await this.load();
+  }
+
+  async createWatchlist(watchlistName: string): Promise<void> {
+    await this.watchlistApiService.createWatchlist({ watchlistName });
+    await this.load();
+  }
+
+  async renameWatchlist(watchlistId: string, watchlistName: string): Promise<void> {
+    await this.watchlistApiService.updateWatchlist(watchlistId, { watchlistName });
+    await this.load();
+  }
+
+  async deleteWatchlist(watchlistId: string): Promise<void> {
+    await this.watchlistApiService.deleteWatchlist(watchlistId);
     await this.load();
   }
 

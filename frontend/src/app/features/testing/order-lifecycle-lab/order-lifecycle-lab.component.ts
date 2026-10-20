@@ -41,9 +41,14 @@ interface OrderLogListResponse {
 
 interface WatchlistItemResponse {
   listItemId: string;
-  portfolioId: string;
+  watchlistId: string;
   instrumentId: string;
-  name: string | null;
+}
+
+interface WatchlistResponse {
+  watchlistId: string;
+  watchlistName: string;
+  items: WatchlistItemResponse[];
 }
 
 interface LifecycleOrder {
@@ -677,13 +682,7 @@ export class OrderLifecycleLabComponent implements OnInit, OnDestroy {
   }
 
   async addWatchlistItem() {
-    const portfolioId = this.selectedPortfolioId();
     const instrumentId = this.selectedInstrumentId();
-
-    if (!portfolioId) {
-      this.errorMessage.set('Select a portfolio before adding a watchlist item.');
-      return;
-    }
 
     if (!instrumentId) {
       this.errorMessage.set('Select an instrument before adding a watchlist item.');
@@ -694,16 +693,23 @@ export class OrderLifecycleLabComponent implements OnInit, OnDestroy {
     this.addingWatchlist.set(true);
 
     try {
+      const watchlists = await firstValueFrom(
+        this.http.get<WatchlistResponse[]>(`${environment.apiUrl}/api/watchlists`),
+      );
+      const defaultWatchlist = watchlists[0];
+      if (!defaultWatchlist) {
+        throw new Error('No watchlists available for the current user.');
+      }
+
       await firstValueFrom(
-        this.http.post<WatchlistItemResponse>(`${environment.apiUrl}/api/watchlists`, {
-          portfolioId,
-          instrumentId,
-          name: this.watchlistForm().name.trim() || null,
-        }),
+        this.http.post<WatchlistItemResponse>(
+          `${environment.apiUrl}/api/watchlists/${defaultWatchlist.watchlistId}/items`,
+          { instrumentId },
+        ),
       );
 
       await this.loadWatchlistItems();
-      this.statusMessage.set('Instrument added to watchlist for selected portfolio.');
+      this.statusMessage.set('Instrument added to the default watchlist.');
     } catch (error) {
       this.handleError(error, 'Failed to add watchlist item.');
     } finally {
@@ -827,19 +833,11 @@ export class OrderLifecycleLabComponent implements OnInit, OnDestroy {
   }
 
   private async loadWatchlistItems() {
-    const portfolioId = this.selectedPortfolioId();
-    if (!portfolioId) {
-      this.watchlistItems.set([]);
-      return;
-    }
-
-    const rows = await firstValueFrom(
-      this.http.get<WatchlistItemResponse[]>(
-        `${environment.apiUrl}/api/watchlists/portfolio/${portfolioId}`,
-      ),
+    const watchlists = await firstValueFrom(
+      this.http.get<WatchlistResponse[]>(`${environment.apiUrl}/api/watchlists`),
     );
 
-    this.watchlistItems.set(rows ?? []);
+    this.watchlistItems.set((watchlists ?? []).flatMap((watchlist) => watchlist.items ?? []));
   }
 
   private async loadHoldings() {

@@ -33,6 +33,8 @@ const INSTRUMENT_OPTIONS: DashboardInstrumentOption[] = [
   { id: 'bond', label: 'Bonds' },
 ];
 
+const WATCHLIST_NAME_PATTERN = /^[A-Za-z0-9' -]+$/;
+
 @Injectable({
   providedIn: 'root',
 })
@@ -69,7 +71,9 @@ export class DashboardWatchlistOverlayFacade {
   readonly activeWatchlistSymbolCount = computed(() => this.activeWatchlist()?.symbols.length ?? 0);
 
   readonly activeWatchlistHasCapacity = computed(
-    () => this.activeWatchlistSymbolCount() < this.maxHoldingsPerWatchlist,
+    () =>
+      this.maxHoldingsPerWatchlist === null ||
+      this.activeWatchlistSymbolCount() < this.maxHoldingsPerWatchlist,
   );
 
   readonly watchlistSearchRows = computed<DashboardWatchlistSearchRow[]>(() => {
@@ -232,9 +236,9 @@ export class DashboardWatchlistOverlayFacade {
     this.watchlistSearchInstrument.set(type);
   }
 
-  saveWatchlistName() {
+  async saveWatchlistName() {
     if (this.watchlistDialogMode() === 'edit') {
-      this.saveEditedWatchlistName();
+      await this.saveEditedWatchlistName();
       return;
     }
 
@@ -247,14 +251,23 @@ export class DashboardWatchlistOverlayFacade {
       return;
     }
 
-    const trimmedName = this.watchlistNameDraft().trim();
+    const trimmedName = this.validateWatchlistName(this.watchlistNameDraft());
     if (!trimmedName) {
-      this.watchlistDialogError.set('Watchlist name is required.');
       return;
     }
 
     if (this.isWatchlistNameTaken(trimmedName)) {
       this.watchlistDialogError.set('A watchlist with that name already exists.');
+      return;
+    }
+
+    if (this.backendDataMode && this.state.createWatchlist) {
+      await this.state.createWatchlist(trimmedName);
+      const newestWatchlist = this.watchlists().at(-1);
+      if (newestWatchlist) {
+        this.activeWatchlistId.set(newestWatchlist.id);
+      }
+      this.closeWatchlistDialog();
       return;
     }
 
@@ -270,7 +283,7 @@ export class DashboardWatchlistOverlayFacade {
     this.closeWatchlistDialog();
   }
 
-  confirmDeleteWatchlist() {
+  async confirmDeleteWatchlist() {
     const currentWatchlists = this.watchlists();
     if (currentWatchlists.length <= this.state.watchlistConstraints.minWatchlists) {
       return;
@@ -279,6 +292,15 @@ export class DashboardWatchlistOverlayFacade {
     const activeId = this.activeWatchlistId();
     const activeIndex = currentWatchlists.findIndex((watchlist) => watchlist.id === activeId);
     if (activeIndex < 0) {
+      return;
+    }
+
+    if (this.backendDataMode && this.state.deleteWatchlist) {
+      await this.state.deleteWatchlist(activeId);
+      const refreshed = this.watchlists();
+      const nextActive = refreshed[0];
+      this.activeWatchlistId.set(nextActive?.id ?? '');
+      this.closeWatchlistDialog();
       return;
     }
 
@@ -293,16 +315,16 @@ export class DashboardWatchlistOverlayFacade {
   }
 
   async addSymbolToActiveWatchlist(symbol: string): Promise<void> {
-    if (this.backendDataMode && this.state.setWatchlistMembership) {
-      this.watchlistSearchError.set(null);
-      await this.state.setWatchlistMembership(symbol, true);
-      this.closeWatchlistSearchPopup();
-      return;
-    }
-
     const active = this.activeWatchlist();
     if (!active) {
       this.watchlistSearchError.set('Select a watchlist first.');
+      return;
+    }
+
+    if (this.backendDataMode && this.state.setWatchlistMembership) {
+      this.watchlistSearchError.set(null);
+      await this.state.setWatchlistMembership(symbol, active.id, true);
+      this.closeWatchlistSearchPopup();
       return;
     }
 
@@ -311,7 +333,10 @@ export class DashboardWatchlistOverlayFacade {
       return;
     }
 
-    if (active.symbols.length >= this.maxHoldingsPerWatchlist) {
+    if (
+      this.maxHoldingsPerWatchlist !== null &&
+      active.symbols.length >= this.maxHoldingsPerWatchlist
+    ) {
       this.watchlistSearchError.set(
         `Each watchlist is limited to ${this.maxHoldingsPerWatchlist} items.`,
       );
@@ -337,7 +362,7 @@ export class DashboardWatchlistOverlayFacade {
     }
 
     if (this.backendDataMode && this.state.setWatchlistMembership) {
-      await this.state.setWatchlistMembership(selected.symbol, false);
+      await this.state.setWatchlistMembership(selected.symbol, active.id, false);
       this.closeWatchlistAssetPopup();
       return;
     }
@@ -361,33 +386,34 @@ export class DashboardWatchlistOverlayFacade {
   }
 
   private isWatchlistNameTaken(name: string) {
-    const normalizedName = name.trim().toLowerCase();
-    return this.watchlists().some(
-      (watchlist) => watchlist.name.trim().toLowerCase() === normalizedName,
-    );
+    const normalizedName = name.trim();
+    return this.watchlists().some((watchlist) => watchlist.name.trim() === normalizedName);
   }
 
-  private saveEditedWatchlistName() {
+  private async saveEditedWatchlistName() {
     const active = this.activeWatchlist();
     if (!active) {
       this.watchlistDialogError.set('Select a watchlist first.');
       return;
     }
 
-    const trimmedName = this.watchlistNameDraft().trim();
+    const trimmedName = this.validateWatchlistName(this.watchlistNameDraft());
     if (!trimmedName) {
-      this.watchlistDialogError.set('Watchlist name is required.');
       return;
     }
 
-    const normalizedTrimmed = trimmedName.toLowerCase();
     const duplicateExists = this.watchlists().some(
-      (watchlist) =>
-        watchlist.id !== active.id && watchlist.name.trim().toLowerCase() === normalizedTrimmed,
+      (watchlist) => watchlist.id !== active.id && watchlist.name.trim() === trimmedName,
     );
 
     if (duplicateExists) {
       this.watchlistDialogError.set('A watchlist with that name already exists.');
+      return;
+    }
+
+    if (this.backendDataMode && this.state.renameWatchlist) {
+      await this.state.renameWatchlist(active.id, trimmedName);
+      this.closeWatchlistDialog();
       return;
     }
 
@@ -398,5 +424,27 @@ export class DashboardWatchlistOverlayFacade {
     );
 
     this.closeWatchlistDialog();
+  }
+
+  private validateWatchlistName(rawName: string): string | null {
+    const trimmedName = rawName.trim();
+    if (!trimmedName) {
+      this.watchlistDialogError.set('Watchlist name is required.');
+      return null;
+    }
+
+    if (trimmedName.length < 3 || trimmedName.length > 20) {
+      this.watchlistDialogError.set('Watchlist name must be between 3 and 20 characters.');
+      return null;
+    }
+
+    if (!WATCHLIST_NAME_PATTERN.test(trimmedName)) {
+      this.watchlistDialogError.set(
+        "Watchlist name can contain letters, numbers, spaces, apostrophes, and hyphens.",
+      );
+      return null;
+    }
+
+    return trimmedName;
   }
 }

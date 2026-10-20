@@ -93,11 +93,16 @@ CREATE TABLE IF NOT EXISTS lot_matches (
   "matchedAt" TIMESTAMP NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS watchlists (
+  "watchlistID" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  "userID" UUID NOT NULL,
+  "watchlistName" TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS watchlist_items (
   "listItemID" UUID PRIMARY KEY,
-  "portfolioID" UUID NOT NULL,
-  "instrumentID" UUID NOT NULL,
-  name TEXT
+  "watchlistID" UUID NOT NULL,
+  "instrumentID" UUID NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS preferences (
@@ -217,14 +222,31 @@ ALTER TABLE lot_matches
   ADD CONSTRAINT chk_lot_matches_positive_quantity
   CHECK ("matchedQuantity" > 0);
 
+ALTER TABLE watchlists
+  ADD CONSTRAINT fk_watchlists_users
+  FOREIGN KEY ("userID") REFERENCES users("userID")
+  ON DELETE CASCADE;
+
+ALTER TABLE watchlists
+  ADD CONSTRAINT chk_watchlists_name_not_blank
+  CHECK (btrim("watchlistName") <> '');
+
+ALTER TABLE watchlists
+  ADD CONSTRAINT uq_watchlists_user_name
+  UNIQUE ("userID", "watchlistName");
+
 ALTER TABLE watchlist_items
-  ADD CONSTRAINT fk_watchlist_items_portfolios
-  FOREIGN KEY ("portfolioID") REFERENCES portfolios("portfolioID")
+  ADD CONSTRAINT fk_watchlist_items_watchlists
+  FOREIGN KEY ("watchlistID") REFERENCES watchlists("watchlistID")
   ON DELETE CASCADE;
 
 ALTER TABLE watchlist_items
   ADD CONSTRAINT fk_watchlist_items_instruments
   FOREIGN KEY ("instrumentID") REFERENCES instruments("instrumentID");
+
+ALTER TABLE watchlist_items
+  ADD CONSTRAINT uq_watchlist_items_watchlist_instrument
+  UNIQUE ("watchlistID", "instrumentID");
 
 ALTER TABLE preferences
   ADD CONSTRAINT fk_preferences_portfolios
@@ -282,7 +304,8 @@ CREATE UNIQUE INDEX idx_lot_matches_sell_log_position_lot_unique ON lot_matches 
 CREATE INDEX idx_lot_matches_sell_log ON lot_matches ("sellLogOrderID");
 CREATE INDEX idx_lot_matches_holding ON lot_matches ("holdingID");
 
-CREATE INDEX idx_watchlist_items_portfolioid ON watchlist_items ("portfolioID");
+CREATE INDEX idx_watchlists_userid ON watchlists ("userID");
+CREATE INDEX idx_watchlist_items_watchlistid ON watchlist_items ("watchlistID");
 CREATE INDEX idx_watchlist_items_instrumentid ON watchlist_items ("instrumentID");
 
 CREATE INDEX idx_preferences_portfolioid ON preferences ("portfolioID");
@@ -301,6 +324,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE
   "orderLogs",
   position_lots,
   lot_matches,
+  watchlists,
   watchlist_items,
   preferences,
   payment_methods
@@ -341,4 +365,3 @@ WHERE NOT EXISTS (
   FROM instruments i
   WHERE UPPER(i.ticker) = v.ticker
 );
-

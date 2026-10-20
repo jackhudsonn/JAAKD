@@ -15,7 +15,7 @@ import {
   toQuotePriceBySymbol,
   toQuoteSymbols,
   toTransactions,
-  toWatchlist,
+  toWatchlists,
 } from './dashboard-backend.mappers';
 
 const EQUITY_INSTRUMENT: InstrumentResponse = {
@@ -357,37 +357,52 @@ describe('dashboard-backend.mappers', () => {
     });
   });
 
-  describe('toWatchlist', () => {
-    it('returns one fixed watchlist preserving item order and skipping unknown instruments', () => {
-      const result = toWatchlist(
+  describe('toWatchlists', () => {
+    it('maps watchlists preserving item order and skipping unknown instruments', () => {
+      const result = toWatchlists(
         [
           {
-            listItemId: 'item-1',
-            portfolioId: 'portfolio-1',
-            instrumentId: STOCK_INSTRUMENT.instrumentId,
-            name: null,
+            watchlistId: 'watchlist-1',
+            watchlistName: 'Core',
+            items: [
+              {
+                listItemId: 'item-1',
+                watchlistId: 'watchlist-1',
+                instrumentId: STOCK_INSTRUMENT.instrumentId,
+              },
+              {
+                listItemId: 'item-2',
+                watchlistId: 'watchlist-1',
+                instrumentId: 'missing',
+              },
+              {
+                listItemId: 'item-3',
+                watchlistId: 'watchlist-1',
+                instrumentId: EQUITY_INSTRUMENT.instrumentId,
+              },
+            ],
           },
           {
-            listItemId: 'item-2',
-            portfolioId: 'portfolio-1',
-            instrumentId: 'missing',
-            name: null,
-          },
-          {
-            listItemId: 'item-3',
-            portfolioId: 'portfolio-1',
-            instrumentId: EQUITY_INSTRUMENT.instrumentId,
-            name: null,
+            watchlistId: 'watchlist-2',
+            watchlistName: 'Income',
+            items: [],
           },
         ],
         [EQUITY_INSTRUMENT, STOCK_INSTRUMENT],
       );
 
-      expect(result).toEqual({
-        id: 'watchlist',
-        name: 'Watchlist',
-        symbols: ['MSFT', 'AAPL'],
-      });
+      expect(result).toEqual([
+        {
+          id: 'watchlist-1',
+          name: 'Core',
+          symbols: ['MSFT', 'AAPL'],
+        },
+        {
+          id: 'watchlist-2',
+          name: 'Income',
+          symbols: [],
+        },
+      ]);
     });
   });
 

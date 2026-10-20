@@ -188,12 +188,6 @@
   cursor: not-allowed;
 }
 
-.watchlist-capacity {
-  margin: var(--space-xs) 0 0;
-  color: var(--text-muted);
-  font-size: var(--font-size-xs);
-}
-
 .watchlist-dialog {
   display: flex;
   flex-direction: column;

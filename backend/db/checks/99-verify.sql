@@ -4,7 +4,7 @@
 SELECT table_name
 FROM information_schema.tables
 WHERE table_schema = 'public'
-  AND table_name IN ('profiles', 'portfolios', 'instruments', 'holdings', 'orderLogs', 'position_lots', 'lot_matches', 'watchlist_items', 'preferences', 'payment_methods', 'users')
+  AND table_name IN ('profiles', 'portfolios', 'instruments', 'holdings', 'orderLogs', 'position_lots', 'lot_matches', 'watchlists', 'watchlist_items', 'preferences', 'payment_methods', 'users')
 ORDER BY table_name;
 
 -- 1b) Ensure the canonical cash instrument exists
@@ -31,7 +31,7 @@ ORDER BY conname;
 SELECT schemaname, tablename, indexname
 FROM pg_indexes
 WHERE schemaname = 'public'
-  AND tablename IN ('portfolios', 'holdings', 'orderLogs', 'position_lots', 'lot_matches', 'watchlist_items', 'preferences', 'payment_methods')
+  AND tablename IN ('portfolios', 'holdings', 'orderLogs', 'position_lots', 'lot_matches', 'watchlists', 'watchlist_items', 'preferences', 'payment_methods')
 ORDER BY tablename, indexname;
 
 -- 2a) Ensure the profiles-to-users foreign key exists

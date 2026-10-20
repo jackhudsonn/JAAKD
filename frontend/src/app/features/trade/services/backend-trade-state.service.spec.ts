@@ -65,12 +65,11 @@ describe('BackendTradeStateService', () => {
     },
   ];
 
-  let watchlistItems = [
+  let watchlists = [
     {
-      listItemId: 'wl-1',
-      portfolioId: portfolio.portfolioId,
-      instrumentId: 'inst-aapl',
-      name: 'Watchlist',
+      watchlistId: 'watchlist-1',
+      watchlistName: 'My Watchlist',
+      items: [{ listItemId: 'wl-1', watchlistId: 'watchlist-1', instrumentId: 'inst-aapl' }],
     },
   ];
 
@@ -90,9 +89,12 @@ describe('BackendTradeStateService', () => {
     cancel: vi.fn(async () => orderLogs[0]),
   };
   const watchlistApiService = {
-    listByPortfolio: vi.fn(async () => watchlistItems),
-    add: vi.fn(async () => watchlistItems[0]),
-    remove: vi.fn(async () => undefined),
+    list: vi.fn(async () => watchlists),
+    createWatchlist: vi.fn(async () => watchlists[0]),
+    updateWatchlist: vi.fn(async () => watchlists[0]),
+    deleteWatchlist: vi.fn(async () => undefined),
+    addItem: vi.fn(async () => watchlists[0].items[0]),
+    removeItem: vi.fn(async () => undefined),
   };
 
   let service: BackendTradeStateService;
@@ -113,12 +115,11 @@ describe('BackendTradeStateService', () => {
         quotedPrice: 99,
       },
     ];
-    watchlistItems = [
+    watchlists = [
       {
-        listItemId: 'wl-1',
-        portfolioId: portfolio.portfolioId,
-        instrumentId: 'inst-aapl',
-        name: 'Watchlist',
+        watchlistId: 'watchlist-1',
+        watchlistName: 'My Watchlist',
+        items: [{ listItemId: 'wl-1', watchlistId: 'watchlist-1', instrumentId: 'inst-aapl' }],
       },
     ];
 
@@ -146,9 +147,7 @@ describe('BackendTradeStateService', () => {
     expect(service.accountCash()).toBe(5000);
     expect(service.holdings()).toHaveLength(1);
     expect(service.orders()).toHaveLength(1);
-    expect(service.watchlists()).toEqual([
-      { id: 'watchlist', name: 'Watchlist', symbols: ['AAPL'] },
-    ]);
+    expect(service.watchlists()).toEqual([{ id: 'watchlist-1', name: 'My Watchlist', symbols: ['AAPL'] }]);
     expect(service.latestPriceBySymbolData().get('AAPL')).toBe(100);
   });
 
@@ -223,16 +222,14 @@ describe('BackendTradeStateService', () => {
     await service.load();
     expect(service.loadState()).toBe('ready');
 
-    await service.setWatchlistMembership('AAPL', true);
-    expect(watchlistApiService.add).toHaveBeenCalledWith({
-      portfolioId: portfolio.portfolioId,
+    await service.setWatchlistMembership('AAPL', 'watchlist-1', true);
+    expect(watchlistApiService.addItem).toHaveBeenCalledWith('watchlist-1', {
       instrumentId: 'inst-aapl',
-      name: 'Watchlist',
     });
     expect(service.loadState()).toBe('ready');
 
-    await service.setWatchlistMembership('AAPL', false);
-    expect(watchlistApiService.remove).toHaveBeenCalledWith('wl-1');
+    await service.setWatchlistMembership('AAPL', 'watchlist-1', false);
+    expect(watchlistApiService.removeItem).toHaveBeenCalledWith('watchlist-1', 'wl-1');
     expect(service.loadState()).toBe('ready');
   });
 });

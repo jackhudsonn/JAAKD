@@ -5,6 +5,8 @@ const { randomUUID } = require("node:crypto");
 
 const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8081";
 const AUDITOR_CONTAINER = process.env.AUDITOR_DB_CONTAINER || "jaakd-postgres";
+const NETWORK_RETRY_ATTEMPTS = 20;
+const NETWORK_RETRY_DELAY_MS = 1000;
 
 const AUDITOR_ACCOUNT = {
   userId: "7d01f6ba-39bf-4f09-b6f8-4adcaef2f7f4",
@@ -72,7 +74,12 @@ const USERS = [
       "portfolio-value",
       "allocation-by-asset",
     ],
-    watchlist: ["AAPL", "MSFT", "TSLA", "VOO"],
+    watchlists: [
+      {
+        name: "My Watchlist",
+        symbols: [],
+      },
+    ],
     instruments: [
       {
         ticker: "AAPL",
@@ -131,16 +138,11 @@ const USERS = [
       "portfolio-value",
       "allocation-by-asset",
     ],
-    watchlist: [
-      "NVDA",
-      "AMZN",
-      "GOOGL",
-      "META",
-      "JPM",
-      "XOM",
-      "VOO",
-      "EUR",
-      "INR",
+    watchlists: [
+      {
+        name: "My Watchlist",
+        symbols: ["NVDA", "AMZN", "GOOGL", "VOO"],
+      },
     ],
     instruments: [
       {
@@ -307,22 +309,39 @@ const USERS = [
       "portfolio-value",
       "watchlist",
     ],
-    watchlist: [
-      "AAPL",
-      "MSFT",
-      "NVDA",
-      "AMZN",
-      "GOOGL",
-      "META",
-      "JPM",
-      "XOM",
-      "VOO",
-      "TLT",
-      "BTC",
-      "ETH",
-      "USD",
-      "EUR",
-      "INR",
+    watchlists: [
+      {
+        name: "My Watchlist",
+        symbols: [
+          "AAPL",
+          "MSFT",
+          "NVDA",
+          "AMZN",
+          "GOOGL",
+          "META",
+          "JPM",
+          "XOM",
+          "VOO",
+          "TLT",
+          "BTC",
+          "ETH",
+          "USD",
+          "EUR",
+          "INR",
+        ],
+      },
+      {
+        name: "Crypto Movers",
+        symbols: ["BTC", "ETH"],
+      },
+      {
+        name: "Income Ideas",
+        symbols: ["VOO", "TLT"],
+      },
+      {
+        name: "Empty Sandbox",
+        symbols: [],
+      },
     ],
     instruments: [
       {
@@ -621,19 +640,40 @@ async function requestJson({
   }
 
   let response;
+  let lastError = null;
 
-  try {
-    response = await fetch(`${BACKEND_URL}${path}`, {
-      method,
-      headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
-    });
-  } catch (error) {
-    const cause = error?.cause?.code || error?.cause?.message || error.message;
+  for (let attempt = 1; attempt <= NETWORK_RETRY_ATTEMPTS; attempt += 1) {
+    try {
+      response = await fetch(`${BACKEND_URL}${path}`, {
+        method,
+        headers,
+        body: body === undefined ? undefined : JSON.stringify(body),
+      });
+      break;
+    } catch (error) {
+      lastError = error;
+      const code = error?.cause?.code || error?.code || "";
+      const isTransient =
+        code === "ECONNRESET" ||
+        code === "ECONNREFUSED" ||
+        code === "ETIMEDOUT" ||
+        code === "EPIPE";
+
+      if (!isTransient || attempt >= NETWORK_RETRY_ATTEMPTS) {
+        break;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, NETWORK_RETRY_DELAY_MS));
+    }
+  }
+
+  if (!response) {
+    const cause =
+      lastError?.cause?.code || lastError?.cause?.message || lastError?.message || "unknown";
     throw new Error(
       `Unable to reach the backend at ${BACKEND_URL} while requesting ${method} ${path}: ${cause}. ` +
         "Start the backend with `docker compose up -d --build` or set BACKEND_URL to a reachable backend.",
-      { cause: error },
+      { cause: lastError || undefined },
     );
   }
 
@@ -980,63 +1020,88 @@ async function ensureInstruments(cookie, scenario) {
   return instrumentsByTicker;
 }
 
-async function ensureWatchlist(
-  cookie,
-  portfolioId,
-  scenario,
-  instrumentsByTicker,
-) {
+async function ensureWatchlist(cookie, scenario, instrumentsByTicker) {
   const current = await requestJson({
     method: "GET",
-    path: `/api/watchlists/portfolio/${portfolioId}`,
+    path: "/api/watchlists",
     cookie,
     expectedStatuses: [200],
   });
 
-  const existingInstrumentIds = new Set(
-    (Array.isArray(current.data) ? current.data : []).map((item) =>
-      String(item.instrumentId),
-    ),
+  const existingWatchlists = Array.isArray(current.data) ? current.data : [];
+  const watchlistByName = new Map(
+    existingWatchlists.map((watchlist) => [String(watchlist.watchlistName), watchlist]),
   );
 
   let createdCount = 0;
+  let createdItemsCount = 0;
 
-  for (const ticker of scenario.watchlist) {
-    const instrument = instrumentsByTicker.get(ticker.toUpperCase());
-
-    if (!instrument) {
-      throw new Error(`Missing instrument ${ticker} while seeding watchlist.`);
+  for (const definition of scenario.watchlists || []) {
+    let watchlist = watchlistByName.get(definition.name);
+    if (!watchlist) {
+      const createdWatchlist = await requestJson({
+        method: "POST",
+        path: "/api/watchlists",
+        cookie,
+        body: {
+          watchlistName: definition.name,
+        },
+        expectedStatuses: [201],
+      });
+      watchlist = createdWatchlist.data;
+      watchlistByName.set(definition.name, watchlist);
+      createdCount += 1;
     }
 
-    if (existingInstrumentIds.has(String(instrument.instrumentId))) {
-      continue;
+    const existingInstrumentIds = new Set(
+      (Array.isArray(watchlist.items) ? watchlist.items : []).map((item) =>
+        String(item.instrumentId),
+      ),
+    );
+
+    for (const ticker of definition.symbols || []) {
+      const instrument = instrumentsByTicker.get(ticker.toUpperCase());
+      if (!instrument) {
+        throw new Error(`Missing instrument ${ticker} while seeding watchlist.`);
+      }
+
+      if (existingInstrumentIds.has(String(instrument.instrumentId))) {
+        continue;
+      }
+
+      await requestJson({
+        method: "POST",
+        path: `/api/watchlists/${watchlist.watchlistId}/items`,
+        cookie,
+        body: {
+          instrumentId: instrument.instrumentId,
+        },
+        expectedStatuses: [201, 409],
+      });
+
+      createdItemsCount += 1;
     }
-
-    await requestJson({
-      method: "POST",
-      path: "/api/watchlists",
-      cookie,
-      body: {
-        portfolioId,
-        instrumentId: instrument.instrumentId,
-        name: `${scenario.level.toUpperCase()} ${ticker}`,
-      },
-      expectedStatuses: [201, 409],
-    });
-
-    createdCount += 1;
   }
 
   const refreshed = await requestJson({
     method: "GET",
-    path: `/api/watchlists/portfolio/${portfolioId}`,
+    path: "/api/watchlists",
     cookie,
     expectedStatuses: [200],
   });
 
+  const totalCount = Array.isArray(refreshed.data)
+    ? refreshed.data.reduce(
+        (sum, watchlist) =>
+          sum + (Array.isArray(watchlist.items) ? watchlist.items.length : 0),
+        0,
+      )
+    : 0;
+
   return {
-    createdCount,
-    totalCount: Array.isArray(refreshed.data) ? refreshed.data.length : 0,
+    createdCount: createdItemsCount,
+    createdWatchlists: createdCount,
+    totalCount,
   };
 }
 
@@ -1126,12 +1191,7 @@ async function seedScenario(scenario, adminCookie) {
   const paymentMethods = await ensurePaymentMethods(cookie, scenario);
   const portfolio = await ensurePortfolio(cookie, scenario.portfolioName);
   const instrumentsByTicker = await ensureInstruments(adminCookie, scenario);
-  const watchlist = await ensureWatchlist(
-    cookie,
-    portfolio.portfolioId,
-    scenario,
-    instrumentsByTicker,
-  );
+  const watchlist = await ensureWatchlist(cookie, scenario, instrumentsByTicker);
   const orders = await seedOrders(
     cookie,
     adminCookie,
@@ -1148,6 +1208,7 @@ async function seedScenario(scenario, adminCookie) {
     portfolioId: portfolio.portfolioId,
     watchlistTotal: watchlist.totalCount,
     watchlistCreated: watchlist.createdCount,
+    watchlistsCreated: watchlist.createdWatchlists,
     paymentMethodsTotal: paymentMethods.totalCount,
     paymentMethodsCreated: paymentMethods.createdCount,
     paymentMethodsSkipped: paymentMethods.skippedCount,
@@ -1204,6 +1265,7 @@ async function main() {
       email: item.email,
       portfolioId: item.portfolioId,
       watchlistTotal: item.watchlistTotal,
+      watchlistsCreated: item.watchlistsCreated,
       watchlistCreated: item.watchlistCreated,
       paymentMethodsTotal: item.paymentMethodsTotal,
       paymentMethodsCreated: item.paymentMethodsCreated,

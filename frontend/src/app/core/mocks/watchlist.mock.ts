@@ -11,10 +11,10 @@ export interface SharedWatchlist {
 
 // TODO: Replace these client-side watchlist boundaries with backend-provided limits.
 export const WATCHLIST_CONSTRAINTS = {
-  minWatchlists: 1,
+  minWatchlists: 0,
   maxWatchlists: 15,
   minHoldingsPerWatchlist: 0,
-  maxHoldingsPerWatchlist: 40,
+  maxHoldingsPerWatchlist: null,
 } as const;
 
 export const DEFAULT_ACTIVE_WATCHLIST_ID = 'my-watchlist';

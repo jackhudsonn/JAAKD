@@ -66,7 +66,7 @@ export class AssetPopupComponent implements OnInit, OnDestroy {
   accountCash = input(0);
   backendDataMode = input(false);
   watchlists = input<readonly AssetPopupWatchlistOption[]>([]);
-  maxWatchlistHoldings = input(40);
+  maxWatchlistHoldings = input<number | null>(null);
 
   closed = output<void>();
   orderPlaced = output<AssetOrderPlaced>();
