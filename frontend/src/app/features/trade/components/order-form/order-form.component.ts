@@ -1,6 +1,7 @@
-import { Component, computed, effect, input, output, signal } from '@angular/core';
+import { Component, computed, effect, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { OrderKind, OrderType } from '@core/models';
+import { ToastService } from '@shared/components/toast/toast.service';
 
 export interface OrderFormSubmit {
   kind: OrderKind;
@@ -21,6 +22,8 @@ export interface OrderFormSubmit {
   styleUrl: './order-form.component.css',
 })
 export class OrderFormComponent {
+  private readonly toastService = inject(ToastService);
+
   currentPrice = input.required<number>();
   ownedQuantity = input(0);
   accountCash = input(0);
@@ -102,7 +105,9 @@ export class OrderFormComponent {
   }
 
   submit() {
-    if (this.error()) {
+    const error = this.error();
+    if (error) {
+      this.toastService.error(error);
       return;
     }
 

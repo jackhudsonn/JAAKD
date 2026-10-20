@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -20,6 +20,7 @@ import {
   isAtLeast18,
   isValidPostalCode,
 } from '@shared/utils/profile-validation';
+import { ToastService } from '@shared/components/toast/toast.service';
 
 @Component({
   selector: 'app-profile',
@@ -42,7 +43,7 @@ export class ProfileComponent implements OnInit {
     );
   });
   editing = signal(false);
-  profileMessage = signal('');
+  private readonly toastService = inject(ToastService);
 
   firstName = '';
   lastName = '';
@@ -87,11 +88,11 @@ export class ProfileComponent implements OnInit {
       if (error instanceof HttpErrorResponse && error.status === 404) {
         this.isProfileMissing.set(true);
         this.editing.set(true);
-        this.profileMessage.set('Complete your profile to continue.');
+        this.toastService.info('Complete your profile to continue.');
         return;
       }
 
-      this.profileMessage.set(this.mapErrorToMessage(error));
+      this.toastService.error(this.mapErrorToMessage(error));
     }
   }
 
@@ -124,14 +125,11 @@ export class ProfileComponent implements OnInit {
 
   async startEditing() {
     await this.loadEditableProfile();
-
-    this.profileMessage.set('');
     this.editing.set(true);
   }
 
   async cancelEditing() {
     await this.loadEditableProfile();
-    this.profileMessage.set('');
     this.editing.set(false);
   }
 
@@ -164,17 +162,17 @@ export class ProfileComponent implements OnInit {
       !this.city ||
       !this.zipCode
     ) {
-      this.profileMessage.set('Please complete all required fields.');
+      this.toastService.error('Please complete all required fields.');
       return;
     }
 
     if (!isAtLeast18(this.dob)) {
-      this.profileMessage.set('Account holders must be at least 18 years old.');
+      this.toastService.error('Account holders must be at least 18 years old.');
       return;
     }
 
     if (!isValidPostalCode(this.countryCode, this.zipCode)) {
-      this.profileMessage.set('Enter a valid ZIP / postal code.');
+      this.toastService.error('Enter a valid ZIP / postal code.');
       return;
     }
 
@@ -195,10 +193,10 @@ export class ProfileComponent implements OnInit {
 
       this.profile.set(updatedProfile);
       this.isProfileMissing.set(false);
-      this.profileMessage.set('Profile updated.');
+      this.toastService.success('Profile updated.');
       this.editing.set(false);
     } catch (error) {
-      this.profileMessage.set(this.mapErrorToMessage(error));
+      this.toastService.error(this.mapErrorToMessage(error));
     }
   }
 

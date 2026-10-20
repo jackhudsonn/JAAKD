@@ -1,0 +1,19 @@
+@if (toastService.toasts().length > 0) {
+  <aside class="toast-stack" aria-live="polite" aria-atomic="false">
+    @for (toast of toastService.toasts(); track toast.id) {
+      <div class="toast-item" [class.dismissing]="toast.dismissing">
+        <article class="toast" [class.error]="toast.tone === 'error'" [class.success]="toast.tone === 'success'">
+          <p class="toast-message">{{ toast.text }}</p>
+          <button
+            type="button"
+            class="toast-dismiss"
+            aria-label="Dismiss notification"
+            (click)="toastService.dismiss(toast.id)"
+          >
+            ×
+          </button>
+        </article>
+      </div>
+    }
+  </aside>
+}

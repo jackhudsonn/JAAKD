@@ -1,11 +1,3 @@
-.status-message {
-  margin-top: calc(-1 * var(--space-xxs));
-  margin-bottom: var(--space-md);
-
-  color: var(--success);
-  font-size: var(--font-size-sm);
-}
-
 .saved-method-row {
   display: flex;
   align-items: flex-start;

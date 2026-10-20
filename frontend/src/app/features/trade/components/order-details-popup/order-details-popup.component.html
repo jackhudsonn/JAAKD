@@ -50,8 +50,10 @@
       <span class="detail-value">{{ order().createdAt | date: 'MMM d, y, h:mm a' }}</span>
     </div>
 
-    <button type="button" class="btn btn-secondary cancel-btn" (click)="cancel.emit(order().id)">
-      Cancel Order
-    </button>
+    @if (canCancelOrder()) {
+      <button type="button" class="btn btn-secondary cancel-btn" (click)="cancel.emit(order().id)">
+        Cancel Order
+      </button>
+    }
   </div>
 </app-modal>

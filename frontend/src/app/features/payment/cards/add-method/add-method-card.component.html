@@ -58,14 +58,6 @@
     </div>
   </div>
 
-  @if (formError()) {
-    <p class="form-error">{{ formError() }}</p>
-  }
-
-  @if (statusMessage()) {
-    <p class="status-message">{{ statusMessage() }}</p>
-  }
-
   <div class="payment-actions">
     <button type="button" class="btn btn-primary" [disabled]="submitting()" (click)="addMethod()">
       @if (submitting()) {

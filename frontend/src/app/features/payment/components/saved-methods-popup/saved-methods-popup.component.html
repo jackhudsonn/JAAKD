@@ -1,8 +1,4 @@
 <app-modal title="Saved Bank Payment Methods" (closed)="close()">
-  @if (statusMessage()) {
-    <p class="status-message">{{ statusMessage() }}</p>
-  }
-
   <app-scrollable-list
     [items]="methods()"
     [trackBy]="trackByMethodId"

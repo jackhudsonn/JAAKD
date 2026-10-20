@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
 import { ModalComponent } from '@shared/components/modal/modal.component';
+import { ToastService } from '@shared/components/toast/toast.service';
 import { Deposit, PaymentMethod, Withdrawal } from '@core/models';
 import { CASH_CURRENCIES, CashCurrency } from '@core/models/api.models';
 import { PaymentMethodsStore } from '@features/payment/services/payment-methods.store';
@@ -29,15 +30,14 @@ export class MoveFundsFormComponent implements OnInit {
 
   private readonly paymentMethodsStore = inject(PaymentMethodsStore);
   private readonly router = inject(Router);
+  private readonly toastService = inject(ToastService);
 
   amount: number | null = null;
   selectedCurrency: CashCurrency = 'USD';
   selectedMethodId = '';
-  error = signal('');
   pendingAction = signal<PendingFundsAction | null>(null);
   backendDataMode = input(false);
   submitting = input(false);
-  backendError = input('');
   currencies = input<readonly CashCurrency[]>(CASH_CURRENCIES);
 
   paymentOptions = this.paymentMethodsStore.transactOptions;
@@ -67,22 +67,20 @@ export class MoveFundsFormComponent implements OnInit {
     }
 
     if (!this.hasPaymentOptions()) {
-      this.error.set('Select Add + from Payment Method to create one first.');
+      this.toastService.error('Select Add + from Payment Method to create one first.');
       return;
     }
 
     if (!this.amount || this.amount <= 0) {
-      this.error.set('Enter an amount greater than zero.');
+      this.toastService.error('Enter an amount greater than zero.');
       return;
     }
 
     const selectedMethod = this.resolveSelectedMethod();
     if (!selectedMethod) {
-      this.error.set('Select a payment method.');
+      this.toastService.error('Select a payment method.');
       return;
     }
-
-    this.error.set('');
 
     this.pendingAction.set({
       action,

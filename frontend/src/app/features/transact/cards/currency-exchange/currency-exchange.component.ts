@@ -36,8 +36,6 @@ export class CurrencyExchangeComponent {
   backendDataMode = input(false);
   balances = input<Record<string, number>>({});
   submitting = input(false);
-  message = input('');
-  errorMessage = input('');
 
   fromBalance = computed(() => this.balances()[this.fromCurrency()] ?? 0);
 
@@ -63,6 +61,10 @@ export class CurrencyExchangeComponent {
   requestExchange() {
     const currentAmount = this.amount();
     if (!currentAmount || currentAmount <= 0) {
+      return;
+    }
+
+    if (this.submitting()) {
       return;
     }
 
