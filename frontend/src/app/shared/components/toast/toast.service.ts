@@ -6,7 +6,6 @@ export interface ToastMessage {
   id: number;
   tone: ToastTone;
   text: string;
-  dismissing: boolean;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -24,10 +23,7 @@ export class ToastService {
     }
 
     const id = this.nextId++;
-    this.toastMessages.update((toasts) => [
-      { id, tone, text: message, dismissing: false },
-      ...toasts,
-    ]);
+    this.toastMessages.update((toasts) => [{ id, tone, text: message }, ...toasts]);
 
     const timer = setTimeout(() => this.dismiss(id), durationMs);
     this.dismissTimers.set(id, timer);
@@ -53,25 +49,6 @@ export class ToastService {
       this.dismissTimers.delete(id);
     }
 
-    let found = false;
-
-    this.toastMessages.update((toasts) =>
-      toasts.map((toast) => {
-        if (toast.id !== id || toast.dismissing) {
-          return toast;
-        }
-
-        found = true;
-        return { ...toast, dismissing: true };
-      }),
-    );
-
-    if (!found) {
-      return;
-    }
-
-    setTimeout(() => {
-      this.toastMessages.update((toasts) => toasts.filter((toast) => toast.id !== id));
-    }, 260);
+    this.toastMessages.update((toasts) => toasts.filter((toast) => toast.id !== id));
   }
 }
