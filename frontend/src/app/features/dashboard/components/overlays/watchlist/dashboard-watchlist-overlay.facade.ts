@@ -246,17 +246,22 @@ export class DashboardWatchlistOverlayFacade {
     }
 
     if (this.isWatchlistNameTaken(trimmedName)) {
-      this.watchlistDialogError.set('A watchlist with that name already exists.');
+      this.toastService.error('A watchlist with that name already exists.');
       return;
     }
 
     if (this.backendDataMode && this.state.createWatchlist) {
-      await this.state.createWatchlist(trimmedName);
-      const newestWatchlist = this.watchlists().at(-1);
-      if (newestWatchlist) {
-        this.activeWatchlistId.set(newestWatchlist.id);
+      try {
+        await this.state.createWatchlist(trimmedName);
+        const newestWatchlist = this.watchlists().at(-1);
+        if (newestWatchlist) {
+          this.activeWatchlistId.set(newestWatchlist.id);
+        }
+        this.toastService.success(`Created watchlist "${trimmedName}".`);
+        this.closeWatchlistDialog();
+      } catch (error) {
+        this.toastService.error(this.toErrorMessage(error, 'Failed to create watchlist.'));
       }
-      this.closeWatchlistDialog();
       return;
     }
 
@@ -280,17 +285,23 @@ export class DashboardWatchlistOverlayFacade {
     }
 
     const activeId = this.activeWatchlistId();
+    const activeWatchlistName = this.activeWatchlist()?.name ?? 'watchlist';
     const activeIndex = currentWatchlists.findIndex((watchlist) => watchlist.id === activeId);
     if (activeIndex < 0) {
       return;
     }
 
     if (this.backendDataMode && this.state.deleteWatchlist) {
-      await this.state.deleteWatchlist(activeId);
-      const refreshed = this.watchlists();
-      const nextActive = refreshed[0];
-      this.activeWatchlistId.set(nextActive?.id ?? '');
-      this.closeWatchlistDialog();
+      try {
+        await this.state.deleteWatchlist(activeId);
+        const refreshed = this.watchlists();
+        const nextActive = refreshed[0];
+        this.activeWatchlistId.set(nextActive?.id ?? '');
+        this.toastService.success(`Deleted watchlist "${activeWatchlistName}".`);
+        this.closeWatchlistDialog();
+      } catch (error) {
+        this.toastService.error(this.toErrorMessage(error, 'Failed to delete watchlist.'));
+      }
       return;
     }
 
@@ -301,20 +312,27 @@ export class DashboardWatchlistOverlayFacade {
 
     this.watchlists.set(currentWatchlists.filter((watchlist) => watchlist.id !== activeId));
     this.activeWatchlistId.set(nextActive.id);
+    this.toastService.success(`Deleted watchlist "${activeWatchlistName}".`);
     this.closeWatchlistDialog();
   }
 
   async addSymbolToActiveWatchlist(symbol: string): Promise<void> {
     const active = this.activeWatchlist();
     if (!active) {
-      this.watchlistSearchError.set('Select a watchlist first.');
+      this.toastService.error('Select a watchlist first.');
       return;
     }
 
     if (this.backendDataMode && this.state.setWatchlistMembership) {
-      this.watchlistSearchError.set(null);
-      await this.state.setWatchlistMembership(symbol, active.id, true);
       this.closeWatchlistSearchPopup();
+      try {
+        await this.state.setWatchlistMembership(symbol, active.id, true);
+        this.toastService.success(`Added ${symbol} to "${active.name}".`);
+      } catch (error) {
+        this.toastService.error(
+          this.toErrorMessage(error, `Failed to add ${symbol} to "${active.name}".`),
+        );
+      }
       return;
     }
 
@@ -327,9 +345,7 @@ export class DashboardWatchlistOverlayFacade {
       this.maxHoldingsPerWatchlist !== null &&
       active.symbols.length >= this.maxHoldingsPerWatchlist
     ) {
-      this.watchlistSearchError.set(
-        `Each watchlist is limited to ${this.maxHoldingsPerWatchlist} items.`,
-      );
+      this.toastService.error(`Each watchlist is limited to ${this.maxHoldingsPerWatchlist} items.`);
       return;
     }
 
@@ -352,8 +368,15 @@ export class DashboardWatchlistOverlayFacade {
     }
 
     if (this.backendDataMode && this.state.setWatchlistMembership) {
-      await this.state.setWatchlistMembership(selected.symbol, active.id, false);
       this.closeWatchlistAssetPopup();
+      try {
+        await this.state.setWatchlistMembership(selected.symbol, active.id, false);
+        this.toastService.success(`Removed ${selected.symbol} from "${active.name}".`);
+      } catch (error) {
+        this.toastService.error(
+          this.toErrorMessage(error, `Failed to remove ${selected.symbol} from "${active.name}".`),
+        );
+      }
       return;
     }
 
@@ -398,13 +421,18 @@ export class DashboardWatchlistOverlayFacade {
     );
 
     if (duplicateExists) {
-      this.watchlistDialogError.set('A watchlist with that name already exists.');
+      this.toastService.error('A watchlist with that name already exists.');
       return;
     }
 
     if (this.backendDataMode && this.state.renameWatchlist) {
-      await this.state.renameWatchlist(active.id, trimmedName);
-      this.closeWatchlistDialog();
+      try {
+        await this.state.renameWatchlist(active.id, trimmedName);
+        this.toastService.success(`Renamed watchlist to "${trimmedName}".`);
+        this.closeWatchlistDialog();
+      } catch (error) {
+        this.toastService.error(this.toErrorMessage(error, 'Failed to rename watchlist.'));
+      }
       return;
     }
 
@@ -421,22 +449,44 @@ export class DashboardWatchlistOverlayFacade {
   private validateWatchlistName(rawName: string): string | null {
     const trimmedName = rawName.trim();
     if (!trimmedName) {
-      this.watchlistDialogError.set('Watchlist name is required.');
+      this.toastService.error('Watchlist name is required.');
       return null;
     }
 
     if (trimmedName.length < 3 || trimmedName.length > 20) {
-      this.watchlistDialogError.set('Watchlist name must be between 3 and 20 characters.');
+      this.toastService.error('Watchlist name must be between 3 and 20 characters.');
       return null;
     }
 
     if (!WATCHLIST_NAME_PATTERN.test(trimmedName)) {
-      this.watchlistDialogError.set(
+      this.toastService.error(
         "Watchlist name can contain letters, numbers, spaces, apostrophes, and hyphens.",
       );
       return null;
     }
 
     return trimmedName;
+  }
+
+  private toErrorMessage(error: unknown, fallbackMessage: string): string {
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      'error' in error &&
+      typeof (error as { error?: unknown }).error === 'object' &&
+      (error as { error?: { message?: unknown } }).error &&
+      typeof (error as { error?: { message?: unknown } }).error?.message === 'string'
+    ) {
+      const message = (error as { error: { message: string } }).error.message.trim();
+      if (message.length > 0) {
+        return message;
+      }
+    }
+
+    if (error instanceof Error && error.message.trim().length > 0) {
+      return error.message;
+    }
+
+    return fallbackMessage;
   }
 }

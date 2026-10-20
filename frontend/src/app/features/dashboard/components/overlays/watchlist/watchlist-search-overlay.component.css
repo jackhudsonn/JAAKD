@@ -9,12 +9,6 @@
   gap: var(--space-sm);
 }
 
-.watchlist-search-capacity {
-  margin: 0;
-  color: var(--text-muted);
-  font-size: var(--font-size-xs);
-}
-
 .instrument-select {
   width: 90px;
 

@@ -13,10 +13,6 @@
         />
       </div>
 
-      @if (watchlistDialogError()) {
-        <p class="form-error">{{ watchlistDialogError() }}</p>
-      }
-
       <div class="watchlist-dialog-actions">
         <button
           type="button"
@@ -46,10 +42,6 @@
             placeholder="e.g. Recommendations"
           />
         </div>
-
-        @if (watchlistDialogError()) {
-          <p class="form-error">{{ watchlistDialogError() }}</p>
-        }
 
         <div class="watchlist-dialog-actions">
           <button

@@ -164,7 +164,7 @@ export class BackendDashboardStateService implements DashboardStatePort {
       await this.watchlistApiService.addItem(watchlistId, {
         instrumentId: selectedInstrument.instrumentId,
       });
-      await this.load();
+      await this.refreshWatchlists();
       return;
     }
 
@@ -182,22 +182,22 @@ export class BackendDashboardStateService implements DashboardStatePort {
     }
 
     await this.watchlistApiService.removeItem(watchlistId, listItemId);
-    await this.load();
+    await this.refreshWatchlists();
   }
 
   async createWatchlist(watchlistName: string): Promise<void> {
     await this.watchlistApiService.createWatchlist({ watchlistName });
-    await this.load();
+    await this.refreshWatchlists();
   }
 
   async renameWatchlist(watchlistId: string, watchlistName: string): Promise<void> {
     await this.watchlistApiService.updateWatchlist(watchlistId, { watchlistName });
-    await this.load();
+    await this.refreshWatchlists();
   }
 
   async deleteWatchlist(watchlistId: string): Promise<void> {
     await this.watchlistApiService.deleteWatchlist(watchlistId);
-    await this.load();
+    await this.refreshWatchlists();
   }
 
   async setDashboardWidgets(dashboardWidgets: readonly string[]): Promise<void> {
@@ -212,5 +212,28 @@ export class BackendDashboardStateService implements DashboardStatePort {
       dashboardWidgets,
     );
     this.dashboardWidgets.set([...syncedWidgets]);
+  }
+
+  private async refreshWatchlists(): Promise<void> {
+    const watchlists = await this.watchlistApiService.list();
+    const instrumentById = new Map(
+      this.backendWatchlistInstrumentOptions().map((instrument) => [
+        instrument.instrumentId,
+        instrument.symbol,
+      ]),
+    );
+
+    const mappedWatchlists = watchlists.map((watchlist) => ({
+      id: watchlist.watchlistId,
+      name: watchlist.watchlistName,
+      symbols: watchlist.items
+        .map((item) => instrumentById.get(item.instrumentId) ?? null)
+        .filter((symbol): symbol is string => symbol !== null),
+    }));
+
+    const previousActiveId = this.activeWatchlistId();
+    this.watchlists.set(mappedWatchlists);
+    const stillActive = mappedWatchlists.some((watchlist) => watchlist.id === previousActiveId);
+    this.activeWatchlistId.set(stillActive ? previousActiveId : (mappedWatchlists[0]?.id ?? ''));
   }
 }
