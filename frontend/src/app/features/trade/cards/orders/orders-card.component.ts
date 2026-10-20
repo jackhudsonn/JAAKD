@@ -72,7 +72,8 @@ export class OrdersCardComponent implements OnInit, OnDestroy {
       order,
       isOpen: order.status === 'pending' || order.status === 'open',
       isRejected: order.status === 'rejected',
-      isSelectable: order.status === 'pending' || order.status === 'open' || order.status === 'rejected',
+      isSelectable:
+        order.status === 'pending' || order.status === 'open' || order.status === 'rejected',
       secondsRemaining:
         order.status === 'pending'
           ? Math.max(

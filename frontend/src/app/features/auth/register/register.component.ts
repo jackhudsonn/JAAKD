@@ -73,9 +73,7 @@ export class RegisterComponent {
     this.city = '';
     this.cities.set([]);
 
-    const selectedCountry = this.countries().find(
-      (country) => country.code === this.countryCode,
-    );
+    const selectedCountry = this.countries().find((country) => country.code === this.countryCode);
 
     this.country = selectedCountry?.name ?? '';
   }
