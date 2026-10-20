@@ -103,9 +103,9 @@ public class OrderLogService {
         
         Instrument instrument = maybeInstrument.get();
 
-        // 4. Build order log and defaults
+        // 4. Build order log with a server-assigned order ID
         OrderLog orderLog = new OrderLog(
-                request.orderId(),
+                UUID.randomUUID(),
                 portfolio,
                 instrument,
                 request.side(),

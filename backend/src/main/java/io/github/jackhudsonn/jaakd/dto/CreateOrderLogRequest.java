@@ -9,9 +9,6 @@ import java.util.UUID;
 import io.github.jackhudsonn.jaakd.model.OrderSide;
 
 public record CreateOrderLogRequest(
-        @NotNull(message = "Order ID is required")
-        UUID orderId,
-
         @NotNull(message = "Portfolio ID is required")
         UUID portfolioId,
 

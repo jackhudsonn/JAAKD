@@ -163,9 +163,6 @@ describe('BackendTradeStateService', () => {
   });
 
   it('submits BUY order and reloads mapped state', async () => {
-    const randomUuidSpy = vi
-      .spyOn(crypto, 'randomUUID')
-      .mockReturnValue('11111111-1111-1111-1111-111111111111');
     orderLogApiService.submit.mockImplementationOnce(async () => {
       orderLogs = [
         {
@@ -191,7 +188,6 @@ describe('BackendTradeStateService', () => {
     await service.submitOrder({ symbol: 'AAPL', kind: 'market', type: 'buy', quantity: 3 });
 
     expect(orderLogApiService.submit).toHaveBeenCalledWith({
-      orderId: '11111111-1111-1111-1111-111111111111',
       portfolioId: portfolio.portfolioId,
       instrumentId: 'inst-aapl',
       side: 'BUY',
@@ -201,8 +197,6 @@ describe('BackendTradeStateService', () => {
       true,
     );
     expect(service.loadState()).toBe('ready');
-
-    randomUuidSpy.mockRestore();
   });
 
   it('handles cancel conflict (409) by reloading and not throwing', async () => {

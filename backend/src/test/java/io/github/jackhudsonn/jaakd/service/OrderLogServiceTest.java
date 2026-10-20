@@ -33,6 +33,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertIterableEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -196,7 +197,6 @@ class OrderLogServiceTest {
     @Test
     void createOrderLog_setsQuotedPriceFromQuoteService() throws Exception {
         UUID userId = UUID.randomUUID();
-        UUID orderId = UUID.randomUUID();
         UUID portfolioId = UUID.randomUUID();
         UUID instrumentId = UUID.randomUUID();
 
@@ -210,7 +210,6 @@ class OrderLogServiceTest {
         setField(instrument, "instrumentId", instrumentId);
 
         CreateOrderLogRequest request = new CreateOrderLogRequest(
-            orderId,
             portfolioId,
             instrumentId,
             OrderSide.BUY,
@@ -227,6 +226,7 @@ class OrderLogServiceTest {
 
         OrderLog created = orderLogService.createOrderLog(request);
 
+        assertNotNull(created.getOrderId());
         assertEquals(123.45, created.getQuotedPrice());
 
         ArgumentCaptor<OrderLog> saveCaptor = ArgumentCaptor.forClass(OrderLog.class);

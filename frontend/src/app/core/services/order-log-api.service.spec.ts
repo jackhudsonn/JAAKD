@@ -49,7 +49,6 @@ describe('OrderLogApiService', () => {
 
   it('submit sends POST /api/order-logs with request body', async () => {
     const requestBody = {
-      orderId: 'o2',
       portfolioId: 'portfolio-1',
       instrumentId: 'i1',
       side: 'BUY' as const,
@@ -61,6 +60,7 @@ describe('OrderLogApiService', () => {
     const req = httpTestingController.expectOne(`${environment.apiUrl}/api/order-logs`);
     expect(req.request.method).toBe('POST');
     expect(req.request.body).toEqual(requestBody);
+    expect(req.request.body).not.toHaveProperty('orderId');
     req.flush({
       logOrderId: 'l2',
       orderId: 'o2',

@@ -45,7 +45,6 @@ export interface OrderLogResponse {
 }
 
 export interface CreateOrderLogRequest {
-  orderId: string;
   portfolioId: string;
   instrumentId: string;
   side: OrderSide;

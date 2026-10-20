@@ -82,15 +82,13 @@ export class BackendTradeStateService implements TradeStatePort {
       return;
     }
 
-    const orderId = crypto.randomUUID();
-
-    await this.orderLogApiService.submit({
-      orderId,
+    const submitted = await this.orderLogApiService.submit({
       portfolioId,
       instrumentId: instrument.instrumentId,
       side: request.type === 'buy' ? 'BUY' : 'SELL',
       quantity: request.quantity,
     });
+    const orderId = submitted.orderId;
 
     await this.refresh();
 

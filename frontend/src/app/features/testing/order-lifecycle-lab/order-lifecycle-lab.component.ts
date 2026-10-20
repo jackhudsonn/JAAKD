@@ -84,7 +84,6 @@ export class OrderLifecycleLabComponent implements OnInit, OnDestroy {
     side: 'BUY' as OrderLogResponse['side'],
     quantity: 1,
     metadata: '',
-    orderId: '',
   });
 
   readonly instrumentForm = signal({
@@ -152,7 +151,6 @@ export class OrderLifecycleLabComponent implements OnInit, OnDestroy {
   readonly depositForm = signal({
     amount: 1000,
     metadata: 'Initial cash deposit from lifecycle lab',
-    orderId: '',
   });
 
   readonly selectedInstrumentTicker = computed(() => {
@@ -329,10 +327,8 @@ export class OrderLifecycleLabComponent implements OnInit, OnDestroy {
     this.depositingCash.set(true);
 
     try {
-      const orderId = payload.orderId.trim() || crypto.randomUUID();
-      await firstValueFrom(
+      const created = await firstValueFrom(
         this.http.post<OrderLogResponse>(`${environment.apiUrl}/api/order-logs`, {
-          orderId,
           portfolioId,
           instrumentId: cashInstrumentId,
           side: 'DEPOSIT',
@@ -341,11 +337,11 @@ export class OrderLifecycleLabComponent implements OnInit, OnDestroy {
           executionPrice: null,
         }),
       );
+      const orderId = created.orderId;
 
       this.depositForm.set({
         amount: payload.amount,
         metadata: payload.metadata,
-        orderId,
       });
 
       await this.refreshLifecycleData();
@@ -383,11 +379,8 @@ export class OrderLifecycleLabComponent implements OnInit, OnDestroy {
     this.submittingOrder.set(true);
 
     try {
-      const orderId = payload.orderId.trim() || crypto.randomUUID();
-
-      await firstValueFrom(
+      const created = await firstValueFrom(
         this.http.post<OrderLogResponse>(`${environment.apiUrl}/api/order-logs`, {
-          orderId,
           portfolioId,
           instrumentId,
           side: payload.side,
@@ -396,12 +389,12 @@ export class OrderLifecycleLabComponent implements OnInit, OnDestroy {
           executionPrice: null,
         }),
       );
+      const orderId = created.orderId;
 
       this.orderForm.set({
         side: payload.side,
         quantity: payload.quantity,
         metadata: payload.metadata,
-        orderId,
       });
 
       await this.refreshLifecycleData();

@@ -234,6 +234,13 @@ button:disabled {
   gap: 0.7rem;
 }
 
+.timeline-card-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.45rem;
+}
+
 .status-chip {
   align-self: start;
 

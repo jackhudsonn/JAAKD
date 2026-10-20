@@ -105,7 +105,7 @@
 
     <article class="panel">
       <h2>Deposit CASH</h2>
-      <p class="panel-help">Calls OrderLogController: POST /api/order-logs with side DEPOSIT.</p>
+      <p class="panel-help">Calls OrderLogController: POST /api/order-logs with side DEPOSIT. The backend assigns the order ID.</p>
 
       <div class="form-grid">
         <label>
@@ -119,15 +119,6 @@
           />
         </label>
 
-        <label>
-          Order ID (optional)
-          <input
-            type="text"
-            [ngModel]="depositForm().orderId"
-            (ngModelChange)="depositForm.set({ ...depositForm(), orderId: $event })"
-            placeholder="Leave blank for generated UUID"
-          />
-        </label>
       </div>
 
       <label>
@@ -220,7 +211,7 @@
 
     <article class="panel">
       <h2>Place order (order-log submit)</h2>
-      <p class="panel-help">Creates SUBMITTED entries that should move through lifecycle states via Kafka consumers.</p>
+      <p class="panel-help">Creates SUBMITTED entries that should move through lifecycle states via Kafka consumers. The backend assigns the order ID.</p>
 
       <div class="form-grid">
         <label>
@@ -247,15 +238,6 @@
           />
         </label>
 
-        <label>
-          Order ID (optional)
-          <input
-            type="text"
-            [ngModel]="orderForm().orderId"
-            (ngModelChange)="orderForm.set({ ...orderForm(), orderId: $event })"
-            placeholder="Leave blank for generated UUID"
-          />
-        </label>
       </div>
 
       <label>
@@ -269,20 +251,9 @@
         />
       </label>
 
-      <div class="button-row">
-        <button type="button" class="primary" [disabled]="submittingOrder()" (click)="placeOrderLog()">
-          {{ submittingOrder() ? 'Submitting...' : 'Submit Order Log' }}
-        </button>
-
-        <button
-          type="button"
-          class="ghost"
-          [disabled]="!orderForm().orderId"
-          (click)="cancelOrder(orderForm().orderId)"
-        >
-          Cancel Current Order ID
-        </button>
-      </div>
+      <button type="button" class="primary" [disabled]="submittingOrder()" (click)="placeOrderLog()">
+        {{ submittingOrder() ? 'Submitting...' : 'Submit Order Log' }}
+      </button>
     </article>
   </section>
 
@@ -331,7 +302,10 @@
                   {{ order.side }} {{ order.quantity }} · Instrument {{ order.instrumentId }}
                 </p>
               </div>
-              <span class="status-chip status-{{ order.latestStatus.toLowerCase() }}">{{ order.latestStatus }}</span>
+              <div class="timeline-card-actions">
+                <span class="status-chip status-{{ order.latestStatus.toLowerCase() }}">{{ order.latestStatus }}</span>
+                <button type="button" class="ghost" (click)="cancelOrder(order.orderId)">Cancel</button>
+              </div>
             </div>
 
             <div class="status-steps">
