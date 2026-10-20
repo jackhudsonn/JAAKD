@@ -19,6 +19,7 @@ import io.github.jackhudsonn.jaakd.dto.UpdateInstrumentRequest;
 import io.github.jackhudsonn.jaakd.model.Instrument;
 import io.github.jackhudsonn.jaakd.model.InstrumentClass;
 import io.github.jackhudsonn.jaakd.service.InstrumentService;
+import io.github.jackhudsonn.jaakd.service.PriceHistoryService;
 import io.github.jackhudsonn.jaakd.model.fauxnance.FauxnanceQuoteResponse;
 
 import java.util.ArrayList;
@@ -30,9 +31,11 @@ import java.util.UUID;
 public class InstrumentController {
 
 	private final InstrumentService instrumentService;
+	private final PriceHistoryService priceHistoryService;
 
-	public InstrumentController(InstrumentService instrumentService) {
+	public InstrumentController(InstrumentService instrumentService, PriceHistoryService priceHistoryService) {
 		this.instrumentService = instrumentService;
+		this.priceHistoryService = priceHistoryService;
 	}
 
 	@GetMapping
@@ -102,6 +105,13 @@ public class InstrumentController {
 			request.quoteCurrency()
 		);
 		return toResponse(synced);
+	}
+
+	// Admin-only: refetches daily candles for every non-cash instrument in the background.
+	@PostMapping("/prices/refresh")
+	@ResponseStatus(HttpStatus.ACCEPTED)
+	public void refreshPriceHistory() {
+		priceHistoryService.startRefresh();
 	}
 
 	@GetMapping("/quotes/{ticker}")

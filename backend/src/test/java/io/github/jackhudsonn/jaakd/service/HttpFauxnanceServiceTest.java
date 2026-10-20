@@ -3,6 +3,8 @@ package io.github.jackhudsonn.jaakd.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.jackhudsonn.jaakd.config.FauxnanceProperties;
 import io.github.jackhudsonn.jaakd.exception.FauxnanceClientException;
+import io.github.jackhudsonn.jaakd.model.fauxnance.FauxnanceCandle;
+import io.github.jackhudsonn.jaakd.model.fauxnance.FauxnanceCandleResponse;
 import io.github.jackhudsonn.jaakd.model.fauxnance.FauxnanceQuoteResponse;
 import io.github.jackhudsonn.jaakd.model.fauxnance.FauxnanceSymbolResponse;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,9 +19,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
+import java.time.LocalDate;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -148,5 +152,89 @@ class HttpFauxnanceServiceTest {
         assertEquals("equity", symbol.type());
         assertEquals("NASDAQ", symbol.exchange());
         assertEquals("USD", symbol.currency());
+    }
+
+    @Test
+    void getCandles_sendsDateRangeAndParsesDataEnvelope() {
+        String json = """
+            {
+              "data": {
+                "symbol": "AAPL",
+                "interval": "1d",
+                "currency": "USD",
+                "candles": [
+                  {
+                    "date": "2026-10-15",
+                    "open": 346.95,
+                    "high": 347.85,
+                    "low": 341.6,
+                    "close": 342,
+                    "adjclose": 342,
+                    "volume": 39605715,
+                    "synthetic": false
+                  },
+                  {
+                    "date": "2026-10-16",
+                    "open": 346.08,
+                    "high": 347.82,
+                    "low": 340.46,
+                    "close": 343.46,
+                    "adjclose": 343.46,
+                    "volume": null,
+                    "synthetic": true
+                  }
+                ]
+              },
+              "meta": { "symbol": "AAPL", "source": "mixed" }
+            }
+            """;
+
+        when(restTemplate.exchange(any(URI.class), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class)))
+            .thenReturn(ResponseEntity.ok(json));
+
+        FauxnanceCandleResponse response = httpFauxnanceService.getCandles(
+            "aapl",
+            LocalDate.of(2026, 10, 15),
+            LocalDate.of(2026, 10, 16)
+        );
+
+        assertEquals("AAPL", response.symbol());
+        assertEquals("USD", response.currency());
+        assertEquals(2, response.candles().size());
+
+        FauxnanceCandle first = response.candles().get(0);
+        assertEquals("2026-10-15", first.date());
+        assertEquals(342.0, first.close());
+        assertEquals(342.0, first.adjclose());
+        assertEquals(Boolean.FALSE, first.synthetic());
+
+        FauxnanceCandle second = response.candles().get(1);
+        assertNull(second.volume());
+        assertEquals(Boolean.TRUE, second.synthetic());
+
+        ArgumentCaptor<URI> uriCaptor = ArgumentCaptor.forClass(URI.class);
+        verify(restTemplate).exchange(uriCaptor.capture(), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class));
+
+        String requestUri = uriCaptor.getValue().toString();
+        assertTrue(requestUri.endsWith("/candles/AAPL?from=2026-10-15&to=2026-10-16"));
+    }
+
+    @Test
+    void getCandles_omitsDateRangeWhenNotGiven() {
+        String json = """
+            { "data": { "symbol": "AAPL", "currency": "USD", "candles": [] } }
+            """;
+
+        when(restTemplate.exchange(any(URI.class), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class)))
+            .thenReturn(ResponseEntity.ok(json));
+
+        FauxnanceCandleResponse response = httpFauxnanceService.getCandles("AAPL");
+
+        assertTrue(response.candles().isEmpty());
+
+        ArgumentCaptor<URI> uriCaptor = ArgumentCaptor.forClass(URI.class);
+        verify(restTemplate).exchange(uriCaptor.capture(), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class));
+
+        assertTrue(uriCaptor.getValue().toString().endsWith("/candles/AAPL"));
     }
 }

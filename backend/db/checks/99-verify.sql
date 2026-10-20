@@ -4,7 +4,7 @@
 SELECT table_name
 FROM information_schema.tables
 WHERE table_schema = 'public'
-  AND table_name IN ('profiles', 'portfolios', 'instruments', 'holdings', 'orderLogs', 'position_lots', 'lot_matches', 'watchlist_items', 'preferences', 'payment_methods', 'users')
+  AND table_name IN ('profiles', 'portfolios', 'instruments', 'holdings', 'orderLogs', 'position_lots', 'lot_matches', 'watchlist_items', 'preferences', 'payment_methods', 'users', 'instrumentPrices')
 ORDER BY table_name;
 
 -- 1b) Ensure the canonical cash instrument exists

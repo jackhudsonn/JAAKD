@@ -212,6 +212,21 @@ ON CONFLICT (ticker) DO UPDATE
 SET name = EXCLUDED.name, "logoUrl" = EXCLUDED."logoUrl", description = EXCLUDED.description;
 ```
 
+**refreshPriceHistory** (`POST /api/instruments/prices/refresh`, admin only; also runs nightly at 22:00 UTC): refetches daily candles for every non-cash instrument. Per instrument, one read of the window, then inserts for new days and updates only for changed days (synthetic days replaced by real data, `adjClose` restated after a split or dividend).
+
+```sql
+SELECT * FROM "instrumentPrices"
+WHERE "instrumentID" = :instrumentId AND "priceDate" BETWEEN :from AND :to;
+
+INSERT INTO "instrumentPrices" ("instrumentID", "priceDate", open, high, low, close, "adjClose", volume, currency, synthetic, "fetchedAt")
+VALUES (:instrumentId, :priceDate, :open, :high, :low, :close, :adjClose, :volume, :currency, :synthetic, :fetchedAt);
+
+UPDATE "instrumentPrices"
+SET open = :open, high = :high, low = :low, close = :close, "adjClose" = :adjClose,
+    volume = :volume, currency = :currency, synthetic = :synthetic, "fetchedAt" = :fetchedAt
+WHERE "instrumentID" = :instrumentId AND "priceDate" = :priceDate;
+```
+
 ## Portfolios
 
 **getCurrentUserPortfolios** (`GET /api/portfolios`): the user's portfolios.
@@ -396,4 +411,90 @@ UPDATE profiles
 SET "firstName" = :firstName, "lastName" = :lastName, username = :username, city = :city,
     state = :state, country = :country, "zipCode" = :zipCode, dob = :dob, avatar = :avatar
 WHERE "userID" = :userId;
+```
+
+## Analytics
+
+Read-only queries against the separate analytics database (schema `analytics`), which `analytics/dbt` rebuilds nightly from a copy of production. Restricted to ADMIN or ANALYST user types (`@RequiresUserType` on `AnalyticsService`). Sort columns come from an allowlist; filters are bound parameters. Paged lists also run the same `WHERE` as `SELECT COUNT(*)`.
+
+**getAnalyticsMeta** (`GET /api/analytics/meta`): when the data was built.
+
+```sql
+SELECT source_snapshot_at, built_at FROM analytics.meta_build;
+```
+
+**getAnalyticsSummary** (`GET /api/analytics/summary`): exposure and returns by instrument class.
+
+```sql
+SELECT instrument_class, COUNT(*) AS instrument_count, COALESCE(SUM(holder_count), 0) AS position_count,
+       COALESCE(SUM(exposure_usd), 0) AS exposure_usd, AVG(return_1m) AS average_return1m
+FROM analytics.agg_instrument_performance
+GROUP BY instrument_class
+ORDER BY exposure_usd DESC, instrument_class;
+```
+
+**listInstrumentPerformance** (`GET /api/analytics/instruments`): leaderboard, optionally by class.
+
+```sql
+SELECT a.*, d.market, d.trading_currency
+FROM analytics.agg_instrument_performance a
+JOIN analytics.dim_instrument d ON d.instrument_id = a.instrument_id
+WHERE (:instrumentClass IS NULL OR a.instrument_class = :instrumentClass)
+ORDER BY <allowlisted column> <ASC|DESC> NULLS LAST, a.instrument_id
+LIMIT :size OFFSET :page * :size;
+```
+
+**getInstrumentPerformance** (`GET /api/analytics/instruments/{instrumentId}`): the same row for one instrument (`WHERE a.instrument_id = :instrumentId`).
+
+**getInstrumentSeries** (`GET /api/analytics/instruments/{instrumentId}/series`): daily prices, one year by default, at most five.
+
+```sql
+SELECT price_date, close, close_usd, daily_return, cumulative_return
+FROM analytics.fct_instrument_price_daily
+WHERE instrument_id = :instrumentId AND price_date BETWEEN :from AND :to
+ORDER BY price_date;
+```
+
+**listPortfolioPerformance** (`GET /api/analytics/portfolios`): pseudonymous portfolios, filterable by country, age band and user type.
+
+```sql
+SELECT p.*
+FROM analytics.agg_portfolio_performance p
+WHERE (:country IS NULL OR UPPER(p.country) = UPPER(:country))
+  AND (:ageBand IS NULL OR p.age_band = :ageBand)
+  AND (:userType IS NULL OR p.user_type = :userType)
+ORDER BY <allowlisted column> <ASC|DESC> NULLS LAST, p.portfolio_id
+LIMIT :size OFFSET :page * :size;
+```
+
+**getPortfolioPerformance** (`GET /api/analytics/portfolios/{portfolioId}`): the same row for one portfolio.
+
+**getPortfolioSeries** (`GET /api/analytics/portfolios/{portfolioId}/series`): daily value and time-weighted return.
+
+```sql
+SELECT as_of_date, market_value_usd, cash_usd, net_external_flow_usd, daily_return, cumulative_twr
+FROM analytics.fct_portfolio_daily
+WHERE portfolio_id = :portfolioId AND as_of_date BETWEEN :from AND :to
+ORDER BY as_of_date;
+```
+
+**getPortfolioHoldingSnapshot** (`GET /api/analytics/portfolios/{portfolioId}/holdings`): open positions on the portfolio's latest built day.
+
+```sql
+SELECT h.*, i.ticker, i.name, i.instrument_class
+FROM analytics.fct_holding_daily h
+JOIN analytics.dim_instrument i ON i.instrument_id = h.instrument_id
+WHERE h.portfolio_id = :portfolioId
+  AND h.quantity <> 0
+  AND h.as_of_date = (SELECT MAX(as_of_date) FROM analytics.fct_holding_daily WHERE portfolio_id = :portfolioId)
+ORDER BY h.market_value_usd DESC NULLS LAST, i.ticker;
+```
+
+**getHoldingSeries** (`GET /api/analytics/holdings/{holdingId}/series`): daily value and P&L for one holding.
+
+```sql
+SELECT as_of_date, quantity, cost_basis_usd, market_value_usd, realized_pnl_to_date_usd, unrealized_pnl_usd
+FROM analytics.fct_holding_daily
+WHERE holding_id = :holdingId AND as_of_date BETWEEN :from AND :to
+ORDER BY as_of_date;
 ```

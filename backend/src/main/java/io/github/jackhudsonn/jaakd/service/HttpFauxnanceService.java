@@ -1,6 +1,7 @@
 package io.github.jackhudsonn.jaakd.service;
 
 import java.net.URI;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -99,14 +100,32 @@ public class HttpFauxnanceService implements FauxnanceService {
 
     @Override
     public FauxnanceCandleResponse getCandles(String symbol) {
-        return await(getCandlesAsync(symbol));
+        return getCandles(symbol, null, null);
     }
 
     @Override
     public CompletableFuture<FauxnanceCandleResponse> getCandlesAsync(String symbol) {
+        return getCandlesAsync(symbol, null, null);
+    }
+
+    @Override
+    public FauxnanceCandleResponse getCandles(String symbol, LocalDate from, LocalDate to) {
+        return await(getCandlesAsync(symbol, from, to));
+    }
+
+    @Override
+    public CompletableFuture<FauxnanceCandleResponse> getCandlesAsync(String symbol, LocalDate from, LocalDate to) {
         String normalizedSymbol = normalizeSymbol(symbol);
-        return getJsonWithRetryAsync("/candles/{symbol}", Map.of("symbol", normalizedSymbol))
-            .thenApply(json -> toValue(json, FauxnanceCandleResponse.class, "/candles/{symbol}"));
+        Map<String, String> queryParams = new LinkedHashMap<>();
+        if (from != null) {
+            queryParams.put("from", from.toString());
+        }
+        if (to != null) {
+            queryParams.put("to", to.toString());
+        }
+
+        return getJsonWithRetryAsync("/candles/{symbol}", Map.of("symbol", normalizedSymbol), queryParams)
+            .thenApply(this::parseCandlesResponse);
     }
 
     @Override
@@ -406,6 +425,17 @@ public class HttpFauxnanceService implements FauxnanceService {
         }
 
         return toValue(symbolNode, FauxnanceSymbolResponse.class, "/symbols/{symbol}");
+    }
+
+    // Candles arrive as { "data": { symbol, currency, candles }, "meta": ... }.
+    private FauxnanceCandleResponse parseCandlesResponse(JsonNode root) {
+        JsonNode candlesNode = root;
+        JsonNode data = root.get("data");
+        if (data != null && data.isObject()) {
+            candlesNode = data;
+        }
+
+        return toValue(candlesNode, FauxnanceCandleResponse.class, "/candles/{symbol}");
     }
 
     private String normalizeSymbol(String symbol) {

@@ -45,6 +45,11 @@ services:
       AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:?AUTH_COOKIE_SECURE is required}
       FAUXNANCE_BASE_URL: ${FAUXNANCE_BASE_URL:?FAUXNANCE_BASE_URL is required}
       FAUXNANCE_API_KEY: ${FAUXNANCE_API_KEY:?FAUXNANCE_API_KEY is required}
+      # Analyst view: read-only connection to the analytics database (see analytics/). Off unless enabled in .env.
+      ANALYTICS_DB_ENABLED: ${ANALYTICS_DB_ENABLED:-false}
+      ANALYTICS_DB_URL: ${ANALYTICS_DB_URL:-jdbc:postgresql://jaakd-analytics-postgres:5432/jaakd_analytics}
+      ANALYTICS_DB_USERNAME: ${ANALYTICS_DB_USERNAME:-analytics_app_reader}
+      ANALYTICS_DB_PASSWORD: ${ANALYTICS_DB_PASSWORD:-}
     ports:
       # Bound to all interfaces on purpose: the backend is reached directly by
       # IP from other machines (a remote frontend, pgAdmin, a peer's browser),

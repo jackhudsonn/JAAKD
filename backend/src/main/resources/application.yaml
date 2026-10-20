@@ -91,3 +91,18 @@ fauxnance:
     backoff: ${FAUXNANCE_RETRY_BACKOFF:PT0.2S}
   quotes:
     max-batch-size: ${FAUXNANCE_QUOTES_MAX_BATCH_SIZE:25}
+
+analytics:
+  db:
+    # Separate read-only Postgres built nightly by analytics/ (dbt). Off by default; the endpoints answer 503 until enabled.
+    enabled: ${ANALYTICS_DB_ENABLED:false}
+    url: ${ANALYTICS_DB_URL:jdbc:postgresql://localhost:5434/jaakd_analytics}
+    username: ${ANALYTICS_DB_USERNAME:analytics_app_reader}
+    password: ${ANALYTICS_DB_PASSWORD:}
+
+prices:
+  history:
+    enabled: ${PRICES_HISTORY_ENABLED:true}
+    cron: ${PRICES_HISTORY_CRON:0 0 22 * * *} # UTC: after the US close, before the 22:30 analytics copy
+    lookback: ${PRICES_HISTORY_LOOKBACK:5y}
+    request-delay: ${PRICES_HISTORY_REQUEST_DELAY:PT1S}

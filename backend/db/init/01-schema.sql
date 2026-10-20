@@ -121,6 +121,23 @@ CREATE TABLE IF NOT EXISTS payment_methods (
   "updatedAt" TIMESTAMP NOT NULL DEFAULT now()
 );
 
+-- Daily candles from Fauxnance, one row per instrument per trading day, refreshed nightly by PriceHistoryService.
+-- close is the raw traded price; "adjClose" is restated for splits/dividends and is the one to use for returns.
+CREATE TABLE IF NOT EXISTS "instrumentPrices" (
+  "instrumentID" UUID NOT NULL,
+  "priceDate" DATE NOT NULL,
+  open NUMERIC(24,10) NOT NULL,
+  high NUMERIC(24,10) NOT NULL,
+  low NUMERIC(24,10) NOT NULL,
+  close NUMERIC(24,10) NOT NULL,
+  "adjClose" NUMERIC(24,10) NOT NULL,
+  volume BIGINT,
+  currency TEXT NOT NULL,
+  synthetic BOOLEAN NOT NULL DEFAULT false,
+  "fetchedAt" TIMESTAMP NOT NULL DEFAULT now(),
+  PRIMARY KEY ("instrumentID", "priceDate")
+);
+
 -- 2) Constraints
 ALTER TABLE users
   ADD CONSTRAINT chk_users_email_not_blank
@@ -264,6 +281,19 @@ ALTER TABLE payment_methods
   ADD CONSTRAINT chk_payment_methods_account_number
   CHECK ("accountNumber" ~ '^[0-9]{4,17}$');
 
+ALTER TABLE "instrumentPrices"
+  ADD CONSTRAINT fk_instrument_prices_instruments
+  FOREIGN KEY ("instrumentID") REFERENCES instruments("instrumentID")
+  ON DELETE CASCADE;
+
+ALTER TABLE "instrumentPrices"
+  ADD CONSTRAINT chk_instrument_prices_positive
+  CHECK (open > 0 AND high > 0 AND low > 0 AND close > 0 AND "adjClose" > 0);
+
+ALTER TABLE "instrumentPrices"
+  ADD CONSTRAINT chk_instrument_prices_currency_not_blank
+  CHECK (btrim(currency) <> '');
+
 -- 3) Indexes
 CREATE INDEX idx_portfolios_userid ON portfolios ("userID");
 
@@ -307,6 +337,8 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE
 TO jaakd_app;
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE users, sessions TO jaakd_app;
+
+GRANT SELECT, INSERT, UPDATE ON TABLE "instrumentPrices" TO jaakd_app;
 
 -- 5) Seed Cash Instruments
 -- 5) Seed Cash Instruments (single statement, idempotent)
