@@ -1,9 +1,10 @@
-import { Component, signal } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '@core/services/auth.service';
 import { ErrorResponse, toUserFacingErrorMessage } from '@core/models/profile.model';
+import { ToastService } from '@shared/components/toast/toast.service';
 
 @Component({
   selector: 'app-login',
@@ -13,10 +14,11 @@ import { ErrorResponse, toUserFacingErrorMessage } from '@core/models/profile.mo
   styleUrl: './login.component.css',
 })
 export class LoginComponent {
+  private readonly toastService = inject(ToastService);
+
   email = '';
   password = '';
   showPassword = false;
-  message = signal('');
 
   constructor(
     private authService: AuthService,
@@ -28,16 +30,16 @@ export class LoginComponent {
 
   async login() {
     if (!this.email || !this.password) {
-      this.message.set('Enter your email and password.');
+      this.toastService.error('Enter your email and password.');
       return;
     }
 
     try {
       await this.authService.login(this.email, this.password);
-      this.message.set('');
+      this.toastService.success('Signed in successfully.');
       await this.router.navigate(['/dashboard']);
     } catch (error) {
-      this.message.set(this.mapErrorToMessage(error));
+      this.toastService.error(this.mapErrorToMessage(error));
     }
   }
 

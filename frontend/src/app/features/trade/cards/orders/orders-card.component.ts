@@ -21,9 +21,9 @@ type SortDirection = 'asc' | 'desc';
 
 /**
  * Combined Orders card: open and completed/cancelled orders share a single
- * sortable, scrollable list. Open orders (pending/open) stay selectable —
- * clicking opens the Order Details popup — and show a live pending-fill
- * countdown; history rows are read-only.
+ * sortable, scrollable list. Open orders (pending/open) and rejected orders
+ * stay selectable — clicking opens the Order Details popup — and pending
+ * rows show a live countdown while they are awaiting execution.
  */
 @Component({
   selector: 'app-orders-card',
@@ -71,6 +71,8 @@ export class OrdersCardComponent implements OnInit, OnDestroy {
     return sorted.map((order) => ({
       order,
       isOpen: order.status === 'pending' || order.status === 'open',
+      isRejected: order.status === 'rejected',
+      isSelectable: order.status === 'pending' || order.status === 'open' || order.status === 'rejected',
       secondsRemaining:
         order.status === 'pending'
           ? Math.max(

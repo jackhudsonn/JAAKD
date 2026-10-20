@@ -1,9 +1,10 @@
-import { Component, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { AuthService } from '@core/services/auth.service';
 import { ErrorResponse, toUserFacingErrorMessage } from '@core/models/profile.model';
+import { ToastService } from '@shared/components/toast/toast.service';
 
 @Component({
   selector: 'app-update-password',
@@ -13,6 +14,8 @@ import { ErrorResponse, toUserFacingErrorMessage } from '@core/models/profile.mo
   styleUrl: './update-password.component.css',
 })
 export class UpdatePasswordComponent {
+  private readonly toastService = inject(ToastService);
+
   currentPassword = '';
   password = '';
   confirmPassword = '';
@@ -20,7 +23,6 @@ export class UpdatePasswordComponent {
   showPassword = false;
   showConfirmPassword = false;
 
-  message = signal('');
   loading = signal(false);
 
   constructor(
@@ -38,31 +40,30 @@ export class UpdatePasswordComponent {
 
   async updatePassword() {
     if (!this.currentPassword || !this.password || !this.confirmPassword) {
-      this.message.set('Enter your current password and your new password.');
+      this.toastService.error('Enter your current password and your new password.');
       return;
     }
 
     if (this.password.length < 8) {
-      this.message.set('Password must be at least 8 characters.');
+      this.toastService.error('Password must be at least 8 characters.');
       return;
     }
 
     if (this.password !== this.confirmPassword) {
-      this.message.set('Passwords do not match.');
+      this.toastService.error('Passwords do not match.');
       return;
     }
 
     this.loading.set(true);
-    this.message.set('');
 
     try {
       await this.authService.changePassword(this.currentPassword, this.password);
       this.loading.set(false);
-      this.message.set('Password updated successfully.');
+      this.toastService.success('Password updated successfully.');
       await this.router.navigate(['/dashboard']);
     } catch (error) {
       this.loading.set(false);
-      this.message.set(this.mapErrorToMessage(error));
+      this.toastService.error(this.mapErrorToMessage(error));
     }
   }
 
