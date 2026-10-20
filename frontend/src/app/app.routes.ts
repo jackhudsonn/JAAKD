@@ -19,6 +19,13 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/auth/register/register.component').then((m) => m.RegisterComponent),
       },
+      {
+        path: 'confirm',
+        loadComponent: () =>
+          import('./features/auth/confirm/confirm-registration.component').then(
+            (m) => m.ConfirmRegistrationComponent,
+          ),
+      },
       { path: '', redirectTo: 'login', pathMatch: 'full' },
       {
         path: 'update-password',

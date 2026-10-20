@@ -1,24 +1,29 @@
 package io.github.jackhudsonn.jaakd.service;
 
-import io.github.jackhudsonn.jaakd.exception.ChallengeRequiredException;
-import io.github.jackhudsonn.jaakd.exception.UnauthorizedException;
-import io.github.jackhudsonn.jaakd.identity.IdentityProvider;
-import io.github.jackhudsonn.jaakd.identity.SignInOutcome;
-import io.github.jackhudsonn.jaakd.model.Session;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.Instant;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import io.github.jackhudsonn.jaakd.dto.CreateProfileRequest;
+import io.github.jackhudsonn.jaakd.exception.ChallengeRequiredException;
+import io.github.jackhudsonn.jaakd.exception.UnauthorizedException;
+import io.github.jackhudsonn.jaakd.identity.IdentityProvider;
+import io.github.jackhudsonn.jaakd.identity.RegistrationOutcome;
+import io.github.jackhudsonn.jaakd.identity.SignInOutcome;
+import io.github.jackhudsonn.jaakd.model.Session;
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
@@ -28,19 +33,43 @@ class AuthServiceTest {
     private static final String EMAIL = "joanna@example.com";
 
     @Mock
+    private IdentityProvider identityProvider;
+
+    @Mock
     private UserProvisioner userProvisioner;
 
     @Mock
     private SessionService sessionService;
 
-    @Test
-    void signIn_provisionsUserAndStartsSession() {
-        AuthService authService = new AuthService(providerThatReturns(new SignInOutcome.Authenticated(USER_ID, EMAIL)),
-                userProvisioner, sessionService);
-        Session session = new Session(USER_ID, null, Instant.now(), Instant.now().plusSeconds(3600));
-        when(sessionService.create(USER_ID, null)).thenReturn(session);
+    @Mock
+    private RegistrationService registrationService;
 
-        SignInResult result = authService.signIn(EMAIL, "Password123!");
+    private AuthService authService() {
+        return new AuthService(identityProvider, userProvisioner, sessionService, registrationService);
+    }
+
+    @Test
+    void register_persistsProviderOutcomeAndApplicationRows() {
+        CreateProfileRequest profile = new CreateProfileRequest("Joanna", "Smith", null, "Boston", "MA", "USA",
+                "02110");
+        when(identityProvider.register(any(), any(), any()))
+                .thenReturn(new RegistrationOutcome("subject", true));
+
+        RegistrationResult result = authService().register(EMAIL, "Password123!", profile);
+
+        assertEquals(EMAIL, result.email());
+        assertEquals(true, result.confirmationRequired());
+        verify(registrationService).persistRegistration(any(), any(), any(), any());
+    }
+
+    @Test
+    void signIn_provisionsUserAndStartsSessionWithProviderRefreshToken() {
+        when(identityProvider.signIn(EMAIL, "Password123!"))
+                .thenReturn(new SignInOutcome.Authenticated(USER_ID, EMAIL, "refresh-token"));
+        Session session = new Session(USER_ID, "refresh-token", Instant.now(), Instant.now().plusSeconds(3600));
+        when(sessionService.create(USER_ID, "refresh-token")).thenReturn(session);
+
+        SignInResult result = authService().signIn(EMAIL, "Password123!");
 
         verify(userProvisioner).ensureUser(USER_ID, EMAIL);
         assertEquals(session, result.session());
@@ -48,19 +77,20 @@ class AuthServiceTest {
 
     @Test
     void signIn_rejectsBadCredentialsWithoutProvisioning() {
-        AuthService authService = new AuthService(providerThatThrows(), userProvisioner, sessionService);
+        when(identityProvider.signIn(EMAIL, "wrong-password"))
+                .thenThrow(new UnauthorizedException("invalid email or password"));
 
-        assertThrows(UnauthorizedException.class, () -> authService.signIn(EMAIL, "wrong-password"));
+        assertThrows(UnauthorizedException.class, () -> authService().signIn(EMAIL, "wrong-password"));
         verify(userProvisioner, never()).ensureUser(any(), any());
     }
 
     @Test
     void signIn_relaysProviderChallenge() {
-        AuthService authService = new AuthService(providerThatReturns(new SignInOutcome.Challenge("opaque", "MFA")),
-                userProvisioner, sessionService);
+        when(identityProvider.signIn(EMAIL, "Password123!"))
+                .thenReturn(new SignInOutcome.Challenge("opaque", "MFA"));
 
         ChallengeRequiredException ex = assertThrows(ChallengeRequiredException.class,
-                () -> authService.signIn(EMAIL, "Password123!"));
+                () -> authService().signIn(EMAIL, "Password123!"));
 
         assertEquals("MFA", ex.getType());
         assertEquals("opaque", ex.getContinuation());
@@ -68,87 +98,46 @@ class AuthServiceTest {
     }
 
     @Test
-    void changePassword_revokesOtherSessionsAfterTheProviderChange() {
-        AuthService authService = new AuthService(providerThatReturns(new SignInOutcome.Authenticated(USER_ID, EMAIL)),
-                userProvisioner, sessionService);
+    void changePassword_revokesOtherProviderTokensAndSessions() {
+        Session other = new Session(USER_ID, "other-refresh", Instant.now(), Instant.now().plusSeconds(3600));
+        when(sessionService.findOtherSessions(USER_ID, SESSION_ID)).thenReturn(List.of(other));
 
-        authService.changePassword(USER_ID, SESSION_ID, EMAIL, "old-password", "new-password");
+        authService().changePassword(USER_ID, SESSION_ID, EMAIL, "old-password", "new-password");
 
+        verify(identityProvider).changePassword(EMAIL, "old-password", "new-password");
+        verify(identityProvider).revoke("other-refresh");
         verify(sessionService).revokeOtherSessions(USER_ID, SESSION_ID);
     }
 
     @Test
     void changePassword_doesNotRevokeWhenTheProviderRejects() {
-        AuthService authService = new AuthService(providerThatRejectsPasswordChange(), userProvisioner,
-                sessionService);
+        org.mockito.Mockito.doThrow(new UnauthorizedException("invalid email or password"))
+                .when(identityProvider).changePassword(EMAIL, "wrong-password", "new-password");
 
         assertThrows(UnauthorizedException.class,
-                () -> authService.changePassword(USER_ID, SESSION_ID, EMAIL, "wrong-password", "new-password"));
+                () -> authService().changePassword(USER_ID, SESSION_ID, EMAIL, "wrong-password", "new-password"));
 
         verify(sessionService, never()).revokeOtherSessions(any(), any());
     }
 
-    private static IdentityProvider providerThatReturns(SignInOutcome outcome) {
-        return new IdentityProvider() {
-            @Override
-            public void register(String email, String password) {
-            }
+    @Test
+    void signOut_revokesTheSessionsRefreshTokenThenDeletesIt() {
+        Session session = new Session(USER_ID, "refresh-token", Instant.now(), Instant.now().plusSeconds(3600));
+        when(sessionService.find(SESSION_ID)).thenReturn(Optional.of(session));
 
-            @Override
-            public SignInOutcome signIn(String email, String password) {
-                return outcome;
-            }
+        authService().signOut(SESSION_ID);
 
-            @Override
-            public void changePassword(String email, String currentPassword, String newPassword) {
-            }
-
-            @Override
-            public void signOut(String email) {
-            }
-        };
+        verify(identityProvider).revoke("refresh-token");
+        verify(sessionService).delete(SESSION_ID);
     }
 
-    private static IdentityProvider providerThatThrows() {
-        return new IdentityProvider() {
-            @Override
-            public void register(String email, String password) {
-            }
+    @Test
+    void signOut_doesNothingForUnknownSession() {
+        when(sessionService.find(SESSION_ID)).thenReturn(Optional.empty());
 
-            @Override
-            public SignInOutcome signIn(String email, String password) {
-                throw new UnauthorizedException("invalid email or password");
-            }
+        authService().signOut(SESSION_ID);
 
-            @Override
-            public void changePassword(String email, String currentPassword, String newPassword) {
-            }
-
-            @Override
-            public void signOut(String email) {
-            }
-        };
-    }
-
-    private static IdentityProvider providerThatRejectsPasswordChange() {
-        return new IdentityProvider() {
-            @Override
-            public void register(String email, String password) {
-            }
-
-            @Override
-            public SignInOutcome signIn(String email, String password) {
-                return new SignInOutcome.Authenticated(USER_ID, EMAIL);
-            }
-
-            @Override
-            public void changePassword(String email, String currentPassword, String newPassword) {
-                throw new UnauthorizedException("invalid email or password");
-            }
-
-            @Override
-            public void signOut(String email) {
-            }
-        };
+        verify(identityProvider, never()).revoke(any());
+        verify(sessionService, never()).delete(any());
     }
 }

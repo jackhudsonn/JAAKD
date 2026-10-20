@@ -44,8 +44,8 @@ export class UpdatePasswordComponent {
       return;
     }
 
-    if (this.password.length < 8) {
-      this.toastService.error('Password must be at least 8 characters.');
+    if (this.password.length < 6) {
+      this.toastService.error('Password must be at least 6 characters.');
       return;
     }
 

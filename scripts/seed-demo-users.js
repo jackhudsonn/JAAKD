@@ -765,7 +765,17 @@ async function registerAndLogin(user) {
     await requestJson({
       method: "POST",
       path: "/api/auth/register",
-      body: { email: user.email, password: user.password },
+      body: {
+        email: user.email,
+        password: user.password,
+        firstName: user.profile.firstName,
+        lastName: user.profile.lastName,
+        dob: user.profile.dob ?? null,
+        city: user.profile.city,
+        state: user.profile.state,
+        country: user.profile.country,
+        zipCode: user.profile.zipCode,
+      },
       expectedStatuses: [201, 409],
     });
   } catch (error) {

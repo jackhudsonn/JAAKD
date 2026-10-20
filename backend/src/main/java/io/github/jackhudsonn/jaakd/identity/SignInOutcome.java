@@ -4,7 +4,7 @@ import java.util.UUID;
 
 public sealed interface SignInOutcome {
 
-    record Authenticated(UUID userId, String email) implements SignInOutcome {
+    record Authenticated(UUID userId, String email, String refreshToken) implements SignInOutcome {
     }
 
     record Challenge(String continuation, String type) implements SignInOutcome {

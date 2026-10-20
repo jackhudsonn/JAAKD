@@ -44,7 +44,7 @@ Use trades to track changes to holdings, cost basis, and realized/unrealized P&L
 Spring Boot API backend for JAAKD.
 
 - The Angular frontend authenticates against the backend and receives an HttpOnly session cookie; it never holds a token.
-- The backend owns sessions and talks to the configured identity provider. Only the `development` provider is implemented today; the seam is in place for others.
+- The backend owns sessions and talks to the configured identity provider. `development` and `cognito` adapters are implemented; the frontend stays provider-blind.
 - Backend connects to our PostgreSQL database using the `jaakd_app` role.
 - Trading/profile data is served only through backend REST APIs.
 
@@ -114,8 +114,22 @@ Tables are under **Databases > jaakd > Schemas > public > Tables**. `jaakd_app` 
 
 - `POSTGRES_PASSWORD` — the Postgres superuser password.
 - `JAAKD_APP_DB_PASSWORD` — the application-role password.
-- `IDENTITY_PROVIDER` — the identity provider adapter. Only `development` is implemented today.
+- `IDENTITY_PROVIDER` — the identity provider adapter: `development` or `cognito`.
 - `AUTH_COOKIE_SECURE` — whether the session cookie is sent only over HTTPS.
+- `COGNITO_REGION`, `COGNITO_USER_POOL_ID`, `COGNITO_CLIENT_ID`, `COGNITO_CLIENT_SECRET` — required when `IDENTITY_PROVIDER=cognito`.
+
+Cognito registration verifies email ownership with a code from Cognito's default
+sender; no SES production-access review is needed for the demo. Apply
+`backend/db/cognito/01-cognito-users.sql` to a Cognito database before starting
+the backend. The table is adapter-owned and is not part of the development
+schema. For the local compose database:
+
+```bash
+docker compose exec -T jaakd-postgres psql -U postgres -d jaakd \
+  < backend/db/cognito/01-cognito-users.sql
+```
+
+The AWS-side pool and app-client commands are in `docs/cognito-setup.md`.
 
 Everything else is fixed in `docker-compose.yml` and can't be set from `.env`: the database `jaakd`, the role `jaakd_app`, the published Postgres port `5433`, and the backend's datasource URL and username on the internal network.
 
@@ -127,7 +141,8 @@ The backend loads the `.env` in the project directory via `spring.config.import`
 - `SPRING_DATASOURCE_USERNAME` (`jaakd_app`)
 - `SPRING_DATASOURCE_PASSWORD` (the `JAAKD_APP_DB_PASSWORD` value)
 
-`IDENTITY_PROVIDER` and `AUTH_COOKIE_SECURE` are read from `.env`.
+`IDENTITY_PROVIDER`, `AUTH_COOKIE_SECURE`, and the `COGNITO_*` values are read
+from `.env` when present.
 
 ### Frontend environment
 

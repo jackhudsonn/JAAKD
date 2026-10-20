@@ -48,9 +48,14 @@ SPRING_PROFILES_ACTIVE=development
 IDENTITY_PROVIDER=development
 ```
 
-`IDENTITY_PROVIDER` selects the authentication adapter. It does not enable demo
-fixtures. The `development` profile enables them through
-`app.demo-fixtures.enabled`; other profiles leave that property disabled.
+`IDENTITY_PROVIDER` selects the authentication adapter (`development` or
+`cognito`). It does not enable demo fixtures. The `development` profile enables
+them through `app.demo-fixtures.enabled`; other profiles leave that property
+disabled.
+
+Cognito requires the `COGNITO_*` values and the adapter-owned
+`cognito_users` table. Local development keeps the `development` adapter so the
+demo fixtures and seeded users continue to work.
 
 ## Fixture behavior agreed during refinement
 

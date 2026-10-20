@@ -22,7 +22,8 @@ cp .env.example .env
 - `POSTGRES_PASSWORD` — the Postgres superuser password.
 - `JAAKD_APP_DB_PASSWORD` — the application-role password.
 - `SPRING_PROFILES_ACTIVE` — the Spring configuration profile, normally `development` for local work.
-- `IDENTITY_PROVIDER` — the identity provider adapter. Only `development` is implemented today.
+- `IDENTITY_PROVIDER` — the identity provider adapter: `development` or `cognito`.
+- `COGNITO_REGION`, `COGNITO_USER_POOL_ID`, `COGNITO_CLIENT_ID`, `COGNITO_CLIENT_SECRET` — required when `IDENTITY_PROVIDER=cognito`.
 - `AUTH_COOKIE_SECURE` — whether the session cookie is sent only over HTTPS.
 - `FAUXNANCE_BASE_URL` — the Fauxnance API url 
 - `FAUXNANCE_API_KEY` — the Fauxance API Key

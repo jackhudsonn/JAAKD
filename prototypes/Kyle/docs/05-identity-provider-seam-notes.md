@@ -475,7 +475,8 @@ Done (development path):
 Remaining:
 
 - Cognito adapter (`identity.provider=cognito`), with pool/app-client config
-  and challenge relay.
+  and challenge relay. Implemented in `07-cognito-identity-provider-notes.md`;
+  challenge completion remains deferred.
 - CSRF hardening beyond `SameSite=Lax` if the deployment is not same-site.
 
 ## Scope note

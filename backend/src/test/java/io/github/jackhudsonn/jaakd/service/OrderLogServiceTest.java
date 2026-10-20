@@ -19,6 +19,7 @@ import io.github.jackhudsonn.jaakd.repository.OrderLogRepository;
 import io.github.jackhudsonn.jaakd.repository.PortfolioRepository;
 import io.github.jackhudsonn.jaakd.security.CurrentUserService;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -63,8 +64,23 @@ class OrderLogServiceTest {
     @Mock
     private QuoteService quoteService;
 
-    @InjectMocks
+    @Mock
+    private FifoAccountingService fifoAccountingService;
+
     private OrderLogService orderLogService;
+
+    @BeforeEach
+    void setUp() {
+        orderLogService = new OrderLogService(
+                orderLogRepository,
+                portfolioRepository,
+                instrumentRepository,
+                currentUserService,
+                quoteService,
+                orderSubmittedKafkaTemplate,
+                fifoAccountingService,
+                false);
+    }
 
     @Test
     void appendPendingFromSystem_submittedLatest_appendsPending() throws Exception {

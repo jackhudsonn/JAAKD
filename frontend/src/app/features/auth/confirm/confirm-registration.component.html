@@ -1,0 +1,72 @@
+<div class="auth-shell">
+  <main class="auth-main">
+    <section class="welcome-section">
+      <p class="eyebrow">JAAKD TRADING PLATFORM</p>
+
+      <h1>Verify your email.</h1>
+
+      <p class="welcome-copy">
+        Enter the verification code we sent to your email address. Confirming ownership of your
+        email keeps your account and portfolio secure.
+      </p>
+
+      <div class="feature-list">
+        <div>
+          <span class="feature-dot"></span>
+          Check your inbox and spam folder
+        </div>
+
+        <div>
+          <span class="feature-dot"></span>
+          Codes expire after a short time
+        </div>
+
+        <div>
+          <span class="feature-dot"></span>
+          You can request a new code
+        </div>
+      </div>
+    </section>
+
+    <section class="auth-card confirm-card">
+      <div class="card-heading">
+        <h2>Confirm your email</h2>
+        <p>Enter the code from the email we sent you.</p>
+      </div>
+
+      <div class="form-field">
+        <label for="email">Email</label>
+        <input id="email" type="email" [(ngModel)]="email" placeholder="name@example.com" />
+      </div>
+
+      <div class="form-field">
+        <label for="code">Verification code</label>
+        <input
+          id="code"
+          type="text"
+          inputmode="numeric"
+          autocomplete="one-time-code"
+          [(ngModel)]="code"
+          placeholder="Enter the code"
+        />
+      </div>
+
+      <button type="button" class="btn btn-primary confirm-submit" (click)="confirm()" [disabled]="busy">
+        {{ busy ? 'Confirming...' : 'Confirm Email' }}
+      </button>
+
+      <button
+        type="button"
+        class="btn btn-secondary resend-button"
+        (click)="resend()"
+        [disabled]="resending"
+      >
+        {{ resending ? 'Sending...' : 'Resend Code' }}
+      </button>
+
+      <div class="confirm-footer">
+        <a routerLink="/auth/login">Back to sign in</a>
+      </div>
+    </section>
+  </main>
+</div>
