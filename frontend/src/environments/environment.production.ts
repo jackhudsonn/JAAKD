@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiUrl: 'http://jaakd-backend.livefree.click/',
+  apiUrl: 'http://jaakd-backend.livefree.click',
 };

@@ -116,49 +116,38 @@ pipeline {
         }
 
         // Prod Requirements:
-        // - S3 Bucket
-        // - Beanstalk application
-        // - DB connection (LightSail)
-        // - Ec2 Kafka instance (LightSail)
+        // - S3 Bucket (Frontend)
+        // - Beanstalk application (Backend)
+        // - Lightsail DB connection (Database)
+        // - Lightsail EC2 Instance (Kafka)
+
         stage('Prod Deployment') {
             when {
                 expression { params.DEPLOY_ENVIRONMENT == 'prod' }
             }
             steps {
-                // 1) Validate prerequisites and credentials are present.
-                
+                // Build Backend
+                dir('backend') {
+                    sh './mvnw clean package -DskipTests'
+                }
 
-                // 2) Build and package backend JAR from backend/.
+                // Archive Backend
+                dir('backend') {
+                    archiveArtifacts artifacts: 'target/*.jar', allowEmptyArchive: true
+                }
 
-                
-                // 3) Deploy backend artifact to Elastic Beanstalk.
+                // Build Frontend
+                dir('frontend') {
+                    sh 'npm install'
+                    sh 'npx ng build --configuration production'
+                }
 
+                // Archive Frontend
+                dir('frontend') {
+                    archiveArtifacts artifacts: 'dist/**/*', allowEmptyArchive: true
+                }
 
-                // 4) Set backend runtime env vars:
-                //    - SPRING_DATASOURCE_URL / USERNAME / PASSWORD (Lightsail Postgres)
-                //    - SPRING_KAFKA_BOOTSTRAP_SERVERS (Lightsail Kafka VM)
-                //    - APP_CORS_ALLOWED_ORIGINS, AUTH_COOKIE_SECURE, IDENTITY_PROVIDER
-
-
-                // 5) Verify backend health and auth endpoints via API hostname.
-
-
-                // 6) Build Angular production bundle from frontend/.
-
-
-                // 7) Upload/sync Angular dist assets to S3 website bucket.
-
-
-                // 8) Invalidate CloudFront cache (if enabled) for fresh assets.
-
-
-                // 9) Validate end-to-end flow from S3 frontend -> API -> Postgres/Kafka.
-
-
-                // 10) Publish deployment summary and rollback pointers.
-
-
-                echo("Prod deployment is not yet implemented.")
+                input message: 'Upload frontend artifact to S3 and backend artifact to Beanstalk'
             }
         }
     }
