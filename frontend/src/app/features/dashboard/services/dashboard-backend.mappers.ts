@@ -1,4 +1,6 @@
 import {
+  CASH_CURRENCIES,
+  CashCurrency,
   HoldingResponse,
   InstrumentClass,
   InstrumentResponse,
@@ -274,7 +276,15 @@ const readMetadataValue = (metadata: string | null, key: string): string | null 
   return null;
 };
 
-export const toTransactions = (orderLogs: OrderLogResponse[]): Transaction[] => {
+const toCashCurrency = (value: string | null | undefined): CashCurrency | undefined => {
+  return CASH_CURRENCIES.find((currency) => currency === value);
+};
+
+export const toTransactions = (
+  orderLogs: OrderLogResponse[],
+  instruments: InstrumentResponse[],
+): Transaction[] => {
+  const instrumentsById = buildInstrumentById(instruments);
   const grouped = new Map<string, OrderLogResponse[]>();
 
   for (const row of orderLogs) {
@@ -320,6 +330,9 @@ export const toTransactions = (orderLogs: OrderLogResponse[]): Transaction[] => 
     const isExchange = newestRow.side === 'FX';
     const sourceCurrency = readMetadataValue(newestRow.metadata, 'sourceCurrency');
     const targetCurrency = readMetadataValue(newestRow.metadata, 'targetCurrency');
+    const currency = toCashCurrency(
+      isExchange ? sourceCurrency : instrumentsById.get(newestRow.instrumentId)?.ticker,
+    );
 
     mappedWithSortKey.push({
       transaction: {
@@ -329,6 +342,7 @@ export const toTransactions = (orderLogs: OrderLogResponse[]): Transaction[] => 
           ? { typeLabel: `${sourceCurrency} → ${targetCurrency}` }
           : {}),
         amount: newestRow.quantity,
+        ...(currency ? { currency } : {}),
         method: 'bank_transfer',
         status,
         createdAt: firstRow.timestamp,

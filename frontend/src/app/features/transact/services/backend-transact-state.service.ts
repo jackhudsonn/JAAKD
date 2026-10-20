@@ -146,7 +146,7 @@ export class BackendTransactStateService implements TransactStatePort {
     this.instrumentsData.set(instruments);
     this.orderLogsData.set(orderLogs);
     this.cashBalances.set(this.toCashBalances(holdings, instruments));
-    this.transactions.set(toTransactions(orderLogs));
+    this.transactions.set(toTransactions(orderLogs, instruments));
   }
 
   private toCashBalances(
