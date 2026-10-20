@@ -149,6 +149,7 @@ export class AssetPopupComponent implements OnInit, OnDestroy {
       `${placed.type === 'buy' ? 'Buy' : 'Sell'} order placed for ${placed.quantity} ${placed.symbol}` +
         (placed.kind === 'market' ? ' at market.' : ` at limit ${placed.limitPrice?.toFixed(2)}.`),
     );
+    this.closed.emit();
   }
 
   openTradeView() {
