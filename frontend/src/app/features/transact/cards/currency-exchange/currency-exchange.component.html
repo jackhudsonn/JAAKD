@@ -62,13 +62,16 @@
           1 {{ fromCurrency() }} = {{ quoteRate() | number: '1.2-4' }} {{ toCurrency() }}
         </p>
       }
+      @if (sameCurrency()) {
+        <p class="form-error same-currency-error">Choose two different currencies.</p>
+      }
     </div>
 
     <div class="exchange-actions">
       <button
         type="button"
         class="btn btn-primary swap-button"
-        [disabled]="submitting()"
+        [disabled]="submitting() || sameCurrency()"
         (click)="requestExchange()"
       >
         Swap

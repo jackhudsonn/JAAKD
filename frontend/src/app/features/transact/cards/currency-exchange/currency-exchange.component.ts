@@ -40,6 +40,7 @@ export class CurrencyExchangeComponent {
   errorMessage = input('');
 
   fromBalance = computed(() => this.balances()[this.fromCurrency()] ?? 0);
+  sameCurrency = computed(() => this.fromCurrency() === this.toCurrency());
 
   convertedAmount = computed(() => {
     const value = this.amount();
@@ -66,7 +67,7 @@ export class CurrencyExchangeComponent {
       return;
     }
 
-    if (this.fromCurrency() === this.toCurrency()) {
+    if (this.sameCurrency()) {
       return;
     }
 

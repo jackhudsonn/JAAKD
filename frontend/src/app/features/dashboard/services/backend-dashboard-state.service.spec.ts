@@ -178,6 +178,7 @@ describe('BackendDashboardStateService', () => {
         id: 'ord-deposit',
         type: 'deposit',
         amount: 5000,
+        currency: 'USD',
         method: 'bank_transfer',
         status: 'completed',
         createdAt: '2026-01-01T00:01:00.000Z',
