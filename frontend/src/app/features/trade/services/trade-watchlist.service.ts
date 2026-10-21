@@ -53,7 +53,11 @@ export class TradeWatchlistService {
 
   async setWatchlistMembership(request: TradeSetWatchlistMembershipRequest) {
     if (this.state.backendDataMode && this.state.setWatchlistMembership) {
-      await this.state.setWatchlistMembership(request.symbol, request.watchlistId, request.included);
+      await this.state.setWatchlistMembership(
+        request.symbol,
+        request.watchlistId,
+        request.included,
+      );
       return;
     }
 

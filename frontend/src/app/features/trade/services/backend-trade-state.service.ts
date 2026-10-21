@@ -1,10 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Injectable, signal } from '@angular/core';
-import {
-  InstrumentResponse,
-  OrderLogResponse,
-  WatchlistResponse,
-} from '@core/models/api.models';
+import { InstrumentResponse, OrderLogResponse, WatchlistResponse } from '@core/models/api.models';
 import { Holding, Order } from '@core/models';
 import { WATCHLIST_CONSTRAINTS } from '@core/mocks/watchlist.mock';
 import { HoldingApiService } from '@core/services/holding-api.service';
@@ -131,7 +127,11 @@ export class BackendTradeStateService implements TradeStatePort {
     }
   }
 
-  async setWatchlistMembership(symbol: string, watchlistId: string, included: boolean): Promise<void> {
+  async setWatchlistMembership(
+    symbol: string,
+    watchlistId: string,
+    included: boolean,
+  ): Promise<void> {
     const instrument = this.findInstrumentBySymbol(symbol);
     const portfolioId = this.portfolioId();
     if (!instrument || !portfolioId) {
