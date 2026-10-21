@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, computed, inject } from '@angular/core';
 import { Order } from '@core/models';
 import { TradeOrderEngineService, TradePlaceOrderRequest } from './trade-order-engine.service';
 import {
@@ -27,6 +27,7 @@ export class TradeFacadeService {
   readonly maxWatchlistHoldings = this.watchlistService.maxWatchlistHoldings;
   readonly backendDataMode = this.state.backendDataMode ?? false;
   readonly loadState = this.state.loadState;
+  readonly cashBalances = computed(() => this.state.cashBalances?.() ?? null);
 
   readonly openOrders = this.orderEngine.openOrders;
   readonly historyOrders = this.orderEngine.historyOrders;
