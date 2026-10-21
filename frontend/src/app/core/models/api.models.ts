@@ -56,15 +56,26 @@ export interface CreateOrderLogRequest {
 
 export interface WatchlistItemResponse {
   listItemId: string;
-  portfolioId: string;
+  watchlistId: string;
   instrumentId: string;
-  name: string | null;
 }
 
-export interface CreateWatchlistItemRequest {
-  portfolioId: string;
+export interface WatchlistResponse {
+  watchlistId: string;
+  watchlistName: string;
+  items: WatchlistItemResponse[];
+}
+
+export interface CreateWatchlistRequest {
+  watchlistName: string;
+}
+
+export interface UpdateWatchlistRequest {
+  watchlistName: string;
+}
+
+export interface CreateWatchlistEntryRequest {
   instrumentId: string;
-  name?: string;
 }
 
 export interface UpdatePreferencesRequest {

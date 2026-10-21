@@ -27,19 +27,22 @@ public class PortfolioService {
 	private final OrderLogRepository orderLogRepository;
 	private final HoldingRepository holdingRepository;
 	private final CurrentUserService currentUserService;
+	private final WatchlistService watchlistService;
 
 	public PortfolioService(
 			PortfolioRepository portfolioRepository,
 			ProfileRepository profileRepository,
 			OrderLogRepository orderLogRepository,
 			HoldingRepository holdingRepository,
-			CurrentUserService currentUserService
+			CurrentUserService currentUserService,
+			WatchlistService watchlistService
 	) {
 		this.portfolioRepository = portfolioRepository;
 		this.profileRepository = profileRepository;
 		this.orderLogRepository = orderLogRepository;
 		this.holdingRepository = holdingRepository;
 		this.currentUserService = currentUserService;
+		this.watchlistService = watchlistService;
 	}
 
 	public List<Portfolio> getCurrentUserPortfolios() {
@@ -67,7 +70,9 @@ public class PortfolioService {
 		Portfolio portfolio = new Portfolio(profile);
 		portfolio.setPortfolioName(request.portfolioName());
 
-		return portfolioRepository.save(portfolio);
+		Portfolio saved = portfolioRepository.save(portfolio);
+		watchlistService.ensureDefaultWatchlistForPortfolio(saved);
+		return saved;
 	}
 
 	@Transactional

@@ -678,7 +678,7 @@ paths:
           $ref: "#/components/responses/ServerError"
     delete:
       tags: [Portfolios]
-      summary: Delete a portfolio (and its holdings and watchlist items)
+      summary: Delete a portfolio (and its holdings and watchlists)
       description: >
         Deletion is allowed only when the portfolio is truly empty.
         Returns 409 when active order logs exist (SUBMITTED, PENDING, ACCEPTED)
@@ -940,73 +940,79 @@ paths:
           $ref: "#/components/responses/ServerError"
 
   # -------------------------------------------------------------- Watchlists
-  /api/watchlists/portfolio/{portfolioId}:
+  /api/portfolios/{portfolioId}/watchlists:
     get:
       tags: [Watchlists]
-      summary: List the watchlist items in a portfolio
-      operationId: getWatchlistItemsByPortfolio
+      summary: List watchlists in a portfolio
+      operationId: getWatchlists
       parameters:
         - $ref: "#/components/parameters/PortfolioId"
       responses:
         "200":
-          description: Watchlist items
+          description: Watchlists
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/WatchlistItemResponse"
+                  $ref: "#/components/schemas/WatchlistResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "500":
           $ref: "#/components/responses/ServerError"
-
-  /api/watchlists/{listItemId}:
-    get:
+    post:
       tags: [Watchlists]
-      summary: Get one watchlist item
-      operationId: getWatchlistItemById
+      summary: Create a watchlist in a portfolio
+      operationId: createWatchlist
       parameters:
-        - $ref: "#/components/parameters/ListItemId"
-      responses:
-        "200":
-          description: The watchlist item
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/WatchlistItemResponse"
-              example:
-                listItemId: 4a5b6c7d-8e9f-4a0b-1c2d-3e4f5a6b7c8d
-                portfolioId: 9a8b7c6d-5e4f-4a3b-2c1d-0e9f8a7b6c5d
-                instrumentId: 1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d5e
-                name: Tech picks
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/ServerError"
-    put:
-      tags: [Watchlists]
-      summary: Rename a watchlist item
-      operationId: updateWatchlistItem
-      parameters:
-        - $ref: "#/components/parameters/ListItemId"
+        - $ref: "#/components/parameters/PortfolioId"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateWatchlistItemRequest"
+              $ref: "#/components/schemas/CreateWatchlistRequest"
             example:
-              name: Dividend picks
+              watchlistName: Tech picks
       responses:
-        "200":
-          description: Watchlist item updated
+        "201":
+          description: Watchlist created
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/WatchlistItemResponse"
+                $ref: "#/components/schemas/WatchlistResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/portfolios/{portfolioId}/watchlists/{watchlistId}:
+    put:
+      tags: [Watchlists]
+      summary: Rename a watchlist
+      operationId: updateWatchlist
+      parameters:
+        - $ref: "#/components/parameters/PortfolioId"
+        - $ref: "#/components/parameters/WatchlistId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateWatchlistRequest"
+            example:
+              watchlistName: Dividend picks
+      responses:
+        "200":
+          description: Watchlist updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WatchlistResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -1017,13 +1023,14 @@ paths:
           $ref: "#/components/responses/ServerError"
     delete:
       tags: [Watchlists]
-      summary: Remove an instrument from the watchlist
-      operationId: deleteWatchlistItem
+      summary: Delete a watchlist
+      operationId: deleteWatchlist
       parameters:
-        - $ref: "#/components/parameters/ListItemId"
+        - $ref: "#/components/parameters/PortfolioId"
+        - $ref: "#/components/parameters/WatchlistId"
       responses:
         "204":
-          description: Watchlist item deleted
+          description: Watchlist deleted
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
@@ -1031,21 +1038,22 @@ paths:
         "500":
           $ref: "#/components/responses/ServerError"
 
-  /api/watchlists:
+  /api/portfolios/{portfolioId}/watchlists/{watchlistId}/items:
     post:
       tags: [Watchlists]
-      summary: Add an instrument to a portfolio's watchlist
+      summary: Add an instrument to a watchlist
       operationId: createWatchlistItem
+      parameters:
+        - $ref: "#/components/parameters/PortfolioId"
+        - $ref: "#/components/parameters/WatchlistId"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateWatchlistItemRequest"
+              $ref: "#/components/schemas/CreateWatchlistEntryRequest"
             example:
-              portfolioId: 9a8b7c6d-5e4f-4a3b-2c1d-0e9f8a7b6c5d
               instrumentId: 1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d5e
-              name: Tech picks
       responses:
         "201":
           description: Watchlist item created
@@ -1061,6 +1069,25 @@ paths:
           $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/portfolios/{portfolioId}/watchlists/{watchlistId}/items/{listItemId}:
+    delete:
+      tags: [Watchlists]
+      summary: Remove an instrument from a watchlist
+      operationId: deleteWatchlistItem
+      parameters:
+        - $ref: "#/components/parameters/PortfolioId"
+        - $ref: "#/components/parameters/WatchlistId"
+        - $ref: "#/components/parameters/ListItemId"
+      responses:
+        "204":
+          description: Watchlist item deleted
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "500":
           $ref: "#/components/responses/ServerError"
 
@@ -1771,6 +1798,13 @@ components:
       schema:
         type: string
         format: uuid
+    WatchlistId:
+      name: watchlistId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
     ListItemId:
       name: listItemId
       in: path
@@ -2428,39 +2462,55 @@ components:
           format: double
 
     # ---- watchlists
-    CreateWatchlistItemRequest:
+    CreateWatchlistRequest:
       type: object
-      required: [portfolioId, instrumentId]
+      required: [watchlistName]
       properties:
-        portfolioId:
+        watchlistName:
           type: string
-          format: uuid
+          minLength: 1
+          maxLength: 255
+    UpdateWatchlistRequest:
+      type: object
+      required: [watchlistName]
+      properties:
+        watchlistName:
+          type: string
+          minLength: 1
+          maxLength: 255
+    CreateWatchlistEntryRequest:
+      type: object
+      required: [instrumentId]
+      properties:
         instrumentId:
           type: string
           format: uuid
-        name:
-          type: [string, "null"]
-          maxLength: 255
-    UpdateWatchlistItemRequest:
+    WatchlistResponse:
       type: object
+      required: [watchlistId, watchlistName, items]
       properties:
-        name:
-          type: [string, "null"]
-          maxLength: 255
+        watchlistId:
+          type: string
+          format: uuid
+        watchlistName:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/WatchlistItemResponse"
     WatchlistItemResponse:
       type: object
+      required: [listItemId, watchlistId, instrumentId]
       properties:
         listItemId:
           type: string
           format: uuid
-        portfolioId:
+        watchlistId:
           type: string
           format: uuid
         instrumentId:
           type: string
           format: uuid
-        name:
-          type: [string, "null"]
 
     # ---- payment methods
     CreatePaymentMethodRequest:

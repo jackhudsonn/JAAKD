@@ -3,12 +3,6 @@
   flex-direction: column;
 }
 
-.watchlist-limit-copy {
-  margin: var(--space-sm) 0 var(--space-md);
-  color: var(--text-muted);
-  font-size: var(--font-size-xs);
-}
-
 .watchlist-dialog-actions {
   display: flex;
   justify-content: flex-end;

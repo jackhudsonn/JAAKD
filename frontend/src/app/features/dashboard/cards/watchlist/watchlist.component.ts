@@ -52,7 +52,9 @@ export class WatchlistWidgetComponent implements OnInit, OnDestroy {
   activeWatchlistSymbolCount = computed(() => this.activeWatchlist()?.symbols.length ?? 0);
 
   canAddSymbolToActive = computed(
-    () => this.activeWatchlistSymbolCount() < this.maxWatchlistHoldings,
+    () =>
+      this.maxWatchlistHoldings === null ||
+      this.activeWatchlistSymbolCount() < this.maxWatchlistHoldings,
   );
 
   rows = computed<WatchlistRow[]>(() => {
