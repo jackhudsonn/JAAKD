@@ -22,11 +22,10 @@ import io.github.jackhudsonn.jaakd.model.WatchlistItem;
 import io.github.jackhudsonn.jaakd.repository.WatchlistItemRepository;
 import io.github.jackhudsonn.jaakd.service.WatchlistService;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/portfolios/{portfolioId}/watchlists")
@@ -53,27 +52,19 @@ public class WatchlistController {
             ? List.of()
             : watchlistItemRepository.findByWatchlistWatchlistIdInOrderByListItemIdAsc(watchlistIds);
 
-        Map<UUID, List<WatchlistItemResponse>> itemsByWatchlistId = new HashMap<>();
-        for (WatchlistItem item : items) {
-            UUID watchlistId = item.getWatchlist().getWatchlistId();
-            List<WatchlistItemResponse> grouped = itemsByWatchlistId.get(watchlistId);
-            if (grouped == null) {
-                grouped = new ArrayList<>();
-                itemsByWatchlistId.put(watchlistId, grouped);
-            }
-            grouped.add(toItemResponse(item));
-        }
+        Map<UUID, List<WatchlistItemResponse>> itemsByWatchlistId = items.stream()
+            .collect(Collectors.groupingBy(
+                item -> item.getWatchlist().getWatchlistId(),
+                Collectors.mapping(this::toItemResponse, Collectors.toList())
+            ));
 
-        List<WatchlistResponse> responses = new ArrayList<>();
-        for (Watchlist watchlist : watchlists) {
-            responses.add(new WatchlistResponse(
+        return watchlists.stream()
+            .map(watchlist -> new WatchlistResponse(
                 watchlist.getWatchlistId(),
                 watchlist.getWatchlistName(),
                 itemsByWatchlistId.getOrDefault(watchlist.getWatchlistId(), List.of())
-            ));
-        }
-
-        return responses;
+            ))
+            .toList();
     }
 
     @PostMapping
@@ -97,10 +88,7 @@ public class WatchlistController {
         List<WatchlistItem> items = watchlistItemRepository.findByWatchlistWatchlistIdInOrderByListItemIdAsc(
             List.of(updated.getWatchlistId())
         );
-        List<WatchlistItemResponse> itemResponses = new ArrayList<>();
-        for (WatchlistItem item : items) {
-            itemResponses.add(toItemResponse(item));
-        }
+        List<WatchlistItemResponse> itemResponses = items.stream().map(this::toItemResponse).toList();
 
         return new WatchlistResponse(updated.getWatchlistId(), updated.getWatchlistName(), itemResponses);
     }

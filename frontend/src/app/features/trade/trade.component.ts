@@ -53,6 +53,14 @@ export class TradeComponent implements OnInit, OnDestroy {
   accountCash = this.tradeFacade.accountCash;
   holdings = this.tradeFacade.holdings;
   orders = this.tradeFacade.orders;
+  readonly cashBalances = computed(() => {
+    const balances = this.tradeFacade.cashBalances();
+    if (!balances) {
+      return null;
+    }
+
+    return Object.entries(balances).map(([currency, amount]) => ({ currency, amount }));
+  });
   readonly maxWatchlistHoldings = this.tradeFacade.maxWatchlistHoldings;
 
   openOrders = this.tradeFacade.openOrders;
