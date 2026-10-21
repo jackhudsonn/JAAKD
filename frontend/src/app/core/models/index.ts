@@ -51,6 +51,7 @@ export interface Transaction {
   /** Optional display label for exchange rows (example: USD → INR). */
   typeLabel?: string;
   amount: number;
+  currency?: CashCurrency;
   method: PaymentMethod;
   status: TransactionStatus;
   createdAt: string;

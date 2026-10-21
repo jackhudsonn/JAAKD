@@ -97,7 +97,7 @@ export class BackendDashboardStateService implements DashboardStatePort {
       this.accountCash.set(toCash(holdings, instruments));
       this.holdings.set(toHoldings(holdings, instruments, orderLogs, toPriceResolver(quotePrices)));
       this.orders.set(toOpenOrders(orderLogs, instruments));
-      this.transactions.set(toTransactions(orderLogs));
+      this.transactions.set(toTransactions(orderLogs, instruments));
       this.watchlists.set([toWatchlist(watchlistItems, instruments)]);
       this.activeWatchlistId.set('watchlist');
       this.dashboardOpenOrders.set([]);

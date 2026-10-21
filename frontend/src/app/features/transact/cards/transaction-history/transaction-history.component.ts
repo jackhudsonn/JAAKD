@@ -1,5 +1,5 @@
 import { Component, computed, input, signal } from '@angular/core';
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { CurrencyPipe, DatePipe } from '@angular/common';
 import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
 import { ScrollableListComponent } from '@shared/components/scrollable-list/scrollable-list.component';
 import { StatusBadgeComponent } from '@shared/components/status-badge/status-badge.component';
@@ -21,8 +21,8 @@ type SortDirection = 'asc' | 'desc';
     WidgetCardComponent,
     ScrollableListComponent,
     StatusBadgeComponent,
+    CurrencyPipe,
     DatePipe,
-    DecimalPipe,
   ],
   templateUrl: './transaction-history.component.html',
   styleUrl: './transaction-history.component.css',
