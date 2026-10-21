@@ -20,6 +20,15 @@ describe('BackendTradeStateService', () => {
       description: null,
     },
     {
+      instrumentId: 'inst-eur',
+      ticker: 'EUR',
+      market: 'CASH',
+      name: 'Euro',
+      instrumentClass: 'CASH' as const,
+      logoUrl: null,
+      description: null,
+    },
+    {
       instrumentId: 'inst-aapl',
       ticker: 'AAPL',
       market: 'NASDAQ',
@@ -41,6 +50,14 @@ describe('BackendTradeStateService', () => {
     },
     {
       holdingID: 'holding-2',
+      portfolioID: portfolio.portfolioId,
+      instrumentID: 'inst-eur',
+      currentQuantity: 300,
+      cumulativeRealizedPnl: 0,
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    },
+    {
+      holdingID: 'holding-3',
       portfolioID: portfolio.portfolioId,
       instrumentID: 'inst-aapl',
       currentQuantity: 2,
@@ -145,6 +162,7 @@ describe('BackendTradeStateService', () => {
 
     expect(service.loadState()).toBe('ready');
     expect(service.accountCash()).toBe(5000);
+    expect(service.cashBalances()).toEqual({ USD: 5000, EUR: 300 });
     expect(service.holdings()).toHaveLength(1);
     expect(service.orders()).toHaveLength(1);
     expect(service.watchlists()).toEqual([{ id: 'watchlist-1', name: 'My Watchlist', symbols: ['AAPL'] }]);
@@ -158,6 +176,7 @@ describe('BackendTradeStateService', () => {
 
     expect(service.loadState()).toBe('error');
     expect(service.accountCash()).toBe(0);
+    expect(service.cashBalances()).toEqual({});
     expect(service.holdings()).toEqual([]);
     expect(service.orders()).toEqual([]);
     expect(service.watchlists()).toEqual([]);
