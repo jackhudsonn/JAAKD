@@ -18,6 +18,7 @@ export interface TradeStatePort {
   readonly maxWatchlistHoldings: number | null;
   readonly backendDataMode?: boolean;
   readonly loadState?: Signal<'loading' | 'ready' | 'error'>;
+  readonly cashBalances?: Signal<Record<string, number>>;
   load?(): Promise<void>;
   submitOrder?(request: TradePlaceOrderRequest): Promise<void>;
   cancelOrder?(orderId: string): Promise<void>;

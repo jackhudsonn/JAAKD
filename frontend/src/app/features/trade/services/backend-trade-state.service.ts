@@ -1,6 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Injectable, signal } from '@angular/core';
 import {
+  HoldingResponse,
   InstrumentResponse,
   OrderLogResponse,
   WatchlistResponse,
@@ -32,6 +33,7 @@ export type TradeLoadState = 'loading' | 'ready' | 'error';
 })
 export class BackendTradeStateService implements TradeStatePort {
   readonly accountCash = signal(0);
+  readonly cashBalances = signal<Record<string, number>>({});
   readonly holdings = signal<Holding[]>([]);
   readonly orders = signal<Order[]>([]);
   readonly watchlists = signal<TradeWatchlist[]>([]);
@@ -59,6 +61,7 @@ export class BackendTradeStateService implements TradeStatePort {
   async load(): Promise<void> {
     this.loadState.set('loading');
     this.accountCash.set(0);
+    this.cashBalances.set({});
     this.holdings.set([]);
     this.orders.set([]);
     this.watchlists.set([]);
@@ -76,6 +79,7 @@ export class BackendTradeStateService implements TradeStatePort {
       this.latestPriceBySymbolData.set(new Map());
       this.quotePriceBySymbol.set(new Map());
       this.accountCash.set(0);
+      this.cashBalances.set({});
       this.holdings.set([]);
       this.orders.set([]);
       this.watchlists.set([]);
@@ -219,6 +223,7 @@ export class BackendTradeStateService implements TradeStatePort {
       new Map([...toLatestPriceBySymbol(orderLogs, instruments), ...this.quotePriceBySymbol()]),
     );
     this.accountCash.set(toCash(holdings, instruments));
+    this.cashBalances.set(this.toCashBalances(holdings, instruments));
     this.holdings.set(
       toHoldings(holdings, instruments, orderLogs, toPriceResolver(this.quotePriceBySymbol())),
     );
@@ -231,6 +236,27 @@ export class BackendTradeStateService implements TradeStatePort {
     return this.instrumentsData().find(
       (instrument) => instrument.ticker.trim().toUpperCase() === normalized,
     );
+  }
+
+  private toCashBalances(
+    holdings: ReadonlyArray<HoldingResponse>,
+    instruments: ReadonlyArray<InstrumentResponse>,
+  ): Record<string, number> {
+    const cashTickerById = new Map(
+      instruments
+        .filter((instrument) => instrument.instrumentClass === 'CASH')
+        .map((instrument) => [instrument.instrumentId, instrument.ticker]),
+    );
+    const balances: Record<string, number> = {};
+
+    for (const holding of holdings) {
+      const ticker = cashTickerById.get(holding.instrumentID);
+      if (ticker) {
+        balances[ticker] = holding.currentQuantity;
+      }
+    }
+
+    return balances;
   }
 
   private delay(milliseconds: number): Promise<void> {
