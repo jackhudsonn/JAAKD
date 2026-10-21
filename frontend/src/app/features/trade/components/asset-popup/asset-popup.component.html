@@ -53,7 +53,9 @@
                 />
                 <span class="watchlist-selector-name">{{ watchlist.name }}</span>
                 <span class="watchlist-selector-count"
-                  >{{ watchlist.symbolCount }}/{{ maxWatchlistHoldings() }}</span
+                  >{{ watchlist.symbolCount }}/{{
+                    maxWatchlistHoldings() === null ? '∞' : maxWatchlistHoldings()
+                  }}</span
                 >
               </label>
             }

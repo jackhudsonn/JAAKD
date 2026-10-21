@@ -24,7 +24,10 @@ export interface DashboardStatePort {
   readonly backendWatchlistInstrumentOptions?: Signal<DashboardWatchlistInstrumentOption[]>;
   readonly dashboardWidgets?: Signal<readonly string[] | null>;
   load?(): Promise<void>;
-  setWatchlistMembership?(symbol: string, included: boolean): Promise<void>;
+  setWatchlistMembership?(symbol: string, watchlistId: string, included: boolean): Promise<void>;
+  createWatchlist?(watchlistName: string): Promise<void>;
+  renameWatchlist?(watchlistId: string, watchlistName: string): Promise<void>;
+  deleteWatchlist?(watchlistId: string): Promise<void>;
   setDashboardWidgets?(dashboardWidgets: readonly string[]): Promise<void>;
 }
 

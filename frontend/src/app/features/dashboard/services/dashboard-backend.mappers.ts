@@ -6,7 +6,7 @@ import {
   InstrumentResponse,
   OrderLogResponse,
   QuoteResponse,
-  WatchlistItemResponse,
+  WatchlistResponse,
 } from '@core/models/api.models';
 import { Holding, InstrumentType, Order, Transaction } from '@core/models';
 import { SharedWatchlist } from '@core/mocks/watchlist.mock';
@@ -356,27 +356,18 @@ export const toTransactions = (
     .map(({ transaction }) => transaction);
 };
 
-export const toWatchlist = (
-  items: WatchlistItemResponse[],
+export const toWatchlists = (
+  watchlists: WatchlistResponse[],
   instruments: InstrumentResponse[],
-): SharedWatchlist => {
+): SharedWatchlist[] => {
   const instrumentsById = buildInstrumentById(instruments);
-  const symbols: string[] = [];
-
-  for (const item of items) {
-    const instrument = instrumentsById.get(item.instrumentId);
-    if (!instrument) {
-      continue;
-    }
-
-    symbols.push(instrument.ticker);
-  }
-
-  return {
-    id: 'watchlist',
-    name: 'Watchlist',
-    symbols,
-  };
+  return watchlists.map((watchlist) => ({
+    id: watchlist.watchlistId,
+    name: watchlist.watchlistName,
+    symbols: watchlist.items
+      .map((item) => instrumentsById.get(item.instrumentId)?.ticker ?? null)
+      .filter((symbol): symbol is string => symbol !== null),
+  }));
 };
 
 export const toLatestPriceBySymbol = (

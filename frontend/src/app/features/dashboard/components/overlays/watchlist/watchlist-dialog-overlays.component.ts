@@ -16,7 +16,7 @@ export class WatchlistDialogOverlaysComponent {
   canCreateWatchlist = input(false);
   canDeleteActive = input(false);
   maxWatchlists = input(0);
-  maxHoldingsPerWatchlist = input(0);
+  maxHoldingsPerWatchlist = input<number | null>(null);
   activeWatchlistName = input<string | null>(null);
   activeWatchlistSymbolCount = input(0);
   selectedWatchlistAsset = input<DashboardWatchlistAssetSummary | null>(null);
