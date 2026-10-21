@@ -1,4 +1,4 @@
--- Adds "instrumentPrices" to an existing database (Lightsail prod, Supabase dev).
+-- Adds "instrumentPrices" to an existing database (Lightsail prod, dev Postgres).
 -- Fresh databases get the same table from backend/db/init/01-schema.sql.
 -- Safe to rerun. Run as the database owner BEFORE deploying the backend that maps InstrumentPrice,
 -- because Hibernate validates the schema on startup (ddl-auto: validate).

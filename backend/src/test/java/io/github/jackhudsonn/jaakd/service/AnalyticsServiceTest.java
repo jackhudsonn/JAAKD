@@ -212,6 +212,16 @@ class AnalyticsServiceTest {
     }
 
     @Test
+    void listPortfolios_rejectsUnknownAgeBand() {
+        
+        ValidationException badBand = assertThrows(
+            ValidationException.class,
+            () -> analyticsService.listPortfolios(null, "25–34", null, null, null, null, null)
+        );
+        assertTrue(badBand.getMessage().startsWith("Age band must be one of: <25, 25-34"));
+    }
+
+    @Test
     void listPortfolios_sortsByRequestedColumn() {
         List<String> byReturn = analyticsService.listPortfolios(null, null, null, "returnYtd", "desc", null, null)
             .content().stream().map(PortfolioPerformanceResponse::country).toList();

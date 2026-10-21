@@ -160,7 +160,7 @@ java -jar target\backend-0.0.1-SNAPSHOT.jar
 - The authenticated user's ID, resolved from the session, maps directly to `profiles.userID`.
 - `/actuator/**` is public, as are `/api/auth/register` and `/api/auth/login`; the rest of `/api/**` requires authentication.
 - Schema source of truth is `backend/db/init/` and the JPA model.
-- For existing databases, apply incremental SQL migrations from `tools/supabase-sql/` in order.
+- For existing databases, apply incremental SQL migrations from `backend/db/migrations/` in order.
 
 ### Order lifecycle and Kafka events
 

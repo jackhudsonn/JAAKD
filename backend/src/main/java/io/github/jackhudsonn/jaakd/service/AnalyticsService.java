@@ -65,6 +65,9 @@ public class AnalyticsService {
         entry("netFlow30d", "a.net_flow_30d_usd")
     );
 
+    // Age bands the copy job computes on prod from profiles.dob 
+    private static final List<String> AGE_BANDS = List.of("<25", "25-34", "35-44", "45-54", "55-64", "65+", "unknown");
+
     private static final Map<String, String> PORTFOLIO_SORTS = Map.ofEntries(
         entry("marketValue", "p.market_value_usd"),
         entry("return1w", "p.return_1w"),
@@ -210,8 +213,12 @@ public class AnalyticsService {
             params.put("country", country.trim());
         }
         if (ageBand != null && !ageBand.isBlank()) {
+            String band = ageBand.trim();
+            if (!AGE_BANDS.contains(band)) {
+                throw new ValidationException("Age band must be one of: " + String.join(", ", AGE_BANDS));
+            }
             where.append(" AND p.age_band = :ageBand");
-            params.put("ageBand", ageBand.trim());
+            params.put("ageBand", band);
         }
         if (userType != null) {
             where.append(" AND p.user_type = :userType");

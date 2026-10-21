@@ -2726,6 +2726,7 @@ components:
           type: [string, "null"]
         ageBand:
           type: string
+          enum: ["<25", "25-34", "35-44", "45-54", "55-64", "65+", unknown]
         marketValueUsd:
           type: number
         return1w:
