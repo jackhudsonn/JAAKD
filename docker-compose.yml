@@ -24,6 +24,33 @@ services:
       # and absent in production. Not part of the application schema.
       - ./backend/db/development:/opt/jaakd-development:ro
 
+  # Analyst view: separate analytics database (raw copy of prod + dbt marts, see analytics/).
+  # Opt-in: start it with `docker compose --profile analytics up -d jaakd-analytics-postgres`.
+  jaakd-analytics-postgres:
+    image: postgres:18
+    container_name: jaakd-analytics-postgres
+    profiles: ["analytics"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: jaakd_analytics
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      # Passed to analytics/db/init/ to create the pipeline (copy job + dbt) and backend reader roles.
+      ANALYTICS_PIPELINE_DB_PASSWORD: ${ANALYTICS_PIPELINE_DB_PASSWORD:-}
+      ANALYTICS_APP_READER_DB_PASSWORD: ${ANALYTICS_DB_PASSWORD:-}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d jaakd_analytics"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "127.0.0.1:5434:5432"
+    volumes:
+      - jaakd-analytics-postgres-data:/var/lib/postgresql
+      # Runs once, on first start with an empty volume; applies analytics/db/setup.sql.
+      - ./analytics/db/init:/docker-entrypoint-initdb.d:ro
+      - ./analytics/db:/opt/jaakd-analytics:ro
+
   jaakd-backend:
     build:
       context: ./backend
@@ -112,5 +139,7 @@ services:
 volumes:
   jaakd-postgres-data:
     name: jaakd-postgres-data
+  jaakd-analytics-postgres-data:
+    name: jaakd-analytics-postgres-data
   jaakd-frontend-node-modules:
     name: jaakd-frontend-node-modules
