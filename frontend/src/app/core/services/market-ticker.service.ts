@@ -1,25 +1,32 @@
 import { Injectable } from '@angular/core';
+import { toQuoteSymbols } from '@features/dashboard/services/dashboard-backend.mappers';
+import { InstrumentApiService } from './instrument-api.service';
 
 export interface MarketTickerItem {
   symbol: string;
-  value: string;
-  changePct: number;
+  price: number;
+  changePct: number | null;
 }
 
 @Injectable({
   providedIn: 'root',
 })
 export class MarketTickerService {
-  getTickerItems(): MarketTickerItem[] {
-    return [
-      { symbol: 'S&P 500', value: '5,742.40', changePct: 0.41 },
-      { symbol: 'NASDAQ', value: '18,121.00', changePct: -0.18 },
-      { symbol: 'DOW', value: '42,136.20', changePct: 0.22 },
-      { symbol: 'BTC', value: '61,200.00', changePct: 1.39 },
-      { symbol: 'ETH', value: '2,980.00', changePct: -1.13 },
-      { symbol: 'NVDA', value: '118.60', changePct: 1.84 },
-      { symbol: 'AMZN', value: '186.30', changePct: -0.76 },
-      { symbol: 'JAAKD', value: '17.48', changePct: 0 },
-    ];
+  constructor(private instrumentApiService: InstrumentApiService) {}
+
+  async getTickerItems(): Promise<MarketTickerItem[]> {
+    const symbols = toQuoteSymbols(await this.instrumentApiService.list());
+    if (symbols.length === 0) {
+      return [];
+    }
+
+    const items: MarketTickerItem[] = [];
+    for (const quote of await this.instrumentApiService.getQuotes(symbols)) {
+      if (quote.price !== null && quote.price > 0) {
+        items.push({ symbol: quote.symbol, price: quote.price, changePct: quote.changePercent });
+      }
+    }
+
+    return items;
   }
 }

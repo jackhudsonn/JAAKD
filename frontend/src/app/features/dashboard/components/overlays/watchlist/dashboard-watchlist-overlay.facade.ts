@@ -107,9 +107,16 @@ export class DashboardWatchlistOverlayFacade {
           asset.name.toLowerCase().includes(query),
       )
       .map((asset) => {
-        const knownAsset = this.backendDataMode
-          ? undefined
-          : this.marketData.getAsset(asset.symbol);
+        if (this.backendDataMode) {
+          const quote = this.state.liveQuotes?.().get(asset.symbol.toUpperCase());
+          return {
+            asset,
+            price: quote?.price ?? null,
+            changePct: quote?.changePct ?? null,
+          };
+        }
+
+        const knownAsset = this.marketData.getAsset(asset.symbol);
         const numericPrice = knownAsset ? this.marketData.getPrice(asset.symbol) : null;
         const changePct =
           knownAsset && numericPrice !== null && knownAsset.basePrice > 0
@@ -144,11 +151,12 @@ export class DashboardWatchlistOverlayFacade {
 
     const asset = this.backendDataMode ? undefined : this.marketData.getAsset(symbol);
     if (!asset && this.backendDataMode) {
+      const quote = this.state.liveQuotes?.().get(symbol.toUpperCase());
       return {
         symbol,
         name: symbol,
-        price: null,
-        changePct: null,
+        price: quote?.price ?? null,
+        changePct: quote?.changePct ?? null,
       };
     }
 

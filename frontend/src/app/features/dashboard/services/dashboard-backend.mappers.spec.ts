@@ -11,6 +11,7 @@ import {
   toLatestPriceBySymbol,
   toOpenOrders,
   toOrders,
+  toLiveQuoteBySymbol,
   toPriceResolver,
   toQuotePriceBySymbol,
   toQuoteSymbols,
@@ -520,7 +521,11 @@ describe('dashboard-backend.mappers', () => {
       name: 'Euro',
     };
 
-    const quote = (symbol: string, price: number | null): QuoteResponse => ({
+    const quote = (
+      symbol: string,
+      price: number | null,
+      changePercent: number | null = null,
+    ): QuoteResponse => ({
       symbol,
       price,
       bid: null,
@@ -528,6 +533,7 @@ describe('dashboard-backend.mappers', () => {
       currency: 'USD',
       asOf: null,
       marketState: null,
+      changePercent,
     });
 
     it('toCash returns the USD balance when several cash currencies exist', () => {
@@ -574,6 +580,18 @@ describe('dashboard-backend.mappers', () => {
       expect(prices.get('AAPL')).toBe(190);
       expect(prices.has('MSFT')).toBe(false);
       expect(prices.has('BND')).toBe(false);
+    });
+
+    it('toLiveQuoteBySymbol keeps priced quotes with their change', () => {
+      const liveQuotes = toLiveQuoteBySymbol([
+        quote('nvda', 118.6, 1.84),
+        quote('BTC', 61200),
+        quote('MSFT', null, 0.5),
+      ]);
+
+      expect(liveQuotes.get('NVDA')).toEqual({ price: 118.6, changePct: 1.84 });
+      expect(liveQuotes.get('BTC')).toEqual({ price: 61200, changePct: null });
+      expect(liveQuotes.has('MSFT')).toBe(false);
     });
 
     it('toPriceResolver reads prices case-insensitively', () => {
