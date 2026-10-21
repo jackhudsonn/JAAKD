@@ -5,7 +5,7 @@ const { randomUUID } = require("node:crypto");
 
 const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8081";
 const AUDITOR_CONTAINER = process.env.AUDITOR_DB_CONTAINER || "jaakd-postgres";
-const NETWORK_RETRY_ATTEMPTS = 20;
+const NETWORK_RETRY_ATTEMPTS = 5;
 const NETWORK_RETRY_DELAY_MS = 1000;
 
 const AUDITOR_ACCOUNT = {
