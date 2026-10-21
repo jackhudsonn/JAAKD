@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { TradeCardComponent } from './cards/trade/trade-card.component';
@@ -19,6 +19,8 @@ import { BackendTradeStateService } from './services/backend-trade-state.service
 import { BackendTradeMarketDataService } from './services/backend-trade-market-data.service';
 import { TradeOrderEngineService } from './services/trade-order-engine.service';
 import { TradeWatchlistService } from './services/trade-watchlist.service';
+import { ToastService } from '@shared/components/toast/toast.service';
+import { OrderStatus } from '@core/models';
 
 @Component({
   selector: 'app-trade',
@@ -46,10 +48,19 @@ export class TradeComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly tradeFacade = inject(TradeFacadeService);
   private readonly tradeDeepLinkService = inject(TradeDeepLinkService);
+  private readonly toastService = inject(ToastService);
 
   accountCash = this.tradeFacade.accountCash;
   holdings = this.tradeFacade.holdings;
   orders = this.tradeFacade.orders;
+  readonly cashBalances = computed(() => {
+    const balances = this.tradeFacade.cashBalances();
+    if (!balances) {
+      return null;
+    }
+
+    return Object.entries(balances).map(([currency, amount]) => ({ currency, amount }));
+  });
   readonly maxWatchlistHoldings = this.tradeFacade.maxWatchlistHoldings;
 
   openOrders = this.tradeFacade.openOrders;
@@ -72,6 +83,59 @@ export class TradeComponent implements OnInit, OnDestroy {
 
   private stopTicking?: () => void;
   private routeQuerySubscription?: Subscription;
+  private readonly previousOrderStatuses = new Map<string, OrderStatus>();
+  private seededOrderStatusTracking = false;
+
+  constructor() {
+    effect(() => {
+      const currentOrders = this.orders();
+      const currentLoadState = this.loadState();
+
+      if (!this.seededOrderStatusTracking) {
+        if (this.backendDataMode && currentLoadState !== 'ready') {
+          return;
+        }
+
+        for (const order of currentOrders) {
+          this.previousOrderStatuses.set(order.id, order.status);
+        }
+
+        this.seededOrderStatusTracking = true;
+        return;
+      }
+
+      if (this.backendDataMode && currentLoadState !== 'ready') {
+        return;
+      }
+
+      const activeOrderIds = new Set<string>();
+
+      for (const order of currentOrders) {
+        activeOrderIds.add(order.id);
+
+        const previousStatus = this.previousOrderStatuses.get(order.id);
+        const transitionedToRejected =
+          order.status === 'rejected' && previousStatus !== 'rejected';
+
+        if (transitionedToRejected) {
+          const reason = order.statusReason?.trim();
+          this.toastService.error(
+            reason
+              ? `${order.symbol} ${order.type} order was rejected: ${reason}`
+              : `${order.symbol} ${order.type} order was rejected.`,
+          );
+        }
+
+        this.previousOrderStatuses.set(order.id, order.status);
+      }
+
+      for (const knownOrderId of [...this.previousOrderStatuses.keys()]) {
+        if (!activeOrderIds.has(knownOrderId)) {
+          this.previousOrderStatuses.delete(knownOrderId);
+        }
+      }
+    });
+  }
 
   ngOnInit() {
     void this.tradeFacade.load();

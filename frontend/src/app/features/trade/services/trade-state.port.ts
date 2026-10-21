@@ -15,13 +15,17 @@ export interface TradeStatePort {
   readonly holdings: WritableSignal<Holding[]>;
   readonly orders: WritableSignal<Order[]>;
   readonly watchlists: WritableSignal<TradeWatchlist[]>;
-  readonly maxWatchlistHoldings: number;
+  readonly maxWatchlistHoldings: number | null;
   readonly backendDataMode?: boolean;
   readonly loadState?: Signal<'loading' | 'ready' | 'error'>;
+  readonly cashBalances?: Signal<Record<string, number>>;
   load?(): Promise<void>;
   submitOrder?(request: TradePlaceOrderRequest): Promise<void>;
   cancelOrder?(orderId: string): Promise<void>;
-  setWatchlistMembership?(symbol: string, included: boolean): Promise<void>;
+  setWatchlistMembership?(symbol: string, watchlistId: string, included: boolean): Promise<void>;
+  createWatchlist?(watchlistName: string): Promise<void>;
+  renameWatchlist?(watchlistId: string, watchlistName: string): Promise<void>;
+  deleteWatchlist?(watchlistId: string): Promise<void>;
 }
 
 export const TRADE_STATE_PORT = new InjectionToken<TradeStatePort>('TRADE_STATE_PORT', {

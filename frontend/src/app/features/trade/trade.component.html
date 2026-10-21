@@ -4,7 +4,31 @@
   <p class="page-description">Perform trades and view your orders.</p>
 
   @if (backendDataMode && loadState() === 'loading') {
-    <p class="page-description">Loading trade data...</p>
+    <section class="trade-grid trade-grid-skeleton" aria-busy="true" aria-live="polite">
+      <p class="sr-only">Loading trade data...</p>
+
+      <article class="trade-skeleton-card">
+        <div class="trade-skeleton-line trade-skeleton-line-sm"></div>
+        <div class="trade-skeleton-line trade-skeleton-line-lg"></div>
+        <div class="trade-skeleton-line trade-skeleton-line-md"></div>
+        <div class="trade-skeleton-line trade-skeleton-line-lg"></div>
+      </article>
+
+      <article class="trade-skeleton-card">
+        <div class="trade-skeleton-line trade-skeleton-line-sm"></div>
+        <div class="trade-skeleton-line trade-skeleton-line-lg"></div>
+        <div class="trade-skeleton-line trade-skeleton-line-lg"></div>
+        <div class="trade-skeleton-line trade-skeleton-line-md"></div>
+      </article>
+
+      <article class="trade-skeleton-card orders-card-slot">
+        <div class="trade-skeleton-line trade-skeleton-line-sm"></div>
+        <div class="trade-skeleton-line trade-skeleton-line-lg"></div>
+        <div class="trade-skeleton-line trade-skeleton-line-lg"></div>
+        <div class="trade-skeleton-line trade-skeleton-line-md"></div>
+        <div class="trade-skeleton-line trade-skeleton-line-lg"></div>
+      </article>
+    </section>
   } @else if (backendDataMode && loadState() === 'error') {
     <p class="page-description">We couldn't load your trade data. Try again.</p>
     <button type="button" class="btn btn-secondary" (click)="retryLoad()">Retry</button>
@@ -15,6 +39,7 @@
       <app-holdings-card
         [holdings]="holdings()"
         [accountCash]="accountCash()"
+        [cashBalances]="cashBalances()"
         (selectSymbol)="openAsset($event, false)"
       />
 

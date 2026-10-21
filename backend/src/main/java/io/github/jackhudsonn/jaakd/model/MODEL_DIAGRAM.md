@@ -6,11 +6,13 @@
 
 ```mermaid
 erDiagram
+  USER ||--o| PROFILE : "extends identity"
   PROFILE ||--o{ PORTFOLIO : owns
   PORTFOLIO ||--o{ ORDER_LOG : logs
-  PORTFOLIO ||--o{ WATCHLIST_ITEM : contains
   PORTFOLIO ||--o{ HOLDING : projects
   PORTFOLIO ||--o| PREFERENCE : configures
+  PORTFOLIO ||--o{ WATCHLIST : owns
+  WATCHLIST ||--o{ WATCHLIST_ITEM : contains
 
   HOLDING }o--|| INSTRUMENT : "references instrumentID"
   ORDER_LOG }o--|| INSTRUMENT : "references"
@@ -23,9 +25,14 @@ erDiagram
   POSITION_LOT ||--o{ LOT_MATCH : matched
   HOLDING ||--o{ LOT_MATCH : realizes
 
-  PROFILE {
+  USER {
     uuid userID PK
     string email
+    datetime createdAt
+  }
+
+  PROFILE {
+    uuid userID PK
     decimal userType "UserType numeric code"
     string firstName
     string lastName
@@ -112,11 +119,16 @@ erDiagram
     double quotedPrice "nullable"
   }
 
+  WATCHLIST {
+    uuid watchlistID PK
+    uuid portfolioID FK
+    string watchlistName
+  }
+
   WATCHLIST_ITEM {
     uuid listItemID PK
-    uuid portfolioID FK
+    uuid watchlistID FK
     uuid instrumentID FK
-    string name
   }
 
   PREFERENCE {
@@ -132,9 +144,11 @@ erDiagram
 
 ### Ownership Hierarchy
 
+- **User** → **Profile** (1:0..1 identity/profile split)
 - **Profile** → **Portfolio** (1:N)
 - **Portfolio** → **Holding** (1:N persisted projection)
-- **Portfolio** → **WatchlistItem** (1:N)
+- **Portfolio** → **Watchlist** (1:N)
+- **Watchlist** → **WatchlistItem** (1:N)
 - **Portfolio** → **Preference** (1:0..1 dashboard/widget configuration)
 
 ### Reference Data

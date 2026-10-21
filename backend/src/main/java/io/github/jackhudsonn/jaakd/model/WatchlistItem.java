@@ -11,7 +11,6 @@ import jakarta.persistence.Table;
 
 import java.util.UUID;
 
-// Maps to public.watchlist_items. Ticker moved out to instruments; now references instrumentID.
 @Entity
 @Table(name = "watchlist_items")
 public class WatchlistItem {
@@ -22,21 +21,18 @@ public class WatchlistItem {
     private UUID listItemId;
 
     @ManyToOne
-    @JoinColumn(name = "`portfolioID`", nullable = false)
-    private Portfolio portfolio;
+    @JoinColumn(name = "`watchlistID`", nullable = false)
+    private Watchlist watchlist;
 
     @ManyToOne
     @JoinColumn(name = "`instrumentID`", nullable = false)
     private Instrument instrument;
 
-    @Column(name = "name")
-    private String name;
-
     protected WatchlistItem() {
     }
 
-    public WatchlistItem(Portfolio portfolio, Instrument instrument) {
-        this.portfolio = portfolio;
+    public WatchlistItem(Watchlist watchlist, Instrument instrument) {
+        this.watchlist = watchlist;
         this.instrument = instrument;
     }
 
@@ -44,19 +40,11 @@ public class WatchlistItem {
         return listItemId;
     }
 
-    public Portfolio getPortfolio() {
-        return portfolio;
+    public Watchlist getWatchlist() {
+        return watchlist;
     }
 
     public Instrument getInstrument() {
         return instrument;
-    }
-
-    public String getWatchListName() {
-        return name;
-    }
-
-    public void setWatchListName( String name ) {
-        this.name = name;
     }
 }

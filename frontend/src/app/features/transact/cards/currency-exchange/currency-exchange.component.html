@@ -49,12 +49,6 @@
         <p class="exchange-rate">
           Available: {{ fromBalance() | number: '1.2-2' }} {{ fromCurrency() }}
         </p>
-        @if (message()) {
-          <p class="exchange-rate">{{ message() }}</p>
-        }
-        @if (errorMessage()) {
-          <p class="form-error">{{ errorMessage() }}</p>
-        }
       } @else {
         <p class="exchange-total">{{ convertedAmount() | number: '1.2-2' }} {{ toCurrency() }}</p>
 
@@ -62,13 +56,16 @@
           1 {{ fromCurrency() }} = {{ quoteRate() | number: '1.2-4' }} {{ toCurrency() }}
         </p>
       }
+      @if (sameCurrency()) {
+        <p class="form-error same-currency-error">Choose two different currencies.</p>
+      }
     </div>
 
     <div class="exchange-actions">
       <button
         type="button"
         class="btn btn-primary swap-button"
-        [disabled]="submitting()"
+        [disabled]="submitting() || sameCurrency()"
         (click)="requestExchange()"
       >
         Swap

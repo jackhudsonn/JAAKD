@@ -1,9 +1,10 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Injectable, signal } from '@angular/core';
 import {
+  HoldingResponse,
   InstrumentResponse,
   OrderLogResponse,
-  WatchlistItemResponse,
+  WatchlistResponse,
 } from '@core/models/api.models';
 import { Holding, Order } from '@core/models';
 import { WATCHLIST_CONSTRAINTS } from '@core/mocks/watchlist.mock';
@@ -20,7 +21,7 @@ import {
   toPriceResolver,
   toQuotePriceBySymbol,
   toQuoteSymbols,
-  toWatchlist,
+  toWatchlists,
 } from '@features/dashboard/services/dashboard-backend.mappers';
 import { TradePlaceOrderRequest } from './trade-order-engine.service';
 import { TradeStatePort, TradeWatchlist } from './trade-state.port';
@@ -32,6 +33,7 @@ export type TradeLoadState = 'loading' | 'ready' | 'error';
 })
 export class BackendTradeStateService implements TradeStatePort {
   readonly accountCash = signal(0);
+  readonly cashBalances = signal<Record<string, number>>({});
   readonly holdings = signal<Holding[]>([]);
   readonly orders = signal<Order[]>([]);
   readonly watchlists = signal<TradeWatchlist[]>([]);
@@ -43,7 +45,7 @@ export class BackendTradeStateService implements TradeStatePort {
   readonly instrumentsData = signal<InstrumentResponse[]>([]);
   readonly orderLogsData = signal<OrderLogResponse[]>([]);
   readonly latestPriceBySymbolData = signal<Map<string, number>>(new Map());
-  readonly watchlistItemsData = signal<WatchlistItemResponse[]>([]);
+  readonly watchlistsData = signal<WatchlistResponse[]>([]);
 
   private readonly portfolioId = signal<string | null>(null);
   private readonly quotePriceBySymbol = signal<Map<string, number>>(new Map());
@@ -59,6 +61,7 @@ export class BackendTradeStateService implements TradeStatePort {
   async load(): Promise<void> {
     this.loadState.set('loading');
     this.accountCash.set(0);
+    this.cashBalances.set({});
     this.holdings.set([]);
     this.orders.set([]);
     this.watchlists.set([]);
@@ -72,10 +75,11 @@ export class BackendTradeStateService implements TradeStatePort {
       this.portfolioId.set(null);
       this.instrumentsData.set([]);
       this.orderLogsData.set([]);
-      this.watchlistItemsData.set([]);
+      this.watchlistsData.set([]);
       this.latestPriceBySymbolData.set(new Map());
       this.quotePriceBySymbol.set(new Map());
       this.accountCash.set(0);
+      this.cashBalances.set({});
       this.holdings.set([]);
       this.orders.set([]);
       this.watchlists.set([]);
@@ -131,33 +135,60 @@ export class BackendTradeStateService implements TradeStatePort {
     }
   }
 
-  async setWatchlistMembership(symbol: string, included: boolean): Promise<void> {
+  async setWatchlistMembership(symbol: string, watchlistId: string, included: boolean): Promise<void> {
     const instrument = this.findInstrumentBySymbol(symbol);
     const portfolioId = this.portfolioId();
-
     if (!instrument || !portfolioId) {
       return;
     }
 
     if (included) {
-      await this.watchlistApiService.add({
-        portfolioId,
+      await this.watchlistApiService.addItem(portfolioId, watchlistId, {
         instrumentId: instrument.instrumentId,
-        name: 'Watchlist',
       });
       await this.refresh();
       return;
     }
 
-    const existingItem = this.watchlistItemsData().find(
-      (item) => item.instrumentId === instrument.instrumentId,
-    );
+    const existingItem = this.watchlistsData()
+      .find((watchlist) => watchlist.watchlistId === watchlistId)
+      ?.items.find((item) => item.instrumentId === instrument.instrumentId);
 
     if (!existingItem) {
       return;
     }
 
-    await this.watchlistApiService.remove(existingItem.listItemId);
+    await this.watchlistApiService.removeItem(portfolioId, watchlistId, existingItem.listItemId);
+    await this.refresh();
+  }
+
+  async createWatchlist(watchlistName: string): Promise<void> {
+    const portfolioId = this.portfolioId();
+    if (!portfolioId) {
+      return;
+    }
+
+    await this.watchlistApiService.createWatchlist(portfolioId, { watchlistName });
+    await this.refresh();
+  }
+
+  async renameWatchlist(watchlistId: string, watchlistName: string): Promise<void> {
+    const portfolioId = this.portfolioId();
+    if (!portfolioId) {
+      return;
+    }
+
+    await this.watchlistApiService.updateWatchlist(portfolioId, watchlistId, { watchlistName });
+    await this.refresh();
+  }
+
+  async deleteWatchlist(watchlistId: string): Promise<void> {
+    const portfolioId = this.portfolioId();
+    if (!portfolioId) {
+      return;
+    }
+
+    await this.watchlistApiService.deleteWatchlist(portfolioId, watchlistId);
     await this.refresh();
   }
   private async loadQuotes(instruments: InstrumentResponse[]): Promise<void> {
@@ -173,11 +204,11 @@ export class BackendTradeStateService implements TradeStatePort {
   private async refresh(includeQuotes = false): Promise<void> {
     const portfolio = await this.portfolioApiService.ensureDefault();
 
-    const [holdings, instruments, orderLogs, watchlistItems] = await Promise.all([
+    const [holdings, instruments, orderLogs, watchlists] = await Promise.all([
       this.holdingApiService.listByPortfolio(portfolio.portfolioId),
       this.instrumentApiService.list(),
       this.orderLogApiService.listByPortfolio(portfolio.portfolioId),
-      this.watchlistApiService.listByPortfolio(portfolio.portfolioId),
+      this.watchlistApiService.list(portfolio.portfolioId),
     ]);
 
     if (includeQuotes) {
@@ -187,16 +218,17 @@ export class BackendTradeStateService implements TradeStatePort {
     this.portfolioId.set(portfolio.portfolioId);
     this.instrumentsData.set(instruments);
     this.orderLogsData.set(orderLogs);
-    this.watchlistItemsData.set(watchlistItems);
+    this.watchlistsData.set(watchlists);
     this.latestPriceBySymbolData.set(
       new Map([...toLatestPriceBySymbol(orderLogs, instruments), ...this.quotePriceBySymbol()]),
     );
     this.accountCash.set(toCash(holdings, instruments));
+    this.cashBalances.set(this.toCashBalances(holdings, instruments));
     this.holdings.set(
       toHoldings(holdings, instruments, orderLogs, toPriceResolver(this.quotePriceBySymbol())),
     );
     this.orders.set(toOrders(orderLogs, instruments));
-    this.watchlists.set([toWatchlist(watchlistItems, instruments)]);
+    this.watchlists.set(toWatchlists(watchlists, instruments));
   }
 
   private findInstrumentBySymbol(symbol: string): InstrumentResponse | undefined {
@@ -204,6 +236,27 @@ export class BackendTradeStateService implements TradeStatePort {
     return this.instrumentsData().find(
       (instrument) => instrument.ticker.trim().toUpperCase() === normalized,
     );
+  }
+
+  private toCashBalances(
+    holdings: ReadonlyArray<HoldingResponse>,
+    instruments: ReadonlyArray<InstrumentResponse>,
+  ): Record<string, number> {
+    const cashTickerById = new Map(
+      instruments
+        .filter((instrument) => instrument.instrumentClass === 'CASH')
+        .map((instrument) => [instrument.instrumentId, instrument.ticker]),
+    );
+    const balances: Record<string, number> = {};
+
+    for (const holding of holdings) {
+      const ticker = cashTickerById.get(holding.instrumentID);
+      if (ticker) {
+        balances[ticker] = holding.currentQuantity;
+      }
+    }
+
+    return balances;
   }
 
   private delay(milliseconds: number): Promise<void> {

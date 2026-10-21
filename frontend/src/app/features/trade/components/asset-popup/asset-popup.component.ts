@@ -13,6 +13,7 @@ import {
 } from '@angular/core';
 import { DecimalPipe, TitleCasePipe } from '@angular/common';
 import { ModalComponent } from '@shared/components/modal/modal.component';
+import { ToastService } from '@shared/components/toast/toast.service';
 import {
   LineChartComponent,
   LineChartPoint,
@@ -59,6 +60,7 @@ export interface AssetSetWatchlistMembershipRequest {
 export class AssetPopupComponent implements OnInit, OnDestroy {
   private readonly elementRef = inject(ElementRef<HTMLElement>);
   private readonly marketData = inject(TRADE_MARKET_DATA_PORT);
+  private readonly toastService = inject(ToastService);
 
   symbol = input.required<string>();
   showChart = input(false);
@@ -66,13 +68,12 @@ export class AssetPopupComponent implements OnInit, OnDestroy {
   accountCash = input(0);
   backendDataMode = input(false);
   watchlists = input<readonly AssetPopupWatchlistOption[]>([]);
-  maxWatchlistHoldings = input(40);
+  maxWatchlistHoldings = input<number | null>(null);
 
   closed = output<void>();
   orderPlaced = output<AssetOrderPlaced>();
   setWatchlistMembership = output<AssetSetWatchlistMembershipRequest>();
 
-  confirmation = signal<AssetOrderPlaced | null>(null);
   watchlistDropdownOpen = signal(false);
   activeView = signal<'analysis' | 'trade'>('analysis');
   intervals = this.marketData.performanceIntervals;
@@ -117,7 +118,6 @@ export class AssetPopupComponent implements OnInit, OnDestroy {
       this.watchlistDropdownOpen.set(false);
       this.activeView.set('analysis');
       this.selectedInterval.set('1D');
-      this.confirmation.set(null);
     });
   }
 
@@ -145,7 +145,11 @@ export class AssetPopupComponent implements OnInit, OnDestroy {
   onOrderPlaced(request: OrderFormSubmit) {
     const placed: AssetOrderPlaced = { symbol: this.symbol(), ...request };
     this.orderPlaced.emit(placed);
-    this.confirmation.set(placed);
+    this.toastService.success(
+      `${placed.type === 'buy' ? 'Buy' : 'Sell'} order placed for ${placed.quantity} ${placed.symbol}` +
+        (placed.kind === 'market' ? ' at market.' : ` at limit ${placed.limitPrice?.toFixed(2)}.`),
+    );
+    this.closed.emit();
   }
 
   openTradeView() {

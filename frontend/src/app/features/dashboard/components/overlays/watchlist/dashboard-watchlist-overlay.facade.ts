@@ -5,6 +5,7 @@ import {
   DashboardMarketAsset,
 } from '@features/dashboard/services/dashboard-market-data.port';
 import { DASHBOARD_STATE_PORT } from '@features/dashboard/services/dashboard-state.port';
+import { ToastService } from '@shared/components/toast/toast.service';
 
 export interface DashboardWatchlistAssetSummary {
   symbol: string;
@@ -33,12 +34,15 @@ const INSTRUMENT_OPTIONS: DashboardInstrumentOption[] = [
   { id: 'bond', label: 'Bonds' },
 ];
 
+const WATCHLIST_NAME_PATTERN = /^[A-Za-z0-9' -]+$/;
+
 @Injectable({
   providedIn: 'root',
 })
 export class DashboardWatchlistOverlayFacade {
   private readonly marketData = inject(DASHBOARD_MARKET_DATA_PORT);
   private readonly state = inject(DASHBOARD_STATE_PORT);
+  private readonly toastService = inject(ToastService);
 
   private readonly watchlists = this.state.watchlists;
   private readonly activeWatchlistId = this.state.activeWatchlistId;
@@ -46,11 +50,9 @@ export class DashboardWatchlistOverlayFacade {
 
   readonly watchlistDialogMode = signal<'create' | 'edit' | null>(null);
   readonly watchlistNameDraft = signal('');
-  readonly watchlistDialogError = signal<string | null>(null);
   readonly watchlistSearchOpen = signal(false);
   readonly watchlistSearch = signal('');
   readonly watchlistSearchInstrument = signal<DashboardInstrumentFilter>('all');
-  readonly watchlistSearchError = signal<string | null>(null);
   readonly selectedWatchlistSymbol = signal<string | null>(null);
 
   readonly instrumentOptions = INSTRUMENT_OPTIONS;
@@ -69,7 +71,9 @@ export class DashboardWatchlistOverlayFacade {
   readonly activeWatchlistSymbolCount = computed(() => this.activeWatchlist()?.symbols.length ?? 0);
 
   readonly activeWatchlistHasCapacity = computed(
-    () => this.activeWatchlistSymbolCount() < this.maxHoldingsPerWatchlist,
+    () =>
+      this.maxHoldingsPerWatchlist === null ||
+      this.activeWatchlistSymbolCount() < this.maxHoldingsPerWatchlist,
   );
 
   readonly watchlistSearchRows = computed<DashboardWatchlistSearchRow[]>(() => {
@@ -165,11 +169,10 @@ export class DashboardWatchlistOverlayFacade {
 
   requestCreateWatchlist() {
     this.watchlistNameDraft.set('');
-    this.watchlistDialogError.set(null);
     this.watchlistDialogMode.set('create');
 
     if (!this.canCreateWatchlist()) {
-      this.watchlistDialogError.set(`You can create up to ${this.maxWatchlists} watchlists.`);
+      this.toastService.error(`You can create up to ${this.maxWatchlists} watchlists.`);
     }
   }
 
@@ -180,7 +183,6 @@ export class DashboardWatchlistOverlayFacade {
     }
 
     this.watchlistNameDraft.set(active.name);
-    this.watchlistDialogError.set(null);
     this.watchlistDialogMode.set('edit');
   }
 
@@ -197,44 +199,35 @@ export class DashboardWatchlistOverlayFacade {
     this.selectedWatchlistSymbol.set(null);
     this.watchlistSearch.set('');
     this.watchlistSearchInstrument.set('all');
-    this.watchlistSearchError.set(null);
     this.watchlistSearchOpen.set(true);
   }
 
   closeWatchlistDialog() {
     this.watchlistDialogMode.set(null);
     this.watchlistNameDraft.set('');
-    this.watchlistDialogError.set(null);
   }
 
   closeWatchlistSearchPopup() {
     this.watchlistSearchOpen.set(false);
     this.watchlistSearch.set('');
     this.watchlistSearchInstrument.set('all');
-    this.watchlistSearchError.set(null);
   }
 
   onWatchlistNameInput(value: string) {
     this.watchlistNameDraft.set(value);
-    if (this.watchlistDialogError()) {
-      this.watchlistDialogError.set(null);
-    }
   }
 
   onWatchlistSearchChange(value: string) {
     this.watchlistSearch.set(value);
-    if (this.watchlistSearchError()) {
-      this.watchlistSearchError.set(null);
-    }
   }
 
   setWatchlistInstrumentFilter(type: DashboardInstrumentFilter) {
     this.watchlistSearchInstrument.set(type);
   }
 
-  saveWatchlistName() {
+  async saveWatchlistName() {
     if (this.watchlistDialogMode() === 'edit') {
-      this.saveEditedWatchlistName();
+      await this.saveEditedWatchlistName();
       return;
     }
 
@@ -243,18 +236,32 @@ export class DashboardWatchlistOverlayFacade {
     }
 
     if (!this.canCreateWatchlist()) {
-      this.watchlistDialogError.set(`You can create up to ${this.maxWatchlists} watchlists.`);
+      this.toastService.error(`You can create up to ${this.maxWatchlists} watchlists.`);
       return;
     }
 
-    const trimmedName = this.watchlistNameDraft().trim();
+    const trimmedName = this.validateWatchlistName(this.watchlistNameDraft());
     if (!trimmedName) {
-      this.watchlistDialogError.set('Watchlist name is required.');
       return;
     }
 
     if (this.isWatchlistNameTaken(trimmedName)) {
-      this.watchlistDialogError.set('A watchlist with that name already exists.');
+      this.toastService.error('A watchlist with that name already exists.');
+      return;
+    }
+
+    if (this.backendDataMode && this.state.createWatchlist) {
+      try {
+        await this.state.createWatchlist(trimmedName);
+        const newestWatchlist = this.watchlists().at(-1);
+        if (newestWatchlist) {
+          this.activeWatchlistId.set(newestWatchlist.id);
+        }
+        this.toastService.success(`Created watchlist "${trimmedName}".`);
+        this.closeWatchlistDialog();
+      } catch (error) {
+        this.toastService.error(this.toErrorMessage(error, 'Failed to create watchlist.'));
+      }
       return;
     }
 
@@ -267,18 +274,34 @@ export class DashboardWatchlistOverlayFacade {
 
     this.watchlists.update((current) => [...current, { id, name: trimmedName, symbols: [] }]);
     this.activeWatchlistId.set(id);
+    this.toastService.success(`Created watchlist "${trimmedName}".`);
     this.closeWatchlistDialog();
   }
 
-  confirmDeleteWatchlist() {
+  async confirmDeleteWatchlist() {
     const currentWatchlists = this.watchlists();
     if (currentWatchlists.length <= this.state.watchlistConstraints.minWatchlists) {
       return;
     }
 
     const activeId = this.activeWatchlistId();
+    const activeWatchlistName = this.activeWatchlist()?.name ?? 'watchlist';
     const activeIndex = currentWatchlists.findIndex((watchlist) => watchlist.id === activeId);
     if (activeIndex < 0) {
+      return;
+    }
+
+    if (this.backendDataMode && this.state.deleteWatchlist) {
+      try {
+        await this.state.deleteWatchlist(activeId);
+        const refreshed = this.watchlists();
+        const nextActive = refreshed[0];
+        this.activeWatchlistId.set(nextActive?.id ?? '');
+        this.toastService.success(`Deleted watchlist "${activeWatchlistName}".`);
+        this.closeWatchlistDialog();
+      } catch (error) {
+        this.toastService.error(this.toErrorMessage(error, 'Failed to delete watchlist.'));
+      }
       return;
     }
 
@@ -289,32 +312,40 @@ export class DashboardWatchlistOverlayFacade {
 
     this.watchlists.set(currentWatchlists.filter((watchlist) => watchlist.id !== activeId));
     this.activeWatchlistId.set(nextActive.id);
+    this.toastService.success(`Deleted watchlist "${activeWatchlistName}".`);
     this.closeWatchlistDialog();
   }
 
   async addSymbolToActiveWatchlist(symbol: string): Promise<void> {
-    if (this.backendDataMode && this.state.setWatchlistMembership) {
-      this.watchlistSearchError.set(null);
-      await this.state.setWatchlistMembership(symbol, true);
-      this.closeWatchlistSearchPopup();
+    const active = this.activeWatchlist();
+    if (!active) {
+      this.toastService.error('Select a watchlist first.');
       return;
     }
 
-    const active = this.activeWatchlist();
-    if (!active) {
-      this.watchlistSearchError.set('Select a watchlist first.');
+    if (this.backendDataMode && this.state.setWatchlistMembership) {
+      this.closeWatchlistSearchPopup();
+      try {
+        await this.state.setWatchlistMembership(symbol, active.id, true);
+        this.toastService.success(`Added ${symbol} to "${active.name}".`);
+      } catch (error) {
+        this.toastService.error(
+          this.toErrorMessage(error, `Failed to add ${symbol} to "${active.name}".`),
+        );
+      }
       return;
     }
 
     if (active.symbols.includes(symbol)) {
-      this.watchlistSearchError.set(`${symbol} is already in this watchlist.`);
+      this.toastService.error(`${symbol} is already in this watchlist.`);
       return;
     }
 
-    if (active.symbols.length >= this.maxHoldingsPerWatchlist) {
-      this.watchlistSearchError.set(
-        `Each watchlist is limited to ${this.maxHoldingsPerWatchlist} items.`,
-      );
+    if (
+      this.maxHoldingsPerWatchlist !== null &&
+      active.symbols.length >= this.maxHoldingsPerWatchlist
+    ) {
+      this.toastService.error(`Each watchlist is limited to ${this.maxHoldingsPerWatchlist} items.`);
       return;
     }
 
@@ -325,8 +356,8 @@ export class DashboardWatchlistOverlayFacade {
           : watchlist,
       ),
     );
-
-    this.watchlistSearchError.set(null);
+    this.toastService.success(`Added ${symbol} to "${active.name}".`);
+    this.closeWatchlistSearchPopup();
   }
 
   async removeSelectedWatchlistAsset(): Promise<void> {
@@ -337,8 +368,15 @@ export class DashboardWatchlistOverlayFacade {
     }
 
     if (this.backendDataMode && this.state.setWatchlistMembership) {
-      await this.state.setWatchlistMembership(selected.symbol, false);
       this.closeWatchlistAssetPopup();
+      try {
+        await this.state.setWatchlistMembership(selected.symbol, active.id, false);
+        this.toastService.success(`Removed ${selected.symbol} from "${active.name}".`);
+      } catch (error) {
+        this.toastService.error(
+          this.toErrorMessage(error, `Failed to remove ${selected.symbol} from "${active.name}".`),
+        );
+      }
       return;
     }
 
@@ -353,6 +391,7 @@ export class DashboardWatchlistOverlayFacade {
       ),
     );
 
+    this.toastService.success(`Removed ${selected.symbol} from "${active.name}".`);
     this.closeWatchlistAssetPopup();
   }
 
@@ -361,33 +400,39 @@ export class DashboardWatchlistOverlayFacade {
   }
 
   private isWatchlistNameTaken(name: string) {
-    const normalizedName = name.trim().toLowerCase();
-    return this.watchlists().some(
-      (watchlist) => watchlist.name.trim().toLowerCase() === normalizedName,
-    );
+    const normalizedName = name.trim();
+    return this.watchlists().some((watchlist) => watchlist.name.trim() === normalizedName);
   }
 
-  private saveEditedWatchlistName() {
+  private async saveEditedWatchlistName() {
     const active = this.activeWatchlist();
     if (!active) {
-      this.watchlistDialogError.set('Select a watchlist first.');
+      this.toastService.error('Select a watchlist first.');
       return;
     }
 
-    const trimmedName = this.watchlistNameDraft().trim();
+    const trimmedName = this.validateWatchlistName(this.watchlistNameDraft());
     if (!trimmedName) {
-      this.watchlistDialogError.set('Watchlist name is required.');
       return;
     }
 
-    const normalizedTrimmed = trimmedName.toLowerCase();
     const duplicateExists = this.watchlists().some(
-      (watchlist) =>
-        watchlist.id !== active.id && watchlist.name.trim().toLowerCase() === normalizedTrimmed,
+      (watchlist) => watchlist.id !== active.id && watchlist.name.trim() === trimmedName,
     );
 
     if (duplicateExists) {
-      this.watchlistDialogError.set('A watchlist with that name already exists.');
+      this.toastService.error('A watchlist with that name already exists.');
+      return;
+    }
+
+    if (this.backendDataMode && this.state.renameWatchlist) {
+      try {
+        await this.state.renameWatchlist(active.id, trimmedName);
+        this.toastService.success(`Renamed watchlist to "${trimmedName}".`);
+        this.closeWatchlistDialog();
+      } catch (error) {
+        this.toastService.error(this.toErrorMessage(error, 'Failed to rename watchlist.'));
+      }
       return;
     }
 
@@ -397,6 +442,51 @@ export class DashboardWatchlistOverlayFacade {
       ),
     );
 
+    this.toastService.success(`Renamed watchlist to "${trimmedName}".`);
     this.closeWatchlistDialog();
+  }
+
+  private validateWatchlistName(rawName: string): string | null {
+    const trimmedName = rawName.trim();
+    if (!trimmedName) {
+      this.toastService.error('Watchlist name is required.');
+      return null;
+    }
+
+    if (trimmedName.length < 3 || trimmedName.length > 20) {
+      this.toastService.error('Watchlist name must be between 3 and 20 characters.');
+      return null;
+    }
+
+    if (!WATCHLIST_NAME_PATTERN.test(trimmedName)) {
+      this.toastService.error(
+        "Watchlist name can contain letters, numbers, spaces, apostrophes, and hyphens.",
+      );
+      return null;
+    }
+
+    return trimmedName;
+  }
+
+  private toErrorMessage(error: unknown, fallbackMessage: string): string {
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      'error' in error &&
+      typeof (error as { error?: unknown }).error === 'object' &&
+      (error as { error?: { message?: unknown } }).error &&
+      typeof (error as { error?: { message?: unknown } }).error?.message === 'string'
+    ) {
+      const message = (error as { error: { message: string } }).error.message.trim();
+      if (message.length > 0) {
+        return message;
+      }
+    }
+
+    if (error instanceof Error && error.message.trim().length > 0) {
+      return error.message;
+    }
+
+    return fallbackMessage;
   }
 }

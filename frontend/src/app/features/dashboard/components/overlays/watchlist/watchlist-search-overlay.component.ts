@@ -22,8 +22,7 @@ export class WatchlistSearchOverlayComponent {
   watchlistSearchInstrument = input<DashboardInstrumentFilter>('all');
   instrumentOptions = input<readonly DashboardInstrumentOption[]>([]);
   activeWatchlistSymbolCount = input(0);
-  maxHoldingsPerWatchlist = input(0);
-  watchlistSearchError = input<string | null>(null);
+  maxHoldingsPerWatchlist = input<number | null>(null);
   activeWatchlistHasCapacity = input(false);
   watchlistSearchRows = input<readonly DashboardWatchlistSearchRow[]>([]);
   watchlistSearchEmptyMessage = input('');

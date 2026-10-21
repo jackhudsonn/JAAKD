@@ -8,16 +8,10 @@
           type="text"
           [value]="watchlistNameDraft()"
           (input)="onWatchlistNameInput($event)"
-          maxlength="40"
+          maxlength="20"
           placeholder="e.g. Recommendations"
         />
       </div>
-
-      @if (watchlistDialogError()) {
-        <p class="form-error">{{ watchlistDialogError() }}</p>
-      }
-
-      <p class="watchlist-limit-copy">Max watchlists: {{ maxWatchlists() }}</p>
 
       <div class="watchlist-dialog-actions">
         <button
@@ -44,20 +38,10 @@
             type="text"
             [value]="watchlistNameDraft()"
             (input)="onWatchlistNameInput($event)"
-            maxlength="40"
+            maxlength="20"
             placeholder="e.g. Recommendations"
           />
         </div>
-
-        @if (watchlistDialogError()) {
-          <p class="form-error">{{ watchlistDialogError() }}</p>
-        }
-
-        <p class="watchlist-limit-copy">
-          {{ activeWatchlistSymbolCount() }}/{{ maxHoldingsPerWatchlist() }} items in "{{
-            watchlistName
-          }}"
-        </p>
 
         <div class="watchlist-dialog-actions">
           <button
