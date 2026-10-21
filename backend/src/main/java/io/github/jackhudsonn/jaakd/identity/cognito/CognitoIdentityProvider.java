@@ -2,6 +2,7 @@ package io.github.jackhudsonn.jaakd.identity.cognito;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -30,6 +31,7 @@ import software.amazon.awssdk.services.cognitoidentityprovider.model.CognitoIden
 import software.amazon.awssdk.services.cognitoidentityprovider.model.AuthenticationResultType;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.ChangePasswordRequest;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.ConfirmSignUpRequest;
+import software.amazon.awssdk.services.cognitoidentityprovider.model.ConfirmSignUpResponse;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.InitiateAuthRequest;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.InitiateAuthResponse;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.ResendConfirmationCodeRequest;
@@ -81,7 +83,8 @@ public class CognitoIdentityProvider implements IdentityProvider {
             if (response.userSub() == null || response.userSub().isBlank()) {
                 throw new IdentityProviderUnavailableException("Cognito SignUp returned no subject");
             }
-            return new RegistrationOutcome(response.userSub(), !Boolean.TRUE.equals(response.userConfirmed()));
+            return new RegistrationOutcome(response.userSub(), !Boolean.TRUE.equals(response.userConfirmed()),
+                    response.session());
         } catch (UsernameExistsException ex) {
             throw existingRegistration(normalized);
         } catch (SdkException ex) {
@@ -90,12 +93,12 @@ public class CognitoIdentityProvider implements IdentityProvider {
     }
 
     @Override
-    public void link(UUID userId, String subject, String email) {
-        userStore.insertPending(userId, subject, normalize(email));
+    public void link(UUID userId, String subject, String email, String signUpSession) {
+        userStore.insertPending(userId, subject, normalize(email), signUpSession);
     }
 
     @Override
-    public void confirmRegistration(String email, String code) {
+    public Optional<SignInOutcome.Authenticated> confirmRegistration(String email, String code) {
         String normalized = normalize(email);
         CognitoUser pending = userStore.findLatestByEmail(normalized)
                 .orElseThrow(() -> new ValidationException("no pending registration for this email"));
@@ -104,12 +107,16 @@ public class CognitoIdentityProvider implements IdentityProvider {
                 .clientId(properties.getClientId())
                 .username(normalized)
                 .confirmationCode(code);
+        if (pending.signUpSession() != null && !pending.signUpSession().isBlank()) {
+            request.session(pending.signUpSession());
+        }
         if (properties.hasClientSecret()) {
             request.secretHash(secretHash(normalized));
         }
 
+        ConfirmSignUpResponse response;
         try {
-            client.confirmSignUp(request.build());
+            response = client.confirmSignUp(request.build());
             userStore.markConfirmed(pending.identityId(), normalized);
         } catch (CognitoIdentityProviderException ex) {
             if (isNotAuthorizedOrMissing(ex)) {
@@ -119,6 +126,8 @@ public class CognitoIdentityProvider implements IdentityProvider {
         } catch (SdkException ex) {
             throw exceptions.translate(ex, normalized);
         }
+
+        return signInAfterConfirmation(normalized, response.session());
     }
 
     @Override
@@ -140,6 +149,45 @@ public class CognitoIdentityProvider implements IdentityProvider {
             throw exceptions.translate(ex, normalized);
         } catch (SdkException ex) {
             throw exceptions.translate(ex, normalized);
+        }
+    }
+
+    private Optional<SignInOutcome.Authenticated> signInAfterConfirmation(String email, String session) {
+        if (session == null || session.isBlank()) {
+            return Optional.empty();
+        }
+
+        Map<String, String> parameters = new HashMap<>();
+        parameters.put("USERNAME", email);
+        if (properties.hasClientSecret()) {
+            parameters.put("SECRET_HASH", secretHash(email));
+        }
+
+        try {
+            InitiateAuthResponse response = client.initiateAuth(InitiateAuthRequest.builder()
+                    .clientId(properties.getClientId())
+                    .authFlow(AuthFlowType.USER_AUTH)
+                    .session(session)
+                    .authParameters(parameters)
+                    .build());
+
+            AuthenticationResultType result = response.authenticationResult();
+            if (result == null || result.idToken() == null) {
+                log.warn("Cognito confirmation did not return an authentication result");
+                return Optional.empty();
+            }
+
+            CognitoIdentity identity = idTokenVerifier.verify(result.idToken());
+            CognitoUser user = userStore.findBySubject(identity.subject())
+                    .orElseThrow(RegistrationIncompleteException::new);
+            userStore.markConfirmed(identity.subject(), identity.email());
+            return Optional.of(new SignInOutcome.Authenticated(user.userId(), identity.email(), result.refreshToken()));
+        } catch (RuntimeException ex) {
+            // Confirmation already succeeded. A failed automatic sign-in must
+            // not turn a successful confirmation into an error; the client
+            // falls back to the login page.
+            log.warn("Cognito automatic sign-in after confirmation failed: {}", ex.getMessage());
+            return Optional.empty();
         }
     }
 

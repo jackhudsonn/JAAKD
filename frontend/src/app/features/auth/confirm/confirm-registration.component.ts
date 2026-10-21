@@ -37,7 +37,13 @@ export class ConfirmRegistrationComponent {
 
     this.busy = true;
     try {
-      await this.authService.confirmRegistration(this.email, this.code);
+      const authenticated = await this.authService.confirmRegistration(this.email, this.code);
+      if (authenticated) {
+        this.toastService.success('Email confirmed. Welcome to JAAKD.');
+        await this.router.navigate(['/dashboard']);
+        return;
+      }
+
       this.toastService.success('Email confirmed. Please sign in.');
       await this.router.navigate(['/auth/login'], {
         queryParams: { email: this.email },

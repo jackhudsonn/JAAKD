@@ -12,9 +12,9 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
-// Adapter-owned link between a Cognito subject and an application user. This
-// table is absent when identity.provider is not cognito; using JdbcTemplate
-// avoids Hibernate validating a table that should not exist in development.
+// Adapter-owned link between a Cognito subject and an application user. The
+// table exists in every environment so provider switches need no migration;
+// using JdbcTemplate avoids mapping a provider table through JPA.
 @Component
 @ConditionalOnProperty(name = "identity.provider", havingValue = "cognito")
 public class CognitoUserStore {
@@ -25,12 +25,13 @@ public class CognitoUserStore {
             String subject,
             String email,
             String status,
+            String signUpSession,
             Instant createdAt,
             Instant expiresAt) {
     }
 
     private static final String SELECT_COLUMNS =
-            "SELECT \"identityID\", \"userID\", subject, email, status, \"createdAt\", \"expiresAt\" ";
+            "SELECT \"identityID\", \"userID\", subject, email, status, \"signUpSession\", \"createdAt\", \"expiresAt\" ";
 
     private static final Duration PENDING_TTL = Duration.ofDays(7);
 
@@ -56,25 +57,26 @@ public class CognitoUserStore {
         return rows.stream().findFirst();
     }
 
-    public void insertPending(UUID userId, String subject, String email) {
+    public void insertPending(UUID userId, String subject, String email, String signUpSession) {
         jdbcTemplate.update(
                 """
-                INSERT INTO cognito_users ("identityID", "userID", subject, email, status, "expiresAt")
-                VALUES (?, ?, ?, ?, 'PENDING', ?)
+                INSERT INTO cognito_users ("identityID", "userID", subject, email, status, "signUpSession", "expiresAt")
+                VALUES (?, ?, ?, ?, 'PENDING', ?, ?)
                 ON CONFLICT (subject) DO NOTHING
                 """,
-                UUID.randomUUID(), userId, subject, email, java.sql.Timestamp.from(Instant.now().plus(PENDING_TTL)));
+                UUID.randomUUID(), userId, subject, email, signUpSession,
+                java.sql.Timestamp.from(Instant.now().plus(PENDING_TTL)));
     }
 
     public void markConfirmed(UUID identityId, String email) {
         jdbcTemplate.update(
-                "UPDATE cognito_users SET status = 'CONFIRMED', email = ?, \"expiresAt\" = NULL WHERE \"identityID\" = ?",
+                "UPDATE cognito_users SET status = 'CONFIRMED', email = ?, \"signUpSession\" = NULL, \"expiresAt\" = NULL WHERE \"identityID\" = ?",
                 email, identityId);
     }
 
     public void markConfirmed(String subject, String email) {
         jdbcTemplate.update(
-                "UPDATE cognito_users SET status = 'CONFIRMED', email = ?, \"expiresAt\" = NULL WHERE subject = ?",
+                "UPDATE cognito_users SET status = 'CONFIRMED', email = ?, \"signUpSession\" = NULL, \"expiresAt\" = NULL WHERE subject = ?",
                 email, subject);
     }
 
@@ -86,6 +88,7 @@ public class CognitoUserStore {
                 rs.getString("subject"),
                 rs.getString("email"),
                 rs.getString("status"),
+                rs.getString("signUpSession"),
                 rs.getTimestamp("createdAt").toInstant(),
                 expiresAt == null ? null : expiresAt.toInstant());
     }

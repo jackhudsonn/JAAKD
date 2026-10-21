@@ -1,5 +1,6 @@
 package io.github.jackhudsonn.jaakd.service;
 
+import java.util.Optional;
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -48,8 +49,12 @@ public class AuthService {
         return new RegistrationResult(email, outcome.confirmationRequired());
     }
 
-    public void confirmRegistration(String email, String code) {
-        identityProvider.confirmRegistration(email, code);
+    public Optional<SignInResult> confirmRegistration(String email, String code) {
+        return identityProvider.confirmRegistration(email, code).map(authenticated -> {
+            userProvisioner.ensureUser(authenticated.userId(), authenticated.email());
+            Session session = sessionService.create(authenticated.userId(), authenticated.refreshToken());
+            return new SignInResult(session, authenticated.email());
+        });
     }
 
     public void resendConfirmation(String email) {

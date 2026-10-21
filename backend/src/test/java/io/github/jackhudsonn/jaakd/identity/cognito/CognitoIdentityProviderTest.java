@@ -2,6 +2,7 @@ package io.github.jackhudsonn.jaakd.identity.cognito;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -26,8 +27,10 @@ import io.github.jackhudsonn.jaakd.identity.cognito.CognitoIdTokenVerifier.Cogni
 import io.github.jackhudsonn.jaakd.identity.cognito.CognitoUserStore.CognitoUser;
 import software.amazon.awssdk.services.cognitoidentityprovider.CognitoIdentityProviderClient;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.AuthenticationResultType;
+import software.amazon.awssdk.services.cognitoidentityprovider.model.AuthFlowType;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.ChangePasswordRequest;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.ConfirmSignUpRequest;
+import software.amazon.awssdk.services.cognitoidentityprovider.model.ConfirmSignUpResponse;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.InitiateAuthRequest;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.InitiateAuthResponse;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.RevokeTokenRequest;
@@ -75,6 +78,7 @@ class CognitoIdentityProviderTest {
 
         assertEquals("subject", outcome.subject());
         assertEquals(true, outcome.confirmationRequired());
+        assertEquals(null, outcome.signUpSession());
 
         ArgumentCaptor<SignUpRequest> request = ArgumentCaptor.forClass(SignUpRequest.class);
         verify(client).signUp(request.capture());
@@ -93,18 +97,46 @@ class CognitoIdentityProviderTest {
         assertThrows(ConfirmationPendingException.class,
                 () -> provider.register(USER_ID, EMAIL, "Password123!"));
 
-        verify(userStore, never()).insertPending(any(), any(), any());
+        verify(userStore, never()).insertPending(any(), any(), any(), any());
     }
 
     @Test
     void confirmRegistration_confirmsCognitoThenMarksTheLink() {
         CognitoUser pending = cognitoUser("PENDING");
         when(userStore.findLatestByEmail(EMAIL)).thenReturn(Optional.of(pending));
-        when(client.confirmSignUp(any(ConfirmSignUpRequest.class))).thenReturn(null);
+        when(client.confirmSignUp(any(ConfirmSignUpRequest.class)))
+                .thenReturn(ConfirmSignUpResponse.builder().build());
 
-        provider.confirmRegistration(EMAIL, "123456");
+        assertTrue(provider.confirmRegistration(EMAIL, "123456").isEmpty());
 
         verify(userStore).markConfirmed(pending.identityId(), EMAIL);
+    }
+
+    @Test
+    void confirmRegistration_usesTheConfirmationSessionToSignIn() {
+        CognitoUser pending = cognitoUser("PENDING");
+        when(userStore.findLatestByEmail(EMAIL)).thenReturn(Optional.of(pending));
+        when(client.confirmSignUp(any(ConfirmSignUpRequest.class)))
+                .thenReturn(ConfirmSignUpResponse.builder().session("confirm-session").build());
+        when(client.initiateAuth(any(InitiateAuthRequest.class))).thenReturn(
+                InitiateAuthResponse.builder()
+                        .authenticationResult(AuthenticationResultType.builder()
+                                .idToken("id-token")
+                                .refreshToken("refresh-token")
+                                .build())
+                        .build());
+        when(verifier.verify("id-token")).thenReturn(new CognitoIdentity("subject", EMAIL));
+        when(userStore.findBySubject("subject")).thenReturn(Optional.of(cognitoUser("CONFIRMED")));
+
+        Optional<SignInOutcome.Authenticated> result = provider.confirmRegistration(EMAIL, "123456");
+
+        assertTrue(result.isPresent());
+        assertEquals(USER_ID, result.orElseThrow().userId());
+        assertEquals("refresh-token", result.orElseThrow().refreshToken());
+        ArgumentCaptor<InitiateAuthRequest> request = ArgumentCaptor.forClass(InitiateAuthRequest.class);
+        verify(client).initiateAuth(request.capture());
+        assertEquals(AuthFlowType.USER_AUTH, request.getValue().authFlow());
+        assertEquals("confirm-session", request.getValue().session());
     }
 
     @Test
@@ -155,7 +187,7 @@ class CognitoIdentityProviderTest {
     }
 
     private CognitoUser cognitoUser(String status) {
-        return new CognitoUser(UUID.randomUUID(), USER_ID, "subject", EMAIL, status,
+        return new CognitoUser(UUID.randomUUID(), USER_ID, "subject", EMAIL, status, "sign-up-session",
                 java.time.Instant.now(), null);
     }
 }

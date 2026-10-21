@@ -8,6 +8,30 @@ CREATE TABLE IF NOT EXISTS users (
   "createdAt" TIMESTAMP NOT NULL DEFAULT now()
 );
 
+-- Provider-owned identity link tables. Both tables exist in every environment
+-- so switching IDENTITY_PROVIDER does not require a schema migration. Only the
+-- selected adapter reads its own table; the other is inert. Neither table is
+-- mapped by JPA, so Hibernate's ddl-auto=validate does not inspect them.
+CREATE TABLE IF NOT EXISTS development_credentials (
+  "userID" UUID PRIMARY KEY,
+  email TEXT UNIQUE NOT NULL,
+  "passwordHash" TEXT NOT NULL,
+  "createdAt" TIMESTAMP NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS cognito_users (
+  "identityID" UUID PRIMARY KEY,
+  "userID" UUID NOT NULL UNIQUE REFERENCES users("userID") ON DELETE CASCADE,
+  subject TEXT NOT NULL UNIQUE,
+  email TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('PENDING', 'CONFIRMED')),
+  "signUpSession" TEXT,
+  "createdAt" TIMESTAMP NOT NULL DEFAULT now(),
+  "expiresAt" TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS cognito_users_email_idx ON cognito_users (email);
+
 -- Server-side session store. The browser holds only the opaque "sessionID";
 -- credentials and provider tokens stay on the server.
 CREATE TABLE IF NOT EXISTS sessions (
@@ -306,7 +330,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE
   payment_methods
 TO jaakd_app;
 
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE users, sessions TO jaakd_app;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE users, sessions, development_credentials, cognito_users TO jaakd_app;
 
 -- 5) Seed Cash Instruments
 -- 5) Seed Cash Instruments (single statement, idempotent)

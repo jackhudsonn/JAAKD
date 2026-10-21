@@ -20,7 +20,7 @@ aws cognito-idp create-user-pool \
   --mfa-configuration OFF \
   --deletion-protection ACTIVE \
   --admin-create-user-config '{"AllowAdminCreateUserOnly":false}' \
-  --policies '{"PasswordPolicy":{"MinimumLength":6,"RequireUppercase":false,"RequireLowercase":false,"RequireNumbers":false,"RequireSymbols":false}}' \
+  --policies '{"PasswordPolicy":{"MinimumLength":6,"RequireUppercase":false,"RequireLowercase":false,"RequireNumbers":false,"RequireSymbols":false},"SignInPolicy":{"AllowedFirstAuthFactors":["PASSWORD","EMAIL_OTP"]}}' \
   --email-configuration '{"EmailSendingAccount":"COGNITO_DEFAULT"}'
 ```
 
@@ -38,7 +38,7 @@ aws cognito-idp create-user-pool-client \
   --user-pool-id "$POOL_ID" \
   --client-name jaakd-backend \
   --generate-secret \
-  --explicit-auth-flows ALLOW_USER_PASSWORD_AUTH ALLOW_REFRESH_TOKEN_AUTH \
+  --explicit-auth-flows ALLOW_USER_PASSWORD_AUTH ALLOW_REFRESH_TOKEN_AUTH ALLOW_USER_AUTH \
   --enable-token-revocation \
   --prevent-user-existence-errors ENABLED
 ```
@@ -47,13 +47,22 @@ Record `ClientId` and `ClientSecret`. The frontend never receives either; the
 backend uses the secret for `SECRET_HASH` on `SignUp`, `ConfirmSignUp`,
 `ResendConfirmationCode`, and `InitiateAuth`, and for `RevokeToken`.
 
+`ALLOW_USER_AUTH` and the `EMAIL_OTP` sign-in factor are required for automatic
+sign-in after confirmation. For an existing pool, add **Email message one-time
+password** under **Authentication > Sign-in**, and select **Choice-based
+sign-in** on the app client. Give the app client an authentication flow session
+duration long enough for the user to fetch and enter the code; the default can be
+as short as three minutes.
+
 There are no callback or logout URLs, and no hosted UI. The browser only talks
 to the backend.
 
-## 3. Apply the adapter schema
+## 3. Upgrade an existing database
 
-The `cognito_users` table is adapter-owned and is not created in development.
-Apply it to the database used by the Cognito deployment:
+New databases get `cognito_users` from `backend/db/init/01-schema.sql`; the table
+is present in every environment so switching `IDENTITY_PROVIDER` needs no
+migration. If you are upgrading a database created before that table became part
+of the base schema, apply the idempotent migration once:
 
 ```bash
 docker compose exec -T jaakd-postgres psql -U postgres -d jaakd \
@@ -82,8 +91,11 @@ deployed environment.
 1. Start the backend with `IDENTITY_PROVIDER=cognito`.
 2. Register from the frontend. Cognito sends a verification code from its
    default sender.
-3. Enter the code on `/auth/confirm`.
-4. Sign in and load a protected page.
+3. Enter the code on `/auth/confirm`. The app should exchange the Cognito
+   confirmation session for tokens and load the dashboard without asking for the
+   password again.
+4. If the confirmation session expired, confirm again or sign in normally; the
+   app falls back to the sign-in page with the email prefilled.
 5. Sign out; confirm the session ends and only that session is revoked.
 6. Register again with the same unconfirmed email; confirm the app routes to the
    confirmation page rather than treating it as a confirmed account.

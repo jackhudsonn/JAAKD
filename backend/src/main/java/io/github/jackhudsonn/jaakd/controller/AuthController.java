@@ -64,9 +64,12 @@ public class AuthController {
     }
 
     @PostMapping("/register/confirm")
-    public LoginResponse confirmRegistration(@Valid @RequestBody ConfirmRegistrationRequest request) {
-        authService.confirmRegistration(request.email(), request.code());
-        return new LoginResponse(request.email());
+    public ResponseEntity<LoginResponse> confirmRegistration(@Valid @RequestBody ConfirmRegistrationRequest request) {
+        return authService.confirmRegistration(request.email(), request.code())
+                .map(result -> ResponseEntity.ok()
+                        .header(HttpHeaders.SET_COOKIE, sessionCookie(result.session()).toString())
+                        .body(new LoginResponse(result.email())))
+                .orElseGet(() -> ResponseEntity.noContent().build());
     }
 
     @PostMapping("/register/resend")

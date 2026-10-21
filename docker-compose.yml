@@ -20,9 +20,6 @@ services:
     volumes:
       - jaakd-postgres-data:/var/lib/postgresql
       - ./backend/db/init:/docker-entrypoint-initdb.d:ro
-      # Development-only credential store; applied by 02-development-credentials.sh
-      # and absent in production. Not part of the application schema.
-      - ./backend/db/development:/opt/jaakd-development:ro
 
   jaakd-backend:
     build:

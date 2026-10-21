@@ -57,14 +57,21 @@ export class AuthService {
     };
   }
 
-  async confirmRegistration(email: string, code: string): Promise<void> {
-    await firstValueFrom(
-      this.httpClient.post(
+  async confirmRegistration(email: string, code: string): Promise<boolean> {
+    const response = await firstValueFrom(
+      this.httpClient.post<SessionResponse>(
         `${environment.apiUrl}/api/auth/register/confirm`,
         { email, code },
-        { context: this.credentialFlow },
+        { context: this.credentialFlow, observe: 'response' },
       ),
     );
+
+    if (response.status === 200 && response.body?.email) {
+      this.emailSignal.set(response.body.email);
+      return true;
+    }
+
+    return false;
   }
 
   async resendConfirmation(email: string): Promise<void> {

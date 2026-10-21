@@ -4,7 +4,7 @@
 SELECT table_name
 FROM information_schema.tables
 WHERE table_schema = 'public'
-  AND table_name IN ('profiles', 'portfolios', 'instruments', 'holdings', 'orderLogs', 'position_lots', 'lot_matches', 'watchlist_items', 'preferences', 'payment_methods', 'users')
+  AND table_name IN ('profiles', 'portfolios', 'instruments', 'holdings', 'orderLogs', 'position_lots', 'lot_matches', 'watchlist_items', 'preferences', 'payment_methods', 'users', 'development_credentials', 'cognito_users')
 ORDER BY table_name;
 
 -- 1b) Ensure the canonical cash instrument exists
@@ -46,6 +46,8 @@ WHERE conname = 'fk_profiles_users';
 -- 2b) Role privilege checks
 SELECT has_table_privilege('jaakd_app', 'public.users', 'SELECT') AS jaakd_app_can_select_users;
 SELECT has_table_privilege('jaakd_app', 'public.sessions', 'INSERT') AS jaakd_app_can_insert_sessions;
+SELECT has_table_privilege('jaakd_app', 'public.development_credentials', 'SELECT') AS jaakd_app_can_select_development_credentials;
+SELECT has_table_privilege('jaakd_app', 'public.cognito_users', 'SELECT') AS jaakd_app_can_select_cognito_users;
 
 -- 3) Deliberate bad insert to prove profiles must reference users
 -- Expected: this block fails on the profiles insert.

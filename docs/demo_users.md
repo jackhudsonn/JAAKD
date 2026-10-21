@@ -53,8 +53,9 @@ IDENTITY_PROVIDER=development
 them through `app.demo-fixtures.enabled`; other profiles leave that property
 disabled.
 
-Cognito requires the `COGNITO_*` values and the adapter-owned
-`cognito_users` table. Local development keeps the `development` adapter so the
+Cognito requires the `COGNITO_*` values. The `cognito_users` link table is part
+of the base schema and exists in every environment; only the Cognito adapter
+reads it. Local development keeps the `development` adapter so the
 demo fixtures and seeded users continue to work.
 
 ## Fixture behavior agreed during refinement

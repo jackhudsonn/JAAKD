@@ -90,7 +90,9 @@ paths:
     post:
       tags: [Auth]
       summary: Confirm a registration email
-      description: Confirms the Cognito email verification code.
+      description: Confirms the Cognito email verification code. Returns 200 and sets
+        the session cookie when Cognito can complete sign-in from the confirmation
+        session; returns 204 when the user must sign in separately.
       operationId: confirmRegistration
       security: []
       requestBody:
@@ -101,11 +103,13 @@ paths:
               $ref: "#/components/schemas/ConfirmRegistrationRequest"
       responses:
         "200":
-          description: Email confirmed; the user can now sign in
+          description: Email confirmed and session established
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/LoginResponse"
+        "204":
+          description: Email confirmed; sign in separately
         "400":
           $ref: "#/components/responses/BadRequest"
         "429":

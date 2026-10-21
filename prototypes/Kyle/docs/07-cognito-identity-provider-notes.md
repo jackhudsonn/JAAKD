@@ -79,8 +79,8 @@ CREATE TABLE IF NOT EXISTS profiles (
   avatar TEXT
 );
 
--- Development-provider-owned. Already exists and is mounted only in development.
--- "userID" is the application user ID.
+-- Development-provider-owned. Present in the base schema in every environment.
+-- "userID" is the application user ID; only the development adapter reads it.
 CREATE TABLE IF NOT EXISTS development_credentials (
   "userID" UUID PRIMARY KEY,
   email TEXT UNIQUE NOT NULL,
@@ -88,7 +88,8 @@ CREATE TABLE IF NOT EXISTS development_credentials (
   "createdAt" TIMESTAMP NOT NULL DEFAULT now()
 );
 
--- Cognito-adapter-owned. Exists only when identity.provider=cognito.
+-- Cognito-adapter-owned. Present in the base schema in every environment;
+-- only the Cognito adapter reads it.
 CREATE TABLE IF NOT EXISTS cognito_users (
   "identityID" UUID PRIMARY KEY,
   "userID" UUID NOT NULL UNIQUE REFERENCES users("userID") ON DELETE CASCADE,
@@ -110,17 +111,29 @@ legitimately retain an address after a change or a re-registration.
 
 `cognito_users` is adapter-owned:
 
-- It is created by a Cognito-only migration, not the base schema.
-- It is absent in development, so development does not carry unused state.
-- The adapter uses `JdbcTemplate`, not JPA, so Hibernate's `ddl-auto: validate`
-  never expects the table when Cognito is not configured.
+- Both provider link tables, `development_credentials` and `cognito_users`, are
+  part of the base schema and exist in every environment, so switching
+  `IDENTITY_PROVIDER` needs no schema migration.
+- Only the selected adapter reads its table; the other table is inert.
+- The adapters use `JdbcTemplate`, not JPA, so Hibernate's `ddl-auto: validate`
+  never expects either table.
 
-The Cognito migration should live under `backend/db/cognito/` and be mounted or
-applied only for a Cognito deployment, mirroring how
-`backend/db/development/` is mounted only for development. It currently lives
-in the same database schema but is never referenced by application code. If
-strict schema separation is preferred, move it to a `cognito` schema and qualify
-the adapter's queries.
+`backend/db/cognito/01-cognito-users.sql` remains as an idempotent upgrade for
+databases created before the table became part of the base schema. It is not a
+provider-activation step. If strict schema separation is preferred later, the
+tables can move to per-provider schemas and the adapter queries can be
+qualified.
+
+This supersedes the earlier decision to create each link table only when its
+provider is selected. Physical placement moved to the base schema for
+operability; logical ownership remains with the adapter, and only the selected
+adapter reads its table.
+
+Operational consequence: the presence of `development_credentials` removes the
+missing-table interlock against accidentally setting `identity.provider=development`
+in a production environment. Deployment configuration must set `cognito`, and a
+future startup guard should reject the development adapter outside local/test
+profiles.
 
 ## Registration, confirmation, and duplicate handling
 
@@ -170,10 +183,15 @@ Public endpoints:
 - `POST /api/auth/register/confirm` with `{ email, code }`.
 - `POST /api/auth/register/resend` with `{ email }`.
 
-Confirmation calls Cognito `ConfirmSignUp` with the email as the username, then
-sets `cognito_users.status = CONFIRMED`. It does not create a session; after a
-successful confirmation the client either logs in with a retained password or
-is routed to the login page with the email prefilled.
+Confirmation calls Cognito `ConfirmSignUp` with the email as the username, the
+stored `signUpSession`, and the code. It then passes the `Session` returned by
+`ConfirmSignUp` to `InitiateAuth` with `USER_AUTH`, verifies the ID token, and
+creates the application session. No password is retained in the browser.
+
+If Cognito returns no confirmation session, or the automatic sign-in fails, the
+endpoint returns `204` and the client routes to login with the email prefilled.
+This requires the app client to allow `ALLOW_USER_AUTH` and the pool to allow
+email OTP as a first auth factor.
 
 ### Duplicate registration
 
@@ -384,11 +402,14 @@ Create one user pool per environment.
 - Default Cognito email sender and verification message. No SES.
 - Deletion protection on for any pool with real users.
 - Self-registration allowed.
+- Sign-in policy allows `PASSWORD` and `EMAIL_OTP`; `EMAIL_OTP` is required for
+  automatic sign-in after confirmation.
 
 ### App client
 
 - Confidential client with a generated secret.
-- Enable `ALLOW_USER_PASSWORD_AUTH` and `ALLOW_REFRESH_TOKEN_AUTH`.
+- Enable `ALLOW_USER_PASSWORD_AUTH`, `ALLOW_REFRESH_TOKEN_AUTH`, and
+  `ALLOW_USER_AUTH`.
 - Disable SRP and custom auth flows unless they are implemented.
 - Enable token revocation.
 - Enable “prevent user existence errors”; verify its effect on the duplicate
@@ -473,8 +494,8 @@ operations. A workable shape:
 ```java
 public interface IdentityProvider {
     RegistrationOutcome register(UUID userId, String email, String password);
-    void link(UUID userId, String subject, String email);
-    void confirmRegistration(String email, String code);
+    void link(UUID userId, String subject, String email, String signUpSession);
+    Optional<SignInOutcome.Authenticated> confirmRegistration(String email, String code);
     void resendConfirmation(String email);
     SignInOutcome signIn(String email, String password);
     void changePassword(String email, String currentPassword, String newPassword);
@@ -493,21 +514,24 @@ record Authenticated(UUID userId, String email, String refreshToken)
 required:
 
 ```java
-public record RegistrationOutcome(String subject, boolean confirmationRequired) {}
+public record RegistrationOutcome(String subject, boolean confirmationRequired, String signUpSession) {}
 ```
 
 The development adapter:
 
 - inserts `development_credentials` with the application `userID`;
-- returns `subject = userID`, `confirmationRequired = false`;
-- no-ops `link`, `confirmRegistration`, `resendConfirmation`, and `revoke`;
+- returns `subject = userID`, `confirmationRequired = false`, and a null session;
+- no-ops `link`, returns `Optional.empty()` from `confirmRegistration`, and
+  no-ops `resendConfirmation` and `revoke`;
 - keeps the current bcrypt password change.
 
 The Cognito adapter:
 
-- `register` calls `SignUp` and returns `UserSub`;
-- `link` inserts the `cognito_users` PENDING row;
-- `confirmRegistration` calls `ConfirmSignUp` and updates status;
+- `register` calls `SignUp` and returns `UserSub` plus the SignUp session;
+- `link` inserts the `cognito_users` PENDING row with the session;
+- `confirmRegistration` passes the stored session to `ConfirmSignUp`, then uses
+  the confirmation session with `USER_AUTH` to obtain tokens; it returns an
+  authenticated outcome when that succeeds and `Optional.empty()` otherwise;
 - `resendConfirmation` calls `ResendConfirmationCode`;
 - `signIn` verifies the ID token, resolves `subject` to `userID`, and returns the
   refresh token;
@@ -533,11 +557,13 @@ The Cognito adapter:
 
 ### Database
 
-- Add `backend/db/cognito/01-cognito-users.sql` with the table, index, and
-  grant.
-- Mount or apply it only when Cognito is configured.
+- Add both provider link tables to `backend/db/init/01-schema.sql`: the existing
+  `development_credentials` table and the new `cognito_users` table, index, and
+  grant. Both exist in every environment; only the selected adapter reads its
+  table.
+- Keep `backend/db/cognito/01-cognito-users.sql` as an idempotent upgrade for
+  databases created before the table moved into the base schema.
 - No change to `users` or `profiles` beyond creating rows earlier.
-- `development_credentials` remains unchanged.
 
 ## Frontend changes
 
@@ -547,9 +573,11 @@ The Cognito adapter:
   is created during registration. The post-login profile fetch remains, but the
   404/create path is removed from the register flow.
 - Add a public `/auth/confirm` page with the email, code field, resend action,
-  and a success path to login.
-- On registration, route to the confirmation page. The password is not persisted
-  across the route; the user logs in after confirmation.
+  and a success path that signs the user in.
+- `AuthService.confirmRegistration` uses `observe: 'response'`: a `200` carries
+  the session body and sets the email signal; a `204` means confirmation
+  succeeded but the client must route to login with the email prefilled.
+- No password is retained in browser memory or storage.
 - On login, handle `403 EMAIL_NOT_CONFIRMED` by routing to confirmation, and
   `202` by showing the defensive challenge message without navigating.
 - Add the confirm/resend methods to `AuthService`.
@@ -584,8 +612,9 @@ The Cognito adapter:
 
 1. Add the AWS SDK and `spring-security-oauth2-jose` dependencies.
 2. Add `CognitoProperties` and the conditional `CognitoClientConfig`.
-3. Add `backend/db/cognito/01-cognito-users.sql` and the deployment hook that
-   applies it only for Cognito.
+3. Add both provider link tables to `backend/db/init/01-schema.sql`; keep
+   `backend/db/cognito/01-cognito-users.sql` as the upgrade path for existing
+   databases.
 4. Add `CognitoUserStore` using `JdbcTemplate`.
 5. Add the new exceptions and `GlobalExceptionHandler` mappings.
 6. Add the configuration values to `.env.example`, Compose, and docs.
@@ -695,15 +724,19 @@ Done:
 
 - AWS SDK v2 and `spring-security-oauth2-jose` dependencies.
 - Conditional Cognito properties and client configuration.
-- Adapter-owned `cognito_users` migration.
+- Base schema contains both provider link tables (`development_credentials`,
+  `cognito_users`) in every environment.
 - `IdentityProvider` port changes, application-owned user IDs, and the
   development adapter update.
 - Cognito adapter, JWKS ID-token verification, exception translation, and
   `SECRET_HASH`.
 - Cognito-first registration with PII stored up front, confirm/resend endpoints,
   duplicate handling, login, logout revocation, and password-change revocation.
-- Frontend registration payload, confirmation page, unconfirmed-login routing,
-  and defensive `202` handling.
+- Registration flushes the `users` insert before the JDBC provider-link insert;
+  the link's foreign key otherwise cannot see a queued Hibernate insert.
+- Frontend registration payload, confirmation page, native automatic sign-in
+  from the confirmation session, unconfirmed-login routing, and defensive `202`
+  handling.
 - Backend and frontend tests.
 - AWS setup and pool-recreation runbook in `docs/cognito-setup.md`.
 
@@ -711,7 +744,8 @@ Remaining environment work:
 
 - Create the demo Cognito pool and app client.
 - Put the pool/client values and client secret into the deployment.
-- Apply `backend/db/cognito/01-cognito-users.sql` to the Cognito database.
+- Apply `backend/db/cognito/01-cognito-users.sql` only to a database created
+  before the provider tables became part of the base schema.
 - Verify default-email delivery to the demo recipients.
 
 ## Scope note

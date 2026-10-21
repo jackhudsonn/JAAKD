@@ -96,6 +96,16 @@ bash scripts/integration-test.sh
 
 The script registers a test user, checks the auth and backend endpoints, and confirms the matching rows in Postgres.
 
+### Browsing the database (command line)
+
+The Postgres container includes `psql`:
+
+```bash
+docker compose exec -it jaakd-postgres psql -U postgres -d jaakd
+```
+
+From the host, install `libpq` (macOS) or `postgresql-client` (Debian/Ubuntu), then run `psql -h localhost -p 5433 -U postgres -d jaakd`. Use `POSTGRES_PASSWORD` from `.env`.
+
 ### Browsing the database (pgAdmin)
 
 pgAdmin opens its own SSH tunnel to the Docker host. In pgAdmin: **Register > Server**, then:
@@ -119,10 +129,12 @@ Tables are under **Databases > jaakd > Schemas > public > Tables**. `jaakd_app` 
 - `COGNITO_REGION`, `COGNITO_USER_POOL_ID`, `COGNITO_CLIENT_ID`, `COGNITO_CLIENT_SECRET` — required when `IDENTITY_PROVIDER=cognito`.
 
 Cognito registration verifies email ownership with a code from Cognito's default
-sender; no SES production-access review is needed for the demo. Apply
-`backend/db/cognito/01-cognito-users.sql` to a Cognito database before starting
-the backend. The table is adapter-owned and is not part of the development
-schema. For the local compose database:
+sender; no SES production-access review is needed for the demo. The base schema
+creates both provider link tables, `development_credentials` and
+`cognito_users`, in every environment; only the selected adapter reads its
+table, so switching `IDENTITY_PROVIDER` needs no schema migration. A database
+created before `cognito_users` was part of the base schema can be upgraded once
+with the idempotent Cognito migration:
 
 ```bash
 docker compose exec -T jaakd-postgres psql -U postgres -d jaakd \
@@ -175,7 +187,7 @@ java -jar target\backend-0.0.1-SNAPSHOT.jar
 - The authenticated user's ID, resolved from the session, maps directly to `profiles.userID`.
 - `/actuator/**` is public, as are `/api/auth/register` and `/api/auth/login`; the rest of `/api/**` requires authentication.
 - Schema source of truth is `backend/db/init/` and the JPA model.
-- For existing databases, apply incremental SQL migrations from `tools/supabase-sql/` in order.
+- For existing databases, apply the idempotent SQL migrations under `backend/db/` that are newer than the database.
 
 ### Order lifecycle and Kafka events
 

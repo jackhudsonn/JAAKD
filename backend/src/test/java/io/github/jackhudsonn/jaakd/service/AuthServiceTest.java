@@ -2,6 +2,7 @@ package io.github.jackhudsonn.jaakd.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -53,13 +54,35 @@ class AuthServiceTest {
         CreateProfileRequest profile = new CreateProfileRequest("Joanna", "Smith", null, "Boston", "MA", "USA",
                 "02110");
         when(identityProvider.register(any(), any(), any()))
-                .thenReturn(new RegistrationOutcome("subject", true));
+                .thenReturn(new RegistrationOutcome("subject", true, "sign-up-session"));
 
         RegistrationResult result = authService().register(EMAIL, "Password123!", profile);
 
         assertEquals(EMAIL, result.email());
         assertEquals(true, result.confirmationRequired());
         verify(registrationService).persistRegistration(any(), any(), any(), any());
+    }
+
+    @Test
+    void confirmRegistration_createsASessionWhenProviderCompletesSignIn() {
+        when(identityProvider.confirmRegistration(EMAIL, "123456"))
+                .thenReturn(Optional.of(new SignInOutcome.Authenticated(USER_ID, EMAIL, "refresh-token")));
+        Session session = new Session(USER_ID, "refresh-token", Instant.now(), Instant.now().plusSeconds(3600));
+        when(sessionService.create(USER_ID, "refresh-token")).thenReturn(session);
+
+        Optional<SignInResult> result = authService().confirmRegistration(EMAIL, "123456");
+
+        assertTrue(result.isPresent());
+        assertEquals(session, result.orElseThrow().session());
+        verify(userProvisioner).ensureUser(USER_ID, EMAIL);
+    }
+
+    @Test
+    void confirmRegistration_leavesSignInToTheClientWhenProviderHasNoSession() {
+        when(identityProvider.confirmRegistration(EMAIL, "123456")).thenReturn(Optional.empty());
+
+        assertTrue(authService().confirmRegistration(EMAIL, "123456").isEmpty());
+        verify(sessionService, never()).create(any(), any());
     }
 
     @Test
