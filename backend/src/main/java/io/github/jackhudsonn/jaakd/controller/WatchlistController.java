@@ -29,7 +29,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/watchlists")
+@RequestMapping("/api/portfolios/{portfolioId}/watchlists")
 public class WatchlistController {
 
     private final WatchlistService watchlistService;
@@ -45,9 +45,9 @@ public class WatchlistController {
 
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
-    public List<WatchlistResponse> getWatchlists() {
+    public List<WatchlistResponse> getWatchlists(@PathVariable UUID portfolioId) {
         // TODO: Add pagination for watchlists and watchlist items once very large user lists are expected.
-        List<Watchlist> watchlists = watchlistService.getCurrentUserWatchlists();
+        List<Watchlist> watchlists = watchlistService.getCurrentUserWatchlists(portfolioId);
         List<UUID> watchlistIds = watchlists.stream().map(Watchlist::getWatchlistId).toList();
         List<WatchlistItem> items = watchlistIds.isEmpty()
             ? List.of()
@@ -78,18 +78,22 @@ public class WatchlistController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public WatchlistResponse createWatchlist(@Valid @RequestBody CreateWatchlistRequest request) {
-        Watchlist created = watchlistService.createWatchlist(request);
+    public WatchlistResponse createWatchlist(
+        @PathVariable UUID portfolioId,
+        @Valid @RequestBody CreateWatchlistRequest request
+    ) {
+        Watchlist created = watchlistService.createWatchlist(portfolioId, request);
         return new WatchlistResponse(created.getWatchlistId(), created.getWatchlistName(), List.of());
     }
 
     @PutMapping("/{watchlistId}")
     @ResponseStatus(HttpStatus.OK)
     public WatchlistResponse updateWatchlist(
+        @PathVariable UUID portfolioId,
         @PathVariable UUID watchlistId,
         @Valid @RequestBody UpdateWatchlistRequest request
     ) {
-        Watchlist updated = watchlistService.updateWatchlist(watchlistId, request);
+        Watchlist updated = watchlistService.updateWatchlist(portfolioId, watchlistId, request);
         List<WatchlistItem> items = watchlistItemRepository.findByWatchlistWatchlistIdInOrderByListItemIdAsc(
             List.of(updated.getWatchlistId())
         );
@@ -103,27 +107,32 @@ public class WatchlistController {
 
     @DeleteMapping("/{watchlistId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteWatchlist(@PathVariable UUID watchlistId) {
-        watchlistService.deleteWatchlist(watchlistId);
+    public void deleteWatchlist(
+        @PathVariable UUID portfolioId,
+        @PathVariable UUID watchlistId
+    ) {
+        watchlistService.deleteWatchlist(portfolioId, watchlistId);
     }
 
     @PostMapping("/{watchlistId}/items")
     @ResponseStatus(HttpStatus.CREATED)
     public WatchlistItemResponse createWatchlistItem(
+        @PathVariable UUID portfolioId,
         @PathVariable UUID watchlistId,
         @Valid @RequestBody CreateWatchlistEntryRequest request
     ) {
-        WatchlistItem created = watchlistService.createWatchlistItem(watchlistId, request);
+        WatchlistItem created = watchlistService.createWatchlistItem(portfolioId, watchlistId, request);
         return toItemResponse(created);
     }
 
     @DeleteMapping("/{watchlistId}/items/{listItemId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteWatchlistItem(
+        @PathVariable UUID portfolioId,
         @PathVariable UUID watchlistId,
         @PathVariable UUID listItemId
     ) {
-        watchlistService.deleteWatchlistItem(watchlistId, listItemId);
+        watchlistService.deleteWatchlistItem(portfolioId, watchlistId, listItemId);
     }
 
     private WatchlistItemResponse toItemResponse(WatchlistItem item) {

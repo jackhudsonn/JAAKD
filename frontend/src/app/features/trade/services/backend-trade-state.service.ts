@@ -133,12 +133,13 @@ export class BackendTradeStateService implements TradeStatePort {
 
   async setWatchlistMembership(symbol: string, watchlistId: string, included: boolean): Promise<void> {
     const instrument = this.findInstrumentBySymbol(symbol);
-    if (!instrument) {
+    const portfolioId = this.portfolioId();
+    if (!instrument || !portfolioId) {
       return;
     }
 
     if (included) {
-      await this.watchlistApiService.addItem(watchlistId, {
+      await this.watchlistApiService.addItem(portfolioId, watchlistId, {
         instrumentId: instrument.instrumentId,
       });
       await this.refresh();
@@ -153,22 +154,37 @@ export class BackendTradeStateService implements TradeStatePort {
       return;
     }
 
-    await this.watchlistApiService.removeItem(watchlistId, existingItem.listItemId);
+    await this.watchlistApiService.removeItem(portfolioId, watchlistId, existingItem.listItemId);
     await this.refresh();
   }
 
   async createWatchlist(watchlistName: string): Promise<void> {
-    await this.watchlistApiService.createWatchlist({ watchlistName });
+    const portfolioId = this.portfolioId();
+    if (!portfolioId) {
+      return;
+    }
+
+    await this.watchlistApiService.createWatchlist(portfolioId, { watchlistName });
     await this.refresh();
   }
 
   async renameWatchlist(watchlistId: string, watchlistName: string): Promise<void> {
-    await this.watchlistApiService.updateWatchlist(watchlistId, { watchlistName });
+    const portfolioId = this.portfolioId();
+    if (!portfolioId) {
+      return;
+    }
+
+    await this.watchlistApiService.updateWatchlist(portfolioId, watchlistId, { watchlistName });
     await this.refresh();
   }
 
   async deleteWatchlist(watchlistId: string): Promise<void> {
-    await this.watchlistApiService.deleteWatchlist(watchlistId);
+    const portfolioId = this.portfolioId();
+    if (!portfolioId) {
+      return;
+    }
+
+    await this.watchlistApiService.deleteWatchlist(portfolioId, watchlistId);
     await this.refresh();
   }
   private async loadQuotes(instruments: InstrumentResponse[]): Promise<void> {
@@ -188,7 +204,7 @@ export class BackendTradeStateService implements TradeStatePort {
       this.holdingApiService.listByPortfolio(portfolio.portfolioId),
       this.instrumentApiService.list(),
       this.orderLogApiService.listByPortfolio(portfolio.portfolioId),
-      this.watchlistApiService.list(),
+      this.watchlistApiService.list(portfolio.portfolioId),
     ]);
 
     if (includeQuotes) {

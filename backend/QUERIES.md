@@ -240,7 +240,7 @@ UPDATE portfolios SET "portfolioName" = :portfolioName
 WHERE "portfolioID" = :portfolioId AND "userID" = :userId;
 ```
 
-**deletePortfolio** (`DELETE /api/portfolios/{portfolioId}`): deletes a portfolio (its holdings and watchlist items cascade) only when it is truly empty.
+**deletePortfolio** (`DELETE /api/portfolios/{portfolioId}`): deletes a portfolio (its holdings and watchlists cascade) only when it is truly empty.
 
 Delete guard conditions:
 
@@ -331,54 +331,73 @@ LIMIT 1;
 
 ## Watchlists
 
-**getWatchlists** (`GET /api/watchlists`): all watchlists for the signed-in user.
+**getWatchlists** (`GET /api/portfolios/{portfolioId}/watchlists`): all watchlists in a portfolio owned by the signed-in user.
 
 ```sql
-SELECT * FROM watchlists
-WHERE "userID" = :userId
+SELECT w.*
+FROM watchlists w
+JOIN portfolios p ON p."portfolioID" = w."portfolioID"
+WHERE w."portfolioID" = :portfolioId
+  AND p."userID" = :userId
 ORDER BY "watchlistID" ASC;
 ```
 
-**createWatchlist** (`POST /api/watchlists`): create a named watchlist for the user.
+**createWatchlist** (`POST /api/portfolios/{portfolioId}/watchlists`): create a named watchlist in a portfolio.
 
 ```sql
-INSERT INTO watchlists ("watchlistID", "userID", "watchlistName")
-VALUES (gen_random_uuid(), :userId, :watchlistName);
+INSERT INTO watchlists ("watchlistID", "portfolioID", "watchlistName")
+SELECT gen_random_uuid(), p."portfolioID", :watchlistName
+FROM portfolios p
+WHERE p."portfolioID" = :portfolioId
+  AND p."userID" = :userId;
 ```
 
-**renameWatchlist** (`PUT /api/watchlists/{watchlistId}`): rename a watchlist.
+**renameWatchlist** (`PUT /api/portfolios/{portfolioId}/watchlists/{watchlistId}`): rename a watchlist.
 
 ```sql
-UPDATE watchlists
+UPDATE watchlists w
 SET "watchlistName" = :watchlistName
-WHERE "watchlistID" = :watchlistId
-  AND "userID" = :userId;
+FROM portfolios p
+WHERE w."watchlistID" = :watchlistId
+  AND w."portfolioID" = :portfolioId
+  AND w."portfolioID" = p."portfolioID"
+  AND p."userID" = :userId;
 ```
 
-**deleteWatchlist** (`DELETE /api/watchlists/{watchlistId}`): hard-delete a watchlist and all items.
+**deleteWatchlist** (`DELETE /api/portfolios/{portfolioId}/watchlists/{watchlistId}`): hard-delete a watchlist and all items.
 
 ```sql
-DELETE FROM watchlists
-WHERE "watchlistID" = :watchlistId
-  AND "userID" = :userId;
+DELETE FROM watchlists w
+USING portfolios p
+WHERE w."watchlistID" = :watchlistId
+  AND w."portfolioID" = :portfolioId
+  AND w."portfolioID" = p."portfolioID"
+  AND p."userID" = :userId;
 ```
 
-**addWatchlistItem** (`POST /api/watchlists/{watchlistId}/items`): add an instrument to a watchlist.
+**addWatchlistItem** (`POST /api/portfolios/{portfolioId}/watchlists/{watchlistId}/items`): add an instrument to a watchlist.
 
 ```sql
 INSERT INTO watchlist_items ("listItemID", "watchlistID", "instrumentID")
-VALUES (gen_random_uuid(), :watchlistId, :instrumentId);
+SELECT gen_random_uuid(), w."watchlistID", :instrumentId
+FROM watchlists w
+JOIN portfolios p ON p."portfolioID" = w."portfolioID"
+WHERE w."watchlistID" = :watchlistId
+  AND w."portfolioID" = :portfolioId
+  AND p."userID" = :userId;
 ```
 
-**deleteWatchlistItem** (`DELETE /api/watchlists/{watchlistId}/items/{listItemId}`): remove a single watchlist item.
+**deleteWatchlistItem** (`DELETE /api/portfolios/{portfolioId}/watchlists/{watchlistId}/items/{listItemId}`): remove a single watchlist item.
 
 ```sql
 DELETE FROM watchlist_items wi
-USING watchlists w
+USING watchlists w, portfolios p
 WHERE wi."listItemID" = :listItemId
   AND wi."watchlistID" = :watchlistId
+  AND w."portfolioID" = :portfolioId
   AND wi."watchlistID" = w."watchlistID"
-  AND w."userID" = :userId;
+  AND w."portfolioID" = p."portfolioID"
+  AND p."userID" = :userId;
 ```
 
 ## Profile

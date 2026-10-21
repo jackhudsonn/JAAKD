@@ -23,8 +23,8 @@ public class Watchlist {
     private UUID watchlistId;
 
     @ManyToOne
-    @JoinColumn(name = "`userID`", nullable = false)
-    private User user;
+    @JoinColumn(name = "`portfolioID`", nullable = false)
+    private Portfolio portfolio;
 
     @Column(name = "`watchlistName`", nullable = false)
     private String watchlistName;
@@ -35,8 +35,8 @@ public class Watchlist {
     protected Watchlist() {
     }
 
-    public Watchlist(User user, String watchlistName) {
-        this.user = user;
+    public Watchlist(Portfolio portfolio, String watchlistName) {
+        this.portfolio = portfolio;
         this.watchlistName = watchlistName;
     }
 
@@ -44,8 +44,8 @@ public class Watchlist {
         return watchlistId;
     }
 
-    public User getUser() {
-        return user;
+    public Portfolio getPortfolio() {
+        return portfolio;
     }
 
     public String getWatchlistName() {

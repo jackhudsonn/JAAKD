@@ -1020,10 +1020,10 @@ async function ensureInstruments(cookie, scenario) {
   return instrumentsByTicker;
 }
 
-async function ensureWatchlist(cookie, scenario, instrumentsByTicker) {
+async function ensureWatchlist(cookie, portfolioId, scenario, instrumentsByTicker) {
   const current = await requestJson({
     method: "GET",
-    path: "/api/watchlists",
+    path: `/api/portfolios/${portfolioId}/watchlists`,
     cookie,
     expectedStatuses: [200],
   });
@@ -1041,7 +1041,7 @@ async function ensureWatchlist(cookie, scenario, instrumentsByTicker) {
     if (!watchlist) {
       const createdWatchlist = await requestJson({
         method: "POST",
-        path: "/api/watchlists",
+        path: `/api/portfolios/${portfolioId}/watchlists`,
         cookie,
         body: {
           watchlistName: definition.name,
@@ -1071,7 +1071,7 @@ async function ensureWatchlist(cookie, scenario, instrumentsByTicker) {
 
       await requestJson({
         method: "POST",
-        path: `/api/watchlists/${watchlist.watchlistId}/items`,
+        path: `/api/portfolios/${portfolioId}/watchlists/${watchlist.watchlistId}/items`,
         cookie,
         body: {
           instrumentId: instrument.instrumentId,
@@ -1085,7 +1085,7 @@ async function ensureWatchlist(cookie, scenario, instrumentsByTicker) {
 
   const refreshed = await requestJson({
     method: "GET",
-    path: "/api/watchlists",
+    path: `/api/portfolios/${portfolioId}/watchlists`,
     cookie,
     expectedStatuses: [200],
   });
@@ -1191,7 +1191,7 @@ async function seedScenario(scenario, adminCookie) {
   const paymentMethods = await ensurePaymentMethods(cookie, scenario);
   const portfolio = await ensurePortfolio(cookie, scenario.portfolioName);
   const instrumentsByTicker = await ensureInstruments(adminCookie, scenario);
-  const watchlist = await ensureWatchlist(cookie, scenario, instrumentsByTicker);
+  const watchlist = await ensureWatchlist(cookie, portfolio.portfolioId, scenario, instrumentsByTicker);
   const orders = await seedOrders(
     cookie,
     adminCookie,

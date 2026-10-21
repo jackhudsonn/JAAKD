@@ -21,10 +21,12 @@ describe('WatchlistApiService', () => {
     httpTestingController.verify();
   });
 
-  it('list sends GET /api/watchlists', async () => {
-    const promise = service.list();
+  it('list sends GET /api/portfolios/{portfolioId}/watchlists', async () => {
+    const promise = service.list('portfolio-1');
 
-    const req = httpTestingController.expectOne(`${environment.apiUrl}/api/watchlists`);
+    const req = httpTestingController.expectOne(
+      `${environment.apiUrl}/api/portfolios/portfolio-1/watchlists`,
+    );
     expect(req.request.method).toBe('GET');
     req.flush([
       {
@@ -37,11 +39,13 @@ describe('WatchlistApiService', () => {
     await expect(promise).resolves.toHaveLength(1);
   });
 
-  it('createWatchlist sends POST /api/watchlists with request body', async () => {
+  it('createWatchlist sends POST /api/portfolios/{portfolioId}/watchlists with request body', async () => {
     const requestBody = { watchlistName: 'Tech' };
-    const promise = service.createWatchlist(requestBody);
+    const promise = service.createWatchlist('portfolio-1', requestBody);
 
-    const req = httpTestingController.expectOne(`${environment.apiUrl}/api/watchlists`);
+    const req = httpTestingController.expectOne(
+      `${environment.apiUrl}/api/portfolios/portfolio-1/watchlists`,
+    );
     expect(req.request.method).toBe('POST');
     expect(req.request.body).toEqual(requestBody);
     req.flush({
@@ -53,10 +57,12 @@ describe('WatchlistApiService', () => {
     await expect(promise).resolves.toMatchObject({ watchlistId: 'watchlist-2' });
   });
 
-  it('updateWatchlist sends PUT /api/watchlists/{watchlistId}', async () => {
-    const promise = service.updateWatchlist('watchlist-1', { watchlistName: 'Core' });
+  it('updateWatchlist sends PUT /api/portfolios/{portfolioId}/watchlists/{watchlistId}', async () => {
+    const promise = service.updateWatchlist('portfolio-1', 'watchlist-1', { watchlistName: 'Core' });
 
-    const req = httpTestingController.expectOne(`${environment.apiUrl}/api/watchlists/watchlist-1`);
+    const req = httpTestingController.expectOne(
+      `${environment.apiUrl}/api/portfolios/portfolio-1/watchlists/watchlist-1`,
+    );
     expect(req.request.method).toBe('PUT');
     expect(req.request.body).toEqual({ watchlistName: 'Core' });
     req.flush({
@@ -68,10 +74,12 @@ describe('WatchlistApiService', () => {
     await expect(promise).resolves.toMatchObject({ watchlistName: 'Core' });
   });
 
-  it('deleteWatchlist sends DELETE /api/watchlists/{watchlistId}', async () => {
-    const promise = service.deleteWatchlist('watchlist-1');
+  it('deleteWatchlist sends DELETE /api/portfolios/{portfolioId}/watchlists/{watchlistId}', async () => {
+    const promise = service.deleteWatchlist('portfolio-1', 'watchlist-1');
 
-    const req = httpTestingController.expectOne(`${environment.apiUrl}/api/watchlists/watchlist-1`);
+    const req = httpTestingController.expectOne(
+      `${environment.apiUrl}/api/portfolios/portfolio-1/watchlists/watchlist-1`,
+    );
     expect(req.request.method).toBe('DELETE');
     expect(req.request.body).toBeNull();
     req.flush(null);
@@ -79,11 +87,11 @@ describe('WatchlistApiService', () => {
     await expect(promise).resolves.toBeNull();
   });
 
-  it('addItem sends POST /api/watchlists/{watchlistId}/items', async () => {
-    const promise = service.addItem('watchlist-1', { instrumentId: 'i1' });
+  it('addItem sends POST /api/portfolios/{portfolioId}/watchlists/{watchlistId}/items', async () => {
+    const promise = service.addItem('portfolio-1', 'watchlist-1', { instrumentId: 'i1' });
 
     const req = httpTestingController.expectOne(
-      `${environment.apiUrl}/api/watchlists/watchlist-1/items`,
+      `${environment.apiUrl}/api/portfolios/portfolio-1/watchlists/watchlist-1/items`,
     );
     expect(req.request.method).toBe('POST');
     expect(req.request.body).toEqual({ instrumentId: 'i1' });
@@ -92,11 +100,11 @@ describe('WatchlistApiService', () => {
     await expect(promise).resolves.toMatchObject({ listItemId: 'w2' });
   });
 
-  it('removeItem sends DELETE /api/watchlists/{watchlistId}/items/{listItemId}', async () => {
-    const promise = service.removeItem('watchlist-1', 'w2');
+  it('removeItem sends DELETE /api/portfolios/{portfolioId}/watchlists/{watchlistId}/items/{listItemId}', async () => {
+    const promise = service.removeItem('portfolio-1', 'watchlist-1', 'w2');
 
     const req = httpTestingController.expectOne(
-      `${environment.apiUrl}/api/watchlists/watchlist-1/items/w2`,
+      `${environment.apiUrl}/api/portfolios/portfolio-1/watchlists/watchlist-1/items/w2`,
     );
     expect(req.request.method).toBe('DELETE');
     expect(req.request.body).toBeNull();

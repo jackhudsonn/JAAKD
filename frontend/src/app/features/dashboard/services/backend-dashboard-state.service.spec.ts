@@ -228,12 +228,16 @@ describe('BackendDashboardStateService', () => {
     await service.load();
 
     await service.setWatchlistMembership('VOD', 'watchlist-1', true);
-    expect(watchlistApiService.addItem).toHaveBeenCalledWith('watchlist-1', {
+    expect(watchlistApiService.addItem).toHaveBeenCalledWith(portfolio.portfolioId, 'watchlist-1', {
       instrumentId: 'inst-vod',
     });
 
     await service.setWatchlistMembership('AAPL', 'watchlist-1', false);
-    expect(watchlistApiService.removeItem).toHaveBeenCalledWith('watchlist-1', 'wl-1');
+    expect(watchlistApiService.removeItem).toHaveBeenCalledWith(
+      portfolio.portfolioId,
+      'watchlist-1',
+      'wl-1',
+    );
     expect(service.loadState()).toBe('ready');
   });
 

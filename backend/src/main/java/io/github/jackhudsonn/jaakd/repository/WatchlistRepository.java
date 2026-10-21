@@ -9,17 +9,21 @@ import java.util.UUID;
 
 public interface WatchlistRepository extends JpaRepository<Watchlist, UUID> {
 
-    List<Watchlist> findByUserUserIdOrderByWatchlistIdAsc(UUID userId);
+    List<Watchlist> findByPortfolioPortfolioIdOrderByWatchlistIdAsc(UUID portfolioId);
 
-    Optional<Watchlist> findByWatchlistIdAndUserUserId(UUID watchlistId, UUID userId);
+    Optional<Watchlist> findByWatchlistIdAndPortfolioPortfolioIdAndPortfolioProfileUserId(
+        UUID watchlistId,
+        UUID portfolioId,
+        UUID userId
+    );
 
-    boolean existsByUserUserIdAndWatchlistName(UUID userId, String watchlistName);
+    boolean existsByPortfolioPortfolioIdAndWatchlistName(UUID portfolioId, String watchlistName);
 
-    boolean existsByUserUserIdAndWatchlistNameAndWatchlistIdNot(
-        UUID userId,
+    boolean existsByPortfolioPortfolioIdAndWatchlistNameAndWatchlistIdNot(
+        UUID portfolioId,
         String watchlistName,
         UUID watchlistId
     );
 
-    long countByUserUserId(UUID userId);
+    long countByPortfolioPortfolioId(UUID portfolioId);
 }

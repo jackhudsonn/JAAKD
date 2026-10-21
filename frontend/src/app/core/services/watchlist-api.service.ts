@@ -16,45 +16,62 @@ import { environment } from '@environments/environment.local';
 export class WatchlistApiService {
   constructor(private httpClient: HttpClient) {}
 
-  list(): Promise<WatchlistResponse[]> {
+  list(portfolioId: string): Promise<WatchlistResponse[]> {
     return firstValueFrom(
-      this.httpClient.get<WatchlistResponse[]>(`${environment.apiUrl}/api/watchlists`),
+      this.httpClient.get<WatchlistResponse[]>(
+        `${environment.apiUrl}/api/portfolios/${portfolioId}/watchlists`,
+      ),
     );
   }
 
-  createWatchlist(request: CreateWatchlistRequest): Promise<WatchlistResponse> {
+  createWatchlist(portfolioId: string, request: CreateWatchlistRequest): Promise<WatchlistResponse> {
     return firstValueFrom(
-      this.httpClient.post<WatchlistResponse>(`${environment.apiUrl}/api/watchlists`, request),
+      this.httpClient.post<WatchlistResponse>(
+        `${environment.apiUrl}/api/portfolios/${portfolioId}/watchlists`,
+        request,
+      ),
     );
   }
 
-  updateWatchlist(watchlistId: string, request: UpdateWatchlistRequest): Promise<WatchlistResponse> {
+  updateWatchlist(
+    portfolioId: string,
+    watchlistId: string,
+    request: UpdateWatchlistRequest,
+  ): Promise<WatchlistResponse> {
     return firstValueFrom(
       this.httpClient.put<WatchlistResponse>(
-        `${environment.apiUrl}/api/watchlists/${watchlistId}`,
+        `${environment.apiUrl}/api/portfolios/${portfolioId}/watchlists/${watchlistId}`,
         request,
       ),
     );
   }
 
-  deleteWatchlist(watchlistId: string): Promise<void> {
+  deleteWatchlist(portfolioId: string, watchlistId: string): Promise<void> {
     return firstValueFrom(
-      this.httpClient.delete<void>(`${environment.apiUrl}/api/watchlists/${watchlistId}`),
+      this.httpClient.delete<void>(
+        `${environment.apiUrl}/api/portfolios/${portfolioId}/watchlists/${watchlistId}`,
+      ),
     );
   }
 
-  addItem(watchlistId: string, request: CreateWatchlistEntryRequest): Promise<WatchlistItemResponse> {
+  addItem(
+    portfolioId: string,
+    watchlistId: string,
+    request: CreateWatchlistEntryRequest,
+  ): Promise<WatchlistItemResponse> {
     return firstValueFrom(
       this.httpClient.post<WatchlistItemResponse>(
-        `${environment.apiUrl}/api/watchlists/${watchlistId}/items`,
+        `${environment.apiUrl}/api/portfolios/${portfolioId}/watchlists/${watchlistId}/items`,
         request,
       ),
     );
   }
 
-  removeItem(watchlistId: string, listItemId: string): Promise<void> {
+  removeItem(portfolioId: string, watchlistId: string, listItemId: string): Promise<void> {
     return firstValueFrom(
-      this.httpClient.delete<void>(`${environment.apiUrl}/api/watchlists/${watchlistId}/items/${listItemId}`),
+      this.httpClient.delete<void>(
+        `${environment.apiUrl}/api/portfolios/${portfolioId}/watchlists/${watchlistId}/items/${listItemId}`,
+      ),
     );
   }
 }

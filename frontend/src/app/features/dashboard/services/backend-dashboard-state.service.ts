@@ -80,7 +80,7 @@ export class BackendDashboardStateService implements DashboardStatePort {
         this.holdingApiService.listByPortfolio(portfolio.portfolioId),
         this.instrumentApiService.list(),
         this.orderLogApiService.listByPortfolio(portfolio.portfolioId),
-        this.watchlistApiService.list(),
+        this.watchlistApiService.list(portfolio.portfolioId),
       ]);
 
       let quotePrices = new Map<string, number>();
@@ -95,7 +95,7 @@ export class BackendDashboardStateService implements DashboardStatePort {
       this.accountCash.set(toCash(holdings, instruments));
       this.holdings.set(toHoldings(holdings, instruments, orderLogs, toPriceResolver(quotePrices)));
       this.orders.set(toOpenOrders(orderLogs, instruments));
-      this.transactions.set(toTransactions(orderLogs));
+      this.transactions.set(toTransactions(orderLogs, instruments));
       const mappedWatchlists = toWatchlists(watchlists, instruments);
       this.watchlists.set(mappedWatchlists);
       this.activeWatchlistId.set(mappedWatchlists[0]?.id ?? '');
@@ -155,13 +155,17 @@ export class BackendDashboardStateService implements DashboardStatePort {
     }
 
     const existingSymbols = new Set(watchlist?.symbols ?? []);
+    const portfolioId = this.portfolioId();
+    if (!portfolioId) {
+      return;
+    }
 
     if (included) {
       if (existingSymbols.has(selectedInstrument.symbol)) {
         return;
       }
 
-      await this.watchlistApiService.addItem(watchlistId, {
+      await this.watchlistApiService.addItem(portfolioId, watchlistId, {
         instrumentId: selectedInstrument.instrumentId,
       });
       await this.refreshWatchlists();
@@ -172,7 +176,7 @@ export class BackendDashboardStateService implements DashboardStatePort {
       return;
     }
 
-    const watchlists = await this.watchlistApiService.list();
+    const watchlists = await this.watchlistApiService.list(portfolioId);
     const listItemId = watchlists
       .find((entry) => entry.watchlistId === watchlistId)
       ?.items.find((item) => item.instrumentId === selectedInstrument.instrumentId)?.listItemId;
@@ -181,22 +185,37 @@ export class BackendDashboardStateService implements DashboardStatePort {
       return;
     }
 
-    await this.watchlistApiService.removeItem(watchlistId, listItemId);
+    await this.watchlistApiService.removeItem(portfolioId, watchlistId, listItemId);
     await this.refreshWatchlists();
   }
 
   async createWatchlist(watchlistName: string): Promise<void> {
-    await this.watchlistApiService.createWatchlist({ watchlistName });
+    const portfolioId = this.portfolioId();
+    if (!portfolioId) {
+      return;
+    }
+
+    await this.watchlistApiService.createWatchlist(portfolioId, { watchlistName });
     await this.refreshWatchlists();
   }
 
   async renameWatchlist(watchlistId: string, watchlistName: string): Promise<void> {
-    await this.watchlistApiService.updateWatchlist(watchlistId, { watchlistName });
+    const portfolioId = this.portfolioId();
+    if (!portfolioId) {
+      return;
+    }
+
+    await this.watchlistApiService.updateWatchlist(portfolioId, watchlistId, { watchlistName });
     await this.refreshWatchlists();
   }
 
   async deleteWatchlist(watchlistId: string): Promise<void> {
-    await this.watchlistApiService.deleteWatchlist(watchlistId);
+    const portfolioId = this.portfolioId();
+    if (!portfolioId) {
+      return;
+    }
+
+    await this.watchlistApiService.deleteWatchlist(portfolioId, watchlistId);
     await this.refreshWatchlists();
   }
 
@@ -215,7 +234,14 @@ export class BackendDashboardStateService implements DashboardStatePort {
   }
 
   private async refreshWatchlists(): Promise<void> {
-    const watchlists = await this.watchlistApiService.list();
+    const portfolioId = this.portfolioId();
+    if (!portfolioId) {
+      this.watchlists.set([]);
+      this.activeWatchlistId.set('');
+      return;
+    }
+
+    const watchlists = await this.watchlistApiService.list(portfolioId);
     const instrumentById = new Map(
       this.backendWatchlistInstrumentOptions().map((instrument) => [
         instrument.instrumentId,

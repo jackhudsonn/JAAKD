@@ -95,7 +95,7 @@ CREATE TABLE IF NOT EXISTS lot_matches (
 
 CREATE TABLE IF NOT EXISTS watchlists (
   "watchlistID" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  "userID" UUID NOT NULL,
+  "portfolioID" UUID NOT NULL,
   "watchlistName" TEXT NOT NULL
 );
 
@@ -223,8 +223,8 @@ ALTER TABLE lot_matches
   CHECK ("matchedQuantity" > 0);
 
 ALTER TABLE watchlists
-  ADD CONSTRAINT fk_watchlists_users
-  FOREIGN KEY ("userID") REFERENCES users("userID")
+  ADD CONSTRAINT fk_watchlists_portfolios
+  FOREIGN KEY ("portfolioID") REFERENCES portfolios("portfolioID")
   ON DELETE CASCADE;
 
 ALTER TABLE watchlists
@@ -232,8 +232,8 @@ ALTER TABLE watchlists
   CHECK (btrim("watchlistName") <> '');
 
 ALTER TABLE watchlists
-  ADD CONSTRAINT uq_watchlists_user_name
-  UNIQUE ("userID", "watchlistName");
+  ADD CONSTRAINT uq_watchlists_portfolio_name
+  UNIQUE ("portfolioID", "watchlistName");
 
 ALTER TABLE watchlist_items
   ADD CONSTRAINT fk_watchlist_items_watchlists
@@ -304,7 +304,7 @@ CREATE UNIQUE INDEX idx_lot_matches_sell_log_position_lot_unique ON lot_matches 
 CREATE INDEX idx_lot_matches_sell_log ON lot_matches ("sellLogOrderID");
 CREATE INDEX idx_lot_matches_holding ON lot_matches ("holdingID");
 
-CREATE INDEX idx_watchlists_userid ON watchlists ("userID");
+CREATE INDEX idx_watchlists_portfolioid ON watchlists ("portfolioID");
 CREATE INDEX idx_watchlist_items_watchlistid ON watchlist_items ("watchlistID");
 CREATE INDEX idx_watchlist_items_instrumentid ON watchlist_items ("instrumentID");
 

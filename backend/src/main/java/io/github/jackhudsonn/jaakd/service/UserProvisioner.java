@@ -14,12 +14,10 @@ import io.github.jackhudsonn.jaakd.repository.UserRepository;
 public class UserProvisioner {
 
     private final UserRepository userRepository;
-    private final WatchlistService watchlistService;
     private final Clock clock;
 
-    public UserProvisioner(UserRepository userRepository, WatchlistService watchlistService, Clock clock) {
+    public UserProvisioner(UserRepository userRepository, Clock clock) {
         this.userRepository = userRepository;
-        this.watchlistService = watchlistService;
         this.clock = clock;
     }
 
@@ -28,14 +26,11 @@ public class UserProvisioner {
     // of truth; this row is a projection refreshed at each sign-in.
     @Transactional
     public UUID ensureUser(UUID userId, String email) {
-        UUID ensuredUserId = userRepository.findById(userId)
+        return userRepository.findById(userId)
                 .map(existing -> {
                     existing.setEmail(email);
                     return existing.getUserId();
                 })
                 .orElseGet(() -> userRepository.save(new User(userId, email, Instant.now(clock))).getUserId());
-
-        watchlistService.ensureDefaultWatchlistForUser(ensuredUserId);
-        return ensuredUserId;
     }
 }

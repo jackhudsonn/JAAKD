@@ -13,9 +13,10 @@ public interface WatchlistItemRepository extends JpaRepository<WatchlistItem, UU
 
     Optional<WatchlistItem> findByWatchlistWatchlistIdAndInstrumentInstrumentId(UUID watchlistId, UUID instrumentId);
 
-    Optional<WatchlistItem> findByListItemIdAndWatchlistWatchlistIdAndWatchlistUserUserId(
+    Optional<WatchlistItem> findByListItemIdAndWatchlistWatchlistIdAndWatchlistPortfolioPortfolioIdAndWatchlistPortfolioProfileUserId(
         UUID listItemId,
         UUID watchlistId,
+        UUID portfolioId,
         UUID userId
     );
 }
