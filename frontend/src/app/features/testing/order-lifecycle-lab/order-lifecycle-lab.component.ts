@@ -257,13 +257,17 @@ export class OrderLifecycleLabComponent implements OnInit, OnDestroy {
     return current?.portfolioName ?? 'None';
   });
 
-  readonly selectedInstrumentDetails = computed(() =>
-    this.instruments().find((i) => i.instrumentId === this.selectedInstrumentId()) ?? null,
+  readonly selectedInstrumentDetails = computed(
+    () => this.instruments().find((i) => i.instrumentId === this.selectedInstrumentId()) ?? null,
   );
 
-  readonly selectedInstrumentTicker = computed(() => this.selectedInstrumentDetails()?.ticker ?? 'None');
+  readonly selectedInstrumentTicker = computed(
+    () => this.selectedInstrumentDetails()?.ticker ?? 'None',
+  );
 
-  readonly selectedInstrumentName = computed(() => this.selectedInstrumentDetails()?.name ?? 'None');
+  readonly selectedInstrumentName = computed(
+    () => this.selectedInstrumentDetails()?.name ?? 'None',
+  );
 
   readonly cashInstruments = computed(() =>
     this.instruments().filter((instrument) => instrument.instrumentClass === 'CASH'),
@@ -289,13 +293,19 @@ export class OrderLifecycleLabComponent implements OnInit, OnDestroy {
     });
   });
 
-  readonly selectedHolding = computed(() =>
-    this.holdingsWithInstruments().find((row) => row.holdingId === this.selectedHoldingId()) ?? null,
+  readonly selectedHolding = computed(
+    () =>
+      this.holdingsWithInstruments().find((row) => row.holdingId === this.selectedHoldingId()) ??
+      null,
   );
 
-  readonly selectedHoldingLots = computed(() => this.positionLotsByHolding()[this.selectedHoldingId()] ?? []);
+  readonly selectedHoldingLots = computed(
+    () => this.positionLotsByHolding()[this.selectedHoldingId()] ?? [],
+  );
 
-  readonly selectedHoldingMatches = computed(() => this.lotMatchesByHolding()[this.selectedHoldingId()] ?? []);
+  readonly selectedHoldingMatches = computed(
+    () => this.lotMatchesByHolding()[this.selectedHoldingId()] ?? [],
+  );
 
   ngOnInit() {
     void this.bootstrapPage();
@@ -865,7 +875,9 @@ export class OrderLifecycleLabComponent implements OnInit, OnDestroy {
     }
 
     const rows = await firstValueFrom(
-      this.http.get<HoldingResponse[]>(`${environment.apiUrl}/api/holdings/portfolio/${portfolioId}`),
+      this.http.get<HoldingResponse[]>(
+        `${environment.apiUrl}/api/holdings/portfolio/${portfolioId}`,
+      ),
     );
 
     this.holdings.set(rows ?? []);

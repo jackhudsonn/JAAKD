@@ -7,11 +7,18 @@
   <div class="form-layout">
     <div class="form-field">
       <label for="bankNickname">Nickname <span class="required-indicator">*</span></label>
-      <input id="bankNickname" type="text" [(ngModel)]="bankNickname" placeholder="Primary checking" />
+      <input
+        id="bankNickname"
+        type="text"
+        [(ngModel)]="bankNickname"
+        placeholder="Primary checking"
+      />
     </div>
 
     <div class="form-field">
-      <label for="bankAccountHolderName">Account Holder Name <span class="required-indicator">*</span></label>
+      <label for="bankAccountHolderName"
+        >Account Holder Name <span class="required-indicator">*</span></label
+      >
       <input
         id="bankAccountHolderName"
         type="text"
@@ -67,7 +74,12 @@
       }
     </button>
 
-    <button type="button" class="btn btn-secondary" [disabled]="submitting()" (click)="showSavedMethods()">
+    <button
+      type="button"
+      class="btn btn-secondary"
+      [disabled]="submitting()"
+      (click)="showSavedMethods()"
+    >
       View Methods
     </button>
   </div>

@@ -4,7 +4,8 @@
       <p class="eyebrow">Testing only</p>
       <h1>Dev Testing</h1>
       <p class="subtitle">
-        API-driven instrument lookup, quote refresh, holdings diagnostics, FX conversion, and Kafka lifecycle checks.
+        API-driven instrument lookup, quote refresh, holdings diagnostics, FX conversion, and Kafka
+        lifecycle checks.
       </p>
     </div>
 
@@ -80,7 +81,9 @@
         Inspect Holding
         <select [ngModel]="selectedHoldingId()" (ngModelChange)="onHoldingChange($event)">
           @for (holding of holdingsWithInstruments(); track holding.holdingId) {
-            <option [value]="holding.holdingId">{{ holding.ticker }} ({{ holding.holdingId }})</option>
+            <option [value]="holding.holdingId">
+              {{ holding.ticker }} ({{ holding.holdingId }})
+            </option>
           } @empty {
             <option value="">No holdings</option>
           }
@@ -115,7 +118,12 @@
           />
         </label>
 
-        <button type="button" class="primary" [disabled]="syncingInstrument()" (click)="syncInstrumentByTicker()">
+        <button
+          type="button"
+          class="primary"
+          [disabled]="syncingInstrument()"
+          (click)="syncInstrumentByTicker()"
+        >
           {{ syncingInstrument() ? 'Fetching...' : 'Fetch Instrument' }}
         </button>
       </div>
@@ -133,7 +141,12 @@
 
       <div class="quote-box">
         <div class="button-row">
-          <button type="button" class="ghost" [disabled]="refreshingQuote()" (click)="refreshQuote()">
+          <button
+            type="button"
+            class="ghost"
+            [disabled]="refreshingQuote()"
+            (click)="refreshQuote()"
+          >
             {{ refreshingQuote() ? 'Refreshing...' : 'Refresh Quote (Bid/Ask/Price)' }}
           </button>
         </div>
@@ -155,7 +168,8 @@
     <article class="panel">
       <h2>Crypto buy/sell</h2>
       <p class="panel-help">
-        Enter crypto ticker and settlement currency. Backend formats provider symbol (example: X:BTC-USD).
+        Enter crypto ticker and settlement currency. Backend formats provider symbol (example:
+        X:BTC-USD).
       </p>
 
       <div class="form-grid">
@@ -176,7 +190,10 @@
             type="text"
             maxlength="20"
             [ngModel]="cryptoOrderForm().baseTicker"
-            (ngModelChange)="cryptoOrderForm.set({ ...cryptoOrderForm(), baseTicker: $event }); cryptoQuote.set(null)"
+            (ngModelChange)="
+              cryptoOrderForm.set({ ...cryptoOrderForm(), baseTicker: $event });
+              cryptoQuote.set(null)
+            "
             placeholder="BTC"
           />
         </label>
@@ -185,7 +202,10 @@
           Buy/Sell In
           <select
             [ngModel]="cryptoOrderForm().quoteCurrency"
-            (ngModelChange)="cryptoOrderForm.set({ ...cryptoOrderForm(), quoteCurrency: $event }); cryptoQuote.set(null)"
+            (ngModelChange)="
+              cryptoOrderForm.set({ ...cryptoOrderForm(), quoteCurrency: $event });
+              cryptoQuote.set(null)
+            "
           >
             <option value="USD">USD</option>
             <option value="INR">INR</option>
@@ -229,7 +249,12 @@
 
       <div class="quote-box">
         <div class="button-row">
-          <button type="button" class="ghost" [disabled]="refreshingCryptoQuote()" (click)="refreshCryptoQuote()">
+          <button
+            type="button"
+            class="ghost"
+            [disabled]="refreshingCryptoQuote()"
+            (click)="refreshCryptoQuote()"
+          >
             {{ refreshingCryptoQuote() ? 'Refreshing...' : 'Refresh Crypto Quote' }}
           </button>
         </div>
@@ -247,14 +272,21 @@
         }
       </div>
 
-      <button type="button" class="primary" [disabled]="submittingCryptoOrder() || refreshingCryptoQuote()" (click)="placeCryptoOrder()">
+      <button
+        type="button"
+        class="primary"
+        [disabled]="submittingCryptoOrder() || refreshingCryptoQuote()"
+        (click)="placeCryptoOrder()"
+      >
         {{ submittingCryptoOrder() ? 'Submitting...' : 'Submit Crypto Order' }}
       </button>
     </article>
 
     <article class="panel">
       <h2>Place order (order-log submit)</h2>
-      <p class="panel-help">Creates SUBMITTED entries that move through lifecycle states via Kafka consumers.</p>
+      <p class="panel-help">
+        Creates SUBMITTED entries that move through lifecycle states via Kafka consumers.
+      </p>
 
       <div class="form-grid">
         <label>
@@ -371,14 +403,18 @@
 
     <article class="panel">
       <h2>Foreign Exchange</h2>
-      <p class="panel-help">Convert cash with FROM and TO currencies. Holdings refreshes after submit.</p>
+      <p class="panel-help">
+        Convert cash with FROM and TO currencies. Holdings refreshes after submit.
+      </p>
 
       <div class="form-grid">
         <label>
           From
           <select
             [ngModel]="cashConversionForm().sourceCurrency"
-            (ngModelChange)="cashConversionForm.set({ ...cashConversionForm(), sourceCurrency: $event })"
+            (ngModelChange)="
+              cashConversionForm.set({ ...cashConversionForm(), sourceCurrency: $event })
+            "
           >
             <option value="USD">USD</option>
             <option value="INR">INR</option>
@@ -391,7 +427,9 @@
           To
           <select
             [ngModel]="cashConversionForm().targetCurrency"
-            (ngModelChange)="cashConversionForm.set({ ...cashConversionForm(), targetCurrency: $event })"
+            (ngModelChange)="
+              cashConversionForm.set({ ...cashConversionForm(), targetCurrency: $event })
+            "
           >
             <option value="USD">USD</option>
             <option value="INR">INR</option>
@@ -407,7 +445,9 @@
             min="0.000001"
             step="0.000001"
             [ngModel]="cashConversionForm().sourceAmount"
-            (ngModelChange)="cashConversionForm.set({ ...cashConversionForm(), sourceAmount: +$event })"
+            (ngModelChange)="
+              cashConversionForm.set({ ...cashConversionForm(), sourceAmount: +$event })
+            "
           />
         </label>
       </div>
@@ -430,11 +470,20 @@
       @if (lastConversion(); as conversion) {
         <div class="fx-result">
           <p>
-            <strong>{{ conversion.sourceAmount | number: '1.2-6' }} {{ conversion.sourceCurrency }}</strong>
+            <strong
+              >{{ conversion.sourceAmount | number: '1.2-6' }}
+              {{ conversion.sourceCurrency }}</strong
+            >
             to
-            <strong>{{ conversion.targetAmount | number: '1.2-6' }} {{ conversion.targetCurrency }}</strong>
+            <strong
+              >{{ conversion.targetAmount | number: '1.2-6' }}
+              {{ conversion.targetCurrency }}</strong
+            >
           </p>
-          <p>Rate: 1 {{ conversion.sourceCurrency }} = {{ conversion.conversionRate | number: '1.2-6' }} {{ conversion.targetCurrency }}</p>
+          <p>
+            Rate: 1 {{ conversion.sourceCurrency }} =
+            {{ conversion.conversionRate | number: '1.2-6' }} {{ conversion.targetCurrency }}
+          </p>
           <p>Source balance after: {{ conversion.sourceBalanceAfter | number: '1.2-6' }}</p>
           <p>Target balance after: {{ conversion.targetBalanceAfter | number: '1.2-6' }}</p>
           <p>Converted at: {{ conversion.convertedAt | date: 'short' }}</p>
@@ -456,8 +505,12 @@
             [class.active]="row.holdingId === selectedHoldingId()"
             (click)="onHoldingChange(row.holdingId)"
           >
-            <span class="holding-main">{{ row.ticker }} - {{ row.quantity | number: '1.2-6' }}</span>
-            <span class="muted">{{ row.instrumentClass }} - PnL {{ row.realizedPnl | number: '1.2-6' }}</span>
+            <span class="holding-main"
+              >{{ row.ticker }} - {{ row.quantity | number: '1.2-6' }}</span
+            >
+            <span class="muted"
+              >{{ row.instrumentClass }} - PnL {{ row.realizedPnl | number: '1.2-6' }}</span
+            >
           </button>
         } @empty {
           <p class="muted">No holdings yet for this portfolio.</p>
@@ -523,8 +576,12 @@
                   <span>
                     {{ step.status }}
                     <small class="price-tags">
-                      quoted: {{ step.quotedPrice === null ? 'N/A' : (step.quotedPrice | number: '1.2-6') }} -
-                      exec: {{ step.executionPrice > 0 ? (step.executionPrice | number: '1.2-6') : 'N/A' }}
+                      quoted:
+                      {{ step.quotedPrice === null ? 'N/A' : (step.quotedPrice | number: '1.2-6') }}
+                      - exec:
+                      {{
+                        step.executionPrice > 0 ? (step.executionPrice | number: '1.2-6') : 'N/A'
+                      }}
                     </small>
                   </span>
                   <time>{{ step.timestamp | date: 'short' }}</time>

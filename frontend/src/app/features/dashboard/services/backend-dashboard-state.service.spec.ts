@@ -208,7 +208,9 @@ describe('BackendDashboardStateService', () => {
       },
     ]);
 
-    expect(service.watchlists()).toEqual([{ id: 'watchlist-1', name: 'My Watchlist', symbols: ['AAPL'] }]);
+    expect(service.watchlists()).toEqual([
+      { id: 'watchlist-1', name: 'My Watchlist', symbols: ['AAPL'] },
+    ]);
     expect(service.activeWatchlistId()).toBe('watchlist-1');
     expect(service.dashboardOpenOrders()).toEqual([]);
     expect(service.dashboardWidgets()).toEqual(preferences.dashboardWidgets);
