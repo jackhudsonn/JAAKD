@@ -21,7 +21,7 @@ Run on the Linux VM:
 ```bash
 docker ps
 docker rm -f <sonarqube_container_id>   # only if SonarQube is already running
-docker run -d --name SonarQube -p 9000:9000 sonarqube:community
+docker run -d --name SonarQube --restart unless-stopped -p 9000:9000 sonarqube:community
 ```
 
 After SonarQube starts (about 1-2 minutes), run this on Windows to create a tunnel:
