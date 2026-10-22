@@ -121,6 +121,7 @@ export interface QuoteResponse {
   currency: string | null;
   asOf: string | null;
   marketState: string | null;
+  changePercent: number | null;
 }
 
 export type CashCurrency = 'USD' | 'EUR' | 'GBP' | 'INR';

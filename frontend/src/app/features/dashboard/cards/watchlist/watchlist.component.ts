@@ -30,6 +30,7 @@ export class WatchlistWidgetComponent implements OnInit, OnDestroy {
   watchlists = this.state.watchlists;
   activeWatchlistId = this.state.activeWatchlistId;
   readonly backendDataMode = this.state.backendDataMode ?? false;
+  private readonly liveQuotes = this.state.liveQuotes;
 
   createWatchlistRequested = output<void>();
   editWatchlistRequested = output<void>();
@@ -68,11 +69,12 @@ export class WatchlistWidgetComponent implements OnInit, OnDestroy {
         const asset = this.backendDataMode ? undefined : this.marketData.getAsset(symbol);
 
         if (!asset && this.backendDataMode) {
+          const quote = this.liveQuotes?.().get(symbol.toUpperCase());
           return {
             symbol,
             name: symbol,
-            price: null,
-            changePct: null,
+            price: quote?.price ?? null,
+            changePct: quote?.changePct ?? null,
           };
         }
 

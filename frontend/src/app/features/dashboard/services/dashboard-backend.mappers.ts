@@ -534,6 +534,26 @@ export const toQuotePriceBySymbol = (quotes: QuoteResponse[]): Map<string, numbe
   return prices;
 };
 
+export interface LiveQuote {
+  price: number;
+  changePct: number | null;
+}
+
+export const toLiveQuoteBySymbol = (quotes: QuoteResponse[]): Map<string, LiveQuote> => {
+  const liveQuotes = new Map<string, LiveQuote>();
+
+  for (const quote of quotes) {
+    if (quote.price !== null && quote.price > 0) {
+      liveQuotes.set(quote.symbol.toUpperCase(), {
+        price: quote.price,
+        changePct: quote.changePercent,
+      });
+    }
+  }
+
+  return liveQuotes;
+};
+
 export const toPriceResolver = (prices: Map<string, number>): HoldingPriceResolver => ({
   isKnownSymbol: (symbol) => prices.has(symbol.toUpperCase()),
   getPrice: (symbol) => prices.get(symbol.toUpperCase()) ?? 0,
