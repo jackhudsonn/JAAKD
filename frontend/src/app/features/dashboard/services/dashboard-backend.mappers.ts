@@ -1,10 +1,12 @@
 import {
+  CASH_CURRENCIES,
+  CashCurrency,
   HoldingResponse,
   InstrumentClass,
   InstrumentResponse,
   OrderLogResponse,
   QuoteResponse,
-  WatchlistItemResponse,
+  WatchlistResponse,
 } from '@core/models/api.models';
 import { Holding, InstrumentType, Order, Transaction } from '@core/models';
 import { SharedWatchlist } from '@core/mocks/watchlist.mock';
@@ -274,7 +276,15 @@ const readMetadataValue = (metadata: string | null, key: string): string | null 
   return null;
 };
 
-export const toTransactions = (orderLogs: OrderLogResponse[]): Transaction[] => {
+const toCashCurrency = (value: string | null | undefined): CashCurrency | undefined => {
+  return CASH_CURRENCIES.find((currency) => currency === value);
+};
+
+export const toTransactions = (
+  orderLogs: OrderLogResponse[],
+  instruments: InstrumentResponse[],
+): Transaction[] => {
+  const instrumentsById = buildInstrumentById(instruments);
   const grouped = new Map<string, OrderLogResponse[]>();
 
   for (const row of orderLogs) {
@@ -320,6 +330,9 @@ export const toTransactions = (orderLogs: OrderLogResponse[]): Transaction[] => 
     const isExchange = newestRow.side === 'FX';
     const sourceCurrency = readMetadataValue(newestRow.metadata, 'sourceCurrency');
     const targetCurrency = readMetadataValue(newestRow.metadata, 'targetCurrency');
+    const currency = toCashCurrency(
+      isExchange ? sourceCurrency : instrumentsById.get(newestRow.instrumentId)?.ticker,
+    );
 
     mappedWithSortKey.push({
       transaction: {
@@ -329,6 +342,7 @@ export const toTransactions = (orderLogs: OrderLogResponse[]): Transaction[] => 
           ? { typeLabel: `${sourceCurrency} → ${targetCurrency}` }
           : {}),
         amount: newestRow.quantity,
+        ...(currency ? { currency } : {}),
         method: 'bank_transfer',
         status,
         createdAt: firstRow.timestamp,
@@ -342,27 +356,18 @@ export const toTransactions = (orderLogs: OrderLogResponse[]): Transaction[] => 
     .map(({ transaction }) => transaction);
 };
 
-export const toWatchlist = (
-  items: WatchlistItemResponse[],
+export const toWatchlists = (
+  watchlists: WatchlistResponse[],
   instruments: InstrumentResponse[],
-): SharedWatchlist => {
+): SharedWatchlist[] => {
   const instrumentsById = buildInstrumentById(instruments);
-  const symbols: string[] = [];
-
-  for (const item of items) {
-    const instrument = instrumentsById.get(item.instrumentId);
-    if (!instrument) {
-      continue;
-    }
-
-    symbols.push(instrument.ticker);
-  }
-
-  return {
-    id: 'watchlist',
-    name: 'Watchlist',
-    symbols,
-  };
+  return watchlists.map((watchlist) => ({
+    id: watchlist.watchlistId,
+    name: watchlist.watchlistName,
+    symbols: watchlist.items
+      .map((item) => instrumentsById.get(item.instrumentId)?.ticker ?? null)
+      .filter((symbol): symbol is string => symbol !== null),
+  }));
 };
 
 export const toLatestPriceBySymbol = (
@@ -486,6 +491,26 @@ export const toQuotePriceBySymbol = (quotes: QuoteResponse[]): Map<string, numbe
   }
 
   return prices;
+};
+
+export interface LiveQuote {
+  price: number;
+  changePct: number | null;
+}
+
+export const toLiveQuoteBySymbol = (quotes: QuoteResponse[]): Map<string, LiveQuote> => {
+  const liveQuotes = new Map<string, LiveQuote>();
+
+  for (const quote of quotes) {
+    if (quote.price !== null && quote.price > 0) {
+      liveQuotes.set(quote.symbol.toUpperCase(), {
+        price: quote.price,
+        changePct: quote.changePercent,
+      });
+    }
+  }
+
+  return liveQuotes;
 };
 
 export const toPriceResolver = (prices: Map<string, number>): HoldingPriceResolver => ({

@@ -47,10 +47,10 @@ describe('DashboardWatchlistOverlayFacade', () => {
     dashboardOpenOrders: signal([]),
     returns: { allTime: 0, daily: 0 },
     watchlistConstraints: {
-      minWatchlists: 1,
+      minWatchlists: 0,
       maxWatchlists: 15,
       minHoldingsPerWatchlist: 0,
-      maxHoldingsPerWatchlist: 40,
+      maxHoldingsPerWatchlist: null,
     },
     backendDataMode: true,
     backendWatchlistInstrumentOptions: signal([
@@ -69,6 +69,9 @@ describe('DashboardWatchlistOverlayFacade', () => {
     ]),
     load: vi.fn(async () => undefined),
     setWatchlistMembership: vi.fn(async () => undefined),
+    createWatchlist: vi.fn(async () => undefined),
+    renameWatchlist: vi.fn(async () => undefined),
+    deleteWatchlist: vi.fn(async () => undefined),
   };
 
   let facade: DashboardWatchlistOverlayFacade;
@@ -106,10 +109,10 @@ describe('DashboardWatchlistOverlayFacade', () => {
     expect(searchRows.map((row) => row.asset.symbol)).toEqual(['AAPL']);
 
     await facade.addSymbolToActiveWatchlist('AAPL');
-    expect(state.setWatchlistMembership).toHaveBeenCalledWith('AAPL', true);
+    expect(state.setWatchlistMembership).toHaveBeenCalledWith('AAPL', 'watchlist', true);
 
     facade.requestWatchlistAsset('VOD');
     await facade.removeSelectedWatchlistAsset();
-    expect(state.setWatchlistMembership).toHaveBeenCalledWith('VOD', false);
+    expect(state.setWatchlistMembership).toHaveBeenCalledWith('VOD', 'watchlist', false);
   });
 });

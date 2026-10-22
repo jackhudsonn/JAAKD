@@ -11,11 +11,12 @@ import {
   toLatestPriceBySymbol,
   toOpenOrders,
   toOrders,
+  toLiveQuoteBySymbol,
   toPriceResolver,
   toQuotePriceBySymbol,
   toQuoteSymbols,
   toTransactions,
-  toWatchlist,
+  toWatchlists,
 } from './dashboard-backend.mappers';
 
 const EQUITY_INSTRUMENT: InstrumentResponse = {
@@ -256,16 +257,19 @@ describe('dashboard-backend.mappers', () => {
 
   describe('toTransactions', () => {
     it('maps FX rows to exchange transactions with a currency label', () => {
-      const result = toTransactions([
-        createOrderLog({
-          orderId: 'fx-1',
-          instrumentId: CASH_INSTRUMENT.instrumentId,
-          side: 'FX',
-          quantity: 100,
-          status: 'EXECUTED',
-          metadata: 'fxConversion=true;sourceCurrency=USD;targetCurrency=EUR;sourceAmount=100',
-        }),
-      ]);
+      const result = toTransactions(
+        [
+          createOrderLog({
+            orderId: 'fx-1',
+            instrumentId: CASH_INSTRUMENT.instrumentId,
+            side: 'FX',
+            quantity: 100,
+            status: 'EXECUTED',
+            metadata: 'fxConversion=true;sourceCurrency=USD;targetCurrency=EUR;sourceAmount=100',
+          }),
+        ],
+        [],
+      );
 
       expect(result).toEqual([
         {
@@ -273,6 +277,7 @@ describe('dashboard-backend.mappers', () => {
           type: 'exchange',
           typeLabel: 'USD → EUR',
           amount: 100,
+          currency: 'USD',
           method: 'bank_transfer',
           status: 'completed',
           createdAt: '2026-01-01T00:00:00.000Z',
@@ -326,7 +331,7 @@ describe('dashboard-backend.mappers', () => {
         }),
       ];
 
-      const result = toTransactions(orderLogs);
+      const result = toTransactions(orderLogs, []);
 
       expect(result.map((transaction) => transaction.id)).toEqual([
         'txn-pending',
@@ -355,39 +360,104 @@ describe('dashboard-backend.mappers', () => {
         'pending',
       );
     });
+
+    it('sets the currency from the cash instrument ticker', () => {
+      const eurInstrument: InstrumentResponse = {
+        ...CASH_INSTRUMENT,
+        instrumentId: 'inst-cash-eur',
+        ticker: 'EUR',
+        name: 'Euro',
+      };
+
+      const result = toTransactions(
+        [
+          createOrderLog({
+            orderId: 'eur-deposit',
+            instrumentId: eurInstrument.instrumentId,
+            side: 'DEPOSIT',
+            quantity: 100,
+            status: 'EXECUTED',
+          }),
+        ],
+        [CASH_INSTRUMENT, eurInstrument],
+      );
+
+      expect(result[0]?.currency).toBe('EUR');
+    });
+
+    it('leaves the currency unset when it is not a known cash currency', () => {
+      const result = toTransactions(
+        [
+          createOrderLog({
+            orderId: 'unknown-instrument',
+            instrumentId: 'inst-missing',
+            side: 'DEPOSIT',
+            status: 'EXECUTED',
+          }),
+          createOrderLog({
+            orderId: 'unknown-fx',
+            instrumentId: CASH_INSTRUMENT.instrumentId,
+            side: 'FX',
+            status: 'EXECUTED',
+            metadata: 'sourceCurrency=JPY;targetCurrency=USD',
+          }),
+        ],
+        [CASH_INSTRUMENT],
+      );
+
+      expect(result).toHaveLength(2);
+      for (const transaction of result) {
+        expect(transaction.currency).toBeUndefined();
+      }
+    });
   });
 
-  describe('toWatchlist', () => {
-    it('returns one fixed watchlist preserving item order and skipping unknown instruments', () => {
-      const result = toWatchlist(
+  describe('toWatchlists', () => {
+    it('maps watchlists preserving item order and skipping unknown instruments', () => {
+      const result = toWatchlists(
         [
           {
-            listItemId: 'item-1',
-            portfolioId: 'portfolio-1',
-            instrumentId: STOCK_INSTRUMENT.instrumentId,
-            name: null,
+            watchlistId: 'watchlist-1',
+            watchlistName: 'Core',
+            items: [
+              {
+                listItemId: 'item-1',
+                watchlistId: 'watchlist-1',
+                instrumentId: STOCK_INSTRUMENT.instrumentId,
+              },
+              {
+                listItemId: 'item-2',
+                watchlistId: 'watchlist-1',
+                instrumentId: 'missing',
+              },
+              {
+                listItemId: 'item-3',
+                watchlistId: 'watchlist-1',
+                instrumentId: EQUITY_INSTRUMENT.instrumentId,
+              },
+            ],
           },
           {
-            listItemId: 'item-2',
-            portfolioId: 'portfolio-1',
-            instrumentId: 'missing',
-            name: null,
-          },
-          {
-            listItemId: 'item-3',
-            portfolioId: 'portfolio-1',
-            instrumentId: EQUITY_INSTRUMENT.instrumentId,
-            name: null,
+            watchlistId: 'watchlist-2',
+            watchlistName: 'Income',
+            items: [],
           },
         ],
         [EQUITY_INSTRUMENT, STOCK_INSTRUMENT],
       );
 
-      expect(result).toEqual({
-        id: 'watchlist',
-        name: 'Watchlist',
-        symbols: ['MSFT', 'AAPL'],
-      });
+      expect(result).toEqual([
+        {
+          id: 'watchlist-1',
+          name: 'Core',
+          symbols: ['MSFT', 'AAPL'],
+        },
+        {
+          id: 'watchlist-2',
+          name: 'Income',
+          symbols: [],
+        },
+      ]);
     });
   });
 
@@ -451,7 +521,11 @@ describe('dashboard-backend.mappers', () => {
       name: 'Euro',
     };
 
-    const quote = (symbol: string, price: number | null): QuoteResponse => ({
+    const quote = (
+      symbol: string,
+      price: number | null,
+      changePercent: number | null = null,
+    ): QuoteResponse => ({
       symbol,
       price,
       bid: null,
@@ -459,6 +533,7 @@ describe('dashboard-backend.mappers', () => {
       currency: 'USD',
       asOf: null,
       marketState: null,
+      changePercent,
     });
 
     it('toCash returns the USD balance when several cash currencies exist', () => {
@@ -505,6 +580,18 @@ describe('dashboard-backend.mappers', () => {
       expect(prices.get('AAPL')).toBe(190);
       expect(prices.has('MSFT')).toBe(false);
       expect(prices.has('BND')).toBe(false);
+    });
+
+    it('toLiveQuoteBySymbol keeps priced quotes with their change', () => {
+      const liveQuotes = toLiveQuoteBySymbol([
+        quote('nvda', 118.6, 1.84),
+        quote('BTC', 61200),
+        quote('MSFT', null, 0.5),
+      ]);
+
+      expect(liveQuotes.get('NVDA')).toEqual({ price: 118.6, changePct: 1.84 });
+      expect(liveQuotes.get('BTC')).toEqual({ price: 61200, changePct: null });
+      expect(liveQuotes.has('MSFT')).toBe(false);
     });
 
     it('toPriceResolver reads prices case-insensitively', () => {

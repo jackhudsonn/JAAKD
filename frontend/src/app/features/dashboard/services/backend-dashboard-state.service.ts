@@ -2,6 +2,7 @@ import { Injectable, signal } from '@angular/core';
 import { MOCK_RETURNS, MockOrder } from '@core/mocks/state.mock';
 import { SharedWatchlist, WATCHLIST_CONSTRAINTS } from '@core/mocks/watchlist.mock';
 import { Holding, Order, Transaction } from '@core/models';
+import { QuoteResponse } from '@core/models/api.models';
 import { HoldingApiService } from '@core/services/holding-api.service';
 import { InstrumentApiService } from '@core/services/instrument-api.service';
 import { OrderLogApiService } from '@core/services/order-log-api.service';
@@ -10,15 +11,17 @@ import { WatchlistApiService } from '@core/services/watchlist-api.service';
 import { DashboardPreferencesSyncService } from './dashboard-preferences-sync.service';
 import { DashboardStatePort, DashboardWatchlistInstrumentOption } from './dashboard-state.port';
 import {
+  LiveQuote,
   toCash,
   toHoldings,
+  toLiveQuoteBySymbol,
   toOpenOrders,
   toInstrumentType,
   toPriceResolver,
   toQuotePriceBySymbol,
   toQuoteSymbols,
   toTransactions,
-  toWatchlist,
+  toWatchlists,
 } from './dashboard-backend.mappers';
 
 export type DashboardLoadState = 'loading' | 'ready' | 'error';
@@ -37,13 +40,13 @@ export class BackendDashboardStateService implements DashboardStatePort {
   readonly dashboardOpenOrders = signal<MockOrder[]>([]);
   readonly backendWatchlistInstrumentOptions = signal<DashboardWatchlistInstrumentOption[]>([]);
   readonly dashboardWidgets = signal<readonly string[] | null>(null);
+  readonly liveQuotes = signal<ReadonlyMap<string, LiveQuote>>(new Map());
   readonly returns = { ...MOCK_RETURNS, allTime: 0, daily: 0 };
   readonly watchlistConstraints = WATCHLIST_CONSTRAINTS;
   readonly backendDataMode = true;
 
   readonly loadState = signal<DashboardLoadState>('loading');
   private readonly portfolioId = signal<string | null>(null);
-  private readonly watchlistItemIdByInstrumentId = signal<Map<string, string>>(new Map());
 
   constructor(
     private portfolioApiService: PortfolioApiService,
@@ -61,12 +64,12 @@ export class BackendDashboardStateService implements DashboardStatePort {
     this.orders.set([]);
     this.transactions.set([]);
     this.watchlists.set([]);
-    this.activeWatchlistId.set('watchlist');
+    this.activeWatchlistId.set('');
     this.dashboardOpenOrders.set([]);
     this.backendWatchlistInstrumentOptions.set([]);
     this.dashboardWidgets.set(null);
+    this.liveQuotes.set(new Map());
     this.portfolioId.set(null);
-    this.watchlistItemIdByInstrumentId.set(new Map());
 
     try {
       const portfolio = await this.portfolioApiService.ensureDefault();
@@ -78,28 +81,29 @@ export class BackendDashboardStateService implements DashboardStatePort {
         this.dashboardWidgets.set([...initialWidgets]);
       }
 
-      const [holdings, instruments, orderLogs, watchlistItems] = await Promise.all([
+      const [holdings, instruments, orderLogs, watchlists] = await Promise.all([
         this.holdingApiService.listByPortfolio(portfolio.portfolioId),
         this.instrumentApiService.list(),
         this.orderLogApiService.listByPortfolio(portfolio.portfolioId),
-        this.watchlistApiService.listByPortfolio(portfolio.portfolioId),
+        this.watchlistApiService.list(portfolio.portfolioId),
       ]);
 
-      let quotePrices = new Map<string, number>();
+      let quotes: QuoteResponse[] = [];
       try {
-        quotePrices = toQuotePriceBySymbol(
-          await this.instrumentApiService.getQuotes(toQuoteSymbols(instruments)),
-        );
+        quotes = await this.instrumentApiService.getQuotes(toQuoteSymbols(instruments));
       } catch (error) {
         console.error('BackendDashboardStateService quotes failed', error);
       }
+      const quotePrices = toQuotePriceBySymbol(quotes);
+      this.liveQuotes.set(toLiveQuoteBySymbol(quotes));
 
       this.accountCash.set(toCash(holdings, instruments));
       this.holdings.set(toHoldings(holdings, instruments, orderLogs, toPriceResolver(quotePrices)));
       this.orders.set(toOpenOrders(orderLogs, instruments));
-      this.transactions.set(toTransactions(orderLogs));
-      this.watchlists.set([toWatchlist(watchlistItems, instruments)]);
-      this.activeWatchlistId.set('watchlist');
+      this.transactions.set(toTransactions(orderLogs, instruments));
+      const mappedWatchlists = toWatchlists(watchlists, instruments);
+      this.watchlists.set(mappedWatchlists);
+      this.activeWatchlistId.set(mappedWatchlists[0]?.id ?? '');
       this.dashboardOpenOrders.set([]);
       this.backendWatchlistInstrumentOptions.set(
         instruments
@@ -123,9 +127,6 @@ export class BackendDashboardStateService implements DashboardStatePort {
         this.dashboardWidgets.set([...widgets]);
       });
 
-      this.watchlistItemIdByInstrumentId.set(
-        new Map(watchlistItems.map((item) => [item.instrumentId, item.listItemId])),
-      );
       this.portfolioId.set(portfolio.portfolioId);
       this.loadState.set('ready');
     } catch {
@@ -134,22 +135,17 @@ export class BackendDashboardStateService implements DashboardStatePort {
       this.orders.set([]);
       this.transactions.set([]);
       this.watchlists.set([]);
-      this.activeWatchlistId.set('watchlist');
+      this.activeWatchlistId.set('');
       this.dashboardOpenOrders.set([]);
       this.backendWatchlistInstrumentOptions.set([]);
       this.dashboardWidgets.set(null);
+      this.liveQuotes.set(new Map());
       this.portfolioId.set(null);
-      this.watchlistItemIdByInstrumentId.set(new Map());
       this.loadState.set('error');
     }
   }
 
-  async setWatchlistMembership(symbol: string, included: boolean): Promise<void> {
-    const portfolioId = this.portfolioId();
-    if (!portfolioId) {
-      return;
-    }
-
+  async setWatchlistMembership(symbol: string, watchlistId: string, included: boolean): Promise<void> {
     const normalizedSymbol = symbol.trim().toUpperCase();
     const selectedInstrument = this.backendWatchlistInstrumentOptions().find(
       (instrument) => instrument.symbol.trim().toUpperCase() === normalizedSymbol,
@@ -159,20 +155,26 @@ export class BackendDashboardStateService implements DashboardStatePort {
       return;
     }
 
-    const watchlist = this.watchlists()[0];
+    const watchlist = this.watchlists().find((entry) => entry.id === watchlistId);
+    if (!watchlist) {
+      return;
+    }
+
     const existingSymbols = new Set(watchlist?.symbols ?? []);
+    const portfolioId = this.portfolioId();
+    if (!portfolioId) {
+      return;
+    }
 
     if (included) {
       if (existingSymbols.has(selectedInstrument.symbol)) {
         return;
       }
 
-      await this.watchlistApiService.add({
-        portfolioId,
+      await this.watchlistApiService.addItem(portfolioId, watchlistId, {
         instrumentId: selectedInstrument.instrumentId,
-        name: 'Watchlist',
       });
-      await this.load();
+      await this.refreshWatchlists();
       return;
     }
 
@@ -180,16 +182,47 @@ export class BackendDashboardStateService implements DashboardStatePort {
       return;
     }
 
-    const matchingItemId = this.watchlistItemIdByInstrumentId().get(
-      selectedInstrument.instrumentId,
-    );
+    const watchlists = await this.watchlistApiService.list(portfolioId);
+    const listItemId = watchlists
+      .find((entry) => entry.watchlistId === watchlistId)
+      ?.items.find((item) => item.instrumentId === selectedInstrument.instrumentId)?.listItemId;
 
-    if (!matchingItemId) {
+    if (!listItemId) {
       return;
     }
 
-    await this.watchlistApiService.remove(matchingItemId);
-    await this.load();
+    await this.watchlistApiService.removeItem(portfolioId, watchlistId, listItemId);
+    await this.refreshWatchlists();
+  }
+
+  async createWatchlist(watchlistName: string): Promise<void> {
+    const portfolioId = this.portfolioId();
+    if (!portfolioId) {
+      return;
+    }
+
+    await this.watchlistApiService.createWatchlist(portfolioId, { watchlistName });
+    await this.refreshWatchlists();
+  }
+
+  async renameWatchlist(watchlistId: string, watchlistName: string): Promise<void> {
+    const portfolioId = this.portfolioId();
+    if (!portfolioId) {
+      return;
+    }
+
+    await this.watchlistApiService.updateWatchlist(portfolioId, watchlistId, { watchlistName });
+    await this.refreshWatchlists();
+  }
+
+  async deleteWatchlist(watchlistId: string): Promise<void> {
+    const portfolioId = this.portfolioId();
+    if (!portfolioId) {
+      return;
+    }
+
+    await this.watchlistApiService.deleteWatchlist(portfolioId, watchlistId);
+    await this.refreshWatchlists();
   }
 
   async setDashboardWidgets(dashboardWidgets: readonly string[]): Promise<void> {
@@ -204,5 +237,35 @@ export class BackendDashboardStateService implements DashboardStatePort {
       dashboardWidgets,
     );
     this.dashboardWidgets.set([...syncedWidgets]);
+  }
+
+  private async refreshWatchlists(): Promise<void> {
+    const portfolioId = this.portfolioId();
+    if (!portfolioId) {
+      this.watchlists.set([]);
+      this.activeWatchlistId.set('');
+      return;
+    }
+
+    const watchlists = await this.watchlistApiService.list(portfolioId);
+    const instrumentById = new Map(
+      this.backendWatchlistInstrumentOptions().map((instrument) => [
+        instrument.instrumentId,
+        instrument.symbol,
+      ]),
+    );
+
+    const mappedWatchlists = watchlists.map((watchlist) => ({
+      id: watchlist.watchlistId,
+      name: watchlist.watchlistName,
+      symbols: watchlist.items
+        .map((item) => instrumentById.get(item.instrumentId) ?? null)
+        .filter((symbol): symbol is string => symbol !== null),
+    }));
+
+    const previousActiveId = this.activeWatchlistId();
+    this.watchlists.set(mappedWatchlists);
+    const stillActive = mappedWatchlists.some((watchlist) => watchlist.id === previousActiveId);
+    this.activeWatchlistId.set(stillActive ? previousActiveId : (mappedWatchlists[0]?.id ?? ''));
   }
 }

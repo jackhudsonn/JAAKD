@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { QuoteResponse } from '@core/models/api.models';
 import { HoldingApiService } from '@core/services/holding-api.service';
 import { InstrumentApiService } from '@core/services/instrument-api.service';
 import { OrderLogApiService } from '@core/services/order-log-api.service';
@@ -88,12 +89,11 @@ describe('BackendDashboardStateService', () => {
     },
   ];
 
-  const watchlistItems = [
+  const watchlists = [
     {
-      listItemId: 'wl-1',
-      portfolioId: portfolio.portfolioId,
-      instrumentId: 'inst-aapl',
-      name: 'Watchlist',
+      watchlistId: 'watchlist-1',
+      watchlistName: 'My Watchlist',
+      items: [{ listItemId: 'wl-1', watchlistId: 'watchlist-1', instrumentId: 'inst-aapl' }],
     },
   ];
 
@@ -115,7 +115,7 @@ describe('BackendDashboardStateService', () => {
 
   const instrumentApiService = {
     list: vi.fn(async () => instruments),
-    getQuotes: vi.fn(async () => []),
+    getQuotes: vi.fn(async (): Promise<QuoteResponse[]> => []),
   };
 
   const orderLogApiService = {
@@ -123,9 +123,12 @@ describe('BackendDashboardStateService', () => {
   };
 
   const watchlistApiService = {
-    listByPortfolio: vi.fn(async () => watchlistItems),
-    add: vi.fn(async () => watchlistItems[0]),
-    remove: vi.fn(async () => undefined),
+    list: vi.fn(async () => watchlists),
+    createWatchlist: vi.fn(async () => watchlists[0]),
+    updateWatchlist: vi.fn(async () => watchlists[0]),
+    deleteWatchlist: vi.fn(async () => undefined),
+    addItem: vi.fn(async () => watchlists[0].items[0]),
+    removeItem: vi.fn(async () => undefined),
   };
 
   const preferencesApiService = {
@@ -144,7 +147,7 @@ describe('BackendDashboardStateService', () => {
     holdingApiService.listByPortfolio.mockImplementation(async () => holdings);
     instrumentApiService.list.mockImplementation(async () => instruments);
     orderLogApiService.listByPortfolio.mockImplementation(async () => orderLogs);
-    watchlistApiService.listByPortfolio.mockImplementation(async () => watchlistItems);
+    watchlistApiService.list.mockImplementation(async () => watchlists);
     preferencesApiService.getByPortfolio.mockImplementation(async () => preferences);
     preferencesApiService.updateByPortfolio.mockImplementation(async () => preferences);
 
@@ -163,6 +166,26 @@ describe('BackendDashboardStateService', () => {
     service = TestBed.inject(BackendDashboardStateService);
   });
 
+  it('exposes live quotes from the same quotes call used for holdings', async () => {
+    instrumentApiService.getQuotes.mockResolvedValueOnce([
+      {
+        symbol: 'AAPL',
+        price: 190,
+        bid: null,
+        ask: null,
+        currency: 'USD',
+        asOf: null,
+        marketState: null,
+        changePercent: -0.75,
+      },
+    ]);
+
+    await service.load();
+
+    expect(instrumentApiService.getQuotes).toHaveBeenCalledTimes(1);
+    expect(service.liveQuotes().get('AAPL')).toEqual({ price: 190, changePct: -0.75 });
+  });
+
   it('loads backend dashboard cash, holdings, orders, transactions, and watchlist', async () => {
     await service.load();
 
@@ -178,16 +201,15 @@ describe('BackendDashboardStateService', () => {
         id: 'ord-deposit',
         type: 'deposit',
         amount: 5000,
+        currency: 'USD',
         method: 'bank_transfer',
         status: 'completed',
         createdAt: '2026-01-01T00:01:00.000Z',
       },
     ]);
 
-    expect(service.watchlists()).toEqual([
-      { id: 'watchlist', name: 'Watchlist', symbols: ['AAPL'] },
-    ]);
-    expect(service.activeWatchlistId()).toBe('watchlist');
+    expect(service.watchlists()).toEqual([{ id: 'watchlist-1', name: 'My Watchlist', symbols: ['AAPL'] }]);
+    expect(service.activeWatchlistId()).toBe('watchlist-1');
     expect(service.dashboardOpenOrders()).toEqual([]);
     expect(service.dashboardWidgets()).toEqual(preferences.dashboardWidgets);
     expect(service.backendWatchlistInstrumentOptions()).toEqual([
@@ -217,7 +239,7 @@ describe('BackendDashboardStateService', () => {
     expect(service.orders()).toEqual([]);
     expect(service.transactions()).toEqual([]);
     expect(service.watchlists()).toEqual([]);
-    expect(service.activeWatchlistId()).toBe('watchlist');
+    expect(service.activeWatchlistId()).toBe('');
     expect(service.dashboardOpenOrders()).toEqual([]);
     expect(service.dashboardWidgets()).toBeNull();
     expect(service.backendWatchlistInstrumentOptions()).toEqual([]);
@@ -226,15 +248,17 @@ describe('BackendDashboardStateService', () => {
   it('adds and removes backend watchlist membership through watchlist API and reloads state', async () => {
     await service.load();
 
-    await service.setWatchlistMembership('VOD', true);
-    expect(watchlistApiService.add).toHaveBeenCalledWith({
-      portfolioId: portfolio.portfolioId,
+    await service.setWatchlistMembership('VOD', 'watchlist-1', true);
+    expect(watchlistApiService.addItem).toHaveBeenCalledWith(portfolio.portfolioId, 'watchlist-1', {
       instrumentId: 'inst-vod',
-      name: 'Watchlist',
     });
 
-    await service.setWatchlistMembership('AAPL', false);
-    expect(watchlistApiService.remove).toHaveBeenCalledWith('wl-1');
+    await service.setWatchlistMembership('AAPL', 'watchlist-1', false);
+    expect(watchlistApiService.removeItem).toHaveBeenCalledWith(
+      portfolio.portfolioId,
+      'watchlist-1',
+      'wl-1',
+    );
     expect(service.loadState()).toBe('ready');
   });
 

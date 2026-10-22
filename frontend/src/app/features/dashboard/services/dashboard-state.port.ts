@@ -2,6 +2,7 @@ import { InjectionToken, Signal, WritableSignal } from '@angular/core';
 import { MOCK_RETURNS, MOCK_STATE, MockOrder } from '@core/mocks/state.mock';
 import { SharedWatchlist, WATCHLIST_CONSTRAINTS } from '@core/mocks/watchlist.mock';
 import { Holding, InstrumentType, Order, Transaction } from '@core/models';
+import { LiveQuote } from './dashboard-backend.mappers';
 
 export interface DashboardWatchlistInstrumentOption {
   instrumentId: string;
@@ -23,8 +24,12 @@ export interface DashboardStatePort {
   readonly backendDataMode?: boolean;
   readonly backendWatchlistInstrumentOptions?: Signal<DashboardWatchlistInstrumentOption[]>;
   readonly dashboardWidgets?: Signal<readonly string[] | null>;
+  readonly liveQuotes?: Signal<ReadonlyMap<string, LiveQuote>>;
   load?(): Promise<void>;
-  setWatchlistMembership?(symbol: string, included: boolean): Promise<void>;
+  setWatchlistMembership?(symbol: string, watchlistId: string, included: boolean): Promise<void>;
+  createWatchlist?(watchlistName: string): Promise<void>;
+  renameWatchlist?(watchlistId: string, watchlistName: string): Promise<void>;
+  deleteWatchlist?(watchlistId: string): Promise<void>;
   setDashboardWidgets?(dashboardWidgets: readonly string[]): Promise<void>;
 }
 

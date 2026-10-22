@@ -44,6 +44,10 @@
   font-size: var(--font-size-sm);
 }
 
+.same-currency-error {
+  margin: var(--space-xs) 0 0;
+}
+
 .exchange-actions {
   display: flex;
   align-items: flex-end;

@@ -33,7 +33,8 @@ export class TradeWatchlistService {
 
     return this.watchlistsState().map((watchlist) => {
       const containsSymbol = watchlist.symbols.includes(symbol);
-      const isFull = watchlist.symbols.length >= this.maxWatchlistHoldings;
+      const isFull =
+        this.maxWatchlistHoldings !== null && watchlist.symbols.length >= this.maxWatchlistHoldings;
 
       return {
         id: watchlist.id,
@@ -52,11 +53,7 @@ export class TradeWatchlistService {
 
   async setWatchlistMembership(request: TradeSetWatchlistMembershipRequest) {
     if (this.state.backendDataMode && this.state.setWatchlistMembership) {
-      if (request.watchlistId !== 'watchlist') {
-        return;
-      }
-
-      await this.state.setWatchlistMembership(request.symbol, request.included);
+      await this.state.setWatchlistMembership(request.symbol, request.watchlistId, request.included);
       return;
     }
 
@@ -70,7 +67,11 @@ export class TradeWatchlistService {
       return;
     }
 
-    if (request.included && target.symbols.length >= this.maxWatchlistHoldings) {
+    if (
+      request.included &&
+      this.maxWatchlistHoldings !== null &&
+      target.symbols.length >= this.maxWatchlistHoldings
+    ) {
       return;
     }
 

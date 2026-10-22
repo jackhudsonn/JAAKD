@@ -26,10 +26,6 @@
         </select>
       </div>
 
-      <p class="watchlist-search-capacity">
-        {{ activeWatchlistSymbolCount() }}/{{ maxHoldingsPerWatchlist() }} items
-      </p>
-
       <app-scrollable-list
         [items]="watchlistSearchRows()"
         [trackBy]="trackByWatchlistSearchSymbol"
