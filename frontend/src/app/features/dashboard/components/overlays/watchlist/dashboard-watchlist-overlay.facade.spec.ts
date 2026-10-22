@@ -38,7 +38,6 @@ describe('DashboardWatchlistOverlayFacade', () => {
   };
 
   const state: DashboardStatePort = {
-    accountCash: signal(0),
     holdings: signal([]),
     orders: signal([]),
     transactions: signal([]),

@@ -36,11 +36,6 @@ export class TransactFacadeService {
   }
 
   submitExchange(request: ExchangeRequest): Promise<CashConversionResponse | null> {
-    return this.operations.exchange(
-      request.amount,
-      request.fromCurrency,
-      request.toCurrency,
-      'bank_transfer',
-    );
+    return this.operations.exchange(request.amount, request.fromCurrency, request.toCurrency);
   }
 }

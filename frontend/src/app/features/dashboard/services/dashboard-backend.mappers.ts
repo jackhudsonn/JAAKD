@@ -9,7 +9,7 @@ import {
   WatchlistResponse,
 } from '@core/models/api.models';
 import { Holding, HoldingInstrumentClass, InstrumentType, Order, Transaction } from '@core/models';
-import { SharedWatchlist } from '@core/mocks/watchlist.mock';
+import { SharedWatchlist } from './dashboard-state.types';
 
 const OPEN_STATUSES = new Set(['SUBMITTED', 'PENDING', 'ACCEPTED']);
 const TRADE_SIDES = new Set(['BUY', 'SELL']);

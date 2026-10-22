@@ -62,7 +62,6 @@ export class AllocationByAssetWidgetComponent {
   private readonly marketData = inject(DASHBOARD_MARKET_DATA_PORT);
   private readonly state = inject(DASHBOARD_STATE_PORT);
 
-  private readonly accountCash = this.state.accountCash;
   private readonly cashBalances = this.state.cashBalances;
   private readonly holdings = this.state.holdings;
 
@@ -88,7 +87,7 @@ export class AllocationByAssetWidgetComponent {
       CRYPTO: [],
     };
 
-    const balances = this.cashBalances?.() ?? { USD: this.accountCash() };
+    const balances = this.cashBalances?.() ?? {};
     for (const [currency, amount] of Object.entries(balances)) {
       if (Math.abs(amount) <= Number.EPSILON) {
         continue;

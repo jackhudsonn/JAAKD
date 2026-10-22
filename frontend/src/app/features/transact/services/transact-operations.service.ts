@@ -1,5 +1,4 @@
 import { Injectable, inject } from '@angular/core';
-import { addMockExchangeTransaction, addMockTransaction } from '@core/mocks/state.mock';
 import { PaymentMethod } from '@core/models';
 import { CashConversionResponse, CashCurrency } from '@core/models/api.models';
 import { TRANSACT_STATE_PORT } from './transact-state.port';
@@ -12,41 +11,34 @@ export class TransactOperationsService {
 
   async deposit(
     amount: number,
-    method: PaymentMethod,
+    _method: PaymentMethod,
     currency: CashCurrency = 'USD',
   ): Promise<void> {
-    if (this.state.backendDataMode && this.state.submitCashMovement) {
-      await this.state.submitCashMovement('DEPOSIT', amount, currency);
-      return;
+    if (!this.state.submitCashMovement) {
+      throw new Error('Cash movement submission is not configured.');
     }
-
-    addMockTransaction('deposit', amount, method);
+    await this.state.submitCashMovement('DEPOSIT', amount, currency);
   }
 
   async withdraw(
     amount: number,
-    method: PaymentMethod,
+    _method: PaymentMethod,
     currency: CashCurrency = 'USD',
   ): Promise<void> {
-    if (this.state.backendDataMode && this.state.submitCashMovement) {
-      await this.state.submitCashMovement('WITHDRAW', amount, currency);
-      return;
+    if (!this.state.submitCashMovement) {
+      throw new Error('Cash movement submission is not configured.');
     }
-
-    addMockTransaction('withdrawal', amount, method);
+    await this.state.submitCashMovement('WITHDRAW', amount, currency);
   }
 
   async exchange(
     amount: number,
     fromCurrency: CashCurrency,
     toCurrency: CashCurrency,
-    method: PaymentMethod,
   ): Promise<CashConversionResponse | null> {
-    if (this.state.backendDataMode && this.state.convertCash) {
-      return this.state.convertCash(fromCurrency, toCurrency, amount);
+    if (!this.state.convertCash) {
+      throw new Error('Cash conversion is not configured.');
     }
-
-    addMockExchangeTransaction(amount, `${fromCurrency} → ${toCurrency}`, method);
-    return null;
+    return this.state.convertCash(fromCurrency, toCurrency, amount);
   }
 }

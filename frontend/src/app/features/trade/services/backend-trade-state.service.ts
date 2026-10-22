@@ -7,14 +7,12 @@ import {
   WatchlistResponse,
 } from '@core/models/api.models';
 import { Holding, Order } from '@core/models';
-import { WATCHLIST_CONSTRAINTS } from '@core/mocks/watchlist.mock';
 import { HoldingApiService } from '@core/services/holding-api.service';
 import { InstrumentApiService } from '@core/services/instrument-api.service';
 import { OrderLogApiService } from '@core/services/order-log-api.service';
 import { PortfolioApiService } from '@core/services/portfolio-api.service';
 import { WatchlistApiService } from '@core/services/watchlist-api.service';
 import {
-  toCash,
   toHoldings,
   toLatestPriceBySymbol,
   toOrders,
@@ -24,7 +22,11 @@ import {
   toWatchlists,
 } from '@features/dashboard/services/dashboard-backend.mappers';
 import { TradePlaceOrderRequest } from './trade-order-engine.service';
-import { TradeStatePort, TradeWatchlist } from './trade-state.port';
+import {
+  TRADE_WATCHLIST_CONSTRAINTS,
+  TradeStatePort,
+  TradeWatchlist,
+} from './trade-state.port';
 
 export type TradeLoadState = 'loading' | 'ready' | 'error';
 
@@ -32,12 +34,11 @@ export type TradeLoadState = 'loading' | 'ready' | 'error';
   providedIn: 'root',
 })
 export class BackendTradeStateService implements TradeStatePort {
-  readonly accountCash = signal(0);
   readonly cashBalances = signal<Record<string, number>>({});
   readonly holdings = signal<Holding[]>([]);
   readonly orders = signal<Order[]>([]);
   readonly watchlists = signal<TradeWatchlist[]>([]);
-  readonly maxWatchlistHoldings = WATCHLIST_CONSTRAINTS.maxHoldingsPerWatchlist;
+  readonly maxWatchlistHoldings = TRADE_WATCHLIST_CONSTRAINTS.maxHoldingsPerWatchlist;
 
   readonly backendDataMode = true;
   readonly loadState = signal<TradeLoadState>('loading');
@@ -60,7 +61,6 @@ export class BackendTradeStateService implements TradeStatePort {
 
   async load(): Promise<void> {
     this.loadState.set('loading');
-    this.accountCash.set(0);
     this.cashBalances.set({});
     this.holdings.set([]);
     this.orders.set([]);
@@ -78,7 +78,6 @@ export class BackendTradeStateService implements TradeStatePort {
       this.watchlistsData.set([]);
       this.latestPriceBySymbolData.set(new Map());
       this.quotePriceBySymbol.set(new Map());
-      this.accountCash.set(0);
       this.cashBalances.set({});
       this.holdings.set([]);
       this.orders.set([]);
@@ -222,7 +221,6 @@ export class BackendTradeStateService implements TradeStatePort {
     this.latestPriceBySymbolData.set(
       new Map([...toLatestPriceBySymbol(orderLogs, instruments), ...this.quotePriceBySymbol()]),
     );
-    this.accountCash.set(toCash(holdings, instruments));
     this.cashBalances.set(this.toCashBalances(holdings, instruments));
     this.holdings.set(
       toHoldings(holdings, instruments, orderLogs, toPriceResolver(this.quotePriceBySymbol())),

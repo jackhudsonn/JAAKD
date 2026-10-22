@@ -1,6 +1,4 @@
 import { Injectable, signal } from '@angular/core';
-import { MOCK_RETURNS, MockOrder } from '@core/mocks/state.mock';
-import { SharedWatchlist, WATCHLIST_CONSTRAINTS } from '@core/mocks/watchlist.mock';
 import { Holding, Order, Transaction } from '@core/models';
 import { QuoteResponse } from '@core/models/api.models';
 import { HoldingApiService } from '@core/services/holding-api.service';
@@ -9,10 +7,14 @@ import { OrderLogApiService } from '@core/services/order-log-api.service';
 import { PortfolioApiService } from '@core/services/portfolio-api.service';
 import { WatchlistApiService } from '@core/services/watchlist-api.service';
 import { DashboardPreferencesSyncService } from './dashboard-preferences-sync.service';
-import { DashboardStatePort, DashboardWatchlistInstrumentOption } from './dashboard-state.port';
+import {
+  DASHBOARD_RETURNS_BASE,
+  DASHBOARD_WATCHLIST_CONSTRAINTS,
+  DashboardStatePort,
+  DashboardWatchlistInstrumentOption,
+} from './dashboard-state.port';
 import {
   LiveQuote,
-  toCash,
   toCashBalances,
   toHoldings,
   toLiveQuoteBySymbol,
@@ -24,6 +26,7 @@ import {
   toTransactions,
   toWatchlists,
 } from './dashboard-backend.mappers';
+import { DashboardOpenOrder, SharedWatchlist } from './dashboard-state.types';
 
 export type DashboardLoadState = 'loading' | 'ready' | 'error';
 
@@ -31,7 +34,6 @@ export type DashboardLoadState = 'loading' | 'ready' | 'error';
   providedIn: 'root',
 })
 export class BackendDashboardStateService implements DashboardStatePort {
-  readonly accountCash = signal(0);
   readonly cashBalances = signal<Record<string, number>>({});
   readonly holdings = signal<Holding[]>([]);
   readonly orders = signal<Order[]>([]);
@@ -39,12 +41,12 @@ export class BackendDashboardStateService implements DashboardStatePort {
   readonly transactions = signal<Transaction[]>([]);
   readonly watchlists = signal<SharedWatchlist[]>([]);
   readonly activeWatchlistId = signal('watchlist');
-  readonly dashboardOpenOrders = signal<MockOrder[]>([]);
+  readonly dashboardOpenOrders = signal<DashboardOpenOrder[]>([]);
   readonly backendWatchlistInstrumentOptions = signal<DashboardWatchlistInstrumentOption[]>([]);
   readonly dashboardWidgets = signal<readonly string[] | null>(null);
   readonly liveQuotes = signal<ReadonlyMap<string, LiveQuote>>(new Map());
-  readonly returns = { ...MOCK_RETURNS, allTime: 0, daily: 0 };
-  readonly watchlistConstraints = WATCHLIST_CONSTRAINTS;
+  readonly returns = { ...DASHBOARD_RETURNS_BASE };
+  readonly watchlistConstraints = DASHBOARD_WATCHLIST_CONSTRAINTS;
   readonly backendDataMode = true;
 
   readonly loadState = signal<DashboardLoadState>('loading');
@@ -61,7 +63,6 @@ export class BackendDashboardStateService implements DashboardStatePort {
 
   async load(): Promise<void> {
     this.loadState.set('loading');
-    this.accountCash.set(0);
     this.cashBalances.set({});
     this.holdings.set([]);
     this.orders.set([]);
@@ -100,7 +101,6 @@ export class BackendDashboardStateService implements DashboardStatePort {
       const quotePrices = toQuotePriceBySymbol(quotes);
       this.liveQuotes.set(toLiveQuoteBySymbol(quotes));
 
-      this.accountCash.set(toCash(holdings, instruments));
       this.cashBalances.set(toCashBalances(holdings, instruments));
       this.holdings.set(toHoldings(holdings, instruments, orderLogs, toPriceResolver(quotePrices)));
       this.orders.set(toOpenOrders(orderLogs, instruments));
@@ -134,7 +134,6 @@ export class BackendDashboardStateService implements DashboardStatePort {
       this.portfolioId.set(portfolio.portfolioId);
       this.loadState.set('ready');
     } catch {
-      this.accountCash.set(0);
       this.cashBalances.set({});
       this.holdings.set([]);
       this.orders.set([]);

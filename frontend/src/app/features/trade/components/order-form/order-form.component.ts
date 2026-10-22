@@ -26,7 +26,7 @@ export class OrderFormComponent {
 
   currentPrice = input.required<number>();
   ownedQuantity = input(0);
-  accountCash = input(0);
+  availableBuyCash = input(0);
   backendDataMode = input(false);
   showBackButton = input(false);
   backLabel = input('Back');
@@ -57,7 +57,7 @@ export class OrderFormComponent {
   maxBuyQuantity = computed(() => {
     const price =
       this.kind() === 'limit' ? (this.limitPrice() ?? this.currentPrice()) : this.currentPrice();
-    return price > 0 ? Math.floor(this.accountCash() / price) : 0;
+    return price > 0 ? Math.floor(this.availableBuyCash() / price) : 0;
   });
 
   error = computed(() => {
@@ -83,7 +83,7 @@ export class OrderFormComponent {
       this.type() === 'buy' &&
       quantity > this.maxBuyQuantity()
     ) {
-      return 'Insufficient account cash for this quantity.';
+      return 'Insufficient USD cash balance for this quantity.';
     }
 
     return '';

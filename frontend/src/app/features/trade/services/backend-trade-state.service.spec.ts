@@ -161,7 +161,6 @@ describe('BackendTradeStateService', () => {
     await service.load();
 
     expect(service.loadState()).toBe('ready');
-    expect(service.accountCash()).toBe(5000);
     expect(service.cashBalances()).toEqual({ USD: 5000, EUR: 300 });
     expect(service.holdings()).toHaveLength(1);
     expect(service.orders()).toHaveLength(1);
@@ -175,7 +174,6 @@ describe('BackendTradeStateService', () => {
     await service.load();
 
     expect(service.loadState()).toBe('error');
-    expect(service.accountCash()).toBe(0);
     expect(service.cashBalances()).toEqual({});
     expect(service.holdings()).toEqual([]);
     expect(service.orders()).toEqual([]);

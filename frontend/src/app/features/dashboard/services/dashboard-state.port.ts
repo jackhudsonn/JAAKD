@@ -1,8 +1,14 @@
 import { InjectionToken, Signal, WritableSignal } from '@angular/core';
-import { MOCK_RETURNS, MOCK_STATE, MockOrder } from '@core/mocks/state.mock';
-import { SharedWatchlist, WATCHLIST_CONSTRAINTS } from '@core/mocks/watchlist.mock';
 import { Holding, InstrumentType, Order, Transaction } from '@core/models';
 import { LiveQuote } from './dashboard-backend.mappers';
+import {
+  DASHBOARD_RETURNS_BASE,
+  DASHBOARD_WATCHLIST_CONSTRAINTS,
+  DashboardOpenOrder,
+  DashboardReturns,
+  DashboardWatchlistConstraints,
+  SharedWatchlist,
+} from './dashboard-state.types';
 
 export interface DashboardWatchlistInstrumentOption {
   instrumentId: string;
@@ -12,16 +18,15 @@ export interface DashboardWatchlistInstrumentOption {
 }
 
 export interface DashboardStatePort {
-  readonly accountCash: WritableSignal<number>;
   readonly cashBalances?: WritableSignal<Record<string, number>>;
   readonly holdings: WritableSignal<Holding[]>;
   readonly orders: WritableSignal<Order[]>;
   readonly transactions: WritableSignal<Transaction[]>;
   readonly watchlists: WritableSignal<SharedWatchlist[]>;
   readonly activeWatchlistId: WritableSignal<string>;
-  readonly dashboardOpenOrders: WritableSignal<MockOrder[]>;
-  readonly returns: Readonly<typeof MOCK_RETURNS>;
-  readonly watchlistConstraints: typeof WATCHLIST_CONSTRAINTS;
+  readonly dashboardOpenOrders: WritableSignal<DashboardOpenOrder[]>;
+  readonly returns: Readonly<DashboardReturns>;
+  readonly watchlistConstraints: Readonly<DashboardWatchlistConstraints>;
   readonly backendDataMode?: boolean;
   readonly backendWatchlistInstrumentOptions?: Signal<DashboardWatchlistInstrumentOption[]>;
   readonly dashboardWidgets?: Signal<readonly string[] | null>;
@@ -36,17 +41,11 @@ export interface DashboardStatePort {
 
 export const DASHBOARD_STATE_PORT = new InjectionToken<DashboardStatePort>('DASHBOARD_STATE_PORT', {
   providedIn: 'root',
-  factory: () => ({
-    accountCash: MOCK_STATE.accountCash,
-    cashBalances: MOCK_STATE.cashBalances,
-    holdings: MOCK_STATE.holdings,
-    orders: MOCK_STATE.orders,
-    transactions: MOCK_STATE.transactions,
-    watchlists: MOCK_STATE.watchlists,
-    activeWatchlistId: MOCK_STATE.activeWatchlistId,
-    dashboardOpenOrders: MOCK_STATE.dashboardOpenOrders,
-    returns: MOCK_RETURNS,
-    watchlistConstraints: WATCHLIST_CONSTRAINTS,
-    backendDataMode: false,
-  }),
+  factory: () => {
+    throw new Error(
+      'DASHBOARD_STATE_PORT is not provided. Register a DashboardStatePort implementation in the component providers.',
+    );
+  },
 });
+
+export { DASHBOARD_RETURNS_BASE, DASHBOARD_WATCHLIST_CONSTRAINTS } from './dashboard-state.types';

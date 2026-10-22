@@ -1,5 +1,4 @@
 import { InjectionToken, Signal, WritableSignal } from '@angular/core';
-import { MOCK_STATE } from '@core/mocks/state.mock';
 import { Transaction } from '@core/models';
 import { CashConversionResponse, CashCurrency } from '@core/models/api.models';
 
@@ -24,7 +23,9 @@ export interface TransactStatePort {
 
 export const TRANSACT_STATE_PORT = new InjectionToken<TransactStatePort>('TRANSACT_STATE_PORT', {
   providedIn: 'root',
-  factory: () => ({
-    transactions: MOCK_STATE.transactions,
-  }),
+  factory: () => {
+    throw new Error(
+      'TRANSACT_STATE_PORT is not provided. Register a TransactStatePort implementation in the component providers.',
+    );
+  },
 });

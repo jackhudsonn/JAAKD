@@ -190,7 +190,7 @@ describe('BackendDashboardStateService', () => {
     await service.load();
 
     expect(service.loadState()).toBe('ready');
-    expect(service.accountCash()).toBe(5000);
+    expect(service.cashBalances()).toEqual({ USD: 5000 });
     expect(service.holdings()).toHaveLength(1);
     expect(service.holdings()[0]?.symbol).toBe('AAPL');
     expect(service.orders()).toHaveLength(1);
@@ -234,7 +234,7 @@ describe('BackendDashboardStateService', () => {
     await service.load();
 
     expect(service.loadState()).toBe('error');
-    expect(service.accountCash()).toBe(0);
+    expect(service.cashBalances()).toEqual({});
     expect(service.holdings()).toEqual([]);
     expect(service.orders()).toEqual([]);
     expect(service.transactions()).toEqual([]);

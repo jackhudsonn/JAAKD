@@ -59,10 +59,7 @@ export class HoldingsCardComponent implements OnInit, OnDestroy {
   readonly holdingsListMaxHeight = '255px';
 
   holdings = input.required<readonly Holding[]>();
-  accountCash = input.required<number>();
-  // TODO(next sprint/backend): replace this UI input with API-backed wallet balances.
-  // Keeping accountCash as fallback for current mock-based state wiring.
-  cashBalances = input<readonly CashBalance[] | null>(null);
+  cashBalances = input<readonly CashBalance[]>([]);
 
   selectSymbol = output<string>();
 
@@ -114,16 +111,7 @@ export class HoldingsCardComponent implements OnInit, OnDestroy {
     row.kind === 'cash' ? `cash:${row.currency}` : row.holding.symbol;
 
   private resolveVisibleCashBalances(): CashBalance[] {
-    const rawBalances = this.cashBalances();
-    const balances =
-      rawBalances && rawBalances.length > 0
-        ? rawBalances
-        : [
-            // TODO(next sprint/backend): remove once backend provides per-currency balances.
-            { currency: 'USD', amount: this.accountCash() },
-          ];
-
-    return balances
+    return this.cashBalances()
       .filter(({ amount }) => Math.abs(amount) > Number.EPSILON)
       .slice()
       .sort((left, right) => this.compareCashBalances(left, right));

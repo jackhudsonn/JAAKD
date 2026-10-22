@@ -20,7 +20,6 @@ export class TradeFacadeService {
   private readonly watchlistService = inject(TradeWatchlistService);
   private readonly state = inject(TRADE_STATE_PORT);
 
-  readonly accountCash = this.orderEngine.accountCash;
   readonly holdings = this.orderEngine.holdings;
   readonly orders = this.orderEngine.orders;
 

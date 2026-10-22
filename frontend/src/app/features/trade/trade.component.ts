@@ -50,17 +50,17 @@ export class TradeComponent implements OnInit, OnDestroy {
   private readonly tradeDeepLinkService = inject(TradeDeepLinkService);
   private readonly toastService = inject(ToastService);
 
-  accountCash = this.tradeFacade.accountCash;
   holdings = this.tradeFacade.holdings;
   orders = this.tradeFacade.orders;
   readonly cashBalances = computed(() => {
     const balances = this.tradeFacade.cashBalances();
     if (!balances) {
-      return null;
+      return [];
     }
 
     return Object.entries(balances).map(([currency, amount]) => ({ currency, amount }));
   });
+  readonly availableBuyCash = computed(() => this.tradeFacade.cashBalances()?.['USD'] ?? 0);
   readonly maxWatchlistHoldings = this.tradeFacade.maxWatchlistHoldings;
 
   openOrders = this.tradeFacade.openOrders;

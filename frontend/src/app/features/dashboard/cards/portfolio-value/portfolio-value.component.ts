@@ -4,6 +4,8 @@ import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.
 import { startCycleTimer } from '@shared/utils/cycle-timer';
 import { DASHBOARD_MARKET_DATA_PORT } from '@features/dashboard/services/dashboard-market-data.port';
 import { DASHBOARD_STATE_PORT } from '@features/dashboard/services/dashboard-state.port';
+import { CASH_CURRENCIES } from '@core/models/api.models';
+import { convertAmountBetweenCurrencies } from '@core/constants/cash-exchange-rates.constants';
 
 type ValueMode = 'cash' | 'assets' | 'total';
 type ReturnsMode = 'allTime' | 'daily';
@@ -52,7 +54,14 @@ export class PortfolioValueWidgetComponent implements OnInit, OnDestroy {
 
   get activeValueAmount() {
     const mode = VALUE_MODES[this.valueIndex()].mode;
-    const cash = this.state.accountCash();
+    const cashBalances = this.state.cashBalances?.() ?? {};
+    const cash = Object.entries(cashBalances).reduce((total, [currency, amount]) => {
+      const cashCurrency = CASH_CURRENCIES.find((entry) => entry === currency);
+      if (!cashCurrency) {
+        return total;
+      }
+      return total + convertAmountBetweenCurrencies(amount, cashCurrency, 'USD');
+    }, 0);
     this.priceTick();
     const assets = this.state
       .holdings()

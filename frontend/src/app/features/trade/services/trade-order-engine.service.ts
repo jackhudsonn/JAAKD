@@ -18,11 +18,9 @@ export class TradeOrderEngineService {
   private readonly marketData = inject(TRADE_MARKET_DATA_PORT);
   private readonly state = inject(TRADE_STATE_PORT);
 
-  private readonly accountCashState = this.state.accountCash;
   private readonly holdingsState = this.state.holdings;
   private readonly ordersState = this.state.orders;
 
-  readonly accountCash = this.accountCashState.asReadonly();
   readonly holdings = this.holdingsState.asReadonly();
   readonly orders = this.ordersState.asReadonly();
 
@@ -139,10 +137,6 @@ export class TradeOrderEngineService {
           : entry,
       ),
     );
-
-    const cost = fillPrice * order.quantity;
-
-    this.accountCashState.update((cash) => (order.type === 'buy' ? cash - cost : cash + cost));
 
     this.holdingsState.update((current) => this.reconcileHoldings(current, order));
   }
