@@ -20,14 +20,14 @@ public class AuthService {
     private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
     private final IdentityProvider identityProvider;
-    private final UserProvisioner userProvisioner;
+    private final SignInPersistenceService signInPersistenceService;
     private final SessionService sessionService;
     private final RegistrationService registrationService;
 
-    public AuthService(IdentityProvider identityProvider, UserProvisioner userProvisioner,
+    public AuthService(IdentityProvider identityProvider, SignInPersistenceService signInPersistenceService,
             SessionService sessionService, RegistrationService registrationService) {
         this.identityProvider = identityProvider;
-        this.userProvisioner = userProvisioner;
+        this.signInPersistenceService = signInPersistenceService;
         this.sessionService = sessionService;
         this.registrationService = registrationService;
     }
@@ -50,11 +50,8 @@ public class AuthService {
     }
 
     public Optional<SignInResult> confirmRegistration(UUID registrationId, String code) {
-        return identityProvider.confirmRegistration(registrationId, code).map(authenticated -> {
-            userProvisioner.ensureUser(authenticated.userId(), authenticated.email());
-            Session session = sessionService.create(authenticated.userId(), authenticated.refreshToken());
-            return new SignInResult(session, authenticated.email());
-        });
+        return identityProvider.confirmRegistration(registrationId, code)
+                .map(signInPersistenceService::create);
     }
 
     public void resendConfirmation(UUID registrationId) {
@@ -62,17 +59,13 @@ public class AuthService {
     }
 
     // Deliberately not transactional: the provider call may be a network round
-    // trip, so it must not sit inside a database transaction. Provisioning and
-    // session creation each open their own transaction.
+    // trip, so it must not sit inside a database transaction. Sign-in persistence
+    // runs in its own transaction after the provider succeeds.
     public SignInResult signIn(String email, String password) {
         SignInOutcome outcome = identityProvider.signIn(email, password);
 
         return switch (outcome) {
-            case SignInOutcome.Authenticated authenticated -> {
-                userProvisioner.ensureUser(authenticated.userId(), authenticated.email());
-                Session session = sessionService.create(authenticated.userId(), authenticated.refreshToken());
-                yield new SignInResult(session, authenticated.email());
-            }
+            case SignInOutcome.Authenticated authenticated -> signInPersistenceService.create(authenticated);
             case SignInOutcome.Challenge challenge -> throw new ChallengeRequiredException(
                     challenge.continuation(), challenge.type());
         };

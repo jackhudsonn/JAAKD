@@ -11,7 +11,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
-import io.github.jackhudsonn.jaakd.exception.ConflictException;
+import io.github.jackhudsonn.jaakd.exception.EmailAlreadyRegisteredException;
 import io.github.jackhudsonn.jaakd.exception.UnauthorizedException;
 import io.github.jackhudsonn.jaakd.identity.IdentityProvider;
 import io.github.jackhudsonn.jaakd.identity.RegistrationOutcome;
@@ -39,7 +39,7 @@ public class DevelopmentIdentityProvider implements IdentityProvider {
         String normalized = normalize(email);
 
         if (!jdbcTemplate.queryForList("SELECT 1 FROM development_credentials WHERE email = ?", normalized).isEmpty()) {
-            throw new ConflictException("email already registered");
+            throw new EmailAlreadyRegisteredException();
         }
 
         jdbcTemplate.update(

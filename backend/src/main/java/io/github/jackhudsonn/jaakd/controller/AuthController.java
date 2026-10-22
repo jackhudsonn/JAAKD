@@ -21,6 +21,7 @@ import io.github.jackhudsonn.jaakd.dto.auth.LoginRequest;
 import io.github.jackhudsonn.jaakd.dto.auth.LoginResponse;
 import io.github.jackhudsonn.jaakd.dto.auth.RegisterRequest;
 import io.github.jackhudsonn.jaakd.dto.auth.RegistrationResponse;
+import io.github.jackhudsonn.jaakd.dto.auth.RegistrationStatus;
 import io.github.jackhudsonn.jaakd.dto.auth.ResendRegistrationRequest;
 import io.github.jackhudsonn.jaakd.exception.UnauthorizedException;
 import io.github.jackhudsonn.jaakd.model.Session;
@@ -55,12 +56,14 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<RegistrationResponse> register(@Valid @RequestBody RegisterRequest request) {
+    @ResponseStatus(HttpStatus.CREATED)
+    public RegistrationResponse register(@Valid @RequestBody RegisterRequest request) {
         RegistrationResult result = authService.register(request.email(), request.password(), request.profile());
-        String status = result.confirmationRequired() ? "CONFIRMATION_REQUIRED" : "REGISTERED";
+        RegistrationStatus status = result.confirmationRequired()
+                ? RegistrationStatus.CONFIRMATION_REQUIRED
+                : RegistrationStatus.REGISTERED;
 
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new RegistrationResponse(status, result.email(), result.registrationId()));
+        return new RegistrationResponse(status, result.email(), result.registrationId());
     }
 
     @PostMapping("/register/confirm")

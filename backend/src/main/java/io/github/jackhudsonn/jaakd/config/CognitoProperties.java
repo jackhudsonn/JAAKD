@@ -5,6 +5,7 @@ import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 
 // Cognito adapter configuration. Bound only when identity.provider=cognito, so
@@ -21,10 +22,15 @@ public class CognitoProperties {
 
     @NotBlank
     private String clientId;
+
+    @NotBlank
     private String clientSecret;
-    private String endpointOverride;
+
     private Duration apiCallTimeout = Duration.ofSeconds(10);
     private Duration apiCallAttemptTimeout = Duration.ofSeconds(5);
+
+    @Min(0)
+    private int retryAttempts = 2;
 
     public String getRegion() {
         return region;
@@ -58,14 +64,6 @@ public class CognitoProperties {
         this.clientSecret = clientSecret;
     }
 
-    public String getEndpointOverride() {
-        return endpointOverride;
-    }
-
-    public void setEndpointOverride(String endpointOverride) {
-        this.endpointOverride = endpointOverride;
-    }
-
     public Duration getApiCallTimeout() {
         return apiCallTimeout;
     }
@@ -82,15 +80,19 @@ public class CognitoProperties {
         this.apiCallAttemptTimeout = apiCallAttemptTimeout;
     }
 
+    public int getRetryAttempts() {
+        return retryAttempts;
+    }
+
+    public void setRetryAttempts(int retryAttempts) {
+        this.retryAttempts = retryAttempts;
+    }
+
     public String issuer() {
         return "https://cognito-idp." + region + ".amazonaws.com/" + userPoolId;
     }
 
     public String jwkSetUri() {
         return issuer() + "/.well-known/jwks.json";
-    }
-
-    public boolean hasClientSecret() {
-        return clientSecret != null && !clientSecret.isBlank();
     }
 }

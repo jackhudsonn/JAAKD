@@ -46,9 +46,8 @@ WHERE o."logOrderID" = :logOrderId
 
 Credentials belong to the identity provider, not the application identity
 anchors. The base schema contains one link table per provider:
-`development_credentials` and `cognito_users`. Both exist in every environment
-so switching `IDENTITY_PROVIDER` needs no migration; only the selected adapter
-reads its table. The application queries only `users` and `sessions` after the
+`development_credentials` and `cognito_users`. Only the selected adapter reads
+its table. The application queries only `users` and `sessions` after the
 provider has authenticated the caller. `:userId` is the application user ID,
 which is an application-generated UUID.
 

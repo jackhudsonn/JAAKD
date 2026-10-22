@@ -2,7 +2,7 @@ package io.github.jackhudsonn.jaakd.identity.cognito;
 
 import org.springframework.stereotype.Component;
 
-import io.github.jackhudsonn.jaakd.exception.ConflictException;
+import io.github.jackhudsonn.jaakd.exception.EmailAlreadyRegisteredException;
 import io.github.jackhudsonn.jaakd.exception.EmailNotConfirmedException;
 import io.github.jackhudsonn.jaakd.exception.ForbiddenException;
 import io.github.jackhudsonn.jaakd.exception.IdentityProviderUnavailableException;
@@ -29,11 +29,11 @@ public class CognitoExceptionTranslator {
             case "UserNotConfirmedException" -> new EmailNotConfirmedException(email);
             case "PasswordResetRequiredException" -> new ForbiddenException("password reset required");
             case "InvalidPasswordException" ->
-                    new ValidationException("password does not meet the provider's requirements");
+                    new ValidationException("password is not strong enough");
             case "CodeMismatchException", "ExpiredCodeException" ->
                     new ValidationException("invalid or expired verification code");
             case "AliasExistsException", "UsernameExistsException" ->
-                    new ConflictException("email already registered");
+                    new EmailAlreadyRegisteredException();
             case "TooManyRequestsException", "LimitExceededException" ->
                     new TooManyRequestsException("too many authentication requests; try again later");
             case "InvalidParameterException" -> new ValidationException("invalid registration details");

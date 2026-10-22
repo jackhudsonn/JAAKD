@@ -94,7 +94,7 @@ COGNITO_REGION=us-east-1
 COGNITO_USER_POOL_ID=<pool id>
 COGNITO_CLIENT_ID=<client id>
 COGNITO_CLIENT_SECRET=<client secret>
-COGNITO_ENDPOINT_OVERRIDE=
+COGNITO_RETRY_ATTEMPTS=2
 ```
 
 Do not commit the client secret. Use a secret manager or file-based secret in a

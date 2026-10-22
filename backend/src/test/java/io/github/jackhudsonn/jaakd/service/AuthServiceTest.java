@@ -38,7 +38,7 @@ class AuthServiceTest {
     private IdentityProvider identityProvider;
 
     @Mock
-    private UserProvisioner userProvisioner;
+    private SignInPersistenceService signInPersistenceService;
 
     @Mock
     private SessionService sessionService;
@@ -47,7 +47,7 @@ class AuthServiceTest {
     private RegistrationService registrationService;
 
     private AuthService authService() {
-        return new AuthService(identityProvider, userProvisioner, sessionService, registrationService);
+        return new AuthService(identityProvider, signInPersistenceService, sessionService, registrationService);
     }
 
     @Test
@@ -70,13 +70,14 @@ class AuthServiceTest {
         when(identityProvider.confirmRegistration(USER_ID, "123456"))
                 .thenReturn(Optional.of(new SignInOutcome.Authenticated(USER_ID, EMAIL, "refresh-token")));
         Session session = new Session(USER_ID, "refresh-token", Instant.now(), Instant.now().plusSeconds(3600));
-        when(sessionService.create(USER_ID, "refresh-token")).thenReturn(session);
+        SignInOutcome.Authenticated authenticated = new SignInOutcome.Authenticated(USER_ID, EMAIL, "refresh-token");
+        when(signInPersistenceService.create(authenticated)).thenReturn(new SignInResult(session, EMAIL));
 
         Optional<SignInResult> result = authService().confirmRegistration(USER_ID, "123456");
 
         assertTrue(result.isPresent());
         assertEquals(session, result.orElseThrow().session());
-        verify(userProvisioner).ensureUser(USER_ID, EMAIL);
+        verify(signInPersistenceService).create(authenticated);
     }
 
     @Test
@@ -84,20 +85,20 @@ class AuthServiceTest {
         when(identityProvider.confirmRegistration(USER_ID, "123456")).thenReturn(Optional.empty());
 
         assertTrue(authService().confirmRegistration(USER_ID, "123456").isEmpty());
-        verify(sessionService, never()).create(any(), any());
+        verify(signInPersistenceService, never()).create(any());
     }
 
     @Test
-    void signIn_provisionsUserAndStartsSessionWithProviderRefreshToken() {
-        when(identityProvider.signIn(EMAIL, "Password123!"))
-                .thenReturn(new SignInOutcome.Authenticated(USER_ID, EMAIL, "refresh-token"));
+    void signIn_persistsTheProviderAuthentication() {
+        SignInOutcome.Authenticated authenticated = new SignInOutcome.Authenticated(USER_ID, EMAIL, "refresh-token");
+        when(identityProvider.signIn(EMAIL, "Password123!")).thenReturn(authenticated);
         Session session = new Session(USER_ID, "refresh-token", Instant.now(), Instant.now().plusSeconds(3600));
-        when(sessionService.create(USER_ID, "refresh-token")).thenReturn(session);
+        when(signInPersistenceService.create(authenticated)).thenReturn(new SignInResult(session, EMAIL));
 
         SignInResult result = authService().signIn(EMAIL, "Password123!");
 
-        verify(userProvisioner).ensureUser(USER_ID, EMAIL);
         assertEquals(session, result.session());
+        verify(signInPersistenceService).create(authenticated);
     }
 
     @Test
@@ -106,7 +107,7 @@ class AuthServiceTest {
                 .thenThrow(new UnauthorizedException("invalid email or password"));
 
         assertThrows(UnauthorizedException.class, () -> authService().signIn(EMAIL, "wrong-password"));
-        verify(userProvisioner, never()).ensureUser(any(), any());
+        verify(signInPersistenceService, never()).create(any());
     }
 
     @Test
@@ -119,7 +120,7 @@ class AuthServiceTest {
 
         assertEquals("MFA", ex.getType());
         assertEquals("opaque", ex.getContinuation());
-        verify(sessionService, never()).create(any(), any());
+        verify(signInPersistenceService, never()).create(any());
     }
 
     @Test

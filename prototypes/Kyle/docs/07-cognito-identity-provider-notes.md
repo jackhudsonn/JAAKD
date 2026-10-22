@@ -89,7 +89,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   avatar TEXT
 );
 
--- Development-provider-owned. Present in the base schema in every environment.
+-- Development-provider-owned credentials.
 -- "userID" is the application user ID; only the development adapter reads it.
 CREATE TABLE IF NOT EXISTS development_credentials (
   "userID" UUID PRIMARY KEY,
@@ -98,8 +98,7 @@ CREATE TABLE IF NOT EXISTS development_credentials (
   "createdAt" TIMESTAMP NOT NULL DEFAULT now()
 );
 
--- Cognito-adapter-owned. Present in the base schema in every environment;
--- only the Cognito adapter reads it.
+-- Cognito-adapter-owned link table; only the Cognito adapter reads it.
 CREATE TABLE IF NOT EXISTS cognito_users (
   "identityID" UUID PRIMARY KEY,
   "userID" UUID NOT NULL UNIQUE REFERENCES users("userID") ON DELETE CASCADE,
@@ -120,17 +119,9 @@ remains the development login identifier.
 
 `cognito_users` is adapter-owned:
 
-- Both provider link tables, `development_credentials` and `cognito_users`, are
-  part of the base schema and exist in every environment.
 - Only the selected adapter reads its table; the other table is inert.
-- The adapters use `JdbcTemplate`, not JPA, so Hibernate's `ddl-auto: validate`
-  never expects either table.
-
-Operational consequence: the presence of `development_credentials` removes the
-missing-table interlock against accidentally setting `identity.provider=development`
-in a production environment. Deployment configuration must set `cognito`, and a
-future startup guard should reject the development adapter outside local/test
-profiles.
+- Development uses `JdbcTemplate`. Cognito maps `cognito_users` with a JPA
+  entity and repository, so Hibernate validates that table at startup.
 
 ## Registration, confirmation, and duplicate handling
 
@@ -376,7 +367,9 @@ identity:
     user-pool-id: ${COGNITO_USER_POOL_ID:}
     client-id: ${COGNITO_CLIENT_ID:}
     client-secret: ${COGNITO_CLIENT_SECRET:}
-    endpoint-override: ${COGNITO_ENDPOINT_OVERRIDE:}
+    api-call-timeout: ${COGNITO_API_CALL_TIMEOUT:PT10S}
+    api-call-attempt-timeout: ${COGNITO_API_CALL_ATTEMPT_TIMEOUT:PT5S}
+    retry-attempts: ${COGNITO_RETRY_ATTEMPTS:2}
 ```
 
 - Bind the Cognito properties only inside the `identity.provider=cognito`
@@ -385,9 +378,8 @@ identity:
   Cognito is used.
 - Local values may live in `.env`. Production values, especially the client
   secret, belong in a secret manager or file-based secret.
-- `endpoint-override` exists for LocalStack or cognito-local testing.
-- Configure SDK timeouts and retries. For non-admin user-pool calls, avoid the
-  default credentials chain probing IMDS; use anonymous credentials or a
+- Configure SDK timeouts and retry attempts. For non-admin user-pool calls, avoid
+  the default credentials chain probing IMDS; use anonymous credentials or a
   short-timeout provider. V1 needs no IAM permissions.
 
 ## AWS setup
@@ -478,8 +470,9 @@ rather than `ErrorResponse`. `registrationId` is an opaque UUID, not a secret.
 - `identity/cognito/CognitoIdTokenVerifier.java`.
 - `identity/cognito/CognitoExceptionTranslator.java`.
 - `identity/cognito/SecretHash.java`.
-- `identity/cognito/CognitoUserStore.java` using `JdbcTemplate` for
-  `cognito_users`.
+- `identity/cognito/CognitoUser.java` and `CognitoUserRepository.java` for the
+  adapter-owned `cognito_users` mapping.
+- `identity/cognito/CognitoUserStore.java` for link-table operations.
 - `config/CognitoProperties.java`.
 - `config/CognitoClientConfig.java`, conditional on
   `identity.provider=cognito`.
@@ -563,9 +556,8 @@ The Cognito adapter:
 
 ### Database
 
-- Add both provider link tables to `backend/db/init/01-schema.sql`: the existing
-  `development_credentials` table and the new `cognito_users` table and grant.
-  Both exist in every environment; only the selected adapter reads its table.
+- Add `cognito_users` and its grant to `backend/db/init/01-schema.sql`; the
+  existing `development_credentials` table is unchanged.
 - No change to `users` or `profiles` beyond creating rows earlier.
 
 ## Frontend changes
@@ -621,7 +613,7 @@ The Cognito adapter:
 1. Add the AWS SDK and `spring-security-oauth2-jose` dependencies.
 2. Add `CognitoProperties` and the conditional `CognitoClientConfig`.
 3. Add both provider link tables to `backend/db/init/01-schema.sql`.
-4. Add `CognitoUserStore` using `JdbcTemplate`.
+4. Add `CognitoUser`, `CognitoUserRepository`, and `CognitoUserStore`.
 5. Add the new exceptions and `GlobalExceptionHandler` mappings.
 6. Add the configuration values to `.env.example`, Compose, and docs.
 

@@ -41,7 +41,7 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.FORBIDDEN)
     public ErrorResponse handleEmailNotConfirmed(EmailNotConfirmedException ex) {
         Map<String, String> details = new LinkedHashMap<>();
-        details.put("code", "EMAIL_NOT_CONFIRMED");
+        details.put("code", ApiErrorCode.EMAIL_NOT_CONFIRMED.name());
         details.put("email", ex.getEmail());
 
         return new ErrorResponse(Instant.now(), ex.getMessage(), details);
@@ -80,6 +80,12 @@ public class GlobalExceptionHandler {
         details.put("hasNonZeroHoldings", Boolean.toString(ex.hasNonZeroHoldings()));
 
         return new ErrorResponse(Instant.now(), ex.getMessage(), details);
+    }
+
+    @ExceptionHandler(EmailAlreadyRegisteredException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ErrorResponse handleEmailAlreadyRegistered(EmailAlreadyRegisteredException ex) {
+        return new ErrorResponse(Instant.now(), ex.getMessage(), null);
     }
 
     @ExceptionHandler(ConflictException.class)

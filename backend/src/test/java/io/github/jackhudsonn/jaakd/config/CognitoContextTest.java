@@ -1,11 +1,17 @@
 package io.github.jackhudsonn.jaakd.config;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.UUID;
+
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 
 import io.github.jackhudsonn.jaakd.BackendApplication;
+import io.github.jackhudsonn.jaakd.identity.cognito.CognitoUserStore;
 
 // Verifies the Cognito conditional beans wire without AWS calls at startup.
 @SpringBootTest(classes = BackendApplication.class)
@@ -19,7 +25,12 @@ import io.github.jackhudsonn.jaakd.BackendApplication;
 })
 class CognitoContextTest {
 
+    @Autowired
+    private CognitoUserStore userStore;
+
     @Test
-    void contextLoads() {
+    void cognitoBeansWireAndRepositoryQueriesRun() {
+        assertTrue(userStore.findConfirmedByEmail("nobody@example.com").isEmpty());
+        assertTrue(userStore.findByUserId(UUID.randomUUID()).isEmpty());
     }
 }

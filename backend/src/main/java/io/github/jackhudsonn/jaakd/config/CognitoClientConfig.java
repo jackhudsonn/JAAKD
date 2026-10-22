@@ -1,7 +1,5 @@
 package io.github.jackhudsonn.jaakd.config;
 
-import java.net.URI;
-
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -31,19 +29,14 @@ public class CognitoClientConfig {
         ClientOverrideConfiguration override = ClientOverrideConfiguration.builder()
                 .apiCallTimeout(properties.getApiCallTimeout())
                 .apiCallAttemptTimeout(properties.getApiCallAttemptTimeout())
-                .retryPolicy(RetryPolicy.builder().numRetries(2).build())
+                .retryPolicy(RetryPolicy.builder().numRetries(properties.getRetryAttempts()).build())
                 .build();
 
-        var builder = CognitoIdentityProviderClient.builder()
+        return CognitoIdentityProviderClient.builder()
                 .region(Region.of(properties.getRegion()))
                 .credentialsProvider(AnonymousCredentialsProvider.create())
-                .overrideConfiguration(override);
-
-        if (properties.getEndpointOverride() != null && !properties.getEndpointOverride().isBlank()) {
-            builder.endpointOverride(URI.create(properties.getEndpointOverride()));
-        }
-
-        return builder.build();
+                .overrideConfiguration(override)
+                .build();
     }
 
     @Bean

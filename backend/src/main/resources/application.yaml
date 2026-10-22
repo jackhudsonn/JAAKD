@@ -60,9 +60,9 @@ identity:
     user-pool-id: ${COGNITO_USER_POOL_ID:}
     client-id: ${COGNITO_CLIENT_ID:}
     client-secret: ${COGNITO_CLIENT_SECRET:}
-    endpoint-override: ${COGNITO_ENDPOINT_OVERRIDE:}
     api-call-timeout: ${COGNITO_API_CALL_TIMEOUT:PT10S}
     api-call-attempt-timeout: ${COGNITO_API_CALL_ATTEMPT_TIMEOUT:PT5S}
+    retry-attempts: ${COGNITO_RETRY_ATTEMPTS:2}
 auth:
   session:
     ttl: PT8H

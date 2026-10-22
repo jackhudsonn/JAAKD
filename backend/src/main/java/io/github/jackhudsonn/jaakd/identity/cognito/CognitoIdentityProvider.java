@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 
 import io.github.jackhudsonn.jaakd.config.CognitoProperties;
 import io.github.jackhudsonn.jaakd.exception.ChallengeRequiredException;
-import io.github.jackhudsonn.jaakd.exception.ConflictException;
+import io.github.jackhudsonn.jaakd.exception.EmailAlreadyRegisteredException;
 import io.github.jackhudsonn.jaakd.exception.EmailNotConfirmedException;
 import io.github.jackhudsonn.jaakd.exception.IdentityProviderUnavailableException;
 import io.github.jackhudsonn.jaakd.exception.RegistrationIncompleteException;
@@ -22,14 +22,13 @@ import io.github.jackhudsonn.jaakd.identity.IdentityProvider;
 import io.github.jackhudsonn.jaakd.identity.RegistrationOutcome;
 import io.github.jackhudsonn.jaakd.identity.SignInOutcome;
 import io.github.jackhudsonn.jaakd.identity.cognito.CognitoIdTokenVerifier.CognitoIdentity;
-import io.github.jackhudsonn.jaakd.identity.cognito.CognitoUserStore.CognitoUser;
 import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.services.cognitoidentityprovider.CognitoIdentityProviderClient;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.AttributeType;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.AuthFlowType;
-import software.amazon.awssdk.services.cognitoidentityprovider.model.CognitoIdentityProviderException;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.AuthenticationResultType;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.ChangePasswordRequest;
+import software.amazon.awssdk.services.cognitoidentityprovider.model.CognitoIdentityProviderException;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.ConfirmSignUpRequest;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.ConfirmSignUpResponse;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.InitiateAuthRequest;
@@ -69,31 +68,33 @@ public class CognitoIdentityProvider implements IdentityProvider {
     public RegistrationOutcome register(UUID userId, String email, String password) {
         String normalized = normalize(email);
         if (userStore.findConfirmedByEmail(normalized).isPresent()) {
-            throw new ConflictException("email already registered");
+            throw new EmailAlreadyRegisteredException();
         }
 
         String username = userId.toString();
-        SignUpRequest.Builder request = SignUpRequest.builder()
+        SignUpRequest request = SignUpRequest.builder()
                 .clientId(properties.getClientId())
                 .username(username)
                 .password(password)
-                .userAttributes(AttributeType.builder().name("email").value(normalized).build());
-        if (properties.hasClientSecret()) {
-            request.secretHash(secretHash(username));
-        }
+                .userAttributes(AttributeType.builder().name("email").value(normalized).build())
+                .secretHash(secretHash(username))
+                .build();
 
+        SignUpResponse response;
         try {
-            SignUpResponse response = client.signUp(request.build());
-            if (response.userSub() == null || response.userSub().isBlank()) {
-                throw new IdentityProviderUnavailableException("Cognito SignUp returned no subject");
-            }
-            return new RegistrationOutcome(response.userSub(), !Boolean.TRUE.equals(response.userConfirmed()),
-                    response.session());
+            response = client.signUp(request);
         } catch (UsernameExistsException ex) {
-            throw new ConflictException("registration already exists");
+            throw new EmailAlreadyRegisteredException();
         } catch (SdkException ex) {
             throw exceptions.translate(ex, normalized);
         }
+
+        if (response.userSub() == null || response.userSub().isBlank()) {
+            throw new IdentityProviderUnavailableException("Cognito SignUp returned no subject");
+        }
+
+        return new RegistrationOutcome(response.userSub(), !Boolean.TRUE.equals(response.userConfirmed()),
+                response.session());
     }
 
     @Override
@@ -106,7 +107,7 @@ public class CognitoIdentityProvider implements IdentityProvider {
         String username = registrationId.toString();
         CognitoUser pending = userStore.findByUserId(registrationId)
                 .orElseThrow(() -> new ValidationException("no pending registration for this registration id"));
-        if (!"PENDING".equals(pending.status())) {
+        if (pending.getStatus() != CognitoUserStatus.PENDING) {
             throw new ValidationException("email is already confirmed");
         }
 
@@ -114,18 +115,16 @@ public class CognitoIdentityProvider implements IdentityProvider {
                 .clientId(properties.getClientId())
                 .username(username)
                 .confirmationCode(code)
-                .forceAliasCreation(true);
-        if (pending.signUpSession() != null && !pending.signUpSession().isBlank()) {
-            request.session(pending.signUpSession());
-        }
-        if (properties.hasClientSecret()) {
-            request.secretHash(secretHash(username));
+                .forceAliasCreation(true)
+                .secretHash(secretHash(username));
+        if (pending.getSignUpSession() != null && !pending.getSignUpSession().isBlank()) {
+            request.session(pending.getSignUpSession());
         }
 
         ConfirmSignUpResponse response;
         try {
             response = confirmSignUp(request, pending);
-            userStore.markConfirmed(pending.identityId());
+            userStore.markConfirmed(pending.getIdentityId());
         } catch (CognitoIdentityProviderException ex) {
             if (isNotAuthorizedOrMissing(ex)) {
                 throw new ValidationException("email is already confirmed or the code is invalid");
@@ -145,7 +144,7 @@ public class CognitoIdentityProvider implements IdentityProvider {
             String code = exceptions.errorCode(ex);
             boolean sessionFailure = "NotAuthorizedException".equals(code)
                     || "InvalidParameterException".equals(code);
-            if (sessionFailure && pending.signUpSession() != null && !pending.signUpSession().isBlank()) {
+            if (sessionFailure && pending.getSignUpSession() != null && !pending.getSignUpSession().isBlank()) {
                 // The SignUp session is short-lived. Retry without it so a valid
                 // confirmation code can still confirm the account; automatic
                 // sign-in then falls back to the normal login page.
@@ -161,19 +160,18 @@ public class CognitoIdentityProvider implements IdentityProvider {
         String username = registrationId.toString();
         CognitoUser pending = userStore.findByUserId(registrationId)
                 .orElseThrow(() -> new ValidationException("no pending registration for this registration id"));
-        if (!"PENDING".equals(pending.status())) {
+        if (pending.getStatus() != CognitoUserStatus.PENDING) {
             throw new ValidationException("email is already confirmed");
         }
 
-        ResendConfirmationCodeRequest.Builder request = ResendConfirmationCodeRequest.builder()
+        ResendConfirmationCodeRequest request = ResendConfirmationCodeRequest.builder()
                 .clientId(properties.getClientId())
-                .username(username);
-        if (properties.hasClientSecret()) {
-            request.secretHash(secretHash(username));
-        }
+                .username(username)
+                .secretHash(secretHash(username))
+                .build();
 
         try {
-            client.resendConfirmationCode(request.build());
+            client.resendConfirmationCode(request);
         } catch (CognitoIdentityProviderException ex) {
             if (isNotAuthorizedOrMissing(ex)) {
                 throw new ValidationException("email is already confirmed or has no pending registration");
@@ -191,9 +189,7 @@ public class CognitoIdentityProvider implements IdentityProvider {
 
         Map<String, String> parameters = new HashMap<>();
         parameters.put("USERNAME", username);
-        if (properties.hasClientSecret()) {
-            parameters.put("SECRET_HASH", secretHash(username));
-        }
+        parameters.put("SECRET_HASH", secretHash(username));
 
         try {
             InitiateAuthResponse response = client.initiateAuth(InitiateAuthRequest.builder()
@@ -213,7 +209,8 @@ public class CognitoIdentityProvider implements IdentityProvider {
             CognitoUser user = userStore.findBySubject(identity.subject())
                     .orElseThrow(RegistrationIncompleteException::new);
             userStore.markConfirmed(identity.subject());
-            return Optional.of(new SignInOutcome.Authenticated(user.userId(), identity.email(), result.refreshToken()));
+            return Optional.of(new SignInOutcome.Authenticated(user.getUserId(), identity.email(),
+                    result.refreshToken()));
         } catch (RuntimeException ex) {
             // Confirmation already succeeded. A failed automatic sign-in must
             // not turn a successful confirmation into an error; the client
@@ -257,7 +254,7 @@ public class CognitoIdentityProvider implements IdentityProvider {
 
         userStore.markConfirmed(identity.subject());
 
-        return new SignInOutcome.Authenticated(user.userId(), identity.email(), result.refreshToken());
+        return new SignInOutcome.Authenticated(user.getUserId(), identity.email(), result.refreshToken());
     }
 
     @Override
@@ -284,15 +281,14 @@ public class CognitoIdentityProvider implements IdentityProvider {
             return;
         }
 
-        RevokeTokenRequest.Builder request = RevokeTokenRequest.builder()
+        RevokeTokenRequest request = RevokeTokenRequest.builder()
                 .clientId(properties.getClientId())
-                .token(refreshToken);
-        if (properties.hasClientSecret()) {
-            request.clientSecret(properties.getClientSecret());
-        }
+                .clientSecret(properties.getClientSecret())
+                .token(refreshToken)
+                .build();
 
         try {
-            client.revokeToken(request.build());
+            client.revokeToken(request);
         } catch (SdkException ex) {
             // Logout and password change must not fail because revocation did.
             log.warn("Cognito token revocation failed: {}", ex.getMessage());
@@ -317,9 +313,7 @@ public class CognitoIdentityProvider implements IdentityProvider {
         Map<String, String> parameters = new HashMap<>();
         parameters.put("USERNAME", email);
         parameters.put("PASSWORD", password);
-        if (properties.hasClientSecret()) {
-            parameters.put("SECRET_HASH", secretHash(email));
-        }
+        parameters.put("SECRET_HASH", secretHash(email));
 
         try {
             return client.initiateAuth(InitiateAuthRequest.builder()
@@ -333,9 +327,6 @@ public class CognitoIdentityProvider implements IdentityProvider {
     }
 
     private String secretHash(String username) {
-        if (!properties.hasClientSecret()) {
-            throw new IdentityProviderUnavailableException("Cognito client secret is not configured");
-        }
         return SecretHash.calculate(properties.getClientSecret(), properties.getClientId(), username);
     }
 

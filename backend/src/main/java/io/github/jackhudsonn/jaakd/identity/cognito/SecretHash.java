@@ -9,6 +9,7 @@ import javax.crypto.spec.SecretKeySpec;
 import io.github.jackhudsonn.jaakd.exception.IdentityProviderUnavailableException;
 
 // Cognito's SECRET_HASH: Base64(HMAC-SHA256(clientSecret, username + clientId)).
+// The AWS SDK v2 has no built-in helper for this value.
 // Required on unauthenticated app-client calls when the client has a secret.
 public final class SecretHash {
 

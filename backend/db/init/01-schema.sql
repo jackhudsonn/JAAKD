@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS users (
   "createdAt" TIMESTAMP NOT NULL DEFAULT now()
 );
 
--- Provider-owned identity link tables. Only the selected adapter reads its table.
+-- Provider-owned identity link tables.
 CREATE TABLE IF NOT EXISTS development_credentials (
   "userID" UUID PRIMARY KEY,
   email TEXT UNIQUE NOT NULL,

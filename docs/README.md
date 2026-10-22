@@ -104,8 +104,6 @@ The Postgres container includes `psql`:
 docker compose exec -it jaakd-postgres psql -U postgres -d jaakd
 ```
 
-From the host, install `libpq` (macOS) or `postgresql-client` (Debian/Ubuntu), then run `psql -h localhost -p 5433 -U postgres -d jaakd`. Use `POSTGRES_PASSWORD` from `.env`.
-
 ### Browsing the database (pgAdmin)
 
 pgAdmin opens its own SSH tunnel to the Docker host. In pgAdmin: **Register > Server**, then:
@@ -126,15 +124,10 @@ Tables are under **Databases > jaakd > Schemas > public > Tables**. `jaakd_app` 
 - `JAAKD_APP_DB_PASSWORD` — the application-role password.
 - `IDENTITY_PROVIDER` — the identity provider adapter: `development` or `cognito`.
 - `AUTH_COOKIE_SECURE` — whether the session cookie is sent only over HTTPS.
-- `COGNITO_REGION`, `COGNITO_USER_POOL_ID`, `COGNITO_CLIENT_ID`, `COGNITO_CLIENT_SECRET` — required when `IDENTITY_PROVIDER=cognito`.
-
-Cognito registration verifies email ownership with a code from Cognito's default
-sender; no SES production-access review is needed for the demo. The pool uses an
-application-generated UUID as the Cognito username and the email as a verified
-alias, so a second registrant can claim an unconfirmed address by confirming it.
-The base schema creates both provider link tables, `development_credentials` and
-`cognito_users`, in every environment; only the selected adapter reads its
-table, so switching `IDENTITY_PROVIDER` needs no schema migration.
+- `COGNITO_REGION` — the Cognito user-pool region.
+- `COGNITO_USER_POOL_ID` — the user-pool ID.
+- `COGNITO_CLIENT_ID` — the backend app-client ID.
+- `COGNITO_CLIENT_SECRET` — the backend app-client secret.
 
 The AWS-side console setup is in `docs/cognito-setup.md`.
 

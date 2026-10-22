@@ -18,7 +18,10 @@ Tooling and access needed to build and run `backend/` locally.
 - `JAAKD_APP_DB_PASSWORD`
 - `IDENTITY_PROVIDER` (`development` or `cognito`)
 - `AUTH_COOKIE_SECURE`
-- `COGNITO_REGION`, `COGNITO_USER_POOL_ID`, `COGNITO_CLIENT_ID`, `COGNITO_CLIENT_SECRET` when using Cognito
+- `COGNITO_REGION` — Cognito user-pool region.
+- `COGNITO_USER_POOL_ID` — Cognito user-pool ID.
+- `COGNITO_CLIENT_ID` — backend app-client ID.
+- `COGNITO_CLIENT_SECRET` — backend app-client secret.
 
 When running the backend on the host (without Docker), the `.env` import supplies `IDENTITY_PROVIDER` and `AUTH_COOKIE_SECURE`; set `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, and `SPRING_DATASOURCE_PASSWORD` in the run environment.
 

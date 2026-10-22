@@ -1,5 +1,8 @@
 package io.github.jackhudsonn.jaakd.identity.cognito;
 
+import java.util.Collection;
+import java.util.List;
+
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
@@ -15,6 +18,10 @@ import io.github.jackhudsonn.jaakd.exception.UnauthorizedException;
 @ConditionalOnProperty(name = "identity.provider", havingValue = "cognito")
 public class CognitoIdTokenVerifier {
 
+    private static final String TOKEN_USE = "token_use";
+    private static final String ID_TOKEN_USE = "id";
+    private static final String EMAIL_VERIFIED = "email_verified";
+
     public record CognitoIdentity(String subject, String email) {
     }
 
@@ -27,6 +34,12 @@ public class CognitoIdTokenVerifier {
     }
 
     public CognitoIdentity verify(String idToken) {
+        ParsedClaims claims = parse(idToken);
+        validate(claims);
+        return new CognitoIdentity(claims.subject(), claims.email());
+    }
+
+    private ParsedClaims parse(String idToken) {
         Jwt jwt;
         try {
             jwt = jwtDecoder.decode(idToken);
@@ -34,30 +47,60 @@ public class CognitoIdTokenVerifier {
             throw new UnauthorizedException("invalid identity token");
         }
 
-        if (!"id".equals(jwt.getClaimAsString("token_use"))) {
+        return new ParsedClaims(
+                jwt.getClaimAsString(TOKEN_USE),
+                parseAudience(jwt.getClaims().get("aud")),
+                jwt.getSubject(),
+                jwt.getClaimAsString("email"),
+                parseEmailVerified(jwt.getClaims().get(EMAIL_VERIFIED)));
+    }
+
+    private void validate(ParsedClaims claims) {
+        if (!ID_TOKEN_USE.equals(claims.tokenUse())
+                || !claims.audiences().contains(properties.getClientId())
+                || isBlank(claims.subject())
+                || isBlank(claims.email())) {
             throw new UnauthorizedException("invalid identity token");
         }
 
-        Object audience = jwt.getClaims().get("aud");
-        boolean audienceMatches = audience instanceof String value
-                ? properties.getClientId().equals(value)
-                : audience instanceof java.util.Collection<?> values
-                        && values.contains(properties.getClientId());
-        if (!audienceMatches) {
-            throw new UnauthorizedException("invalid identity token");
-        }
-
-        String subject = jwt.getSubject();
-        String email = jwt.getClaimAsString("email");
-        if (subject == null || subject.isBlank() || email == null || email.isBlank()) {
-            throw new UnauthorizedException("invalid identity token");
-        }
-
-        Object emailVerified = jwt.getClaims().get("email_verified");
-        if (!Boolean.TRUE.equals(emailVerified) && !"true".equalsIgnoreCase(String.valueOf(emailVerified))) {
+        if (!claims.emailVerified()) {
             throw new UnauthorizedException("email address is not verified");
         }
+    }
 
-        return new CognitoIdentity(subject, email.trim().toLowerCase());
+    private List<String> parseAudience(Object audience) {
+        if (audience instanceof String value) {
+            return List.of(value);
+        }
+        if (audience instanceof Collection<?> values) {
+            return values.stream()
+                    .filter(String.class::isInstance)
+                    .map(String.class::cast)
+                    .toList();
+        }
+        return List.of();
+    }
+
+    private boolean parseEmailVerified(Object emailVerified) {
+        if (emailVerified instanceof Boolean value) {
+            return value;
+        }
+        return "true".equalsIgnoreCase(String.valueOf(emailVerified));
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
+    }
+
+    private record ParsedClaims(
+            String tokenUse,
+            List<String> audiences,
+            String subject,
+            String email,
+            boolean emailVerified) {
+
+        private ParsedClaims {
+            email = email == null ? null : email.trim().toLowerCase();
+        }
     }
 }
