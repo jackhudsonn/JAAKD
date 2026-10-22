@@ -2,7 +2,11 @@
   <aside class="toast-stack" aria-live="polite" aria-atomic="false">
     @for (toast of toastService.toasts(); track toast.id) {
       <div class="toast-item" animate.enter="toast-item-enter" animate.leave="toast-item-leave">
-        <article class="toast" [class.error]="toast.tone === 'error'" [class.success]="toast.tone === 'success'">
+        <article
+          class="toast"
+          [class.error]="toast.tone === 'error'"
+          [class.success]="toast.tone === 'success'"
+        >
           <p class="toast-message">{{ toast.text }}</p>
           <button
             type="button"

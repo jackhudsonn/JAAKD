@@ -134,7 +134,11 @@ export class BackendTradeStateService implements TradeStatePort {
     }
   }
 
-  async setWatchlistMembership(symbol: string, watchlistId: string, included: boolean): Promise<void> {
+  async setWatchlistMembership(
+    symbol: string,
+    watchlistId: string,
+    included: boolean,
+  ): Promise<void> {
     const instrument = this.findInstrumentBySymbol(symbol);
     const portfolioId = this.portfolioId();
     if (!instrument || !portfolioId) {

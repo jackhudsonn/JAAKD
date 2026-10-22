@@ -66,7 +66,6 @@ export class CurrencyExchangeComponent {
       return;
     }
 
-
     this.pendingExchange.set({
       amount: currentAmount,
       fromCurrency: this.fromCurrency(),

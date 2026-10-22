@@ -149,7 +149,11 @@ export class BackendDashboardStateService implements DashboardStatePort {
     }
   }
 
-  async setWatchlistMembership(symbol: string, watchlistId: string, included: boolean): Promise<void> {
+  async setWatchlistMembership(
+    symbol: string,
+    watchlistId: string,
+    included: boolean,
+  ): Promise<void> {
     const normalizedSymbol = symbol.trim().toUpperCase();
     const selectedInstrument = this.backendWatchlistInstrumentOptions().find(
       (instrument) => instrument.symbol.trim().toUpperCase() === normalizedSymbol,
