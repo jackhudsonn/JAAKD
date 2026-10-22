@@ -350,7 +350,8 @@ public class HttpFauxnanceService implements FauxnanceService {
                     rawQuote.ask(),
                     rawQuote.currency(),
                     rawQuote.asOf(),
-                    rawQuote.marketState()
+                    rawQuote.marketState(),
+                    rawQuote.changePercent()
                 ));
             });
 
@@ -391,7 +392,8 @@ public class HttpFauxnanceService implements FauxnanceService {
                 quote.ask(),
                 quote.currency(),
                 quote.asOf(),
-                quote.marketState()
+                quote.marketState(),
+                quote.changePercent()
             ));
         }
 

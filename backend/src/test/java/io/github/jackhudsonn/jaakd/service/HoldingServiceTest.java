@@ -175,7 +175,7 @@ class HoldingServiceTest {
         when(holdingRepository.findByPortfolioIDAndInstrumentID(portfolioId, usdInstrumentId))
             .thenReturn(Optional.of(usdHolding));
         when(fauxnanceService.getQuotes(List.of("FX:EURUSD")))
-            .thenReturn(List.of(new FauxnanceQuoteResponse("FX:EURUSD", 1.2, null, null, "USD", null, "open")));
+            .thenReturn(List.of(new FauxnanceQuoteResponse("FX:EURUSD", 1.2, null, null, "USD", null, "open", null)));
         when(holdingRepository.save(org.mockito.ArgumentMatchers.any(Holding.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
         when(orderLogRepository.save(org.mockito.ArgumentMatchers.any(OrderLog.class)))
@@ -233,9 +233,9 @@ class HoldingServiceTest {
         when(holdingRepository.findByPortfolioIDAndInstrumentID(portfolioId, eurInstrumentId))
             .thenReturn(Optional.of(eurHolding));
         when(fauxnanceService.getQuotes(List.of("FX:GBPEUR")))
-            .thenReturn(List.of(new FauxnanceQuoteResponse("FX:GBPEUR", null, null, null, "EUR", null, "open")));
+            .thenReturn(List.of(new FauxnanceQuoteResponse("FX:GBPEUR", null, null, null, "EUR", null, "open", null)));
         when(fauxnanceService.getQuotes(List.of("FX:EURGBP")))
-            .thenReturn(List.of(new FauxnanceQuoteResponse("FX:EURGBP", 0.8, null, null, "GBP", null, "open")));
+            .thenReturn(List.of(new FauxnanceQuoteResponse("FX:EURGBP", 0.8, null, null, "GBP", null, "open", null)));
         when(holdingRepository.save(org.mockito.ArgumentMatchers.any(Holding.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
         when(orderLogRepository.save(org.mockito.ArgumentMatchers.any(OrderLog.class)))
