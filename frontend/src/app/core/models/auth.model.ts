@@ -13,11 +13,7 @@ export interface RegisterRequest {
 export interface RegistrationResponse {
   status: 'REGISTERED' | 'CONFIRMATION_REQUIRED';
   email: string;
-}
-
-export interface EmailConfirmationResponse {
-  challenge: 'EMAIL_CONFIRMATION';
-  email: string;
+  registrationId: string;
 }
 
 export interface ChallengeResponse {
@@ -26,9 +22,8 @@ export interface ChallengeResponse {
 }
 
 export type RegistrationResult =
-  | { status: 'registered'; email: string }
-  | { status: 'confirmation_required'; email: string }
-  | { status: 'confirmation_pending'; email: string };
+  | { status: 'registered'; email: string; registrationId: string }
+  | { status: 'confirmation_required'; email: string; registrationId: string };
 
 export type LoginResult =
   | { status: 'authenticated'; email: string }

@@ -2,7 +2,6 @@ package io.github.jackhudsonn.jaakd.exception;
 
 import io.github.jackhudsonn.jaakd.dto.ErrorResponse;
 import io.github.jackhudsonn.jaakd.dto.auth.ChallengeResponse;
-import io.github.jackhudsonn.jaakd.dto.auth.EmailConfirmationResponse;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -36,12 +35,6 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.ACCEPTED)
     public ChallengeResponse handleChallenge(ChallengeRequiredException ex) {
         return new ChallengeResponse(ex.getType(), ex.getContinuation());
-    }
-
-    @ExceptionHandler(ConfirmationPendingException.class)
-    @ResponseStatus(HttpStatus.ACCEPTED)
-    public EmailConfirmationResponse handleConfirmationPending(ConfirmationPendingException ex) {
-        return new EmailConfirmationResponse("EMAIL_CONFIRMATION", ex.getEmail());
     }
 
     @ExceptionHandler(EmailNotConfirmedException.class)

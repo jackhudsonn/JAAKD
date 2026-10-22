@@ -55,13 +55,13 @@ public class DevelopmentIdentityProvider implements IdentityProvider {
     }
 
     @Override
-    public Optional<SignInOutcome.Authenticated> confirmRegistration(String email, String code) {
+    public Optional<SignInOutcome.Authenticated> confirmRegistration(UUID registrationId, String code) {
         // No email confirmation step in development.
         return Optional.empty();
     }
 
     @Override
-    public void resendConfirmation(String email) {
+    public void resendConfirmation(UUID registrationId) {
         // No email confirmation step in development.
     }
 

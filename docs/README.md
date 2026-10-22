@@ -129,12 +129,14 @@ Tables are under **Databases > jaakd > Schemas > public > Tables**. `jaakd_app` 
 - `COGNITO_REGION`, `COGNITO_USER_POOL_ID`, `COGNITO_CLIENT_ID`, `COGNITO_CLIENT_SECRET` — required when `IDENTITY_PROVIDER=cognito`.
 
 Cognito registration verifies email ownership with a code from Cognito's default
-sender; no SES production-access review is needed for the demo. The base schema
-creates both provider link tables, `development_credentials` and
+sender; no SES production-access review is needed for the demo. The pool uses an
+application-generated UUID as the Cognito username and the email as a verified
+alias, so a second registrant can claim an unconfirmed address by confirming it.
+The base schema creates both provider link tables, `development_credentials` and
 `cognito_users`, in every environment; only the selected adapter reads its
 table, so switching `IDENTITY_PROVIDER` needs no schema migration.
 
-The AWS-side pool and app-client commands are in `docs/cognito-setup.md`.
+The AWS-side console setup is in `docs/cognito-setup.md`.
 
 Everything else is fixed in `docker-compose.yml` and can't be set from `.env`: the database `jaakd`, the role `jaakd_app`, the published Postgres port `5433`, and the backend's datasource URL and username on the internal network.
 

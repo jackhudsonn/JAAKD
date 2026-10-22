@@ -1,6 +1,7 @@
 package io.github.jackhudsonn.jaakd.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -60,17 +61,18 @@ class AuthServiceTest {
 
         assertEquals(EMAIL, result.email());
         assertEquals(true, result.confirmationRequired());
+        assertNotNull(result.registrationId());
         verify(registrationService).persistRegistration(any(), any(), any(), any());
     }
 
     @Test
     void confirmRegistration_createsASessionWhenProviderCompletesSignIn() {
-        when(identityProvider.confirmRegistration(EMAIL, "123456"))
+        when(identityProvider.confirmRegistration(USER_ID, "123456"))
                 .thenReturn(Optional.of(new SignInOutcome.Authenticated(USER_ID, EMAIL, "refresh-token")));
         Session session = new Session(USER_ID, "refresh-token", Instant.now(), Instant.now().plusSeconds(3600));
         when(sessionService.create(USER_ID, "refresh-token")).thenReturn(session);
 
-        Optional<SignInResult> result = authService().confirmRegistration(EMAIL, "123456");
+        Optional<SignInResult> result = authService().confirmRegistration(USER_ID, "123456");
 
         assertTrue(result.isPresent());
         assertEquals(session, result.orElseThrow().session());
@@ -79,9 +81,9 @@ class AuthServiceTest {
 
     @Test
     void confirmRegistration_leavesSignInToTheClientWhenProviderHasNoSession() {
-        when(identityProvider.confirmRegistration(EMAIL, "123456")).thenReturn(Optional.empty());
+        when(identityProvider.confirmRegistration(USER_ID, "123456")).thenReturn(Optional.empty());
 
-        assertTrue(authService().confirmRegistration(EMAIL, "123456").isEmpty());
+        assertTrue(authService().confirmRegistration(USER_ID, "123456").isEmpty());
         verify(sessionService, never()).create(any(), any());
     }
 

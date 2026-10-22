@@ -21,8 +21,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import io.github.jackhudsonn.jaakd.config.CognitoProperties;
-import io.github.jackhudsonn.jaakd.exception.ConfirmationPendingException;
+import io.github.jackhudsonn.jaakd.exception.ConflictException;
 import io.github.jackhudsonn.jaakd.exception.EmailNotConfirmedException;
+import io.github.jackhudsonn.jaakd.exception.UnauthorizedException;
 import io.github.jackhudsonn.jaakd.identity.RegistrationOutcome;
 import io.github.jackhudsonn.jaakd.identity.SignInOutcome;
 import io.github.jackhudsonn.jaakd.identity.cognito.CognitoIdTokenVerifier.CognitoIdentity;
@@ -36,11 +37,12 @@ import software.amazon.awssdk.services.cognitoidentityprovider.model.ConfirmSign
 import software.amazon.awssdk.services.cognitoidentityprovider.model.InitiateAuthRequest;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.InitiateAuthResponse;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.NotAuthorizedException;
+import software.amazon.awssdk.services.cognitoidentityprovider.model.ResendConfirmationCodeRequest;
+import software.amazon.awssdk.services.cognitoidentityprovider.model.ResendConfirmationCodeResponse;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.RevokeTokenRequest;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.SignUpRequest;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.SignUpResponse;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.UserNotConfirmedException;
-import software.amazon.awssdk.services.cognitoidentityprovider.model.UsernameExistsException;
 
 @ExtendWith(MockitoExtension.class)
 class CognitoIdentityProviderTest {
@@ -86,44 +88,44 @@ class CognitoIdentityProviderTest {
         ArgumentCaptor<SignUpRequest> request = ArgumentCaptor.forClass(SignUpRequest.class);
         verify(client).signUp(request.capture());
         assertEquals("client", request.getValue().clientId());
-        assertEquals(EMAIL, request.getValue().username());
+        assertEquals(USER_ID.toString(), request.getValue().username());
         assertEquals("email", request.getValue().userAttributes().getFirst().name());
     }
 
     @Test
-    void register_pendingExistingRegistrationRaisesConfirmationPending() {
-        when(client.signUp(any(SignUpRequest.class)))
-                .thenThrow(UsernameExistsException.builder().message("exists").build());
-        when(userStore.findLatestByEmail(EMAIL))
-                .thenReturn(Optional.of(cognitoUser("PENDING")));
+    void register_rejectsAnAlreadyConfirmedEmail() {
+        when(userStore.findConfirmedByEmail(EMAIL)).thenReturn(Optional.of(cognitoUser("CONFIRMED")));
 
-        assertThrows(ConfirmationPendingException.class,
-                () -> provider.register(USER_ID, EMAIL, "Password123!"));
+        assertThrows(ConflictException.class, () -> provider.register(USER_ID, EMAIL, "Password123!"));
 
-        verify(userStore, never()).insertPending(any(), any(), any());
+        verify(client, never()).signUp(any(SignUpRequest.class));
     }
 
     @Test
     void confirmRegistration_confirmsCognitoThenMarksTheLink() {
         CognitoUser pending = cognitoUser("PENDING");
-        when(userStore.findLatestByEmail(EMAIL)).thenReturn(Optional.of(pending));
+        when(userStore.findByUserId(USER_ID)).thenReturn(Optional.of(pending));
         when(client.confirmSignUp(any(ConfirmSignUpRequest.class)))
                 .thenReturn(ConfirmSignUpResponse.builder().build());
 
-        assertTrue(provider.confirmRegistration(EMAIL, "123456").isEmpty());
+        assertTrue(provider.confirmRegistration(USER_ID, "123456").isEmpty());
 
+        ArgumentCaptor<ConfirmSignUpRequest> request = ArgumentCaptor.forClass(ConfirmSignUpRequest.class);
+        verify(client).confirmSignUp(request.capture());
+        assertEquals(USER_ID.toString(), request.getValue().username());
+        assertEquals(Boolean.TRUE, request.getValue().forceAliasCreation());
         verify(userStore).markConfirmed(pending.identityId());
     }
 
     @Test
     void confirmRegistration_retriesWithoutAnExpiredSignUpSession() {
         CognitoUser pending = cognitoUser("PENDING");
-        when(userStore.findLatestByEmail(EMAIL)).thenReturn(Optional.of(pending));
+        when(userStore.findByUserId(USER_ID)).thenReturn(Optional.of(pending));
         when(client.confirmSignUp(any(ConfirmSignUpRequest.class)))
                 .thenThrow(NotAuthorizedException.builder().message("expired session").build())
                 .thenReturn(ConfirmSignUpResponse.builder().build());
 
-        assertTrue(provider.confirmRegistration(EMAIL, "123456").isEmpty());
+        assertTrue(provider.confirmRegistration(USER_ID, "123456").isEmpty());
 
         ArgumentCaptor<ConfirmSignUpRequest> request = ArgumentCaptor.forClass(ConfirmSignUpRequest.class);
         verify(client, times(2)).confirmSignUp(request.capture());
@@ -135,7 +137,7 @@ class CognitoIdentityProviderTest {
     @Test
     void confirmRegistration_usesTheConfirmationSessionToSignIn() {
         CognitoUser pending = cognitoUser("PENDING");
-        when(userStore.findLatestByEmail(EMAIL)).thenReturn(Optional.of(pending));
+        when(userStore.findByUserId(USER_ID)).thenReturn(Optional.of(pending));
         when(client.confirmSignUp(any(ConfirmSignUpRequest.class)))
                 .thenReturn(ConfirmSignUpResponse.builder().session("confirm-session").build());
         when(client.initiateAuth(any(InitiateAuthRequest.class))).thenReturn(
@@ -148,7 +150,7 @@ class CognitoIdentityProviderTest {
         when(verifier.verify("id-token")).thenReturn(new CognitoIdentity("subject", EMAIL));
         when(userStore.findBySubject("subject")).thenReturn(Optional.of(cognitoUser("CONFIRMED")));
 
-        Optional<SignInOutcome.Authenticated> result = provider.confirmRegistration(EMAIL, "123456");
+        Optional<SignInOutcome.Authenticated> result = provider.confirmRegistration(USER_ID, "123456");
 
         assertTrue(result.isPresent());
         assertEquals(USER_ID, result.orElseThrow().userId());
@@ -157,6 +159,22 @@ class CognitoIdentityProviderTest {
         verify(client).initiateAuth(request.capture());
         assertEquals(AuthFlowType.USER_AUTH, request.getValue().authFlow());
         assertEquals("confirm-session", request.getValue().session());
+        assertEquals(USER_ID.toString(), request.getValue().authParameters().get("USERNAME"));
+    }
+
+    @Test
+    void resendConfirmation_usesTheRegistrationIdAsTheUsername() {
+        CognitoUser pending = cognitoUser("PENDING");
+        when(userStore.findByUserId(USER_ID)).thenReturn(Optional.of(pending));
+        when(client.resendConfirmationCode(any(ResendConfirmationCodeRequest.class)))
+                .thenReturn(ResendConfirmationCodeResponse.builder().build());
+
+        provider.resendConfirmation(USER_ID);
+
+        ArgumentCaptor<ResendConfirmationCodeRequest> request = ArgumentCaptor
+                .forClass(ResendConfirmationCodeRequest.class);
+        verify(client).resendConfirmationCode(request.capture());
+        assertEquals(USER_ID.toString(), request.getValue().username());
     }
 
     @Test
@@ -187,6 +205,26 @@ class CognitoIdentityProviderTest {
 
         assertThrows(EmailNotConfirmedException.class,
                 () -> provider.signIn(EMAIL, "Password123!"));
+    }
+
+    @Test
+    void signIn_mapsPendingOnlyFailureToEmailNotConfirmed() {
+        when(client.initiateAuth(any(InitiateAuthRequest.class)))
+                .thenThrow(NotAuthorizedException.builder().message("not authorized").build());
+        when(userStore.findLatestPendingByEmail(EMAIL)).thenReturn(Optional.of(cognitoUser("PENDING")));
+
+        assertThrows(EmailNotConfirmedException.class,
+                () -> provider.signIn(EMAIL, "Password123!"));
+    }
+
+    @Test
+    void signIn_preservesUnauthorizedForConfirmedAccountsWithAWrongPassword() {
+        when(client.initiateAuth(any(InitiateAuthRequest.class)))
+                .thenThrow(NotAuthorizedException.builder().message("not authorized").build());
+        when(userStore.findConfirmedByEmail(EMAIL)).thenReturn(Optional.of(cognitoUser("CONFIRMED")));
+
+        assertThrows(UnauthorizedException.class,
+                () -> provider.signIn(EMAIL, "wrong-password"));
     }
 
     @Test

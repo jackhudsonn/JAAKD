@@ -48,11 +48,31 @@ public class CognitoUserStore {
         return rows.stream().findFirst();
     }
 
-    public Optional<CognitoUser> findLatestByEmail(String email) {
+    public Optional<CognitoUser> findByUserId(UUID userId) {
+        List<CognitoUser> rows = jdbcTemplate.query(
+                SELECT_COLUMNS + "FROM cognito_users c WHERE c.\"userID\" = ?",
+                this::mapRow,
+                userId);
+        return rows.stream().findFirst();
+    }
+
+    public Optional<CognitoUser> findConfirmedByEmail(String email) {
         List<CognitoUser> rows = jdbcTemplate.query(
                 SELECT_COLUMNS
                         + "FROM cognito_users c JOIN users u ON u.\"userID\" = c.\"userID\" "
-                        + "WHERE lower(u.email) = lower(?) ORDER BY c.\"createdAt\" DESC LIMIT 1",
+                        + "WHERE lower(u.email) = lower(?) AND c.status = 'CONFIRMED' "
+                        + "ORDER BY c.\"createdAt\" DESC LIMIT 1",
+                this::mapRow,
+                email);
+        return rows.stream().findFirst();
+    }
+
+    public Optional<CognitoUser> findLatestPendingByEmail(String email) {
+        List<CognitoUser> rows = jdbcTemplate.query(
+                SELECT_COLUMNS
+                        + "FROM cognito_users c JOIN users u ON u.\"userID\" = c.\"userID\" "
+                        + "WHERE lower(u.email) = lower(?) AND c.status = 'PENDING' "
+                        + "ORDER BY c.\"createdAt\" DESC LIMIT 1",
                 this::mapRow,
                 email);
         return rows.stream().findFirst();

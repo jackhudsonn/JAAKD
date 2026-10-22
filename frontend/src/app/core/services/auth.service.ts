@@ -6,7 +6,6 @@ import { AUTH_FLOW } from '@core/http/auth-flow.token';
 import { DASHBOARD_PREFERENCES_CACHE_PREFIX } from '@core/constants/dashboard-preferences.constants';
 import {
   ChallengeResponse,
-  EmailConfirmationResponse,
   LoginResult,
   RegisterRequest,
   RegistrationResponse,
@@ -33,35 +32,26 @@ export class AuthService {
   constructor(private httpClient: HttpClient) {}
 
   async register(request: RegisterRequest): Promise<RegistrationResult> {
-    const response = await firstValueFrom(
-      this.httpClient.post<RegistrationResponse | EmailConfirmationResponse>(
+    const registration = await firstValueFrom(
+      this.httpClient.post<RegistrationResponse>(
         `${environment.apiUrl}/api/auth/register`,
         request,
-        { context: this.credentialFlow, observe: 'response' },
+        { context: this.credentialFlow },
       ),
     );
 
-    const body = response.body;
-    if (!body) {
-      throw new Error('Registration returned no response body.');
-    }
-
-    if (response.status === 202) {
-      return { status: 'confirmation_pending', email: (body as EmailConfirmationResponse).email };
-    }
-
-    const registration = body as RegistrationResponse;
     return {
       status: registration.status === 'CONFIRMATION_REQUIRED' ? 'confirmation_required' : 'registered',
       email: registration.email,
+      registrationId: registration.registrationId,
     };
   }
 
-  async confirmRegistration(email: string, code: string): Promise<boolean> {
+  async confirmRegistration(registrationId: string, code: string): Promise<boolean> {
     const response = await firstValueFrom(
       this.httpClient.post<SessionResponse>(
         `${environment.apiUrl}/api/auth/register/confirm`,
-        { email, code },
+        { registrationId, code },
         { context: this.credentialFlow, observe: 'response' },
       ),
     );
@@ -74,11 +64,11 @@ export class AuthService {
     return false;
   }
 
-  async resendConfirmation(email: string): Promise<void> {
+  async resendConfirmation(registrationId: string): Promise<void> {
     await firstValueFrom(
       this.httpClient.post(
         `${environment.apiUrl}/api/auth/register/resend`,
-        { email },
+        { registrationId },
         { context: this.credentialFlow },
       ),
     );

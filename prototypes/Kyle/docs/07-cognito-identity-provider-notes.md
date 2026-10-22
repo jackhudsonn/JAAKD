@@ -4,8 +4,9 @@ Follows `05-identity-provider-seam-notes.md` and `06-configuration-and-secrets-n
 This note records the decisions for adding Amazon Cognito as a second
 `IdentityProvider` adapter, and the plan to execute them.
 
-Status: backend, database, frontend, and tests are implemented. AWS pool and
-app-client creation remains an environment step (see `docs/cognito-setup.md`).
+Status: backend, database, frontend, and tests are implemented. The AWS pool
+and app client are created through the console runbook in
+`docs/cognito-setup.md`; deployment values and delivery verification remain.
 
 ## Relationship to 05
 
@@ -28,6 +29,14 @@ completing challenges is deferred.
 
 - Add `CognitoIdentityProvider`, selected by `identity.provider=cognito`.
 - Application `users.userID` is an application-generated UUID, not Cognito `sub`.
+- Cognito's username is that same application `userID`; the email address is a
+  verified Cognito alias.
+- The `registrationId` returned by registration is the application `userID`.
+- `ConfirmSignUp` uses `ForceAliasCreation=true`, so the email owner can claim
+  an address that an unconfirmed account has already used.
+- A pending email does not block a new registration. Only a confirmed email
+  returns `409`.
+- Superseded pending rows are not cleaned up after a claim.
 - Each provider owns its link table. Development keeps using
   `development_credentials`; Cognito gets `cognito_users`.
 - No cross-provider user linking is implemented. The stable application ID makes
@@ -46,6 +55,7 @@ completing challenges is deferred.
 - Password strength is owned by the provider (the user pool). The application
   keeps only a minimal floor and surfaces Cognito's rejection.
 - MFA, challenge completion, and password recovery are deferred.
+- The duplicate-pending `202 EMAIL_CONFIRMATION` response is removed.
 - Pool recreation is treated as an explicit reset or migration, not a routine
   operation.
 
@@ -136,7 +146,7 @@ because it requires a session.
 
 1. Validate the request, including the password floor and profile fields.
 2. Generate an application `userID` (UUID).
-3. Call Cognito `SignUp` with `Username=email`, the email attribute, and the
+3. Call Cognito `SignUp` with `Username=userID`, the email attribute, and the
    password. Cognito sends the verification code. Keep `UserSub` from the
    response.
 4. In one local transaction:
@@ -144,7 +154,7 @@ because it requires a session.
    - insert `profiles` with the submitted PII;
    - insert `cognito_users` with `subject = UserSub`, `status = PENDING`, the
      application `userID`, and the SignUp session;
-5. Return `201` with `{ "status": "CONFIRMATION_REQUIRED", "email": ... }`.
+5. Return `201` with `{ "status": "CONFIRMATION_REQUIRED", "email": ..., "registrationId": ... }`.
 
 The Cognito call is outside the database transaction. If step 4 fails, the
 Cognito user exists but the application rows do not. The accepted demo behavior
@@ -167,11 +177,12 @@ let us roll back locally but leaves an application user if Cognito fails.
 
 Public endpoints:
 
-- `POST /api/auth/register/confirm` with `{ email, code }`.
-- `POST /api/auth/register/resend` with `{ email }`.
+- `POST /api/auth/register/confirm` with `{ registrationId, code }`.
+- `POST /api/auth/register/resend` with `{ registrationId }`.
 
-Confirmation calls Cognito `ConfirmSignUp` with the email as the username, the
-stored `signUpSession`, and the code. It then passes the `Session` returned by
+Confirmation loads the pending row by `userID` and calls Cognito
+`ConfirmSignUp` with the UUID as the username, the stored `signUpSession`, the
+code, and `ForceAliasCreation=true`. It then passes the `Session` returned by
 `ConfirmSignUp` to `InitiateAuth` with `USER_AUTH`, verifies the ID token, and
 creates the application session. No password is retained in the browser.
 
@@ -183,22 +194,23 @@ the pool to allow email OTP as a first auth factor.
 
 ### Duplicate registration
 
-`UsernameExistsException` says only that the identifier exists. It does not say
-whether the account is confirmed, unconfirmed, disabled, or external. Do not
-interpret it as “confirmation pending.”
-
-The adapter joins `cognito_users` to `users` by email, using the most recent link
-row when historical rows exist:
+Cognito's username is a fresh UUID, so `UsernameExistsException` is no longer a
+meaningful duplicate-email signal. The adapter checks the local link table
+before calling `SignUp`:
 
 | State                            | Response                                                |
 | -------------------------------- | ------------------------------------------------------- |
-| Row exists, `status = PENDING`   | `202` confirmation pending; offer resend                |
-| Row exists, `status = CONFIRMED` | `409` already registered; offer sign-in or reset        |
-| No row                           | Neutral “if this email is registered, sign in or reset” |
+| Row exists, `status = CONFIRMED` | `409` already registered; offer sign-in                 |
+| No confirmed row                 | Allow the new registration; a pending row does not block |
 
-The confirmation page accepts an email and code and offers resend, so an
-interrupted registration can be resumed from any tab or device. A user who
-registers again while a PENDING row exists is routed there.
+The new registration gets a new `userID` and Cognito username. On confirmation,
+`ForceAliasCreation` moves the verified email alias to the new account and marks
+the previous account's email unverified. This is how the real owner claims an
+address that an unconfirmed registrant already used.
+
+The confirmation page accepts `registrationId` and a code and offers resend. The
+registration ID is kept in the URL and optional `sessionStorage`; no password is
+stored.
 
 A successful login also sets `status = CONFIRMED`, which reconciles a user who
 confirmed through a Cognito email link rather than the application's confirm
@@ -211,16 +223,16 @@ duplicate path must be adjusted.
 ### Unconfirmed rows
 
 Because PII is stored before confirmation, unconfirmed `users` and `profiles`
-rows can exist indefinitely. A retention/cleanup policy is deferred; for the
-demo they remain until manually cleared. The `cognito_users.expiresAt` column is
-available for a future cleanup job.
+rows can exist indefinitely. Superseded pending rows are deliberately not
+cleaned up after a claim; there is no retention sweep. The
+`cognito_users.expiresAt` column is available for a future cleanup job.
 
 ## Login, sessions, logout, and password change
 
 ### Login
 
-1. Cognito `InitiateAuth` with `USER_PASSWORD_AUTH`, the email username, the
-   password, and `SECRET_HASH` if the app client has a secret.
+1. Cognito `InitiateAuth` with `USER_PASSWORD_AUTH`, the email alias as the
+   username, the password, and `SECRET_HASH` if the app client has a secret.
 2. Verify the returned ID token locally with the pool's JWKS. Validate issuer,
    `aud` (client ID), `token_use = id`, expiry, `sub`, `email`, and
    `email_verified`.
@@ -235,9 +247,11 @@ If no `cognito_users` row exists for a verified Cognito user, return
 `registration incomplete` rather than auto-creating an application user. All
 users are expected to register through the application.
 
-If the user is unconfirmed, map `UserNotConfirmedException` to a distinct `403`
-(for example `EMAIL_NOT_CONFIRMED`) so the frontend can route to the
-confirmation page. Invalid credentials map to a generic `401`.
+If the user is unconfirmed, the alias may not resolve during login. If
+`InitiateAuth` fails and the local link table has a pending row for the email
+but no confirmed row, map it to a distinct `403` (for example
+`EMAIL_NOT_CONFIRMED`) so the frontend can route to confirmation or registration.
+A confirmed account with a wrong password remains a generic `401`.
 
 If Cognito returns an authentication challenge (MFA, `NEW_PASSWORD_REQUIRED`),
 relay `202 { challenge, continuation }` as the existing seam allows. V1 has no
@@ -382,7 +396,8 @@ Create one user pool per environment.
 
 ### User pool
 
-- Sign-in with email as the username.
+- Sign-in with an opaque UUID username and the email as a verified alias.
+- `AliasAttributes = ["email"]`; no `UsernameAttributes`.
 - `AutoVerifiedAttributes = ["email"]`.
 - MFA off for v1.
 - Password policy: development may use the minimum; production uses the agreed
@@ -398,6 +413,8 @@ Create one user pool per environment.
 - Confidential client with a generated secret.
 - Enable `ALLOW_USER_PASSWORD_AUTH`, `ALLOW_REFRESH_TOKEN_AUTH`, and
   `ALLOW_USER_AUTH`.
+- Set the authentication flow session duration to 15 minutes so the email code
+  can be entered before the confirmation session expires.
 - Disable SRP and custom auth flows unless they are implemented.
 - Enable token revocation.
 - Enable “prevent user existence errors”; verify its effect on the duplicate
@@ -427,16 +444,14 @@ Create one user pool per environment.
 
 - `POST /api/auth/register`
   - Request: email, password, and profile fields.
-  - `201 { status: "CONFIRMATION_REQUIRED", email }`.
-  - `202 { challenge: "EMAIL_CONFIRMATION", email }` when a pending
-    registration already exists.
-  - `409` when the email is already confirmed.
+  - `201 { status: "CONFIRMATION_REQUIRED", email, registrationId }`.
+  - `409` when the email already has a confirmed account.
 - `POST /api/auth/register/confirm`
-  - Request: `{ email, code }`.
+  - Request: `{ registrationId, code }`.
   - `200 { email }` when the confirmation session signs the user in; `204`
     when the client must sign in separately; `400` for a bad or expired code.
 - `POST /api/auth/register/resend`
-  - Request: `{ email }`; `204` on success.
+  - Request: `{ registrationId }`; `204` on success.
 - `POST /api/auth/login`
   - `200 { email }` or `202 { challenge, continuation }`.
   - `403 { details: { code: "EMAIL_NOT_CONFIRMED", email } }`.
@@ -444,9 +459,9 @@ Create one user pool per environment.
 - `POST /api/auth/logout` — unchanged externally.
 - `POST /api/auth/change-password` — unchanged externally.
 
-The frontend switches on status and body shape. No proxy is needed; the endpoint
-contract is the source of truth. Give challenge and confirmation responses
-typed bodies rather than `ErrorResponse`.
+The frontend switches on the typed response body. No proxy is needed; the
+endpoint contract is the source of truth. Give challenge responses typed bodies
+rather than `ErrorResponse`. `registrationId` is an opaque UUID, not a secret.
 
 ## Backend changes
 
@@ -472,8 +487,8 @@ typed bodies rather than `ErrorResponse`.
   creation transaction.
 - DTOs: expanded `RegisterRequest`, `ConfirmRegistrationRequest`,
   `ResendRegistrationRequest`, `RegistrationResponse`, `ChallengeResponse`.
-- Exceptions and handlers for confirmation pending, email not confirmed, and
-  provider throttling/unavailability.
+- Exceptions and handlers for email not confirmed, provider throttling, and
+  provider unavailability. There is no confirmation-pending exception.
 
 ### Port changes
 
@@ -484,8 +499,8 @@ operations. A workable shape:
 public interface IdentityProvider {
     RegistrationOutcome register(UUID userId, String email, String password);
     void link(UUID userId, String subject, String signUpSession);
-    Optional<SignInOutcome.Authenticated> confirmRegistration(String email, String code);
-    void resendConfirmation(String email);
+    Optional<SignInOutcome.Authenticated> confirmRegistration(UUID registrationId, String code);
+    void resendConfirmation(UUID registrationId);
     SignInOutcome signIn(String email, String password);
     void changePassword(String email, String currentPassword, String newPassword);
     void revoke(String refreshToken);
@@ -516,14 +531,16 @@ The development adapter:
 
 The Cognito adapter:
 
-- `register` calls `SignUp` and returns `UserSub` plus the SignUp session;
+- `register` rejects only a confirmed local email, calls `SignUp` with
+  `Username=userID`, and returns `UserSub` plus the SignUp session;
 - `link` inserts the `cognito_users` PENDING row with the session;
-- `confirmRegistration` passes the stored session to `ConfirmSignUp`, then uses
-  the confirmation session with `USER_AUTH` to obtain tokens; it returns an
-  authenticated outcome when that succeeds and `Optional.empty()` otherwise;
-- `resendConfirmation` calls `ResendConfirmationCode`;
-- `signIn` verifies the ID token, resolves `subject` to `userID`, and returns the
-  refresh token;
+- `confirmRegistration` loads by `userID`, passes the stored session to
+  `ConfirmSignUp` with `ForceAliasCreation=true`, then uses the confirmation
+  session with `USER_AUTH`; it returns an authenticated outcome when that
+  succeeds and `Optional.empty()` otherwise;
+- `resendConfirmation` calls `ResendConfirmationCode` with the UUID username;
+- `signIn` uses the email alias, verifies the ID token, resolves `subject` to
+  `userID`, and returns the refresh token;
 - `changePassword` re-authenticates, calls `ChangePassword`, and does not revoke
   other sessions itself (that is `AuthService`'s job);
 - `revoke` calls `RevokeToken`.
@@ -554,17 +571,20 @@ The Cognito adapter:
 ## Frontend changes
 
 - `AuthService.register` sends the profile fields and returns a typed result:
-  confirmation required, pending, or conflict.
+  confirmation required with a `registrationId`, or registered.
 - The register component no longer creates the profile after login; the profile
   is created during registration. The post-login profile fetch remains, but the
   404/create path is removed from the register flow.
 - Add a public `/auth/confirm` page with the email, code field, resend action,
   and a success path that signs the user in.
+- The register component keeps the non-secret `registrationId` in the confirm
+  URL and optional `sessionStorage` so confirmation can resume after a reload.
 - `AuthService.confirmRegistration` uses `observe: 'response'`: a `200` carries
   the session body and sets the email signal; a `204` means confirmation
   succeeded but the client must route to login with the email prefilled.
 - No password is retained in browser memory or storage.
-- On login, handle `403 EMAIL_NOT_CONFIRMED` by routing to confirmation, and
+- On login, handle `403 EMAIL_NOT_CONFIRMED` by using a stored `registrationId`
+  when available, otherwise routing to registration to claim the address. Handle
   `202` by showing the defensive challenge message without navigating.
 - Add the confirm/resend methods to `AuthService`.
 - No Cognito SDK, no provider name, and no token handling in the browser.
@@ -573,18 +593,20 @@ The Cognito adapter:
 ## Tests
 
 - Cognito adapter unit tests with a mocked `CognitoIdentityProviderClient`:
-  sign-up, duplicate handling, confirmation, resend, login, error mapping,
-  `SECRET_HASH`.
+  sign-up with the UUID username, confirmed-email rejection, confirmation with
+  `ForceAliasCreation`, resend by registration ID, login, pending-only error
+  mapping, and `SECRET_HASH`.
 - ID-token verifier tests with generated keys and negative cases: wrong issuer,
   wrong audience, access token instead of ID token, expired, missing email,
   unverified email, missing `sub`.
 - `AuthService` tests: refresh token stored, logout revokes one token, password
-  change revokes the other sessions' tokens, no auto-provision on missing link.
+  change revokes the other sessions' tokens, no auto-provision on missing link,
+  and confirmation by `registrationId`.
 - Registration orchestration test: Cognito-first order, transaction rollback,
   retry behavior.
 - Conditional configuration test: development starts without Cognito values.
-- Frontend tests for registration success/pending/conflict, confirmation,
-  unconfirmed login, and 202 handling.
+- Frontend tests for registration confirmation/conflict, `registrationId`
+  continuation, confirmation, unconfirmed login, and 202 handling.
 - Optional integration test against LocalStack or cognito-local; keep it out of
   CI so the pipeline needs no AWS account.
 
@@ -714,20 +736,20 @@ Done:
   development adapter update.
 - Cognito adapter, JWKS ID-token verification, exception translation, and
   `SECRET_HASH`.
-- Cognito-first registration with PII stored up front, confirm/resend endpoints,
-  duplicate handling, login, logout revocation, and password-change revocation.
+- Cognito-first registration with PII stored up front, UUID username, email
+  alias, confirm/resend by `registrationId`, duplicate handling, login, logout
+  revocation, and password-change revocation.
 - Registration flushes the `users` insert before the JDBC provider-link insert;
   the link's foreign key otherwise cannot see a queued Hibernate insert.
-- Frontend registration payload, confirmation page, native automatic sign-in
-  from the confirmation session, unconfirmed-login routing, and defensive `202`
-  handling.
+- Frontend registration payload, registration-ID continuation, confirmation
+  page, native automatic sign-in from the confirmation session, unconfirmed-login
+  routing, and defensive `202` handling.
 - Backend and frontend tests.
 - AWS setup and pool-recreation runbook in `docs/cognito-setup.md`.
 
 Remaining environment work:
 
-- Create the demo Cognito pool and app client.
-- Put the pool/client values and client secret into the deployment.
+- Put the new pool/client values and client secret into the deployment.
 - Verify default-email delivery to the demo recipients.
 
 ## Scope note

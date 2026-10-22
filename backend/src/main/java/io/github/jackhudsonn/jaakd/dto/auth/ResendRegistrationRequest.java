@@ -1,7 +1,8 @@
 package io.github.jackhudsonn.jaakd.dto.auth;
 
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
+import java.util.UUID;
 
-public record ResendRegistrationRequest(@NotBlank @Email String email) {
+import jakarta.validation.constraints.NotNull;
+
+public record ResendRegistrationRequest(@NotNull UUID registrationId) {
 }

@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '@core/services/auth.service';
+import { RegistrationContinuationService } from '@core/services/registration-continuation.service';
 import { ErrorResponse, toUserFacingErrorMessage } from '@core/models/profile.model';
 import { ToastService } from '@shared/components/toast/toast.service';
 
@@ -23,6 +24,7 @@ export class LoginComponent {
   constructor(
     private authService: AuthService,
     private router: Router,
+    private registrationContinuation: RegistrationContinuationService,
     route: ActivatedRoute,
   ) {
     this.email = route.snapshot.queryParamMap.get('email') ?? '';
@@ -52,8 +54,19 @@ export class LoginComponent {
       await this.router.navigate(['/dashboard']);
     } catch (error) {
       if (this.isEmailNotConfirmed(error)) {
-        this.toastService.error('Confirm your email address before signing in.');
-        await this.router.navigate(['/auth/confirm'], {
+        const registrationId = this.registrationContinuation.peek(this.email);
+        if (registrationId) {
+          this.toastService.error('Confirm your email address before signing in.');
+          await this.router.navigate(['/auth/confirm'], {
+            queryParams: { registrationId, email: this.email },
+          });
+          return;
+        }
+
+        this.toastService.error(
+          'This email has a pending registration. Register again to claim it.',
+        );
+        await this.router.navigate(['/auth/register'], {
           queryParams: { email: this.email },
         });
         return;

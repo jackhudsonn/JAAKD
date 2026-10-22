@@ -1,8 +1,9 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '@core/services/auth.service';
+import { RegistrationContinuationService } from '@core/services/registration-continuation.service';
 import {
   LocationDataService,
   CountryOption,
@@ -49,8 +50,11 @@ export class RegisterComponent {
   constructor(
     private authService: AuthService,
     private router: Router,
+    private route: ActivatedRoute,
+    private registrationContinuation: RegistrationContinuationService,
     private locationDataService: LocationDataService,
   ) {
+    this.email = this.route.snapshot.queryParamMap.get('email') ?? '';
     void this.loadCountries();
   }
   private async loadCountries() {
@@ -134,13 +138,10 @@ export class RegisterComponent {
       });
 
       if (result.status !== 'registered') {
-        this.toastService.success(
-          result.status === 'confirmation_pending'
-            ? 'This email is already registered. Enter the latest code we sent you.'
-            : 'Account created. Check your email for a confirmation code.',
-        );
+        this.registrationContinuation.remember(result.email, result.registrationId);
+        this.toastService.success('Account created. Check your email for a confirmation code.');
         await this.router.navigate(['/auth/confirm'], {
-          queryParams: { email: result.email },
+          queryParams: { registrationId: result.registrationId, email: result.email },
         });
         return;
       }

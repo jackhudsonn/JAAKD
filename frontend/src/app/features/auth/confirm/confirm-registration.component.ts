@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '@core/services/auth.service';
+import { RegistrationContinuationService } from '@core/services/registration-continuation.service';
 import { ErrorResponse, toUserFacingErrorMessage } from '@core/models/profile.model';
 import { ToastService } from '@shared/components/toast/toast.service';
 
@@ -17,6 +18,7 @@ export class ConfirmRegistrationComponent {
   private readonly toastService = inject(ToastService);
 
   email = '';
+  registrationId = '';
   code = '';
   busy = false;
   resending = false;
@@ -24,9 +26,13 @@ export class ConfirmRegistrationComponent {
   constructor(
     private authService: AuthService,
     private router: Router,
+    private registrationContinuation: RegistrationContinuationService,
     route: ActivatedRoute,
   ) {
     this.email = route.snapshot.queryParamMap.get('email') ?? '';
+    this.registrationId =
+      route.snapshot.queryParamMap.get('registrationId') ??
+      (this.email ? this.registrationContinuation.peek(this.email) ?? '' : '');
   }
 
   async confirm() {
@@ -34,10 +40,18 @@ export class ConfirmRegistrationComponent {
       this.toastService.error('Enter your email and the verification code.');
       return;
     }
+    if (!this.registrationId) {
+      this.toastService.error('We could not find this registration. Please start registration again.');
+      return;
+    }
 
     this.busy = true;
     try {
-      const authenticated = await this.authService.confirmRegistration(this.email, this.code);
+      const authenticated = await this.authService.confirmRegistration(
+        this.registrationId,
+        this.code,
+      );
+      this.registrationContinuation.clear(this.email);
       if (authenticated) {
         this.toastService.success('Email confirmed. Welcome to JAAKD.');
         await this.router.navigate(['/dashboard']);
@@ -60,10 +74,14 @@ export class ConfirmRegistrationComponent {
       this.toastService.error('Enter the email address you registered with.');
       return;
     }
+    if (!this.registrationId) {
+      this.toastService.error('We could not find this registration. Please start registration again.');
+      return;
+    }
 
     this.resending = true;
     try {
-      await this.authService.resendConfirmation(this.email);
+      await this.authService.resendConfirmation(this.registrationId);
       this.toastService.success('A new verification code has been sent.');
     } catch (error) {
       this.toastService.error(this.mapErrorToMessage(error));

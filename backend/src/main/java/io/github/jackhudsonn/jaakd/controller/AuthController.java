@@ -60,12 +60,12 @@ public class AuthController {
         String status = result.confirmationRequired() ? "CONFIRMATION_REQUIRED" : "REGISTERED";
 
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new RegistrationResponse(status, result.email()));
+                .body(new RegistrationResponse(status, result.email(), result.registrationId()));
     }
 
     @PostMapping("/register/confirm")
     public ResponseEntity<LoginResponse> confirmRegistration(@Valid @RequestBody ConfirmRegistrationRequest request) {
-        return authService.confirmRegistration(request.email(), request.code())
+        return authService.confirmRegistration(request.registrationId(), request.code())
                 .map(result -> ResponseEntity.ok()
                         .header(HttpHeaders.SET_COOKIE, sessionCookie(result.session()).toString())
                         .body(new LoginResponse(result.email())))
@@ -75,7 +75,7 @@ public class AuthController {
     @PostMapping("/register/resend")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void resendRegistration(@Valid @RequestBody ResendRegistrationRequest request) {
-        authService.resendConfirmation(request.email());
+        authService.resendConfirmation(request.registrationId());
     }
 
     @PostMapping("/login")

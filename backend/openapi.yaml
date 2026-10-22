@@ -49,7 +49,8 @@ paths:
       description: |
         Creates a credential with the configured identity provider and stores the
         submitted profile. No session is created; confirm the email when required,
-        then sign in with `POST /api/auth/login`.
+        then sign in with `POST /api/auth/login`. Cognito uses an opaque UUID
+        username and the email as a verified alias; `registrationId` is that UUID.
       operationId: register
       security: []
       requestBody:
@@ -75,8 +76,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RegistrationResponse"
-        "202":
-          $ref: "#/components/responses/EmailConfirmationRequired"
         "400":
           $ref: "#/components/responses/BadRequest"
         "409":
@@ -90,9 +89,10 @@ paths:
     post:
       tags: [Auth]
       summary: Confirm a registration email
-      description: Confirms the Cognito email verification code. Returns 200 and sets
-        the session cookie when Cognito can complete sign-in from the confirmation
-        session; returns 204 when the user must sign in separately.
+      description: Confirms the Cognito email verification code for the registration
+        identified by `registrationId`. Returns 200 and sets the session cookie when
+        Cognito can complete sign-in from the confirmation session; returns 204 when
+        the user must sign in separately.
       operationId: confirmRegistration
       security: []
       requestBody:
@@ -1902,15 +1902,6 @@ components:
           example:
             challenge: MFA
             continuation: opaque-continuation-token
-    EmailConfirmationRequired:
-      description: Registration exists but the email address is not confirmed.
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/EmailConfirmationResponse"
-          example:
-            challenge: EMAIL_CONFIRMATION
-            email: joanna@example.com
     EmailNotConfirmed:
       description: The credentials are valid but the email address is not confirmed.
       content:
@@ -2017,7 +2008,7 @@ components:
           maxLength: 10
     RegistrationResponse:
       type: object
-      required: [status, email]
+      required: [status, email, registrationId]
       properties:
         status:
           type: string
@@ -2025,32 +2016,25 @@ components:
         email:
           type: string
           format: email
+        registrationId:
+          type: string
+          format: uuid
     ConfirmRegistrationRequest:
       type: object
-      required: [email, code]
+      required: [registrationId, code]
       properties:
-        email:
+        registrationId:
           type: string
-          format: email
+          format: uuid
         code:
           type: string
     ResendRegistrationRequest:
       type: object
-      required: [email]
+      required: [registrationId]
       properties:
-        email:
+        registrationId:
           type: string
-          format: email
-    EmailConfirmationResponse:
-      type: object
-      required: [challenge, email]
-      properties:
-        challenge:
-          type: string
-          enum: [EMAIL_CONFIRMATION]
-        email:
-          type: string
-          format: email
+          format: uuid
     ChallengeResponse:
       type: object
       required: [challenge, continuation]
@@ -2065,6 +2049,7 @@ components:
       properties:
         email:
           type: string
+          format: email
         password:
           type: string
     LoginResponse:

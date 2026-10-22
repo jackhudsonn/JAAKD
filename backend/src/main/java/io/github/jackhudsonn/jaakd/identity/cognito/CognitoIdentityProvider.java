@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 import io.github.jackhudsonn.jaakd.config.CognitoProperties;
 import io.github.jackhudsonn.jaakd.exception.ChallengeRequiredException;
 import io.github.jackhudsonn.jaakd.exception.ConflictException;
-import io.github.jackhudsonn.jaakd.exception.ConfirmationPendingException;
+import io.github.jackhudsonn.jaakd.exception.EmailNotConfirmedException;
 import io.github.jackhudsonn.jaakd.exception.IdentityProviderUnavailableException;
 import io.github.jackhudsonn.jaakd.exception.RegistrationIncompleteException;
 import io.github.jackhudsonn.jaakd.exception.UnauthorizedException;
@@ -68,14 +68,18 @@ public class CognitoIdentityProvider implements IdentityProvider {
     @Override
     public RegistrationOutcome register(UUID userId, String email, String password) {
         String normalized = normalize(email);
+        if (userStore.findConfirmedByEmail(normalized).isPresent()) {
+            throw new ConflictException("email already registered");
+        }
 
+        String username = userId.toString();
         SignUpRequest.Builder request = SignUpRequest.builder()
                 .clientId(properties.getClientId())
-                .username(normalized)
+                .username(username)
                 .password(password)
                 .userAttributes(AttributeType.builder().name("email").value(normalized).build());
         if (properties.hasClientSecret()) {
-            request.secretHash(secretHash(normalized));
+            request.secretHash(secretHash(username));
         }
 
         try {
@@ -86,7 +90,7 @@ public class CognitoIdentityProvider implements IdentityProvider {
             return new RegistrationOutcome(response.userSub(), !Boolean.TRUE.equals(response.userConfirmed()),
                     response.session());
         } catch (UsernameExistsException ex) {
-            throw existingRegistration(normalized);
+            throw new ConflictException("registration already exists");
         } catch (SdkException ex) {
             throw exceptions.translate(ex, normalized);
         }
@@ -98,20 +102,24 @@ public class CognitoIdentityProvider implements IdentityProvider {
     }
 
     @Override
-    public Optional<SignInOutcome.Authenticated> confirmRegistration(String email, String code) {
-        String normalized = normalize(email);
-        CognitoUser pending = userStore.findLatestByEmail(normalized)
-                .orElseThrow(() -> new ValidationException("no pending registration for this email"));
+    public Optional<SignInOutcome.Authenticated> confirmRegistration(UUID registrationId, String code) {
+        String username = registrationId.toString();
+        CognitoUser pending = userStore.findByUserId(registrationId)
+                .orElseThrow(() -> new ValidationException("no pending registration for this registration id"));
+        if (!"PENDING".equals(pending.status())) {
+            throw new ValidationException("email is already confirmed");
+        }
 
         ConfirmSignUpRequest.Builder request = ConfirmSignUpRequest.builder()
                 .clientId(properties.getClientId())
-                .username(normalized)
-                .confirmationCode(code);
+                .username(username)
+                .confirmationCode(code)
+                .forceAliasCreation(true);
         if (pending.signUpSession() != null && !pending.signUpSession().isBlank()) {
             request.session(pending.signUpSession());
         }
         if (properties.hasClientSecret()) {
-            request.secretHash(secretHash(normalized));
+            request.secretHash(secretHash(username));
         }
 
         ConfirmSignUpResponse response;
@@ -122,12 +130,12 @@ public class CognitoIdentityProvider implements IdentityProvider {
             if (isNotAuthorizedOrMissing(ex)) {
                 throw new ValidationException("email is already confirmed or the code is invalid");
             }
-            throw exceptions.translate(ex, normalized);
+            throw exceptions.translate(ex, username);
         } catch (SdkException ex) {
-            throw exceptions.translate(ex, normalized);
+            throw exceptions.translate(ex, username);
         }
 
-        return signInAfterConfirmation(normalized, response.session());
+        return signInAfterConfirmation(username, response.session());
     }
 
     private ConfirmSignUpResponse confirmSignUp(ConfirmSignUpRequest.Builder request, CognitoUser pending) {
@@ -149,13 +157,19 @@ public class CognitoIdentityProvider implements IdentityProvider {
     }
 
     @Override
-    public void resendConfirmation(String email) {
-        String normalized = normalize(email);
+    public void resendConfirmation(UUID registrationId) {
+        String username = registrationId.toString();
+        CognitoUser pending = userStore.findByUserId(registrationId)
+                .orElseThrow(() -> new ValidationException("no pending registration for this registration id"));
+        if (!"PENDING".equals(pending.status())) {
+            throw new ValidationException("email is already confirmed");
+        }
+
         ResendConfirmationCodeRequest.Builder request = ResendConfirmationCodeRequest.builder()
                 .clientId(properties.getClientId())
-                .username(normalized);
+                .username(username);
         if (properties.hasClientSecret()) {
-            request.secretHash(secretHash(normalized));
+            request.secretHash(secretHash(username));
         }
 
         try {
@@ -164,21 +178,21 @@ public class CognitoIdentityProvider implements IdentityProvider {
             if (isNotAuthorizedOrMissing(ex)) {
                 throw new ValidationException("email is already confirmed or has no pending registration");
             }
-            throw exceptions.translate(ex, normalized);
+            throw exceptions.translate(ex, username);
         } catch (SdkException ex) {
-            throw exceptions.translate(ex, normalized);
+            throw exceptions.translate(ex, username);
         }
     }
 
-    private Optional<SignInOutcome.Authenticated> signInAfterConfirmation(String email, String session) {
+    private Optional<SignInOutcome.Authenticated> signInAfterConfirmation(String username, String session) {
         if (session == null || session.isBlank()) {
             return Optional.empty();
         }
 
         Map<String, String> parameters = new HashMap<>();
-        parameters.put("USERNAME", email);
+        parameters.put("USERNAME", username);
         if (properties.hasClientSecret()) {
-            parameters.put("SECRET_HASH", secretHash(email));
+            parameters.put("SECRET_HASH", secretHash(username));
         }
 
         try {
@@ -217,7 +231,16 @@ public class CognitoIdentityProvider implements IdentityProvider {
     @Override
     public SignInOutcome signIn(String email, String password) {
         String normalized = normalize(email);
-        InitiateAuthResponse response = initiateAuth(normalized, password);
+        InitiateAuthResponse response;
+        try {
+            response = initiateAuth(normalized, password);
+        } catch (UnauthorizedException ex) {
+            if (userStore.findConfirmedByEmail(normalized).isEmpty()
+                    && userStore.findLatestPendingByEmail(normalized).isPresent()) {
+                throw new EmailNotConfirmedException(normalized);
+            }
+            throw ex;
+        }
 
         if (response.challengeName() != null && response.authenticationResult() == null) {
             throw new ChallengeRequiredException(response.session(), response.challengeNameAsString());
@@ -307,14 +330,6 @@ public class CognitoIdentityProvider implements IdentityProvider {
         } catch (SdkException ex) {
             throw exceptions.translate(ex, email);
         }
-    }
-
-    private RuntimeException existingRegistration(String email) {
-        return userStore.findLatestByEmail(email)
-                .map(existing -> "CONFIRMED".equals(existing.status())
-                        ? (RuntimeException) new ConflictException("email already registered")
-                        : (RuntimeException) new ConfirmationPendingException(email))
-                .orElseGet(() -> new ConflictException("email already registered"));
     }
 
     private String secretHash(String username) {

@@ -34,6 +34,13 @@
         <p>Enter the code from the email we sent you.</p>
       </div>
 
+      @if (!registrationId) {
+        <p class="confirm-footer">
+          We could not find this registration.
+          <a routerLink="/auth/register" [queryParams]="{ email: email }">Start registration again</a>.
+        </p>
+      }
+
       <div class="form-field">
         <label for="email">Email</label>
         <input id="email" type="email" [(ngModel)]="email" placeholder="name@example.com" />
@@ -51,7 +58,12 @@
         />
       </div>
 
-      <button type="button" class="btn btn-primary confirm-submit" (click)="confirm()" [disabled]="busy">
+      <button
+        type="button"
+        class="btn btn-primary confirm-submit"
+        (click)="confirm()"
+        [disabled]="busy || !registrationId"
+      >
         {{ busy ? 'Confirming...' : 'Confirm Email' }}
       </button>
 
@@ -59,7 +71,7 @@
         type="button"
         class="btn btn-secondary resend-button"
         (click)="resend()"
-        [disabled]="resending"
+        [disabled]="resending || !registrationId"
       >
         {{ resending ? 'Sending...' : 'Resend Code' }}
       </button>

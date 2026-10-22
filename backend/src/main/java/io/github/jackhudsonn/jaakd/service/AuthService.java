@@ -46,19 +46,19 @@ public class AuthService {
             log.error("Registration persistence failed for provider subject {}", outcome.subject(), ex);
             throw ex;
         }
-        return new RegistrationResult(email, outcome.confirmationRequired());
+        return new RegistrationResult(email, outcome.confirmationRequired(), userId);
     }
 
-    public Optional<SignInResult> confirmRegistration(String email, String code) {
-        return identityProvider.confirmRegistration(email, code).map(authenticated -> {
+    public Optional<SignInResult> confirmRegistration(UUID registrationId, String code) {
+        return identityProvider.confirmRegistration(registrationId, code).map(authenticated -> {
             userProvisioner.ensureUser(authenticated.userId(), authenticated.email());
             Session session = sessionService.create(authenticated.userId(), authenticated.refreshToken());
             return new SignInResult(session, authenticated.email());
         });
     }
 
-    public void resendConfirmation(String email) {
-        identityProvider.resendConfirmation(email);
+    public void resendConfirmation(UUID registrationId) {
+        identityProvider.resendConfirmation(registrationId);
     }
 
     // Deliberately not transactional: the provider call may be a network round

@@ -17,9 +17,9 @@ public interface IdentityProvider {
     // Confirms email ownership. Returns an authenticated outcome when the
     // provider can complete sign-in from the confirmation session; otherwise
     // the user must sign in normally.
-    Optional<SignInOutcome.Authenticated> confirmRegistration(String email, String code);
+    Optional<SignInOutcome.Authenticated> confirmRegistration(UUID registrationId, String code);
 
-    void resendConfirmation(String email);
+    void resendConfirmation(UUID registrationId);
 
     SignInOutcome signIn(String email, String password);
 

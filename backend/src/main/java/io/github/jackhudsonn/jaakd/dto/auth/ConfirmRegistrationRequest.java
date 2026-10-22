@@ -1,9 +1,11 @@
 package io.github.jackhudsonn.jaakd.dto.auth;
 
-import jakarta.validation.constraints.Email;
+import java.util.UUID;
+
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 public record ConfirmRegistrationRequest(
-        @NotBlank @Email String email,
+        @NotNull UUID registrationId,
         @NotBlank String code) {
 }
