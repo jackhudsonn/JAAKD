@@ -57,21 +57,7 @@ as short as three minutes.
 There are no callback or logout URLs, and no hosted UI. The browser only talks
 to the backend.
 
-## 3. Upgrade an existing database
-
-New databases get `cognito_users` from `backend/db/init/01-schema.sql`; the table
-is present in every environment so switching `IDENTITY_PROVIDER` needs no
-migration. If you are upgrading a database created before that table became part
-of the base schema, apply the idempotent migration once:
-
-```bash
-docker compose exec -T jaakd-postgres psql -U postgres -d jaakd \
-  < backend/db/cognito/01-cognito-users.sql
-```
-
-For a non-compose database, run the same file with `psql`.
-
-## 4. Configure the backend
+## 3. Configure the backend
 
 Add to `.env` for local work, or to the deployment's secret configuration:
 
@@ -86,7 +72,7 @@ COGNITO_CLIENT_SECRET=exampleclientsecret
 Do not commit the client secret. Use a secret manager or file-based secret in a
 deployed environment.
 
-## 5. Verify
+## 4. Verify
 
 1. Start the backend with `IDENTITY_PROVIDER=cognito`.
 2. Register from the frontend. Cognito sends a verification code from its
@@ -94,8 +80,8 @@ deployed environment.
 3. Enter the code on `/auth/confirm`. The app should exchange the Cognito
    confirmation session for tokens and load the dashboard without asking for the
    password again.
-4. If the confirmation session expired, confirm again or sign in normally; the
-   app falls back to the sign-in page with the email prefilled.
+4. If automatic sign-in is unavailable, confirmation still succeeds and the app
+   routes to the sign-in page with the email prefilled.
 5. Sign out; confirm the session ends and only that session is revoked.
 6. Register again with the same unconfirmed email; confirm the app routes to the
    confirmation page rather than treating it as a confirmed account.

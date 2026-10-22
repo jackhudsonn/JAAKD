@@ -132,14 +132,7 @@ Cognito registration verifies email ownership with a code from Cognito's default
 sender; no SES production-access review is needed for the demo. The base schema
 creates both provider link tables, `development_credentials` and
 `cognito_users`, in every environment; only the selected adapter reads its
-table, so switching `IDENTITY_PROVIDER` needs no schema migration. A database
-created before `cognito_users` was part of the base schema can be upgraded once
-with the idempotent Cognito migration:
-
-```bash
-docker compose exec -T jaakd-postgres psql -U postgres -d jaakd \
-  < backend/db/cognito/01-cognito-users.sql
-```
+table, so switching `IDENTITY_PROVIDER` needs no schema migration.
 
 The AWS-side pool and app-client commands are in `docs/cognito-setup.md`.
 
@@ -187,7 +180,6 @@ java -jar target\backend-0.0.1-SNAPSHOT.jar
 - The authenticated user's ID, resolved from the session, maps directly to `profiles.userID`.
 - `/actuator/**` is public, as are `/api/auth/register` and `/api/auth/login`; the rest of `/api/**` requires authentication.
 - Schema source of truth is `backend/db/init/` and the JPA model.
-- For existing databases, apply the idempotent SQL migrations under `backend/db/` that are newer than the database.
 
 ### Order lifecycle and Kafka events
 

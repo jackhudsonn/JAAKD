@@ -12,7 +12,7 @@ public interface IdentityProvider {
 
     // Records the provider identity link for an application user. Providers
     // without a separate link table no-op this.
-    void link(UUID userId, String subject, String email, String signUpSession);
+    void link(UUID userId, String subject, String signUpSession);
 
     // Confirms email ownership. Returns an authenticated outcome when the
     // provider can complete sign-in from the confirmation session; otherwise

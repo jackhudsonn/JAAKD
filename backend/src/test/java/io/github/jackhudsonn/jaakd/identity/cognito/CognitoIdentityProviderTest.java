@@ -1,10 +1,12 @@
 package io.github.jackhudsonn.jaakd.identity.cognito;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -33,6 +35,7 @@ import software.amazon.awssdk.services.cognitoidentityprovider.model.ConfirmSign
 import software.amazon.awssdk.services.cognitoidentityprovider.model.ConfirmSignUpResponse;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.InitiateAuthRequest;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.InitiateAuthResponse;
+import software.amazon.awssdk.services.cognitoidentityprovider.model.NotAuthorizedException;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.RevokeTokenRequest;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.SignUpRequest;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.SignUpResponse;
@@ -78,7 +81,7 @@ class CognitoIdentityProviderTest {
 
         assertEquals("subject", outcome.subject());
         assertEquals(true, outcome.confirmationRequired());
-        assertEquals(null, outcome.signUpSession());
+        assertNull(outcome.signUpSession());
 
         ArgumentCaptor<SignUpRequest> request = ArgumentCaptor.forClass(SignUpRequest.class);
         verify(client).signUp(request.capture());
@@ -97,7 +100,7 @@ class CognitoIdentityProviderTest {
         assertThrows(ConfirmationPendingException.class,
                 () -> provider.register(USER_ID, EMAIL, "Password123!"));
 
-        verify(userStore, never()).insertPending(any(), any(), any(), any());
+        verify(userStore, never()).insertPending(any(), any(), any());
     }
 
     @Test
@@ -109,7 +112,24 @@ class CognitoIdentityProviderTest {
 
         assertTrue(provider.confirmRegistration(EMAIL, "123456").isEmpty());
 
-        verify(userStore).markConfirmed(pending.identityId(), EMAIL);
+        verify(userStore).markConfirmed(pending.identityId());
+    }
+
+    @Test
+    void confirmRegistration_retriesWithoutAnExpiredSignUpSession() {
+        CognitoUser pending = cognitoUser("PENDING");
+        when(userStore.findLatestByEmail(EMAIL)).thenReturn(Optional.of(pending));
+        when(client.confirmSignUp(any(ConfirmSignUpRequest.class)))
+                .thenThrow(NotAuthorizedException.builder().message("expired session").build())
+                .thenReturn(ConfirmSignUpResponse.builder().build());
+
+        assertTrue(provider.confirmRegistration(EMAIL, "123456").isEmpty());
+
+        ArgumentCaptor<ConfirmSignUpRequest> request = ArgumentCaptor.forClass(ConfirmSignUpRequest.class);
+        verify(client, times(2)).confirmSignUp(request.capture());
+        assertEquals("sign-up-session", request.getAllValues().get(0).session());
+        assertNull(request.getAllValues().get(1).session());
+        verify(userStore).markConfirmed(pending.identityId());
     }
 
     @Test
@@ -157,7 +177,7 @@ class CognitoIdentityProviderTest {
         assertEquals(USER_ID, result.userId());
         assertEquals(EMAIL, result.email());
         assertEquals("refresh-token", result.refreshToken());
-        verify(userStore).markConfirmed("subject", EMAIL);
+        verify(userStore).markConfirmed("subject");
     }
 
     @Test
@@ -187,7 +207,7 @@ class CognitoIdentityProviderTest {
     }
 
     private CognitoUser cognitoUser(String status) {
-        return new CognitoUser(UUID.randomUUID(), USER_ID, "subject", EMAIL, status, "sign-up-session",
+        return new CognitoUser(UUID.randomUUID(), USER_ID, "subject", status, "sign-up-session",
                 java.time.Instant.now(), null);
     }
 }

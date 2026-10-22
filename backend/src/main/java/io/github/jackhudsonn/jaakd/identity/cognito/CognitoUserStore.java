@@ -12,9 +12,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
-// Adapter-owned link between a Cognito subject and an application user. The
-// table exists in every environment so provider switches need no migration;
-// using JdbcTemplate avoids mapping a provider table through JPA.
+// Adapter-owned link between a Cognito subject and an application user. Using
+// JdbcTemplate avoids mapping a provider table through JPA.
 @Component
 @ConditionalOnProperty(name = "identity.provider", havingValue = "cognito")
 public class CognitoUserStore {
@@ -23,7 +22,6 @@ public class CognitoUserStore {
             UUID identityId,
             UUID userId,
             String subject,
-            String email,
             String status,
             String signUpSession,
             Instant createdAt,
@@ -31,7 +29,8 @@ public class CognitoUserStore {
     }
 
     private static final String SELECT_COLUMNS =
-            "SELECT \"identityID\", \"userID\", subject, email, status, \"signUpSession\", \"createdAt\", \"expiresAt\" ";
+            "SELECT c.\"identityID\", c.\"userID\", c.subject, c.status, "
+                    + "c.\"signUpSession\", c.\"createdAt\", c.\"expiresAt\" ";
 
     private static final Duration PENDING_TTL = Duration.ofDays(7);
 
@@ -43,7 +42,7 @@ public class CognitoUserStore {
 
     public Optional<CognitoUser> findBySubject(String subject) {
         List<CognitoUser> rows = jdbcTemplate.query(
-                SELECT_COLUMNS + "FROM cognito_users WHERE subject = ?",
+                SELECT_COLUMNS + "FROM cognito_users c WHERE c.subject = ?",
                 this::mapRow,
                 subject);
         return rows.stream().findFirst();
@@ -51,33 +50,35 @@ public class CognitoUserStore {
 
     public Optional<CognitoUser> findLatestByEmail(String email) {
         List<CognitoUser> rows = jdbcTemplate.query(
-                SELECT_COLUMNS + "FROM cognito_users WHERE email = ? ORDER BY \"createdAt\" DESC LIMIT 1",
+                SELECT_COLUMNS
+                        + "FROM cognito_users c JOIN users u ON u.\"userID\" = c.\"userID\" "
+                        + "WHERE lower(u.email) = lower(?) ORDER BY c.\"createdAt\" DESC LIMIT 1",
                 this::mapRow,
                 email);
         return rows.stream().findFirst();
     }
 
-    public void insertPending(UUID userId, String subject, String email, String signUpSession) {
+    public void insertPending(UUID userId, String subject, String signUpSession) {
         jdbcTemplate.update(
                 """
-                INSERT INTO cognito_users ("identityID", "userID", subject, email, status, "signUpSession", "expiresAt")
-                VALUES (?, ?, ?, ?, 'PENDING', ?, ?)
+                INSERT INTO cognito_users ("identityID", "userID", subject, status, "signUpSession", "expiresAt")
+                VALUES (?, ?, ?, 'PENDING', ?, ?)
                 ON CONFLICT (subject) DO NOTHING
                 """,
-                UUID.randomUUID(), userId, subject, email, signUpSession,
+                UUID.randomUUID(), userId, subject, signUpSession,
                 java.sql.Timestamp.from(Instant.now().plus(PENDING_TTL)));
     }
 
-    public void markConfirmed(UUID identityId, String email) {
+    public void markConfirmed(UUID identityId) {
         jdbcTemplate.update(
-                "UPDATE cognito_users SET status = 'CONFIRMED', email = ?, \"signUpSession\" = NULL, \"expiresAt\" = NULL WHERE \"identityID\" = ?",
-                email, identityId);
+                "UPDATE cognito_users SET status = 'CONFIRMED', \"signUpSession\" = NULL, \"expiresAt\" = NULL WHERE \"identityID\" = ?",
+                identityId);
     }
 
-    public void markConfirmed(String subject, String email) {
+    public void markConfirmed(String subject) {
         jdbcTemplate.update(
-                "UPDATE cognito_users SET status = 'CONFIRMED', email = ?, \"signUpSession\" = NULL, \"expiresAt\" = NULL WHERE subject = ?",
-                email, subject);
+                "UPDATE cognito_users SET status = 'CONFIRMED', \"signUpSession\" = NULL, \"expiresAt\" = NULL WHERE subject = ?",
+                subject);
     }
 
     private CognitoUser mapRow(ResultSet rs, int rowNum) throws SQLException {
@@ -86,7 +87,6 @@ public class CognitoUserStore {
                 UUID.fromString(rs.getString("identityID")),
                 UUID.fromString(rs.getString("userID")),
                 rs.getString("subject"),
-                rs.getString("email"),
                 rs.getString("status"),
                 rs.getString("signUpSession"),
                 rs.getTimestamp("createdAt").toInstant(),

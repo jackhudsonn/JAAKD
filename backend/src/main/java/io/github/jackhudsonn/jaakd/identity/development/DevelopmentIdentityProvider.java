@@ -17,10 +17,9 @@ import io.github.jackhudsonn.jaakd.identity.IdentityProvider;
 import io.github.jackhudsonn.jaakd.identity.RegistrationOutcome;
 import io.github.jackhudsonn.jaakd.identity.SignInOutcome;
 
-// Development adapter backed by the development_credentials table. The table
-// exists in every environment so provider switches need no migration; only this
-// adapter reads it. It verifies credentials and returns an identity; it issues
-// no tokens, because the application owns sessions.
+// Development adapter backed by development_credentials. It verifies credentials
+// and returns an identity; it issues no tokens, because the application owns
+// sessions.
 @Component
 @ConditionalOnProperty(name = "identity.provider", havingValue = "development")
 public class DevelopmentIdentityProvider implements IdentityProvider {
@@ -51,7 +50,7 @@ public class DevelopmentIdentityProvider implements IdentityProvider {
     }
 
     @Override
-    public void link(UUID userId, String subject, String email, String signUpSession) {
+    public void link(UUID userId, String subject, String signUpSession) {
         // The credential row already carries the application userID.
     }
 

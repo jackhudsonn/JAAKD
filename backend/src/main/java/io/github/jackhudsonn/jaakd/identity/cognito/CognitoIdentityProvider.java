@@ -93,8 +93,8 @@ public class CognitoIdentityProvider implements IdentityProvider {
     }
 
     @Override
-    public void link(UUID userId, String subject, String email, String signUpSession) {
-        userStore.insertPending(userId, subject, normalize(email), signUpSession);
+    public void link(UUID userId, String subject, String signUpSession) {
+        userStore.insertPending(userId, subject, signUpSession);
     }
 
     @Override
@@ -116,8 +116,8 @@ public class CognitoIdentityProvider implements IdentityProvider {
 
         ConfirmSignUpResponse response;
         try {
-            response = client.confirmSignUp(request.build());
-            userStore.markConfirmed(pending.identityId(), normalized);
+            response = confirmSignUp(request, pending);
+            userStore.markConfirmed(pending.identityId());
         } catch (CognitoIdentityProviderException ex) {
             if (isNotAuthorizedOrMissing(ex)) {
                 throw new ValidationException("email is already confirmed or the code is invalid");
@@ -128,6 +128,24 @@ public class CognitoIdentityProvider implements IdentityProvider {
         }
 
         return signInAfterConfirmation(normalized, response.session());
+    }
+
+    private ConfirmSignUpResponse confirmSignUp(ConfirmSignUpRequest.Builder request, CognitoUser pending) {
+        try {
+            return client.confirmSignUp(request.build());
+        } catch (CognitoIdentityProviderException ex) {
+            String code = exceptions.errorCode(ex);
+            boolean sessionFailure = "NotAuthorizedException".equals(code)
+                    || "InvalidParameterException".equals(code);
+            if (sessionFailure && pending.signUpSession() != null && !pending.signUpSession().isBlank()) {
+                // The SignUp session is short-lived. Retry without it so a valid
+                // confirmation code can still confirm the account; automatic
+                // sign-in then falls back to the normal login page.
+                request.session(null);
+                return client.confirmSignUp(request.build());
+            }
+            throw ex;
+        }
     }
 
     @Override
@@ -180,7 +198,7 @@ public class CognitoIdentityProvider implements IdentityProvider {
             CognitoIdentity identity = idTokenVerifier.verify(result.idToken());
             CognitoUser user = userStore.findBySubject(identity.subject())
                     .orElseThrow(RegistrationIncompleteException::new);
-            userStore.markConfirmed(identity.subject(), identity.email());
+            userStore.markConfirmed(identity.subject());
             return Optional.of(new SignInOutcome.Authenticated(user.userId(), identity.email(), result.refreshToken()));
         } catch (RuntimeException ex) {
             // Confirmation already succeeded. A failed automatic sign-in must
@@ -214,7 +232,7 @@ public class CognitoIdentityProvider implements IdentityProvider {
         CognitoUser user = userStore.findBySubject(identity.subject())
                 .orElseThrow(RegistrationIncompleteException::new);
 
-        userStore.markConfirmed(identity.subject(), identity.email());
+        userStore.markConfirmed(identity.subject());
 
         return new SignInOutcome.Authenticated(user.userId(), identity.email(), result.refreshToken());
     }

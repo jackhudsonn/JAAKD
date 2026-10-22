@@ -30,6 +30,6 @@ public class RegistrationService {
             RegistrationOutcome outcome) {
         userProvisioner.ensureUser(userId, email);
         profileService.createProfileForUser(userId, profile);
-        identityProvider.link(userId, outcome.subject(), email, outcome.signUpSession());
+        identityProvider.link(userId, outcome.subject(), outcome.signUpSession());
     }
 }
