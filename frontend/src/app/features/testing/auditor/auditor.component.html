@@ -17,7 +17,9 @@
 
   <section class="panel filter-panel">
     <h2>Filters</h2>
-    <p class="panel-help">Primary filters: user, date range, instrument. Portfolio is enabled after user selection.</p>
+    <p class="panel-help">
+      Primary filters: user, date range, instrument. Portfolio is enabled after user selection.
+    </p>
 
     <div class="filter-grid">
       <label>
@@ -33,20 +35,12 @@
 
       <label>
         Date from
-        <input
-          type="date"
-          [ngModel]="fromDate()"
-          (ngModelChange)="fromDate.set($event)"
-        />
+        <input type="date" [ngModel]="fromDate()" (ngModelChange)="fromDate.set($event)" />
       </label>
 
       <label>
         Date to
-        <input
-          type="date"
-          [ngModel]="toDate()"
-          (ngModelChange)="toDate.set($event)"
-        />
+        <input type="date" [ngModel]="toDate()" (ngModelChange)="toDate.set($event)" />
       </label>
 
       <label>
@@ -95,8 +89,15 @@
       <button type="button" class="primary" [disabled]="loading()" (click)="applyFilters()">
         {{ loading() ? 'Applying...' : 'Apply Filters' }}
       </button>
-      <button type="button" class="ghost" [disabled]="loading()" (click)="clearFilters()">Clear</button>
-      <button type="button" class="ghost" [disabled]="loadingInstruments()" (click)="loadInstruments()">
+      <button type="button" class="ghost" [disabled]="loading()" (click)="clearFilters()">
+        Clear
+      </button>
+      <button
+        type="button"
+        class="ghost"
+        [disabled]="loadingInstruments()"
+        (click)="loadInstruments()"
+      >
         Reload Instruments
       </button>
     </div>
@@ -106,7 +107,10 @@
     <div class="card-grid">
       <article class="subpanel">
         <h3>Orders ({{ orderSummaries().length }})</h3>
-        <p class="muted">Page {{ ordersPage() + 1 }} of {{ ordersMeta().totalPages || 1 }} | total {{ ordersMeta().totalElements }}</p>
+        <p class="muted">
+          Page {{ ordersPage() + 1 }} of {{ ordersMeta().totalPages || 1 }} | total
+          {{ ordersMeta().totalElements }}
+        </p>
 
         <div class="table-wrap">
           <table>
@@ -140,14 +144,31 @@
         </div>
 
         <div class="button-row">
-          <button type="button" class="ghost" [disabled]="ordersPage() === 0 || loading()" (click)="goToOrdersPage(ordersPage() - 1)">Prev</button>
-          <button type="button" class="ghost" [disabled]="!ordersMeta().hasNext || loading()" (click)="goToOrdersPage(ordersPage() + 1)">Next</button>
+          <button
+            type="button"
+            class="ghost"
+            [disabled]="ordersPage() === 0 || loading()"
+            (click)="goToOrdersPage(ordersPage() - 1)"
+          >
+            Prev
+          </button>
+          <button
+            type="button"
+            class="ghost"
+            [disabled]="!ordersMeta().hasNext || loading()"
+            (click)="goToOrdersPage(ordersPage() + 1)"
+          >
+            Next
+          </button>
         </div>
       </article>
 
       <article class="subpanel">
         <h3>Holdings ({{ holdings().length }})</h3>
-        <p class="muted">Page {{ holdingsPage() + 1 }} of {{ holdingsMeta().totalPages || 1 }} | total {{ holdingsMeta().totalElements }}</p>
+        <p class="muted">
+          Page {{ holdingsPage() + 1 }} of {{ holdingsMeta().totalPages || 1 }} | total
+          {{ holdingsMeta().totalElements }}
+        </p>
 
         <div class="table-wrap">
           <table>
@@ -181,8 +202,22 @@
         </div>
 
         <div class="button-row">
-          <button type="button" class="ghost" [disabled]="holdingsPage() === 0 || loading()" (click)="goToHoldingsPage(holdingsPage() - 1)">Prev</button>
-          <button type="button" class="ghost" [disabled]="!holdingsMeta().hasNext || loading()" (click)="goToHoldingsPage(holdingsPage() + 1)">Next</button>
+          <button
+            type="button"
+            class="ghost"
+            [disabled]="holdingsPage() === 0 || loading()"
+            (click)="goToHoldingsPage(holdingsPage() - 1)"
+          >
+            Prev
+          </button>
+          <button
+            type="button"
+            class="ghost"
+            [disabled]="!holdingsMeta().hasNext || loading()"
+            (click)="goToHoldingsPage(holdingsPage() + 1)"
+          >
+            Next
+          </button>
         </div>
       </article>
     </div>

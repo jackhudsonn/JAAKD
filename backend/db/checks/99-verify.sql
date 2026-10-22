@@ -62,8 +62,8 @@ ROLLBACK;
 -- Expected: this script fails on the second holdings insert.
 BEGIN;
 
-INSERT INTO users ("userID")
-VALUES ('00000000-0000-0000-0000-000000000001')
+INSERT INTO users ("userID", email)
+VALUES ('00000000-0000-0000-0000-000000000001', 'verify@example.com')
 ON CONFLICT ("userID") DO NOTHING;
 
 INSERT INTO profiles ("userID", "userType")
@@ -74,8 +74,8 @@ INSERT INTO portfolios ("portfolioID", "userID", "portfolioName")
 VALUES ('00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000001', 'verify-portfolio')
 ON CONFLICT ("portfolioID") DO NOTHING;
 
-INSERT INTO instruments ("instrumentID", ticker, market, name, "instrumentClass")
-VALUES ('00000000-0000-0000-0000-000000000003', 'VCHK', 'TEST', 'Verify Check', 'EQUITY')
+INSERT INTO instruments ("instrumentID", ticker, market, name, "instrumentClass", "tradingCurrency")
+VALUES ('00000000-0000-0000-0000-000000000003', 'VCHK', 'TEST', 'Verify Check', 'EQUITY', 'USD')
 ON CONFLICT ("instrumentID") DO NOTHING;
 
 INSERT INTO holdings ("holdingID", "portfolioID", "instrumentID", "currentQuantity", "cumulativeRealizedPnl", "updatedAt")

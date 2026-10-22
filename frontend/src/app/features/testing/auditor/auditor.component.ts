@@ -2,11 +2,7 @@ import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import {
-  InstrumentResponse,
-  OrderStatus,
-  PortfolioResponse,
-} from '@core/models/api.models';
+import { InstrumentResponse, OrderStatus, PortfolioResponse } from '@core/models/api.models';
 import {
   AuditApiService,
   AuditHoldingResponse,
@@ -91,20 +87,26 @@ export class AuditorComponent {
   readonly errorMessage = signal<string | null>(null);
   readonly lastRequest = signal<RequestDiagnostics | null>(null);
 
-  readonly userOptions = computed<OptionItem[]>(() => this.users().map((user) => ({
-    id: user.userId,
-    label: this.formatUserOption(user),
-  })));
+  readonly userOptions = computed<OptionItem[]>(() =>
+    this.users().map((user) => ({
+      id: user.userId,
+      label: this.formatUserOption(user),
+    })),
+  );
 
-  readonly instrumentOptions = computed<OptionItem[]>(() => this.instruments().map((instrument) => ({
-    id: instrument.instrumentId,
-    label: this.formatInstrumentOption(instrument),
-  })));
+  readonly instrumentOptions = computed<OptionItem[]>(() =>
+    this.instruments().map((instrument) => ({
+      id: instrument.instrumentId,
+      label: this.formatInstrumentOption(instrument),
+    })),
+  );
 
-  readonly portfolioOptions = computed<OptionItem[]>(() => this.portfolios().map((portfolio) => ({
-    id: portfolio.portfolioId,
-    label: this.formatPortfolioOption(portfolio),
-  })));
+  readonly portfolioOptions = computed<OptionItem[]>(() =>
+    this.portfolios().map((portfolio) => ({
+      id: portfolio.portfolioId,
+      label: this.formatPortfolioOption(portfolio),
+    })),
+  );
 
   readonly orderSummaries = computed<OrderSummary[]>(() => {
     const grouped = new Map<string, AuditOrderLogResponse[]>();
@@ -116,9 +118,9 @@ export class AuditorComponent {
 
     return [...grouped.entries()]
       .map(([orderId, rows]) => {
-        const latest = rows.reduce((acc, current) => (
-          new Date(current.timestamp).getTime() > new Date(acc.timestamp).getTime() ? current : acc
-        ));
+        const latest = rows.reduce((acc, current) =>
+          new Date(current.timestamp).getTime() > new Date(acc.timestamp).getTime() ? current : acc,
+        );
 
         return {
           orderId,
@@ -206,16 +208,16 @@ export class AuditorComponent {
         }),
         this.selectedUserId()
           ? this.auditApi.listUserHoldings(this.selectedUserId()!, {
-            portfolioId: this.selectedPortfolioId() ?? undefined,
-            instrumentId: this.selectedInstrumentId() ?? undefined,
-            page: this.holdingsPage(),
-            size: this.pageSize,
-          })
+              portfolioId: this.selectedPortfolioId() ?? undefined,
+              instrumentId: this.selectedInstrumentId() ?? undefined,
+              page: this.holdingsPage(),
+              size: this.pageSize,
+            })
           : this.auditApi.listHoldings({
-            instrumentId: this.selectedInstrumentId() ?? undefined,
-            page: this.holdingsPage(),
-            size: this.pageSize,
-          }),
+              instrumentId: this.selectedInstrumentId() ?? undefined,
+              page: this.holdingsPage(),
+              size: this.pageSize,
+            }),
       ]);
 
       this.orderRows.set(ordersPage.content);
@@ -231,19 +233,33 @@ export class AuditorComponent {
         hasNext: holdingsPage.hasNext,
       });
 
-      this.recordRequest('refreshSummaries', '/api/audit/order-logs + /api/audit/holdings', {
-        userId: this.selectedUserId() ?? undefined,
-        portfolioId: this.selectedPortfolioId() ?? undefined,
-        instrumentId: this.selectedInstrumentId() ?? undefined,
-        fromDate: this.fromDate() || undefined,
-        toDate: this.toDate() || undefined,
-        ordersPage: this.ordersPage(),
-        holdingsPage: this.holdingsPage(),
-      }, 200, ordersPage.content.length + holdingsPage.content.length);
+      this.recordRequest(
+        'refreshSummaries',
+        '/api/audit/order-logs + /api/audit/holdings',
+        {
+          userId: this.selectedUserId() ?? undefined,
+          portfolioId: this.selectedPortfolioId() ?? undefined,
+          instrumentId: this.selectedInstrumentId() ?? undefined,
+          fromDate: this.fromDate() || undefined,
+          toDate: this.toDate() || undefined,
+          ordersPage: this.ordersPage(),
+          holdingsPage: this.holdingsPage(),
+        },
+        200,
+        ordersPage.content.length + holdingsPage.content.length,
+      );
 
-      this.statusMessage.set(`Loaded ${ordersPage.content.length} order rows and ${holdingsPage.content.length} holdings.`);
+      this.statusMessage.set(
+        `Loaded ${ordersPage.content.length} order rows and ${holdingsPage.content.length} holdings.`,
+      );
     } catch (error) {
-      this.recordRequest('refreshSummaries', '/api/audit/order-logs + /api/audit/holdings', {}, this.resolveStatusCode(error), null);
+      this.recordRequest(
+        'refreshSummaries',
+        '/api/audit/order-logs + /api/audit/holdings',
+        {},
+        this.resolveStatusCode(error),
+        null,
+      );
       this.handleError(error, 'Failed to load auditor summaries.');
     } finally {
       this.loading.set(false);
@@ -275,8 +291,9 @@ export class AuditorComponent {
     // Summary rows only carry the latest log per order, so fetch the full lifecycle.
     try {
       const result = await this.auditApi.searchOrderLogs({ orderId, page: 0, size: 100 });
-      const rows = [...result.content]
-        .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+      const rows = [...result.content].sort(
+        (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+      );
       this.selectedOrderLogs.set(rows);
     } catch (error) {
       this.handleError(error, 'Failed to load order lifecycle logs.');
@@ -445,7 +462,9 @@ export class AuditorComponent {
 
   private resolveSelectionInputs() {
     this.selectedUserId.set(this.findOptionId(this.userInput(), this.userOptions()));
-    this.selectedInstrumentId.set(this.findOptionId(this.instrumentInput(), this.instrumentOptions()));
+    this.selectedInstrumentId.set(
+      this.findOptionId(this.instrumentInput(), this.instrumentOptions()),
+    );
 
     const portfolioId = this.findOptionId(this.portfolioInput(), this.portfolioOptions());
     this.selectedPortfolioId.set(this.selectedUserId() ? portfolioId : null);
@@ -462,9 +481,10 @@ export class AuditorComponent {
       return null;
     }
 
-    const exact = options.find((option) => (
-      option.label.toLowerCase() === normalized || option.id.toLowerCase() === normalized
-    ));
+    const exact = options.find(
+      (option) =>
+        option.label.toLowerCase() === normalized || option.id.toLowerCase() === normalized,
+    );
 
     return exact?.id ?? null;
   }

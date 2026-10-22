@@ -353,7 +353,9 @@ export class DashboardWatchlistOverlayFacade {
       this.maxHoldingsPerWatchlist !== null &&
       active.symbols.length >= this.maxHoldingsPerWatchlist
     ) {
-      this.toastService.error(`Each watchlist is limited to ${this.maxHoldingsPerWatchlist} items.`);
+      this.toastService.error(
+        `Each watchlist is limited to ${this.maxHoldingsPerWatchlist} items.`,
+      );
       return;
     }
 
@@ -468,7 +470,7 @@ export class DashboardWatchlistOverlayFacade {
 
     if (!WATCHLIST_NAME_PATTERN.test(trimmedName)) {
       this.toastService.error(
-        "Watchlist name can contain letters, numbers, spaces, apostrophes, and hyphens.",
+        'Watchlist name can contain letters, numbers, spaces, apostrophes, and hyphens.',
       );
       return null;
     }

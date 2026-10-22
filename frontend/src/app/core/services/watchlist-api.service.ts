@@ -24,7 +24,10 @@ export class WatchlistApiService {
     );
   }
 
-  createWatchlist(portfolioId: string, request: CreateWatchlistRequest): Promise<WatchlistResponse> {
+  createWatchlist(
+    portfolioId: string,
+    request: CreateWatchlistRequest,
+  ): Promise<WatchlistResponse> {
     return firstValueFrom(
       this.httpClient.post<WatchlistResponse>(
         `${environment.apiUrl}/api/portfolios/${portfolioId}/watchlists`,

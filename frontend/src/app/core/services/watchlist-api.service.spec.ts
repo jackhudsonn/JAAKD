@@ -58,7 +58,9 @@ describe('WatchlistApiService', () => {
   });
 
   it('updateWatchlist sends PUT /api/portfolios/{portfolioId}/watchlists/{watchlistId}', async () => {
-    const promise = service.updateWatchlist('portfolio-1', 'watchlist-1', { watchlistName: 'Core' });
+    const promise = service.updateWatchlist('portfolio-1', 'watchlist-1', {
+      watchlistName: 'Core',
+    });
 
     const req = httpTestingController.expectOne(
       `${environment.apiUrl}/api/portfolios/portfolio-1/watchlists/watchlist-1`,

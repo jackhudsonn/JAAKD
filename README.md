@@ -2,6 +2,9 @@
 
 Direct-to-consumer trading platform workspace.
 
+This README focuses on getting the application running locally for development and testing.
+For CI/CD pipeline setup (development and production), see `docs/JENKINS.md`.
+
 ## Run locally
 
 The whole application runs in Docker: the frontend dev server, backend, database, and Kafka.
