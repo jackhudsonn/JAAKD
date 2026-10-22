@@ -28,8 +28,8 @@ const EQUITY_INSTRUMENT: InstrumentResponse = {
   description: null,
 };
 
-const STOCK_INSTRUMENT: InstrumentResponse = {
-  instrumentId: 'inst-stock',
+const SECOND_EQUITY_INSTRUMENT: InstrumentResponse = {
+  instrumentId: 'inst-equity-2',
   ticker: 'MSFT',
   market: 'NASDAQ',
   name: 'Microsoft Corp.',
@@ -38,11 +38,11 @@ const STOCK_INSTRUMENT: InstrumentResponse = {
   description: null,
 };
 
-const BOND_INSTRUMENT: InstrumentResponse = {
-  instrumentId: 'inst-bond',
+const ETF_INSTRUMENT: InstrumentResponse = {
+  instrumentId: 'inst-etf',
   ticker: 'BND',
   market: 'NASDAQ',
-  name: 'Vanguard Bond ETF',
+  name: 'Vanguard Aggregate ETF',
   instrumentClass: 'ETF',
   logoUrl: null,
   description: null,
@@ -422,7 +422,7 @@ describe('dashboard-backend.mappers', () => {
               {
                 listItemId: 'item-1',
                 watchlistId: 'watchlist-1',
-                instrumentId: STOCK_INSTRUMENT.instrumentId,
+                instrumentId: SECOND_EQUITY_INSTRUMENT.instrumentId,
               },
               {
                 listItemId: 'item-2',
@@ -442,7 +442,7 @@ describe('dashboard-backend.mappers', () => {
             items: [],
           },
         ],
-        [EQUITY_INSTRUMENT, STOCK_INSTRUMENT],
+        [EQUITY_INSTRUMENT, SECOND_EQUITY_INSTRUMENT],
       );
 
       expect(result).toEqual([
@@ -479,21 +479,21 @@ describe('dashboard-backend.mappers', () => {
         }),
         createOrderLog({
           orderId: 'price-msft-quoted',
-          instrumentId: STOCK_INSTRUMENT.instrumentId,
+          instrumentId: SECOND_EQUITY_INSTRUMENT.instrumentId,
           timestamp: '2026-01-01T10:00:00.000Z',
           executionPrice: 0,
           quotedPrice: 210,
         }),
         createOrderLog({
           orderId: 'price-msft-quoted-newer',
-          instrumentId: STOCK_INSTRUMENT.instrumentId,
+          instrumentId: SECOND_EQUITY_INSTRUMENT.instrumentId,
           timestamp: '2026-01-01T11:00:00.000Z',
           executionPrice: 0,
           quotedPrice: 220,
         }),
         createOrderLog({
           orderId: 'price-bnd-invalid',
-          instrumentId: BOND_INSTRUMENT.instrumentId,
+          instrumentId: ETF_INSTRUMENT.instrumentId,
           timestamp: '2026-01-01T12:00:00.000Z',
           executionPrice: 0,
           quotedPrice: 0,
@@ -502,8 +502,8 @@ describe('dashboard-backend.mappers', () => {
 
       const result = toLatestPriceBySymbol(orderLogs, [
         EQUITY_INSTRUMENT,
-        STOCK_INSTRUMENT,
-        BOND_INSTRUMENT,
+        SECOND_EQUITY_INSTRUMENT,
+        ETF_INSTRUMENT,
       ]);
 
       expect(result.get('AAPL')).toBe(100);

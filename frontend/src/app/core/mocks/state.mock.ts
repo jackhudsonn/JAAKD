@@ -37,6 +37,7 @@ export const MOCK_RETURNS = {
 
 export const MOCK_STATE = {
   accountCash: signal<number>(MOCK_ACCOUNT_CASH),
+  cashBalances: signal<Record<string, number>>({ USD: MOCK_ACCOUNT_CASH }),
   holdings: signal<Holding[]>([...MOCK_HOLDINGS]),
   orders: signal<Order[]>([...TRADE_MOCK_OPEN_ORDERS, ...TRADE_MOCK_ORDER_HISTORY]),
   watchlists: signal<SharedWatchlist[]>([...MOCK_WATCHLISTS]),

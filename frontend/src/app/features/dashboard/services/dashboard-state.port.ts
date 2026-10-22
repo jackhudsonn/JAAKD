@@ -12,6 +12,7 @@ export interface DashboardWatchlistInstrumentOption {
 
 export interface DashboardStatePort {
   readonly accountCash: WritableSignal<number>;
+  readonly cashBalances?: WritableSignal<Record<string, number>>;
   readonly holdings: WritableSignal<Holding[]>;
   readonly orders: WritableSignal<Order[]>;
   readonly transactions: WritableSignal<Transaction[]>;
@@ -35,6 +36,7 @@ export const DASHBOARD_STATE_PORT = new InjectionToken<DashboardStatePort>('DASH
   providedIn: 'root',
   factory: () => ({
     accountCash: MOCK_STATE.accountCash,
+    cashBalances: MOCK_STATE.cashBalances,
     holdings: MOCK_STATE.holdings,
     orders: MOCK_STATE.orders,
     transactions: MOCK_STATE.transactions,

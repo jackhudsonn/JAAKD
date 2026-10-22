@@ -4,7 +4,6 @@ import {
   CASH_CURRENCIES,
   CashConversionResponse,
   CashCurrency,
-  HoldingResponse,
   InstrumentResponse,
   OrderLogResponse,
 } from '@core/models/api.models';
@@ -13,7 +12,7 @@ import { HoldingApiService } from '@core/services/holding-api.service';
 import { InstrumentApiService } from '@core/services/instrument-api.service';
 import { OrderLogApiService } from '@core/services/order-log-api.service';
 import { PortfolioApiService } from '@core/services/portfolio-api.service';
-import { toTransactions } from '@features/dashboard/services/dashboard-backend.mappers';
+import { toCashBalances, toTransactions } from '@features/dashboard/services/dashboard-backend.mappers';
 import { TransactStatePort } from './transact-state.port';
 
 export type TransactLoadState = 'loading' | 'ready' | 'error';
@@ -145,29 +144,8 @@ export class BackendTransactStateService implements TransactStatePort {
     this.portfolioId.set(portfolio.portfolioId);
     this.instrumentsData.set(instruments);
     this.orderLogsData.set(orderLogs);
-    this.cashBalances.set(this.toCashBalances(holdings, instruments));
+    this.cashBalances.set(toCashBalances(holdings, instruments));
     this.transactions.set(toTransactions(orderLogs, instruments));
-  }
-
-  private toCashBalances(
-    holdings: HoldingResponse[],
-    instruments: InstrumentResponse[],
-  ): Record<string, number> {
-    const cashTickerById = new Map(
-      instruments
-        .filter((instrument) => instrument.instrumentClass === 'CASH')
-        .map((instrument) => [instrument.instrumentId, instrument.ticker]),
-    );
-    const balances: Record<string, number> = {};
-
-    for (const holding of holdings) {
-      const ticker = cashTickerById.get(holding.instrumentID);
-      if (ticker) {
-        balances[ticker] = holding.currentQuantity;
-      }
-    }
-
-    return balances;
   }
 
   private resolveFailureReason(orderId: string, side: 'DEPOSIT' | 'WITHDRAW'): string {

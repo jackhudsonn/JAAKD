@@ -5,30 +5,45 @@ import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.
 import { PieChartComponent, PieChartSlice } from '@shared/components/pie-chart/pie-chart.component';
 import { DASHBOARD_MARKET_DATA_PORT } from '@features/dashboard/services/dashboard-market-data.port';
 import { DASHBOARD_STATE_PORT } from '@features/dashboard/services/dashboard-state.port';
+import { CashCurrency, CASH_CURRENCIES } from '@core/models/api.models';
+import {
+  convertAmountBetweenCurrencies,
+} from '@core/constants/cash-exchange-rates.constants';
+import { deterministicColorFromBase } from '@features/dashboard/utils/allocation-colors.util';
 
-// TODO: confirm that these are the correct categories
-type AllocationCategory = 'Cash' | 'Stocks' | 'Crypto' | 'Bonds';
+type AllocationCategory = 'CASH' | 'EQUITY' | 'ETF' | 'CRYPTO';
 
 const CATEGORY_COLORS: Record<AllocationCategory, string> = {
-  Cash: '#c6c9c7',
-  Stocks: '#ff8c00',
-  Crypto: '#4fc46a',
-  Bonds: '#5da9ff',
+  CASH: '#2ECC71',
+  EQUITY: '#3498DB',
+  ETF: '#9B59B6',
+  CRYPTO: '#E67E22',
 };
 
-const CATEGORY_BY_INSTRUMENT = {
-  stock: 'Stocks',
-  crypto: 'Crypto',
-  bond: 'Bonds',
+const CATEGORY_BY_INSTRUMENT_CLASS = {
+  EQUITY: 'EQUITY',
+  ETF: 'ETF',
+  CRYPTO: 'CRYPTO',
 } as const;
 
-const ASSET_COLOR_PALETTE = ['#ff8c00', '#ffa31a', '#d97700', '#4fc46a', '#7fd68f', '#2f8f45'];
+const CATEGORY_BY_INSTRUMENT_TYPE = {
+  equity: 'EQUITY',
+  etf: 'ETF',
+  crypto: 'CRYPTO',
+} as const;
+const CURRENCY_SYMBOLS: Record<CashCurrency, string> = {
+  USD: '$',
+  EUR: '€',
+  GBP: '£',
+  INR: '₹',
+};
 
 export interface AllocationAssetSelection {
   symbol: string;
   price: number;
   estimatedUnits: number;
   value: number;
+  currency: CashCurrency;
 }
 
 interface UnavailablePriceHolding {
@@ -48,9 +63,12 @@ export class AllocationByAssetWidgetComponent {
   private readonly state = inject(DASHBOARD_STATE_PORT);
 
   private readonly accountCash = this.state.accountCash;
+  private readonly cashBalances = this.state.cashBalances;
   private readonly holdings = this.state.holdings;
 
   assetSelected = output<AllocationAssetSelection>();
+  readonly displayCurrencies = CASH_CURRENCIES;
+  readonly displayCurrency = signal<CashCurrency>('USD');
 
   // null == showing the top-level "by type" view.
   selectedCategory = signal<AllocationCategory | null>(null);
@@ -60,25 +78,42 @@ export class AllocationByAssetWidgetComponent {
   title = computed(() =>
     this.selectedCategory() ? `${this.selectedCategory()}` : 'Allocation by Asset',
   );
+  readonly tooltipValuePrefix = computed(() => CURRENCY_SYMBOLS[this.displayCurrency()]);
 
   private readonly breakdowns = computed<Record<AllocationCategory, PieChartSlice[]>>(() => {
     const byCategory: Record<AllocationCategory, PieChartSlice[]> = {
-      Cash: [
-        {
-          label: 'USD',
-          value: this.accountCash(),
-          color: CATEGORY_COLORS.Cash,
-        },
-      ],
-      Stocks: [],
-      Crypto: [],
-      Bonds: [],
+      CASH: [],
+      EQUITY: [],
+      ETF: [],
+      CRYPTO: [],
     };
+
+    const balances = this.cashBalances?.() ?? { USD: this.accountCash() };
+    for (const [currency, amount] of Object.entries(balances)) {
+      if (Math.abs(amount) <= Number.EPSILON) {
+        continue;
+      }
+      const cashCurrency = CASH_CURRENCIES.find((entry) => entry === currency);
+      if (!cashCurrency) {
+        continue;
+      }
+
+      byCategory.CASH.push({
+        label: cashCurrency,
+        value: convertAmountBetweenCurrencies(amount, cashCurrency, 'USD'),
+        color: deterministicColorFromBase(CATEGORY_COLORS.CASH, cashCurrency),
+      });
+    }
 
     const bySymbol = new Map<string, { category: AllocationCategory; value: number }>();
 
     for (const holding of this.holdings()) {
-      const category = CATEGORY_BY_INSTRUMENT[holding.instrumentType];
+      const category =
+        (holding.instrumentClass && CATEGORY_BY_INSTRUMENT_CLASS[holding.instrumentClass]) ||
+        CATEGORY_BY_INSTRUMENT_TYPE[holding.instrumentType];
+      if (!category) {
+        continue;
+      }
       const value =
         holding.quantity * (holding.indicativePrice ?? this.marketData.getPrice(holding.symbol));
       const existing = bySymbol.get(holding.symbol);
@@ -89,18 +124,20 @@ export class AllocationByAssetWidgetComponent {
       });
     }
 
-    let colorIndex = 0;
     for (const [symbol, entry] of bySymbol.entries()) {
       byCategory[entry.category].push({
         label: symbol,
         value: entry.value,
-        color: ASSET_COLOR_PALETTE[colorIndex % ASSET_COLOR_PALETTE.length],
+        color: deterministicColorFromBase(CATEGORY_COLORS[entry.category], symbol),
       });
-      colorIndex += 1;
     }
 
     return byCategory;
   });
+
+  private convertDisplayAmount(usdAmount: number) {
+    return convertAmountBetweenCurrencies(usdAmount, 'USD', this.displayCurrency());
+  }
 
   private readonly topLevelSlices = computed<PieChartSlice[]>(() => {
     const breakdowns = this.breakdowns();
@@ -118,11 +155,11 @@ export class AllocationByAssetWidgetComponent {
 
   slices = computed<PieChartSlice[]>(() => {
     const category = this.selectedCategory();
-    if (!category) {
-      return this.topLevelSlices();
-    }
-
-    return this.breakdowns()[category];
+    const sourceSlices = !category ? this.topLevelSlices() : this.breakdowns()[category];
+    return sourceSlices.map((slice) => ({
+      ...slice,
+      value: this.convertDisplayAmount(slice.value),
+    }));
   });
 
   unavailablePriceHoldings = computed<UnavailablePriceHolding[]>(() => {
@@ -130,8 +167,10 @@ export class AllocationByAssetWidgetComponent {
     const rows: UnavailablePriceHolding[] = [];
 
     for (const holding of this.holdings()) {
-      const matchesCategory =
-        !category || CATEGORY_BY_INSTRUMENT[holding.instrumentType] === category;
+      const holdingCategory =
+        (holding.instrumentClass && CATEGORY_BY_INSTRUMENT_CLASS[holding.instrumentClass]) ||
+        CATEGORY_BY_INSTRUMENT_TYPE[holding.instrumentType];
+      const matchesCategory = !category || holdingCategory === category;
       if (!matchesCategory || holding.priceStatus !== 'price unavailable') {
         continue;
       }
@@ -151,31 +190,48 @@ export class AllocationByAssetWidgetComponent {
 
     if (!category) {
       if (
-        slice.label === 'Cash' ||
-        slice.label === 'Stocks' ||
-        slice.label === 'Crypto' ||
-        slice.label === 'Bonds'
+        slice.label === 'CASH' ||
+        slice.label === 'EQUITY' ||
+        slice.label === 'ETF' ||
+        slice.label === 'CRYPTO'
       ) {
         this.selectedCategory.set(slice.label);
       }
       return;
     }
 
-    if (category === 'Cash') {
+    if (category === 'CASH') {
       void this.router.navigate(['/transact']);
       return;
     }
-    const holding = this.holdings().find((entry) => entry.symbol === slice.label);
-    const price = holding?.indicativePrice ?? this.marketData.getPrice(slice.label);
+    const matchingHoldings = this.holdings().filter((entry) => entry.symbol === slice.label);
+    const representativeHolding = matchingHoldings[0];
+    const price = representativeHolding?.indicativePrice ?? this.marketData.getPrice(slice.label);
+    const estimatedUnits = matchingHoldings.reduce((sum, entry) => sum + entry.quantity, 0);
+    const valueInUsd = matchingHoldings.reduce(
+      (sum, entry) =>
+        sum + entry.quantity * (entry.indicativePrice ?? this.marketData.getPrice(entry.symbol)),
+      0,
+    );
+    const displayCurrency = this.displayCurrency();
+
     this.assetSelected.emit({
       symbol: slice.label,
-      price,
-      estimatedUnits: price > 0 ? slice.value / price : 0,
-      value: slice.value,
+      price: convertAmountBetweenCurrencies(price, 'USD', displayCurrency),
+      estimatedUnits,
+      value: convertAmountBetweenCurrencies(valueInUsd, 'USD', displayCurrency),
+      currency: displayCurrency,
     });
   }
 
   goBack() {
     this.selectedCategory.set(null);
+  }
+
+  toggleDisplayCurrency() {
+    const currentIndex = this.displayCurrencies.indexOf(this.displayCurrency());
+    const nextCurrency =
+      this.displayCurrencies[(currentIndex + 1) % this.displayCurrencies.length] ?? 'USD';
+    this.displayCurrency.set(nextCurrency);
   }
 }

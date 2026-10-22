@@ -1953,7 +1953,7 @@ components:
     # ---- enums
     InstrumentClass:
       type: string
-      enum: [ETF, EQUITY, STOCK, BOND, CASH, CRYPTO]
+      enum: [ETF, EQUITY, CASH, CRYPTO]
     OrderSide:
       type: string
       enum: [BUY, SELL, DEPOSIT, WITHDRAW]

@@ -3,9 +3,24 @@
     <div widget-actions>
       <button type="button" class="btn btn-secondary btn-back" (click)="goBack()">← Back</button>
     </div>
+  } @else {
+    <div widget-actions>
+      <button
+        type="button"
+        class="btn btn-secondary currency-toggle"
+        (click)="toggleDisplayCurrency()"
+        aria-label="Toggle allocation display currency"
+      >
+        {{ displayCurrency() }}
+      </button>
+    </div>
   }
 
-  <app-pie-chart [slices]="slices()" (sliceClick)="onSliceClick($event)" />
+  <app-pie-chart
+    [slices]="slices()"
+    [tooltipValuePrefix]="tooltipValuePrefix()"
+    (sliceClick)="onSliceClick($event)"
+  />
 
   @if (unavailablePriceHoldings().length > 0) {
     <div class="unavailable-prices">
@@ -18,7 +33,9 @@
   }
 
   @if (!selectedCategory()) {
-    <p class="drilldown-hint">Click a slice to see its breakdown.</p>
+    <p class="drilldown-hint">
+      Click a slice to see its breakdown. Currency toggle: {{ displayCurrency() }}.
+    </p>
   } @else {
     <p class="drilldown-hint">Click an asset slice for details, or cash to open Transact.</p>
   }

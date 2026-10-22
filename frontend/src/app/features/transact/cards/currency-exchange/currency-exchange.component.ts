@@ -7,6 +7,10 @@ import { output } from '@angular/core';
 import { ExchangeRequest } from '@features/transact/services/transact-facade.service';
 import { CASH_CURRENCIES, CashCurrency } from '@core/models/api.models';
 import { ConfirmActionsComponent } from '../../components/confirm-actions/confirm-actions.component';
+import {
+  CASH_RATES_BY_USD,
+  convertAmountBetweenCurrencies,
+} from '@core/constants/cash-exchange-rates.constants';
 
 @Component({
   selector: 'app-currency-exchange',
@@ -17,14 +21,7 @@ import { ConfirmActionsComponent } from '../../components/confirm-actions/confir
 })
 export class CurrencyExchangeComponent {
   currencies = input<readonly CashCurrency[]>(CASH_CURRENCIES);
-
-  // Mock conversion rates relative to one USD.
-  private readonly ratesByUsd: Record<CashCurrency, number> = {
-    USD: 1,
-    EUR: 0.92,
-    GBP: 0.79,
-    INR: 83.2,
-  };
+  private readonly ratesByUsd = CASH_RATES_BY_USD;
 
   amount = signal<number | null>(0.0);
   fromCurrency = signal<CashCurrency>('USD');
@@ -46,11 +43,7 @@ export class CurrencyExchangeComponent {
       return 0;
     }
 
-    const fromRate = this.ratesByUsd[this.fromCurrency()];
-    const toRate = this.ratesByUsd[this.toCurrency()];
-
-    const amountInUsd = value / fromRate;
-    return amountInUsd * toRate;
+    return convertAmountBetweenCurrencies(value, this.fromCurrency(), this.toCurrency());
   });
 
   quoteRate = computed(() => {

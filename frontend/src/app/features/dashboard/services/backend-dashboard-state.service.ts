@@ -11,6 +11,7 @@ import { DashboardPreferencesSyncService } from './dashboard-preferences-sync.se
 import { DashboardStatePort, DashboardWatchlistInstrumentOption } from './dashboard-state.port';
 import {
   toCash,
+  toCashBalances,
   toHoldings,
   toOpenOrders,
   toInstrumentType,
@@ -28,6 +29,7 @@ export type DashboardLoadState = 'loading' | 'ready' | 'error';
 })
 export class BackendDashboardStateService implements DashboardStatePort {
   readonly accountCash = signal(0);
+  readonly cashBalances = signal<Record<string, number>>({});
   readonly holdings = signal<Holding[]>([]);
   readonly orders = signal<Order[]>([]);
 
@@ -56,6 +58,7 @@ export class BackendDashboardStateService implements DashboardStatePort {
   async load(): Promise<void> {
     this.loadState.set('loading');
     this.accountCash.set(0);
+    this.cashBalances.set({});
     this.holdings.set([]);
     this.orders.set([]);
     this.transactions.set([]);
@@ -93,6 +96,7 @@ export class BackendDashboardStateService implements DashboardStatePort {
       }
 
       this.accountCash.set(toCash(holdings, instruments));
+      this.cashBalances.set(toCashBalances(holdings, instruments));
       this.holdings.set(toHoldings(holdings, instruments, orderLogs, toPriceResolver(quotePrices)));
       this.orders.set(toOpenOrders(orderLogs, instruments));
       this.transactions.set(toTransactions(orderLogs, instruments));
@@ -126,6 +130,7 @@ export class BackendDashboardStateService implements DashboardStatePort {
       this.loadState.set('ready');
     } catch {
       this.accountCash.set(0);
+      this.cashBalances.set({});
       this.holdings.set([]);
       this.orders.set([]);
       this.transactions.set([]);

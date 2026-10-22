@@ -1,6 +1,6 @@
 # Prototypes
 
-This folder contains independent, work‑in‑progress experiments from each team member. These prototypes are isolated from the main application so you can explore ideas, test approaches, and validate concepts without the complexity of the full platform. For example, three separate implementations of a live‑updating stock plot can help the team compare approaches before choosing one to integrate. Similarly, someone might prototype calling a stock API to fetch ticker info, to check data quality and response times before building it into the app.
+This folder contains independent, work‑in‑progress experiments from each team member. These prototypes are isolated from the main application so you can explore ideas, test approaches, and validate concepts without the complexity of the full platform. For example, three separate implementations of a live‑updating equity plot can help the team compare approaches before choosing one to integrate. Similarly, someone might prototype calling an equities API to fetch ticker info, to check data quality and response times before building it into the app.
 
 ## Structure
 

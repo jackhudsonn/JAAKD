@@ -282,7 +282,7 @@ class InstrumentServiceTest {
         when(fauxnanceService.getSymbol("US10Y")).thenReturn(new FauxnanceSymbolResponse(
             "US10Y",
             "US Treasury",
-            "bond",
+            "fixed_income",
             "NYSE",
             "USD",
             "Treasury",

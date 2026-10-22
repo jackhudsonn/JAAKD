@@ -6,6 +6,16 @@
   font-size: var(--font-size-xs);
 }
 
+.currency-toggle {
+  min-height: 30px;
+  min-width: 52px;
+
+  padding: var(--space-xxs) var(--space-sm);
+
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+}
+
 .drilldown-hint {
   margin: var(--space-sm);
 

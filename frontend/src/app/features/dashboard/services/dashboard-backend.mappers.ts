@@ -8,7 +8,7 @@ import {
   QuoteResponse,
   WatchlistResponse,
 } from '@core/models/api.models';
-import { Holding, InstrumentType, Order, Transaction } from '@core/models';
+import { Holding, HoldingInstrumentClass, InstrumentType, Order, Transaction } from '@core/models';
 import { SharedWatchlist } from '@core/mocks/watchlist.mock';
 
 const OPEN_STATUSES = new Set(['SUBMITTED', 'PENDING', 'ACCEPTED']);
@@ -85,10 +85,25 @@ const extractStatusReason = (metadata: string | null): string => {
 export const toInstrumentType = (instrumentClass: InstrumentClass): InstrumentType | null => {
   switch (instrumentClass) {
     case 'EQUITY':
+      return 'equity';
     case 'ETF':
-      return 'stock';
+      return 'etf';
     case 'CRYPTO':
       return 'crypto';
+    case 'FX':
+    case 'CASH':
+      return null;
+  }
+};
+
+const toHoldingInstrumentClass = (
+  instrumentClass: InstrumentClass,
+): HoldingInstrumentClass | null => {
+  switch (instrumentClass) {
+    case 'EQUITY':
+    case 'ETF':
+    case 'CRYPTO':
+      return instrumentClass;
     case 'FX':
     case 'CASH':
       return null;
@@ -106,6 +121,27 @@ export const toCash = (holdings: HoldingResponse[], instruments: InstrumentRespo
   }
 
   return 0;
+};
+
+export const toCashBalances = (
+  holdings: HoldingResponse[],
+  instruments: InstrumentResponse[],
+): Record<string, number> => {
+  const cashTickerById = new Map(
+    instruments
+      .filter((instrument) => instrument.instrumentClass === 'CASH')
+      .map((instrument) => [instrument.instrumentId, instrument.ticker]),
+  );
+  const balances: Record<string, number> = {};
+
+  for (const holding of holdings) {
+    const ticker = cashTickerById.get(holding.instrumentID);
+    if (ticker) {
+      balances[ticker] = holding.currentQuantity;
+    }
+  }
+
+  return balances;
 };
 
 export const toHoldings = (
@@ -132,6 +168,10 @@ export const toHoldings = (
     if (!instrumentType) {
       continue;
     }
+    const instrumentClass = toHoldingInstrumentClass(instrument.instrumentClass);
+    if (!instrumentClass) {
+      continue;
+    }
 
     const indicativePrice = holdingPriceResolver.isKnownSymbol(instrument.ticker)
       ? holdingPriceResolver.getPrice(instrument.ticker)
@@ -140,6 +180,7 @@ export const toHoldings = (
     mapped.push({
       symbol: instrument.ticker,
       instrumentType,
+      instrumentClass,
       quantity: holding.currentQuantity,
       indicativePrice,
       priceStatus: indicativePrice > 0 ? 'available' : 'price unavailable',

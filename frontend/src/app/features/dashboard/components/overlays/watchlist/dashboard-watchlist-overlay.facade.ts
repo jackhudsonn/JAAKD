@@ -30,8 +30,8 @@ export interface DashboardInstrumentOption {
 const INSTRUMENT_OPTIONS: DashboardInstrumentOption[] = [
   { id: 'all', label: 'All' },
   { id: 'crypto', label: 'Crypto' },
-  { id: 'stock', label: 'Stocks' },
-  { id: 'bond', label: 'Bonds' },
+  { id: 'equity', label: 'Equities' },
+  { id: 'etf', label: 'ETFs' },
 ];
 
 const WATCHLIST_NAME_PATTERN = /^[A-Za-z0-9' -]+$/;
