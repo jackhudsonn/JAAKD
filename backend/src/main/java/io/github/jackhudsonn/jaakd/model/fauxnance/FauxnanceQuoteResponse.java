@@ -10,6 +10,7 @@ public record FauxnanceQuoteResponse(
     Double ask,
     String currency,
     String asOf,
-    String marketState
+    String marketState,
+    Double changePercent
 ) {
 }

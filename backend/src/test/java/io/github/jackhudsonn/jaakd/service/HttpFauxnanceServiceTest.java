@@ -66,7 +66,8 @@ class HttpFauxnanceServiceTest {
                       "ask": 100.5,
                       "currency": "USD",
                       "asOf": "2026-10-08T10:00:00Z",
-                      "marketState": "open"
+                      "marketState": "open",
+                      "changePercent": 1.25
                     }
                   }
                 ]
@@ -83,6 +84,7 @@ class HttpFauxnanceServiceTest {
         assertEquals("AAPL", quotes.get(0).symbol());
         assertEquals("USD", quotes.get(0).currency());
         assertEquals("open", quotes.get(0).marketState());
+        assertEquals(1.25, quotes.get(0).changePercent());
 
         ArgumentCaptor<URI> uriCaptor = ArgumentCaptor.forClass(URI.class);
         verify(restTemplate).exchange(uriCaptor.capture(), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class));

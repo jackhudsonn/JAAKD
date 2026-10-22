@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { QuoteResponse } from '@core/models/api.models';
 import { HoldingApiService } from '@core/services/holding-api.service';
 import { InstrumentApiService } from '@core/services/instrument-api.service';
 import { OrderLogApiService } from '@core/services/order-log-api.service';
@@ -114,7 +115,7 @@ describe('BackendDashboardStateService', () => {
 
   const instrumentApiService = {
     list: vi.fn(async () => instruments),
-    getQuotes: vi.fn(async () => []),
+    getQuotes: vi.fn(async (): Promise<QuoteResponse[]> => []),
   };
 
   const orderLogApiService = {
@@ -163,6 +164,26 @@ describe('BackendDashboardStateService', () => {
     });
 
     service = TestBed.inject(BackendDashboardStateService);
+  });
+
+  it('exposes live quotes from the same quotes call used for holdings', async () => {
+    instrumentApiService.getQuotes.mockResolvedValueOnce([
+      {
+        symbol: 'AAPL',
+        price: 190,
+        bid: null,
+        ask: null,
+        currency: 'USD',
+        asOf: null,
+        marketState: null,
+        changePercent: -0.75,
+      },
+    ]);
+
+    await service.load();
+
+    expect(instrumentApiService.getQuotes).toHaveBeenCalledTimes(1);
+    expect(service.liveQuotes().get('AAPL')).toEqual({ price: 190, changePct: -0.75 });
   });
 
   it('loads backend dashboard cash, holdings, orders, transactions, and watchlist', async () => {

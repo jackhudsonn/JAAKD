@@ -526,6 +526,90 @@ paths:
         "500":
           $ref: "#/components/responses/ServerError"
 
+  /api/instruments/quotes:
+    get:
+      tags: [Instruments]
+      summary: Get live quotes for up to 25 tickers
+      description: >
+        Proxies Fauxnance `/quotes`. Symbols with no quote are left out of the
+        response. Supports BR-12 (price coverage) and BR-13 (indicative price).
+      operationId: getQuotesByTickers
+      parameters:
+        - name: symbols
+          in: query
+          required: true
+          description: Comma-separated tickers (max 25)
+          schema:
+            type: string
+          example: NVDA,BTC
+      responses:
+        "200":
+          description: One quote per symbol that Fauxnance priced
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/QuoteResponse"
+              example:
+                - symbol: NVDA
+                  price: 118.6
+                  bid: 118.55
+                  ask: 118.65
+                  currency: USD
+                  asOf: "2026-10-21T14:30:00Z"
+                  marketState: open
+                  changePercent: 1.84
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "502":
+          description: Fauxnance could not be reached or returned an error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/instruments/quotes/{ticker}:
+    get:
+      tags: [Instruments]
+      summary: Get the live quote for one ticker
+      description: Proxies Fauxnance `/quotes` for a single symbol.
+      operationId: getQuoteByTicker
+      parameters:
+        - $ref: "#/components/parameters/Ticker"
+      responses:
+        "200":
+          description: The quote
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuoteResponse"
+              example:
+                symbol: NVDA
+                price: 118.6
+                bid: 118.55
+                ask: 118.65
+                currency: USD
+                asOf: "2026-10-21T14:30:00Z"
+                marketState: open
+                changePercent: 1.84
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "502":
+          description: Fauxnance could not be reached or returned an error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
   /api/instruments/prices:
     get:
       tags: [Instruments]
@@ -2156,6 +2240,31 @@ components:
         quotedAt:
           type: string
           format: date-time
+    QuoteResponse:
+      type: object
+      properties:
+        symbol:
+          type: string
+        price:
+          type: [number, "null"]
+          format: double
+        bid:
+          type: [number, "null"]
+          format: double
+        ask:
+          type: [number, "null"]
+          format: double
+        currency:
+          type: [string, "null"]
+        asOf:
+          type: [string, "null"]
+          format: date-time
+        marketState:
+          type: [string, "null"]
+        changePercent:
+          type: [number, "null"]
+          format: double
+          description: Change since previous close, in percentage points (1.84 means +1.84%)
 
     AuditUserSearchResponse:
       type: object

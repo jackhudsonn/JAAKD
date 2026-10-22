@@ -212,6 +212,10 @@ ON CONFLICT (ticker) DO UPDATE
 SET name = EXCLUDED.name, "logoUrl" = EXCLUDED."logoUrl", description = EXCLUDED.description;
 ```
 
+**getQuotesByTickers** (`GET /api/instruments/quotes?symbols=`): live quotes for up to 25 tickers, including `changePercent`. No SQL: the backend calls Fauxnance `/quotes`.
+
+**getQuoteByTicker** (`GET /api/instruments/quotes/{ticker}`): live quote for one ticker. No SQL: the backend calls Fauxnance `/quotes`.
+
 ## Portfolios
 
 **getCurrentUserPortfolios** (`GET /api/portfolios`): the user's portfolios.

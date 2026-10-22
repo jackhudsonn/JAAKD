@@ -2,6 +2,7 @@ import { Injectable, signal } from '@angular/core';
 import { MOCK_RETURNS, MockOrder } from '@core/mocks/state.mock';
 import { SharedWatchlist, WATCHLIST_CONSTRAINTS } from '@core/mocks/watchlist.mock';
 import { Holding, Order, Transaction } from '@core/models';
+import { QuoteResponse } from '@core/models/api.models';
 import { HoldingApiService } from '@core/services/holding-api.service';
 import { InstrumentApiService } from '@core/services/instrument-api.service';
 import { OrderLogApiService } from '@core/services/order-log-api.service';
@@ -10,8 +11,10 @@ import { WatchlistApiService } from '@core/services/watchlist-api.service';
 import { DashboardPreferencesSyncService } from './dashboard-preferences-sync.service';
 import { DashboardStatePort, DashboardWatchlistInstrumentOption } from './dashboard-state.port';
 import {
+  LiveQuote,
   toCash,
   toHoldings,
+  toLiveQuoteBySymbol,
   toOpenOrders,
   toInstrumentType,
   toPriceResolver,
@@ -37,6 +40,7 @@ export class BackendDashboardStateService implements DashboardStatePort {
   readonly dashboardOpenOrders = signal<MockOrder[]>([]);
   readonly backendWatchlistInstrumentOptions = signal<DashboardWatchlistInstrumentOption[]>([]);
   readonly dashboardWidgets = signal<readonly string[] | null>(null);
+  readonly liveQuotes = signal<ReadonlyMap<string, LiveQuote>>(new Map());
   readonly returns = { ...MOCK_RETURNS, allTime: 0, daily: 0 };
   readonly watchlistConstraints = WATCHLIST_CONSTRAINTS;
   readonly backendDataMode = true;
@@ -64,6 +68,7 @@ export class BackendDashboardStateService implements DashboardStatePort {
     this.dashboardOpenOrders.set([]);
     this.backendWatchlistInstrumentOptions.set([]);
     this.dashboardWidgets.set(null);
+    this.liveQuotes.set(new Map());
     this.portfolioId.set(null);
 
     try {
@@ -83,14 +88,14 @@ export class BackendDashboardStateService implements DashboardStatePort {
         this.watchlistApiService.list(portfolio.portfolioId),
       ]);
 
-      let quotePrices = new Map<string, number>();
+      let quotes: QuoteResponse[] = [];
       try {
-        quotePrices = toQuotePriceBySymbol(
-          await this.instrumentApiService.getQuotes(toQuoteSymbols(instruments)),
-        );
+        quotes = await this.instrumentApiService.getQuotes(toQuoteSymbols(instruments));
       } catch (error) {
         console.error('BackendDashboardStateService quotes failed', error);
       }
+      const quotePrices = toQuotePriceBySymbol(quotes);
+      this.liveQuotes.set(toLiveQuoteBySymbol(quotes));
 
       this.accountCash.set(toCash(holdings, instruments));
       this.holdings.set(toHoldings(holdings, instruments, orderLogs, toPriceResolver(quotePrices)));
@@ -134,6 +139,7 @@ export class BackendDashboardStateService implements DashboardStatePort {
       this.dashboardOpenOrders.set([]);
       this.backendWatchlistInstrumentOptions.set([]);
       this.dashboardWidgets.set(null);
+      this.liveQuotes.set(new Map());
       this.portfolioId.set(null);
       this.loadState.set('error');
     }
