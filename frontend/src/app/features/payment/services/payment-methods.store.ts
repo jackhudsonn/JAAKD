@@ -66,7 +66,9 @@ export class PaymentMethodsStore {
         console.error('PaymentMethodsStore.load failed', error);
         this.methodState.set([]);
         this.loadStateSignal.set('error');
-        this.loadErrorSignal.set(this.extractErrorMessage(error, 'Unable to load payment methods.'));
+        this.loadErrorSignal.set(
+          this.extractErrorMessage(error, 'Unable to load payment methods.'),
+        );
       }
     })().finally(() => {
       this.loadInFlight = null;

@@ -51,7 +51,10 @@ export class AddMethodCardComponent {
       return;
     }
 
-    if (routingDigits.length !== this.bankRoutingNumber.length || routingDigits.length !== ROUTING_NUMBER_LENGTH) {
+    if (
+      routingDigits.length !== this.bankRoutingNumber.length ||
+      routingDigits.length !== ROUTING_NUMBER_LENGTH
+    ) {
       this.toastService.error(`Routing number must be exactly ${ROUTING_NUMBER_LENGTH} digits.`);
       return;
     }

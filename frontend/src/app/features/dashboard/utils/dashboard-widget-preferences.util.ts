@@ -22,6 +22,10 @@ export function sanitizeDashboardWidgetIds(
     normalized.push(candidate);
   }
 
+  if (normalized.length === 0) {
+    return [...defaultOrder];
+  }
+
   for (const fallback of defaultOrder) {
     if (normalized.length >= minCount) {
       break;
@@ -31,10 +35,6 @@ export function sanitizeDashboardWidgetIds(
       seen.add(fallback);
       normalized.push(fallback);
     }
-  }
-
-  if (normalized.length === 0) {
-    return [...defaultOrder];
   }
 
   return normalized;

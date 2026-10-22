@@ -1,10 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-import {
-  CreatePaymentMethodRequest,
-  PaymentMethodResponse,
-} from '@core/models/api.models';
+import { CreatePaymentMethodRequest, PaymentMethodResponse } from '@core/models/api.models';
 import { environment } from '@environments/environment.local';
 
 @Injectable({

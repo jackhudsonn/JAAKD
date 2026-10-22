@@ -10,10 +10,7 @@ import {
   AuditPaging,
 } from '@core/services/audit-api.service';
 import { InstrumentApiService } from '@core/services/instrument-api.service';
-import {
-  InstrumentResponse,
-  PortfolioResponse,
-} from '@core/models/api.models';
+import { InstrumentResponse, PortfolioResponse } from '@core/models/api.models';
 
 function page<T>(content: T[]): AuditPageResponse<T> {
   return {
@@ -33,27 +30,35 @@ describe('AuditorComponent', () => {
     searchUsers: vi.fn<(query?: string, paging?: AuditPaging) => Promise<AuditPageResponse<any>>>(
       async () => page([]),
     ),
-    searchOrderLogs: vi.fn<(request: AuditOrderLogSearchRequest) => Promise<AuditPageResponse<AuditOrderLogResponse>>>(
-      async () => page([]),
-    ),
-    listUserPortfolios: vi.fn<(userId: string, paging?: AuditPaging) => Promise<AuditPageResponse<PortfolioResponse>>>(
-      async () => page([]),
-    ),
-    listHoldings: vi.fn<(options?: AuditPaging & { userId?: string; portfolioId?: string; instrumentId?: string }) => Promise<AuditPageResponse<AuditHoldingResponse>>>(
-      async () => page([]),
-    ),
-    listUserHoldings: vi.fn<(userId: string, options?: AuditPaging & { portfolioId?: string; instrumentId?: string }) => Promise<AuditPageResponse<AuditHoldingResponse>>>(
-      async () => page([]),
-    ),
-    listHoldingOrderLogs: vi.fn<(holdingId: string, options?: AuditPaging & { fromDate?: string; toDate?: string }) => Promise<AuditPageResponse<AuditOrderLogResponse>>>(
-      async () => page([]),
-    ),
-    listHoldingPositionLots: vi.fn<(holdingId: string, paging?: AuditPaging) => Promise<AuditPageResponse<any>>>(
-      async () => page([]),
-    ),
-    listHoldingLotMatches: vi.fn<(holdingId: string, paging?: AuditPaging) => Promise<AuditPageResponse<any>>>(
-      async () => page([]),
-    ),
+    searchOrderLogs: vi.fn<
+      (request: AuditOrderLogSearchRequest) => Promise<AuditPageResponse<AuditOrderLogResponse>>
+    >(async () => page([])),
+    listUserPortfolios: vi.fn<
+      (userId: string, paging?: AuditPaging) => Promise<AuditPageResponse<PortfolioResponse>>
+    >(async () => page([])),
+    listHoldings: vi.fn<
+      (
+        options?: AuditPaging & { userId?: string; portfolioId?: string; instrumentId?: string },
+      ) => Promise<AuditPageResponse<AuditHoldingResponse>>
+    >(async () => page([])),
+    listUserHoldings: vi.fn<
+      (
+        userId: string,
+        options?: AuditPaging & { portfolioId?: string; instrumentId?: string },
+      ) => Promise<AuditPageResponse<AuditHoldingResponse>>
+    >(async () => page([])),
+    listHoldingOrderLogs: vi.fn<
+      (
+        holdingId: string,
+        options?: AuditPaging & { fromDate?: string; toDate?: string },
+      ) => Promise<AuditPageResponse<AuditOrderLogResponse>>
+    >(async () => page([])),
+    listHoldingPositionLots: vi.fn<
+      (holdingId: string, paging?: AuditPaging) => Promise<AuditPageResponse<any>>
+    >(async () => page([])),
+    listHoldingLotMatches: vi.fn<
+      (holdingId: string, paging?: AuditPaging) => Promise<AuditPageResponse<any>>
+    >(async () => page([])),
   };
 
   const instrumentApiService = {
@@ -78,7 +83,9 @@ describe('AuditorComponent', () => {
   });
 
   it('loads users and summaries during initialization', async () => {
-    auditApiService.searchUsers.mockResolvedValueOnce(page([{ userId: 'u1', email: 'a@b.com', username: null, firstName: null, lastName: null }]));
+    auditApiService.searchUsers.mockResolvedValueOnce(
+      page([{ userId: 'u1', email: 'a@b.com', username: null, firstName: null, lastName: null }]),
+    );
     auditApiService.searchOrderLogs.mockResolvedValueOnce(page([]));
     auditApiService.listHoldings.mockResolvedValueOnce(page([]));
 
@@ -92,7 +99,13 @@ describe('AuditorComponent', () => {
 
   it('applies unified filters and uses user-scoped holdings when user is selected', async () => {
     component.users.set([
-      { userId: 'user-1', email: 'auditor@example.com', username: null, firstName: 'Audit', lastName: 'User' },
+      {
+        userId: 'user-1',
+        email: 'auditor@example.com',
+        username: null,
+        firstName: 'Audit',
+        lastName: 'User',
+      },
     ]);
     component.instruments.set([
       {
@@ -106,7 +119,9 @@ describe('AuditorComponent', () => {
       },
     ]);
 
-    auditApiService.listUserPortfolios.mockResolvedValueOnce(page([{ portfolioId: 'portfolio-1', portfolioName: 'Main' }]));
+    auditApiService.listUserPortfolios.mockResolvedValueOnce(
+      page([{ portfolioId: 'portfolio-1', portfolioName: 'Main' }]),
+    );
     auditApiService.searchOrderLogs.mockResolvedValueOnce(page([]));
     auditApiService.listUserHoldings.mockResolvedValueOnce(page([]));
 
@@ -117,63 +132,83 @@ describe('AuditorComponent', () => {
 
     await component.applyFilters();
 
-    expect(auditApiService.listUserPortfolios).toHaveBeenCalledWith('user-1', { page: 0, size: 100 });
-    expect(auditApiService.searchOrderLogs).toHaveBeenCalledWith(expect.objectContaining({
-      userId: 'user-1',
-      instrumentId: 'instrument-1',
-      fromDate: '2026-10-01',
-      toDate: '2026-10-14',
-    }));
+    expect(auditApiService.listUserPortfolios).toHaveBeenCalledWith('user-1', {
+      page: 0,
+      size: 100,
+    });
+    expect(auditApiService.searchOrderLogs).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'user-1',
+        instrumentId: 'instrument-1',
+        fromDate: '2026-10-01',
+        toDate: '2026-10-14',
+      }),
+    );
     expect(auditApiService.listUserHoldings).toHaveBeenCalled();
   });
 
   it('loads three detail cards when selecting a holding', async () => {
-    auditApiService.listHoldingOrderLogs.mockResolvedValueOnce(page([
-      {
-        logOrderId: 'log-1',
-        orderId: 'order-1',
-        portfolioId: 'portfolio-1',
-        instrumentId: 'instrument-1',
-        side: 'BUY',
-        quantity: 1,
-        timestamp: '2026-10-14T10:00:00Z',
-        metadata: null,
-        status: 'EXECUTED',
-        executionPrice: 100,
-        quotedPrice: 99,
-        ownerUserId: 'user-1',
-        ownerFirstName: 'Ada',
-        ownerLastName: 'Lovelace',
-      },
-    ]));
-    auditApiService.listHoldingPositionLots.mockResolvedValueOnce(page([
-      {
-        positionLotId: 'lot-1',
-        holdingId: 'holding-1',
-        sourceBuyLogOrderId: 'buy-log-1',
-        openedAt: '2026-10-14T00:00:00Z',
-        originalQuantity: 1,
-        remainingQuantity: 1,
-        unitCost: 100,
-      },
-    ]));
-    auditApiService.listHoldingLotMatches.mockResolvedValueOnce(page([
-      {
-        lotMatchId: 'match-1',
-        sellLogOrderId: 'sell-1',
-        positionLotId: 'lot-1',
-        matchedQuantity: 1,
-        sellUnitPrice: 101,
-        realizedPnlAmount: 1,
-        matchedAt: '2026-10-14T00:00:00Z',
-      },
-    ]));
+    auditApiService.listHoldingOrderLogs.mockResolvedValueOnce(
+      page([
+        {
+          logOrderId: 'log-1',
+          orderId: 'order-1',
+          portfolioId: 'portfolio-1',
+          instrumentId: 'instrument-1',
+          side: 'BUY',
+          quantity: 1,
+          timestamp: '2026-10-14T10:00:00Z',
+          metadata: null,
+          status: 'EXECUTED',
+          executionPrice: 100,
+          quotedPrice: 99,
+          ownerUserId: 'user-1',
+          ownerFirstName: 'Ada',
+          ownerLastName: 'Lovelace',
+        },
+      ]),
+    );
+    auditApiService.listHoldingPositionLots.mockResolvedValueOnce(
+      page([
+        {
+          positionLotId: 'lot-1',
+          holdingId: 'holding-1',
+          sourceBuyLogOrderId: 'buy-log-1',
+          openedAt: '2026-10-14T00:00:00Z',
+          originalQuantity: 1,
+          remainingQuantity: 1,
+          unitCost: 100,
+        },
+      ]),
+    );
+    auditApiService.listHoldingLotMatches.mockResolvedValueOnce(
+      page([
+        {
+          lotMatchId: 'match-1',
+          sellLogOrderId: 'sell-1',
+          positionLotId: 'lot-1',
+          matchedQuantity: 1,
+          sellUnitPrice: 101,
+          realizedPnlAmount: 1,
+          matchedAt: '2026-10-14T00:00:00Z',
+        },
+      ]),
+    );
 
     await component.selectHolding('holding-1');
 
-    expect(auditApiService.listHoldingOrderLogs).toHaveBeenCalledWith('holding-1', expect.objectContaining({ page: 0, size: 20 }));
-    expect(auditApiService.listHoldingPositionLots).toHaveBeenCalledWith('holding-1', { page: 0, size: 20 });
-    expect(auditApiService.listHoldingLotMatches).toHaveBeenCalledWith('holding-1', { page: 0, size: 20 });
+    expect(auditApiService.listHoldingOrderLogs).toHaveBeenCalledWith(
+      'holding-1',
+      expect.objectContaining({ page: 0, size: 20 }),
+    );
+    expect(auditApiService.listHoldingPositionLots).toHaveBeenCalledWith('holding-1', {
+      page: 0,
+      size: 20,
+    });
+    expect(auditApiService.listHoldingLotMatches).toHaveBeenCalledWith('holding-1', {
+      page: 0,
+      size: 20,
+    });
     expect(component.holdingOrderLogs()).toHaveLength(1);
     expect(component.positionLots()).toHaveLength(1);
     expect(component.lotMatches()).toHaveLength(1);
@@ -225,25 +260,43 @@ describe('AuditorComponent', () => {
   });
 
   it('formats owner names from first and last name, falling back to user id', () => {
-    expect(component.formatOwnerName({ ownerUserId: 'user-1', ownerFirstName: 'Ada', ownerLastName: 'Lovelace' })).toBe('Ada Lovelace');
-    expect(component.formatOwnerName({ ownerUserId: 'user-1', ownerFirstName: null, ownerLastName: null })).toBe('user-1');
-    expect(component.formatOwnerName({ ownerUserId: null, ownerFirstName: null, ownerLastName: null })).toBe('Unknown');
+    expect(
+      component.formatOwnerName({
+        ownerUserId: 'user-1',
+        ownerFirstName: 'Ada',
+        ownerLastName: 'Lovelace',
+      }),
+    ).toBe('Ada Lovelace');
+    expect(
+      component.formatOwnerName({
+        ownerUserId: 'user-1',
+        ownerFirstName: null,
+        ownerLastName: null,
+      }),
+    ).toBe('user-1');
+    expect(
+      component.formatOwnerName({ ownerUserId: null, ownerFirstName: null, ownerLastName: null }),
+    ).toBe('Unknown');
   });
 
   it('shows only the backend message for 503 errors', async () => {
-    auditApiService.searchOrderLogs.mockRejectedValueOnce(new HttpErrorResponse({
-      status: 503,
-      error: {
-        message: 'The service is temporarily unavailable. Please try again later.',
-        details: {
-          cause: 'function upper(bytea) does not exist',
+    auditApiService.searchOrderLogs.mockRejectedValueOnce(
+      new HttpErrorResponse({
+        status: 503,
+        error: {
+          message: 'The service is temporarily unavailable. Please try again later.',
+          details: {
+            cause: 'function upper(bytea) does not exist',
+          },
         },
-      },
-    }));
+      }),
+    );
     auditApiService.listHoldings.mockResolvedValueOnce(page([]));
 
     await component.refreshSummaries();
 
-    expect(component.errorMessage()).toBe('The service is temporarily unavailable. Please try again later.');
+    expect(component.errorMessage()).toBe(
+      'The service is temporarily unavailable. Please try again later.',
+    );
   });
 });

@@ -10,6 +10,11 @@
   },
   "private": true,
   "packageManager": "npm@12.2.0",
+  "overrides": {
+    "@angular/build": {
+      "vite": "8.3.5"
+    }
+  },
   "allowScripts": {
     "@parcel/watcher": true,
     "esbuild": true,

@@ -136,7 +136,8 @@ describe('AuditApiService', () => {
   it('listHoldingPositionLots and listHoldingLotMatches target expected endpoints', async () => {
     const lotsPromise = service.listHoldingPositionLots('holding-1', { page: 3, size: 5 });
     const lotsReq = httpTestingController.expectOne(
-      (request) => request.url === `${environment.apiUrl}/api/audit/holdings/holding-1/position-lots`,
+      (request) =>
+        request.url === `${environment.apiUrl}/api/audit/holdings/holding-1/position-lots`,
     );
     expect(lotsReq.request.method).toBe('GET');
     expect(lotsReq.request.params.get('page')).toBe('3');

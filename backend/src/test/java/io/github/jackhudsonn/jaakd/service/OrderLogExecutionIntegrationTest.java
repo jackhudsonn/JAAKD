@@ -53,6 +53,9 @@ import static org.mockito.Mockito.when;
 @Transactional
 class OrderLogExecutionIntegrationTest {
 
+    @MockitoBean
+    private QuoteService quoteService;
+
     @Autowired
     private OrderLogService orderLogService;
 
@@ -82,10 +85,6 @@ class OrderLogExecutionIntegrationTest {
 
     @Autowired
     private EntityManager entityManager;
-
-    // Replaces the live Fauxnance quote feed so execution prices are deterministic.
-    @MockitoBean
-    private QuoteService quoteService;
 
     @BeforeEach
     void stubExecutionPrice() {
@@ -133,6 +132,9 @@ class OrderLogExecutionIntegrationTest {
 
         Instrument cashInstrument = createCashInstrument();
         Instrument equityInstrument = createEquityInstrument();
+
+        when(quoteService.getExecutionPrice(equityInstrument.getInstrumentId(), OrderSide.BUY)).thenReturn(100.0);
+        when(quoteService.getExecutionPrice(equityInstrument.getInstrumentId(), OrderSide.SELL)).thenReturn(100.0);
 
         OrderLog deposit = createAcceptedOrderLog(portfolio, cashInstrument, OrderSide.DEPOSIT, 5000.0);
         executeAcceptedOrderLog(deposit);

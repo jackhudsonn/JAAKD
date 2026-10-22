@@ -114,8 +114,7 @@ export class TradeComponent implements OnInit, OnDestroy {
         activeOrderIds.add(order.id);
 
         const previousStatus = this.previousOrderStatuses.get(order.id);
-        const transitionedToRejected =
-          order.status === 'rejected' && previousStatus !== 'rejected';
+        const transitionedToRejected = order.status === 'rejected' && previousStatus !== 'rejected';
 
         if (transitionedToRejected) {
           const reason = order.statusReason?.trim();
