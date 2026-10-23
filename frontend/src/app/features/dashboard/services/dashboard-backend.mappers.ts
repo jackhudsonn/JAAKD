@@ -11,6 +11,7 @@ import {
 import { ORDER_STATUS, isActiveOrderStatus } from '@core/constants/order-status.constants';
 import { Holding, HoldingInstrumentClass, InstrumentType, Order, Transaction } from '@core/models';
 import { SharedWatchlist } from '@core/mocks/watchlist.mock';
+import { roundChangePct } from '@shared/utils/format-percentage-change';
 
 const TRADE_SIDES = new Set(['BUY', 'SELL']);
 
@@ -462,17 +463,36 @@ export const toOpenOrders = (
   return mapped.sort((a, b) => toTimestamp(b.createdAt) - toTimestamp(a.createdAt));
 };
 
+// Fauxnance prices crypto only as X:<ticker>-USD; a plain "BTC" is quoted as a stock there.
+const toFauxnanceSymbol = (instrument: InstrumentResponse): string => {
+  const ticker = instrument.ticker.toUpperCase();
+  return instrument.instrumentClass === 'CRYPTO' && !ticker.startsWith('X:')
+    ? `X:${ticker}-USD`
+    : instrument.ticker;
+};
+
+// "X:BTC-USD" -> "BTC"; every other symbol is returned unchanged.
+export const toDisplaySymbol = (symbol: string): string =>
+  /^X:([^-]+)-/i.exec(symbol)?.[1] ?? symbol;
+
+// Crypto can be stored as "BTC" or "X:BTC-USD", so a quote is filed under both spellings.
+const setQuoteKeys = <T>(map: Map<string, T>, symbol: string, value: T): void => {
+  const key = symbol.toUpperCase();
+  map.set(key, value);
+  map.set(toDisplaySymbol(key), value);
+};
+
 export const toQuoteSymbols = (instruments: InstrumentResponse[]): string[] =>
   instruments
     .filter((instrument) => toInstrumentType(instrument.instrumentClass) !== null)
-    .map((instrument) => instrument.ticker);
+    .map(toFauxnanceSymbol);
 
 export const toQuotePriceBySymbol = (quotes: QuoteResponse[]): Map<string, number> => {
   const prices = new Map<string, number>();
 
   for (const quote of quotes) {
     if (quote.price !== null && quote.price > 0) {
-      prices.set(quote.symbol.toUpperCase(), quote.price);
+      setQuoteKeys(prices, quote.symbol, quote.price);
     }
   }
 
@@ -489,9 +509,9 @@ export const toLiveQuoteBySymbol = (quotes: QuoteResponse[]): Map<string, LiveQu
 
   for (const quote of quotes) {
     if (quote.price !== null && quote.price > 0) {
-      liveQuotes.set(quote.symbol.toUpperCase(), {
+      setQuoteKeys(liveQuotes, quote.symbol, {
         price: quote.price,
-        changePct: quote.changePercent,
+        changePct: quote.changePercent === null ? null : roundChangePct(quote.changePercent),
       });
     }
   }
