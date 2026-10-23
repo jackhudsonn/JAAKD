@@ -122,12 +122,15 @@ Tables are under **Databases > jaakd > Schemas > public > Tables**. `jaakd_app` 
 
 - `POSTGRES_PASSWORD` — the Postgres superuser password.
 - `JAAKD_APP_DB_PASSWORD` — the application-role password.
-- `IDENTITY_PROVIDER` — the identity provider adapter: `development` or `cognito`.
+- `IDENTITY_PROVIDER` — the identity provider adπapter: `development` or `cognito`.
 - `AUTH_COOKIE_SECURE` — whether the session cookie is sent only over HTTPS.
-- `COGNITO_REGION` — the Cognito user-pool region.
-- `COGNITO_USER_POOL_ID` — the user-pool ID.
-- `COGNITO_CLIENT_ID` — the backend app-client ID.
-- `COGNITO_CLIENT_SECRET` — the backend app-client secret.
+- `COGNITO_REGION` — the AWS region of the Cognito user pool. Required when `IDENTITY_PROVIDER=cognito`.
+- `COGNITO_USER_POOL_ID` — the Cognito user-pool ID. Required when `IDENTITY_PROVIDER=cognito`.
+- `COGNITO_CLIENT_ID` — the backend app-client ID. Required when `IDENTITY_PROVIDER=cognito`.
+- `COGNITO_CLIENT_SECRET` — the backend app-client secret. Required when `IDENTITY_PROVIDER=cognito`.
+- `COGNITO_API_CALL_TIMEOUT` — total time allowed for a Cognito API call, as an ISO-8601 duration (default `PT10S`).
+- `COGNITO_API_CALL_ATTEMPT_TIMEOUT` — time allowed for each Cognito API retry attempt, as an ISO-8601 duration (default `PT5S`).
+- `COGNITO_RETRY_ATTEMPTS` — number of retries for failed Cognito API calls (default `2`).
 
 The AWS-side console setup is in `docs/cognito-setup.md`.
 

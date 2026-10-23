@@ -26,7 +26,13 @@ cp .env.example .env
 - `JAAKD_APP_DB_PASSWORD` — the application-role password.
 - `SPRING_PROFILES_ACTIVE` — the Spring configuration profile, normally `development` for local work.
 - `IDENTITY_PROVIDER` — the identity provider adapter: `development` or `cognito`.
-- `COGNITO_REGION`, `COGNITO_USER_POOL_ID`, `COGNITO_CLIENT_ID`, `COGNITO_CLIENT_SECRET` — required when `IDENTITY_PROVIDER=cognito`.
+- `COGNITO_REGION` — the AWS region of the Cognito user pool. Required when `IDENTITY_PROVIDER=cognito`.
+- `COGNITO_USER_POOL_ID` — the Cognito user-pool ID. Required when `IDENTITY_PROVIDER=cognito`.
+- `COGNITO_CLIENT_ID` — the backend app-client ID. Required when `IDENTITY_PROVIDER=cognito`.
+- `COGNITO_CLIENT_SECRET` — the backend app-client secret. Required when `IDENTITY_PROVIDER=cognito`.
+- `COGNITO_API_CALL_TIMEOUT` — total time allowed for a Cognito API call, as an ISO-8601 duration (default `PT10S`).
+- `COGNITO_API_CALL_ATTEMPT_TIMEOUT` — time allowed for each Cognito API retry attempt, as an ISO-8601 duration (default `PT5S`).
+- `COGNITO_RETRY_ATTEMPTS` — number of retries for failed Cognito API calls (default `2`).
 - `AUTH_COOKIE_SECURE` — whether the session cookie is sent only over HTTPS.
 - `FAUXNANCE_BASE_URL` — the Fauxnance API url 
 - `FAUXNANCE_API_KEY` — the Fauxance API Key

@@ -22,6 +22,9 @@ Tooling and access needed to build and run `backend/` locally.
 - `COGNITO_USER_POOL_ID` — Cognito user-pool ID.
 - `COGNITO_CLIENT_ID` — backend app-client ID.
 - `COGNITO_CLIENT_SECRET` — backend app-client secret.
+- `COGNITO_API_CALL_TIMEOUT` — total time allowed for a Cognito API call, as an ISO-8601 duration (default `PT10S`).
+- `COGNITO_API_CALL_ATTEMPT_TIMEOUT` — time allowed for each Cognito API retry attempt, as an ISO-8601 duration (default `PT5S`).
+- `COGNITO_RETRY_ATTEMPTS` — number of retries for failed Cognito API calls (default `2`).
 
 When running the backend on the host (without Docker), the `.env` import supplies `IDENTITY_PROVIDER` and `AUTH_COOKIE_SECURE`; set `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, and `SPRING_DATASOURCE_PASSWORD` in the run environment.
 
