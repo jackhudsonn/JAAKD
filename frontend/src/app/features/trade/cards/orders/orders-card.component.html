@@ -1,19 +1,10 @@
 <app-widget-card title="Orders">
   <div class="orders-columns" role="row">
-    <button type="button" class="sort-btn" (click)="setSort('createdAt')">
-      Date <span class="sort-indicator">{{ sortIndicator('createdAt') }}</span>
-    </button>
-
-    <button type="button" class="sort-btn" (click)="setSort('symbol')">
-      Symbol <span class="sort-indicator">{{ sortIndicator('symbol') }}</span>
-    </button>
-
+    <span class="column-label">Date</span>
     <span class="column-label">Type</span>
+    <span class="column-label">Symbol</span>
     <span class="column-label">Qty</span>
-
-    <button type="button" class="sort-btn" (click)="setSort('status')">
-      Status <span class="sort-indicator">{{ sortIndicator('status') }}</span>
-    </button>
+    <span class="column-label">Status</span>
   </div>
 
   <app-scrollable-list [items]="rows()" [trackBy]="trackByRow" emptyMessage="No orders yet.">
@@ -34,11 +25,7 @@
           </span>
           <span class="order-symbol">{{ row.order.symbol }}</span>
           <span class="order-qty">{{ row.order.quantity }}</span>
-          @if (row.secondsRemaining !== null) {
-            <span class="order-countdown">{{ row.secondsRemaining }}s</span>
-          } @else {
-            <app-status-badge [status]="row.order.status" />
-          }
+          <app-status-badge [status]="row.order.status" />
         </button>
       } @else {
         <div class="orders-row">

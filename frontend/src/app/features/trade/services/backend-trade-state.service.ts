@@ -1,5 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Injectable, signal } from '@angular/core';
+import { isActiveOrderStatus } from '@core/constants/order-status.constants';
 import {
   HoldingResponse,
   InstrumentResponse,
@@ -111,7 +112,7 @@ export class BackendTradeStateService implements TradeStatePort {
       const order = this.orders().find((entry) => entry.id === orderId);
       if (
         order &&
-        (order.status === 'filled' || order.status === 'cancelled' || order.status === 'rejected')
+        !isActiveOrderStatus(order.status)
       ) {
         return;
       }

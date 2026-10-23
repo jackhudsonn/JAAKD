@@ -8,13 +8,12 @@ import {
   QuoteResponse,
   WatchlistResponse,
 } from '@core/models/api.models';
+import { ORDER_STATUS, isActiveOrderStatus } from '@core/constants/order-status.constants';
 import { Holding, HoldingInstrumentClass, InstrumentType, Order, Transaction } from '@core/models';
 import { SharedWatchlist } from '@core/mocks/watchlist.mock';
 import { roundChangePct } from '@shared/utils/format-percentage-change';
 
-const OPEN_STATUSES = new Set(['SUBMITTED', 'PENDING', 'ACCEPTED']);
 const TRADE_SIDES = new Set(['BUY', 'SELL']);
-const EXECUTED_STATUS = 'EXECUTED';
 
 const toTimestamp = (value: string): number => new Date(value).getTime();
 
@@ -30,7 +29,7 @@ const buildLatestExecutedPriceByInstrumentId = (
   const latestByInstrumentId = new Map<string, { timestamp: number; price: number }>();
 
   for (const row of orderLogs) {
-    if (row.status !== EXECUTED_STATUS || row.executionPrice <= 0) {
+    if (row.status !== ORDER_STATUS.EXECUTED || row.executionPrice <= 0) {
       continue;
     }
 
@@ -239,62 +238,25 @@ export const toOrders = (
       type: newestRow.side === 'BUY' ? 'buy' : 'sell',
       quantity: newestRow.quantity,
       createdAt: firstRow.timestamp,
-      status: 'pending',
+      status: newestRow.status,
     };
 
-    switch (newestRow.status) {
-      case 'SUBMITTED':
-      case 'PENDING':
-        mappedWithSortKey.push({
-          order: {
-            ...baseOrder,
-            status: 'pending',
-          },
-          newestTimestamp: toTimestamp(newestRow.timestamp),
-        });
-        break;
-      case 'ACCEPTED':
-        mappedWithSortKey.push({
-          order: {
-            ...baseOrder,
-            status: 'open',
-          },
-          newestTimestamp: toTimestamp(newestRow.timestamp),
-        });
-        break;
-      case 'EXECUTED':
-        mappedWithSortKey.push({
-          order: {
-            ...baseOrder,
-            status: 'filled',
-            fillPrice: newestRow.executionPrice,
-            filledAt: newestRow.timestamp,
-          },
-          newestTimestamp: toTimestamp(newestRow.timestamp),
-        });
-        break;
-      case 'CANCELLED':
-        mappedWithSortKey.push({
-          order: {
-            ...baseOrder,
-            status: 'cancelled',
-            cancelledAt: newestRow.timestamp,
-          },
-          newestTimestamp: toTimestamp(newestRow.timestamp),
-        });
-        break;
-      case 'REJECTED':
-      case 'FAILED':
-        mappedWithSortKey.push({
-          order: {
-            ...baseOrder,
-            status: 'rejected',
-            statusReason: extractStatusReason(newestRow.metadata),
-          },
-          newestTimestamp: toTimestamp(newestRow.timestamp),
-        });
-        break;
-    }
+    mappedWithSortKey.push({
+      order: {
+        ...baseOrder,
+        ...(newestRow.status === ORDER_STATUS.EXECUTED
+          ? { fillPrice: newestRow.executionPrice, filledAt: newestRow.timestamp }
+          : {}),
+        ...(newestRow.status === ORDER_STATUS.CANCELLED
+          ? { cancelledAt: newestRow.timestamp }
+          : {}),
+        ...(newestRow.status === ORDER_STATUS.REJECTED ||
+        newestRow.status === ORDER_STATUS.FAILED
+          ? { statusReason: extractStatusReason(newestRow.metadata) }
+          : {}),
+      },
+      newestTimestamp: toTimestamp(newestRow.timestamp),
+    });
   }
 
   return mappedWithSortKey
@@ -352,23 +314,6 @@ export const toTransactions = (
       continue;
     }
 
-    let status: Transaction['status'] = 'pending';
-    switch (newestRow.status) {
-      case 'EXECUTED':
-        status = 'completed';
-        break;
-      case 'REJECTED':
-      case 'FAILED':
-        status = 'failed';
-        break;
-      case 'CANCELLED':
-        status = 'cancelled';
-        break;
-      default:
-        status = 'pending';
-        break;
-    }
-
     const isExchange = newestRow.side === 'FX';
     const sourceCurrency = readMetadataValue(newestRow.metadata, 'sourceCurrency');
     const targetCurrency = readMetadataValue(newestRow.metadata, 'targetCurrency');
@@ -386,7 +331,7 @@ export const toTransactions = (
         amount: newestRow.quantity,
         ...(currency ? { currency } : {}),
         method: 'bank_transfer',
-        status,
+        status: newestRow.status,
         createdAt: firstRow.timestamp,
       },
       newestTimestamp: toTimestamp(newestRow.timestamp),
@@ -484,7 +429,7 @@ export const toOpenOrders = (
     const firstRow = sortedByTime[0];
     const newestRow = sortedByTime[sortedByTime.length - 1];
 
-    if (!OPEN_STATUSES.has(newestRow.status)) {
+    if (!isActiveOrderStatus(newestRow.status)) {
       continue;
     }
 
@@ -510,7 +455,7 @@ export const toOpenOrders = (
       type: newestRow.side === 'BUY' ? 'buy' : 'sell',
       quantity: newestRow.quantity,
       fillPrice: newestRow.executionPrice === 0 ? undefined : newestRow.executionPrice,
-      status: newestRow.status === 'ACCEPTED' ? 'open' : 'pending',
+      status: newestRow.status,
       createdAt: firstRow.timestamp,
     });
   }

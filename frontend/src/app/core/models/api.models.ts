@@ -1,7 +1,8 @@
+import type { OrderStatus } from '@core/constants/order-status.constants';
+
 export type InstrumentClass = 'EQUITY' | 'ETF' | 'FX' | 'CRYPTO' | 'CASH';
 export type OrderSide = 'BUY' | 'SELL' | 'DEPOSIT' | 'WITHDRAW' | 'FX';
-export type OrderStatus =
-  'SUBMITTED' | 'PENDING' | 'CANCELLED' | 'ACCEPTED' | 'REJECTED' | 'EXECUTED' | 'FAILED';
+export type { OrderStatus };
 
 export interface PortfolioResponse {
   portfolioId: string;

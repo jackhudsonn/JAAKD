@@ -1,4 +1,5 @@
 import { Component, OnDestroy, OnInit, computed, effect, inject, signal } from '@angular/core';
+import { ORDER_STATUS } from '@core/constants/order-status.constants';
 import { ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { TradeCardComponent } from './cards/trade/trade-card.component';
@@ -114,7 +115,9 @@ export class TradeComponent implements OnInit, OnDestroy {
         activeOrderIds.add(order.id);
 
         const previousStatus = this.previousOrderStatuses.get(order.id);
-        const transitionedToRejected = order.status === 'rejected' && previousStatus !== 'rejected';
+        const transitionedToRejected =
+          (order.status === ORDER_STATUS.REJECTED || order.status === ORDER_STATUS.FAILED) &&
+          previousStatus !== order.status;
 
         if (transitionedToRejected) {
           const reason = order.statusReason?.trim();

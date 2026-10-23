@@ -1,0 +1,26 @@
+[
+  {
+    "ticker": "USD",
+    "market": "INTERNAL",
+    "name": "US Dollar Cash Balance",
+    "instrumentClass": "CASH",
+    "tradingCurrency": "USD",
+    "description": "Base cash ledger for USD balances"
+  },
+  {
+    "ticker": "INR",
+    "market": "INTERNAL",
+    "name": "Indian Rupee Cash Balance",
+    "instrumentClass": "CASH",
+    "tradingCurrency": "INR",
+    "description": "Cash ledger instrument for INR balances"
+  },
+  {
+    "ticker": "EUR",
+    "market": "INTERNAL",
+    "name": "Euro Cash Balance",
+    "instrumentClass": "CASH",
+    "tradingCurrency": "EUR",
+    "description": "Cash ledger instrument for EUR balances"
+  }
+]
