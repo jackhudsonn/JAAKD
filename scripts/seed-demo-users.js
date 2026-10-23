@@ -2,6 +2,8 @@
 
 const { execFileSync } = require("node:child_process");
 const { randomUUID } = require("node:crypto");
+const fs = require("node:fs");
+const path = require("node:path");
 
 const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8081";
 const AUDITOR_CONTAINER = process.env.AUDITOR_DB_CONTAINER || "jaakd-postgres";
@@ -11,7 +13,7 @@ const NETWORK_RETRY_DELAY_MS = 1000;
 const AUDITOR_ACCOUNT = {
   userId: "7d01f6ba-39bf-4f09-b6f8-4adcaef2f7f4",
   email: "auditor@123.com",
-  password: "12345678",
+  password: "DemoAuditor!12345",
   role: "AUDITOR",
   profile: {
     userType: 2,
@@ -29,7 +31,7 @@ const AUDITOR_ACCOUNT = {
 const ADMIN_ACCOUNT = {
   userId: "3b8f5c1e-9a4d-4f2b-8c6e-1d2a7f9e0b45",
   email: "admin@123.com",
-  password: "12345678",
+  password: "DemoAdmin!12345",
   role: "ADMIN",
   profile: {
     userType: 1,
@@ -715,6 +717,51 @@ function sqlLiteral(value) {
   return `'${String(value).replace(/'/g, "''")}'`;
 }
 
+function readEnvFile() {
+  const envPath = path.resolve(__dirname, "..", ".env");
+  if (!fs.existsSync(envPath)) {
+    return {};
+  }
+
+  const values = {};
+  for (const line of fs.readFileSync(envPath, "utf8").split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) {
+      continue;
+    }
+
+    const separator = trimmed.indexOf("=");
+    if (separator <= 0) {
+      continue;
+    }
+
+    const key = trimmed.slice(0, separator).trim();
+    let value = trimmed.slice(separator + 1).trim();
+    if (
+      value.length >= 2 &&
+      ((value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'")))
+    ) {
+      value = value.slice(1, -1);
+    }
+    values[key] = value;
+  }
+
+  return values;
+}
+
+function assertDevelopmentProvider() {
+  const configured = process.env.IDENTITY_PROVIDER ?? readEnvFile().IDENTITY_PROVIDER;
+  if (configured === "development") {
+    return;
+  }
+
+  throw new Error(
+    `This seed script requires IDENTITY_PROVIDER=development (current: ${configured || "unset"}). ` +
+      "Set it in .env and recreate the backend before seeding.",
+  );
+}
+
 function ensurePrivilegedAccount(account) {
   const sql = `
 INSERT INTO users ("userID", email, roles)
@@ -1251,6 +1298,7 @@ function printCredentials() {
 }
 
 async function main() {
+  assertDevelopmentProvider();
   console.log(`Seeding demo users using backend: ${BACKEND_URL}`);
   printCredentials();
 

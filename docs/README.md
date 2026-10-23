@@ -165,6 +165,9 @@ To avoid manually setting up a user account (signing in, adding bank accounts, a
 node scripts/seed-demo-users.js
 ```
 
+The script requires `IDENTITY_PROVIDER=development` and exits before seeding
+otherwise.
+
 ### Useful commands
 
 ```powershell

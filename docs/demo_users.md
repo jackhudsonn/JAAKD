@@ -29,6 +29,10 @@ The backend must use the `development` Spring profile. That profile enables
 endpoint. The seed script authenticates as the seeded admin account when
 creating fixture logs and targets each demo user's portfolio.
 
+The script also requires `IDENTITY_PROVIDER=development` and exits before
+seeding otherwise. The seeded accounts use the development adapter's credential
+store, so they cannot sign in after switching the backend to Cognito.
+
 The script intentionally stops if any of the three demo accounts already
 exists. To recreate them from a clean local database:
 
