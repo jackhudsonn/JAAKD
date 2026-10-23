@@ -44,15 +44,17 @@ WHERE o."logOrderID" = :logOrderId
 
 ## Auth
 
-Credentials belong to the identity provider, not the application schema. The
-development provider owns `development_credentials` (development-only); in
-production the provider owns its credentials outside this schema. The
-application queries only `users` and `sessions`, and only after the provider has
-authenticated the caller. `:userId` is the provider's identity claim (a UUID).
+Credentials belong to the identity provider, not the application identity
+anchors. The base schema contains one link table per provider:
+`development_credentials` and `cognito_users`. Only the selected adapter reads
+its table. The application queries only `users` and `sessions` after the
+provider has authenticated the caller. `:userId` is the application user ID,
+which is an application-generated UUID.
 
-**register** (`POST /api/auth/register`): no application query. The provider creates
-the credential; the application `users` row is not created until the first sign
-in.
+**register** (`POST /api/auth/register`): the provider creates the credential or
+identity first. After the provider succeeds, the application writes the
+`users`, `profiles`, and provider-link rows in one local transaction. For the
+development adapter, the provider-side insert is:
 
 ```sql
 -- development provider only; production credentials live with the provider
@@ -63,7 +65,8 @@ VALUES (:userId, :email, :passwordHash);
 A duplicate email surfaces as `409` (`development_credentials.email` is unique).
 
 **signIn** (`POST /api/auth/login`): the provider verifies the credential, then the
-application provisions its identity anchor and opens the session.
+application ensures the identity anchor exists (registration normally created
+it) and opens the session.
 
 ```sql
 -- provider half (development): look up the credential and compare the password hash

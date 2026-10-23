@@ -1,0 +1,33 @@
+.confirm-card {
+  width: min(440px, 100%);
+}
+
+.confirm-submit {
+  width: 100%;
+  margin-top: 1.25rem;
+}
+
+.resend-button {
+  width: 100%;
+  margin-top: 0.75rem;
+}
+
+.confirm-footer {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+
+  border-top: 1px solid var(--tertiary-bg-border);
+
+  text-align: center;
+}
+
+.confirm-footer a {
+  color: var(--primary);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.confirm-footer a:hover {
+  text-decoration: underline;
+}

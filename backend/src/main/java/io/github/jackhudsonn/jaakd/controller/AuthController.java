@@ -16,15 +16,20 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import io.github.jackhudsonn.jaakd.dto.auth.ChangePasswordRequest;
+import io.github.jackhudsonn.jaakd.dto.auth.ConfirmRegistrationRequest;
 import io.github.jackhudsonn.jaakd.dto.auth.LoginRequest;
 import io.github.jackhudsonn.jaakd.dto.auth.LoginResponse;
 import io.github.jackhudsonn.jaakd.dto.auth.RegisterRequest;
+import io.github.jackhudsonn.jaakd.dto.auth.RegistrationResponse;
+import io.github.jackhudsonn.jaakd.dto.auth.RegistrationStatus;
+import io.github.jackhudsonn.jaakd.dto.auth.ResendRegistrationRequest;
 import io.github.jackhudsonn.jaakd.exception.UnauthorizedException;
 import io.github.jackhudsonn.jaakd.model.Session;
 import io.github.jackhudsonn.jaakd.security.AuthenticatedUser;
 import io.github.jackhudsonn.jaakd.security.CurrentUserService;
 import io.github.jackhudsonn.jaakd.security.SessionAuthenticationFilter;
 import io.github.jackhudsonn.jaakd.service.AuthService;
+import io.github.jackhudsonn.jaakd.service.RegistrationResult;
 import io.github.jackhudsonn.jaakd.service.SignInResult;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -52,8 +57,28 @@ public class AuthController {
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
-    public void register(@Valid @RequestBody RegisterRequest request) {
-        authService.register(request.email(), request.password());
+    public RegistrationResponse register(@Valid @RequestBody RegisterRequest request) {
+        RegistrationResult result = authService.register(request.email(), request.password(), request.profile());
+        RegistrationStatus status = result.confirmationRequired()
+                ? RegistrationStatus.CONFIRMATION_REQUIRED
+                : RegistrationStatus.REGISTERED;
+
+        return new RegistrationResponse(status, result.email(), result.registrationId());
+    }
+
+    @PostMapping("/register/confirm")
+    public ResponseEntity<LoginResponse> confirmRegistration(@Valid @RequestBody ConfirmRegistrationRequest request) {
+        return authService.confirmRegistration(request.registrationId(), request.code())
+                .map(result -> ResponseEntity.ok()
+                        .header(HttpHeaders.SET_COOKIE, sessionCookie(result.session()).toString())
+                        .body(new LoginResponse(result.email())))
+                .orElseGet(() -> ResponseEntity.noContent().build());
+    }
+
+    @PostMapping("/register/resend")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void resendRegistration(@Valid @RequestBody ResendRegistrationRequest request) {
+        authService.resendConfirmation(request.registrationId());
     }
 
     @PostMapping("/login")
