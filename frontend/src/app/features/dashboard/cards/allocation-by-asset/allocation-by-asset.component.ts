@@ -5,32 +5,28 @@ import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.
 import { PieChartComponent, PieChartSlice } from '@shared/components/pie-chart/pie-chart.component';
 import { DASHBOARD_MARKET_DATA_PORT } from '@features/dashboard/services/dashboard-market-data.port';
 import { DASHBOARD_STATE_PORT } from '@features/dashboard/services/dashboard-state.port';
-import { CashCurrency, CASH_CURRENCIES } from '@core/models/api.models';
+import { CashCurrency, CASH_CURRENCIES, REPORTING_CURRENCY } from '@core/models/api.models';
 import {
   convertAmountBetweenCurrencies,
 } from '@core/constants/cash-exchange-rates.constants';
 import { deterministicColorFromBase } from '@features/dashboard/utils/allocation-colors.util';
 
-type AllocationCategory = 'CASH' | 'EQUITY' | 'ETF' | 'CRYPTO';
+const ALLOCATION_CATEGORIES = ['cash', 'equity', 'etf', 'crypto'] as const;
+type AllocationCategory = (typeof ALLOCATION_CATEGORIES)[number];
 
-const CATEGORY_COLORS: Record<AllocationCategory, string> = {
-  CASH: '#2ECC71',
-  EQUITY: '#3498DB',
-  ETF: '#9B59B6',
-  CRYPTO: '#E67E22',
+const CATEGORY_LABELS: Record<AllocationCategory, string> = {
+  cash: 'Cash',
+  equity: 'Equity',
+  etf: 'ETF',
+  crypto: 'Crypto',
 };
 
-const CATEGORY_BY_INSTRUMENT_CLASS = {
-  EQUITY: 'EQUITY',
-  ETF: 'ETF',
-  CRYPTO: 'CRYPTO',
-} as const;
-
-const CATEGORY_BY_INSTRUMENT_TYPE = {
-  equity: 'EQUITY',
-  etf: 'ETF',
-  crypto: 'CRYPTO',
-} as const;
+const CATEGORY_COLORS: Record<AllocationCategory, string> = {
+  cash: '#2ECC71',
+  equity: '#3498DB',
+  etf: '#9B59B6',
+  crypto: '#E67E22',
+};
 const CURRENCY_SYMBOLS: Record<CashCurrency, string> = {
   USD: '$',
   EUR: '€',
@@ -68,24 +64,25 @@ export class AllocationByAssetWidgetComponent {
 
   assetSelected = output<AllocationAssetSelection>();
   readonly displayCurrencies = CASH_CURRENCIES;
-  readonly displayCurrency = signal<CashCurrency>('USD');
+  readonly displayCurrency = signal<CashCurrency>(REPORTING_CURRENCY);
 
   // null == showing the top-level "by type" view.
   selectedCategory = signal<AllocationCategory | null>(null);
 
   constructor(private readonly router: Router) {}
 
-  title = computed(() =>
-    this.selectedCategory() ? `${this.selectedCategory()}` : 'Allocation by Asset',
-  );
+  title = computed(() => {
+    const category = this.selectedCategory();
+    return category ? CATEGORY_LABELS[category] : 'Allocation by Asset';
+  });
   readonly tooltipValuePrefix = computed(() => CURRENCY_SYMBOLS[this.displayCurrency()]);
 
   private readonly breakdowns = computed<Record<AllocationCategory, PieChartSlice[]>>(() => {
     const byCategory: Record<AllocationCategory, PieChartSlice[]> = {
-      CASH: [],
-      EQUITY: [],
-      ETF: [],
-      CRYPTO: [],
+      cash: [],
+      equity: [],
+      etf: [],
+      crypto: [],
     };
 
     const balances = this.cashBalances?.() ?? { USD: this.accountCash() };
@@ -98,22 +95,17 @@ export class AllocationByAssetWidgetComponent {
         continue;
       }
 
-      byCategory.CASH.push({
+      byCategory.cash.push({
         label: cashCurrency,
-        value: convertAmountBetweenCurrencies(amount, cashCurrency, 'USD'),
-        color: deterministicColorFromBase(CATEGORY_COLORS.CASH, cashCurrency),
+        value: convertAmountBetweenCurrencies(amount, cashCurrency, REPORTING_CURRENCY),
+        color: deterministicColorFromBase(CATEGORY_COLORS.cash, cashCurrency),
       });
     }
 
     const bySymbol = new Map<string, { category: AllocationCategory; value: number }>();
 
     for (const holding of this.holdings()) {
-      const category =
-        (holding.instrumentClass && CATEGORY_BY_INSTRUMENT_CLASS[holding.instrumentClass]) ||
-        CATEGORY_BY_INSTRUMENT_TYPE[holding.instrumentType];
-      if (!category) {
-        continue;
-      }
+      const category: AllocationCategory = holding.instrumentType;
       const value =
         holding.quantity * (holding.indicativePrice ?? this.marketData.getPrice(holding.symbol));
       const existing = bySymbol.get(holding.symbol);
@@ -136,21 +128,19 @@ export class AllocationByAssetWidgetComponent {
   });
 
   private convertDisplayAmount(usdAmount: number) {
-    return convertAmountBetweenCurrencies(usdAmount, 'USD', this.displayCurrency());
+    return convertAmountBetweenCurrencies(usdAmount, REPORTING_CURRENCY, this.displayCurrency());
   }
 
   private readonly topLevelSlices = computed<PieChartSlice[]>(() => {
     const breakdowns = this.breakdowns();
 
-    return (Object.keys(breakdowns) as AllocationCategory[])
+    return ALLOCATION_CATEGORIES
       .map((category) => ({
         label: category,
         value: breakdowns[category].reduce((sum, slice) => sum + slice.value, 0),
         color: CATEGORY_COLORS[category],
       }))
-      .filter(
-        (slice) => slice.value > 0 || breakdowns[slice.label as AllocationCategory].length > 0,
-      );
+      .filter((slice) => breakdowns[slice.label].length > 0);
   });
 
   slices = computed<PieChartSlice[]>(() => {
@@ -167,9 +157,7 @@ export class AllocationByAssetWidgetComponent {
     const rows: UnavailablePriceHolding[] = [];
 
     for (const holding of this.holdings()) {
-      const holdingCategory =
-        (holding.instrumentClass && CATEGORY_BY_INSTRUMENT_CLASS[holding.instrumentClass]) ||
-        CATEGORY_BY_INSTRUMENT_TYPE[holding.instrumentType];
+      const holdingCategory: AllocationCategory = holding.instrumentType;
       const matchesCategory = !category || holdingCategory === category;
       if (!matchesCategory || holding.priceStatus !== 'price unavailable') {
         continue;
@@ -189,18 +177,14 @@ export class AllocationByAssetWidgetComponent {
     const category = this.selectedCategory();
 
     if (!category) {
-      if (
-        slice.label === 'CASH' ||
-        slice.label === 'EQUITY' ||
-        slice.label === 'ETF' ||
-        slice.label === 'CRYPTO'
-      ) {
-        this.selectedCategory.set(slice.label);
+      const clicked = ALLOCATION_CATEGORIES.find((entry) => entry === slice.label);
+      if (clicked) {
+        this.selectedCategory.set(clicked);
       }
       return;
     }
 
-    if (category === 'CASH') {
+    if (category === 'cash') {
       void this.router.navigate(['/transact']);
       return;
     }
@@ -217,9 +201,9 @@ export class AllocationByAssetWidgetComponent {
 
     this.assetSelected.emit({
       symbol: slice.label,
-      price: convertAmountBetweenCurrencies(price, 'USD', displayCurrency),
+      price: convertAmountBetweenCurrencies(price, REPORTING_CURRENCY, displayCurrency),
       estimatedUnits,
-      value: convertAmountBetweenCurrencies(valueInUsd, 'USD', displayCurrency),
+      value: convertAmountBetweenCurrencies(valueInUsd, REPORTING_CURRENCY, displayCurrency),
       currency: displayCurrency,
     });
   }
@@ -231,7 +215,8 @@ export class AllocationByAssetWidgetComponent {
   toggleDisplayCurrency() {
     const currentIndex = this.displayCurrencies.indexOf(this.displayCurrency());
     const nextCurrency =
-      this.displayCurrencies[(currentIndex + 1) % this.displayCurrencies.length] ?? 'USD';
+      this.displayCurrencies[(currentIndex + 1) % this.displayCurrencies.length] ??
+      REPORTING_CURRENCY;
     this.displayCurrency.set(nextCurrency);
   }
 }
