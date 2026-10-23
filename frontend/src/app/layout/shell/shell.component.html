@@ -35,7 +35,7 @@
     </ng-template>
 
     @if (tickerLoopItems().length > 0) {
-      <div class="ticker-track">
+      <div class="ticker-track" [style.--market-ticker-duration]="tickerDuration()">
         <div class="ticker-group">
           <ng-container [ngTemplateOutlet]="tickerItems" />
         </div>

@@ -6,6 +6,7 @@ import {
 } from '@core/models/api.models';
 import {
   toCash,
+  toDisplaySymbol,
   toHoldings,
   toInstrumentType,
   toLatestPriceBySymbol,
@@ -570,6 +571,35 @@ describe('dashboard-backend.mappers', () => {
       expect(toQuoteSymbols([EQUITY_INSTRUMENT, CASH_INSTRUMENT, fxInstrument])).toEqual(['AAPL']);
     });
 
+    it('toQuoteSymbols sends crypto in the Fauxnance X:<ticker>-USD format', () => {
+      const btc: InstrumentResponse = {
+        ...EQUITY_INSTRUMENT,
+        instrumentId: 'inst-btc',
+        ticker: 'BTC',
+        instrumentClass: 'CRYPTO',
+      };
+      const storedEth: InstrumentResponse = {
+        ...btc,
+        instrumentId: 'inst-eth',
+        ticker: 'X:ETH-USD',
+      };
+
+      expect(toQuoteSymbols([btc, storedEth])).toEqual(['X:BTC-USD', 'X:ETH-USD']);
+    });
+
+    it('toQuotePriceBySymbol files a crypto quote under both ticker spellings', () => {
+      const prices = toQuotePriceBySymbol([quote('X:BTC-USD', 61200)]);
+
+      expect(prices.get('BTC')).toBe(61200);
+      expect(prices.get('X:BTC-USD')).toBe(61200);
+    });
+
+    it('toDisplaySymbol shows crypto without the Fauxnance prefix', () => {
+      expect(toDisplaySymbol('X:BTC-USD')).toBe('BTC');
+      expect(toDisplaySymbol('AAPL')).toBe('AAPL');
+      expect(toDisplaySymbol('FX:EURUSD')).toBe('FX:EURUSD');
+    });
+
     it('toQuotePriceBySymbol keeps only positive prices', () => {
       const prices = toQuotePriceBySymbol([
         quote('aapl', 190),
@@ -592,6 +622,12 @@ describe('dashboard-backend.mappers', () => {
       expect(liveQuotes.get('NVDA')).toEqual({ price: 118.6, changePct: 1.84 });
       expect(liveQuotes.get('BTC')).toEqual({ price: 61200, changePct: null });
       expect(liveQuotes.has('MSFT')).toBe(false);
+    });
+
+    it('toLiveQuoteBySymbol rounds a tiny loss to a plain zero change', () => {
+      const liveQuotes = toLiveQuoteBySymbol([quote('AAPL', 190, -0.003)]);
+
+      expect(Object.is(liveQuotes.get('AAPL')?.changePct, 0)).toBe(true);
     });
 
     it('toPriceResolver reads prices case-insensitively', () => {
