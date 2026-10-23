@@ -47,8 +47,10 @@ paths:
       tags: [Auth]
       summary: Register a new account
       description: |
-        Creates a credential with the configured identity provider. No session is
-        created; sign in afterwards with `POST /api/auth/login`.
+        Creates a credential with the configured identity provider and stores the
+        submitted profile. No session is created; confirm the email when required,
+        then sign in with `POST /api/auth/login`. Cognito uses an opaque UUID
+        username and the email as a verified alias; `registrationId` is that UUID.
       operationId: register
       security: []
       requestBody:
@@ -60,13 +62,81 @@ paths:
             example:
               email: joanna@example.com
               password: correct-horse-battery
+              firstName: Joanna
+              lastName: Smith
+              dob: "1990-04-12"
+              city: Boston
+              state: MA
+              country: USA
+              zipCode: "02110"
       responses:
         "201":
-          description: Account created
+          description: Account created; confirmation may be required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegistrationResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "409":
           $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/auth/register/confirm:
+    post:
+      tags: [Auth]
+      summary: Confirm a registration email
+      description: Confirms the Cognito email verification code for the registration
+        identified by `registrationId`. Returns 200 and sets the session cookie when
+        Cognito can complete sign-in from the confirmation session; returns 204 when
+        the user must sign in separately.
+      operationId: confirmRegistration
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfirmRegistrationRequest"
+      responses:
+        "200":
+          description: Email confirmed and session established
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "204":
+          description: Email confirmed; sign in separately
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/auth/register/resend:
+    post:
+      tags: [Auth]
+      summary: Resend a registration verification code
+      description: Sends a fresh Cognito verification code when the registration is still pending.
+      operationId: resendRegistration
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResendRegistrationRequest"
+      responses:
+        "204":
+          description: Code sent
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         "500":
           $ref: "#/components/responses/ServerError"
 
@@ -107,6 +177,10 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/EmailNotConfirmed"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         "500":
           $ref: "#/components/responses/ServerError"
 
@@ -1937,18 +2011,37 @@ components:
     ChallengeRequired:
       description: |
         The identity provider requires another step before a session is created.
-        `details.challenge` names the step; `details.continuation` carries the opaque
-        state to submit with the follow-up call.
+        `challenge` names the step; `continuation` carries the opaque state to
+        submit with the follow-up call. V1 has no challenge completion UI.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ChallengeResponse"
+          example:
+            challenge: MFA
+            continuation: opaque-continuation-token
+    EmailNotConfirmed:
+      description: The credentials are valid but the email address is not confirmed.
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/ErrorResponse"
           example:
-            timestamp: "2026-09-23T14:30:00Z"
-            message: additional authentication required
+            timestamp: "2026-10-20T13:30:00Z"
+            message: email address is not confirmed
             details:
-              challenge: MFA
-              continuation: opaque-continuation-token
+              code: EMAIL_NOT_CONFIRMED
+              email: joanna@example.com
+    TooManyRequests:
+      description: The identity provider throttled the request.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            timestamp: "2026-10-20T13:30:00Z"
+            message: too many authentication requests; try again later
+            details: null
     Forbidden:
       description: Authenticated but not authorized for this operation. Returned as structured `ErrorResponse` JSON.
       content:
@@ -2001,20 +2094,80 @@ components:
     # ---- auth
     RegisterRequest:
       type: object
-      required: [email, password]
+      required: [email, password, firstName, lastName]
       properties:
         email:
           type: string
           format: email
         password:
           type: string
-          minLength: 8
+          minLength: 6
+          maxLength: 99
+        firstName:
+          type: string
+          maxLength: 100
+        lastName:
+          type: string
+          maxLength: 100
+        dob:
+          type: string
+          format: date
+        city:
+          type: string
+          maxLength: 100
+        state:
+          type: string
+          maxLength: 100
+        country:
+          type: string
+          maxLength: 100
+        zipCode:
+          type: string
+          maxLength: 10
+    RegistrationResponse:
+      type: object
+      required: [status, email, registrationId]
+      properties:
+        status:
+          type: string
+          enum: [REGISTERED, CONFIRMATION_REQUIRED]
+        email:
+          type: string
+          format: email
+        registrationId:
+          type: string
+          format: uuid
+    ConfirmRegistrationRequest:
+      type: object
+      required: [registrationId, code]
+      properties:
+        registrationId:
+          type: string
+          format: uuid
+        code:
+          type: string
+    ResendRegistrationRequest:
+      type: object
+      required: [registrationId]
+      properties:
+        registrationId:
+          type: string
+          format: uuid
+    ChallengeResponse:
+      type: object
+      required: [challenge, continuation]
+      properties:
+        challenge:
+          type: string
+        continuation:
+          type: string
     LoginRequest:
       type: object
       required: [email, password]
       properties:
         email:
           type: string
+          format: email
         password:
           type: string
     LoginResponse:
@@ -2032,7 +2185,8 @@ components:
           type: string
         newPassword:
           type: string
-          minLength: 8
+          minLength: 6
+          maxLength: 99
 
     # ---- enums
     InstrumentClass:

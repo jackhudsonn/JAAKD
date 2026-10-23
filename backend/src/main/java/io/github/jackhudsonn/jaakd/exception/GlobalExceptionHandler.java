@@ -1,6 +1,7 @@
 package io.github.jackhudsonn.jaakd.exception;
 
 import io.github.jackhudsonn.jaakd.dto.ErrorResponse;
+import io.github.jackhudsonn.jaakd.dto.auth.ChallengeResponse;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -32,12 +33,37 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ChallengeRequiredException.class)
     @ResponseStatus(HttpStatus.ACCEPTED)
-    public ErrorResponse handleChallenge(ChallengeRequiredException ex) {
+    public ChallengeResponse handleChallenge(ChallengeRequiredException ex) {
+        return new ChallengeResponse(ex.getType(), ex.getContinuation());
+    }
+
+    @ExceptionHandler(EmailNotConfirmedException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ErrorResponse handleEmailNotConfirmed(EmailNotConfirmedException ex) {
         Map<String, String> details = new LinkedHashMap<>();
-        details.put("challenge", ex.getType());
-        details.put("continuation", ex.getContinuation());
+        details.put("code", ApiErrorCode.EMAIL_NOT_CONFIRMED.name());
+        details.put("email", ex.getEmail());
 
         return new ErrorResponse(Instant.now(), ex.getMessage(), details);
+    }
+
+    @ExceptionHandler(RegistrationIncompleteException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ErrorResponse handleRegistrationIncomplete(RegistrationIncompleteException ex) {
+        return new ErrorResponse(Instant.now(), ex.getMessage(), null);
+    }
+
+    @ExceptionHandler(TooManyRequestsException.class)
+    @ResponseStatus(HttpStatus.TOO_MANY_REQUESTS)
+    public ErrorResponse handleTooManyRequests(TooManyRequestsException ex) {
+        return new ErrorResponse(Instant.now(), ex.getMessage(), null);
+    }
+
+    @ExceptionHandler(IdentityProviderUnavailableException.class)
+    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+    public ErrorResponse handleIdentityProviderUnavailable(IdentityProviderUnavailableException ex) {
+        log.warn("Identity provider unavailable", ex);
+        return new ErrorResponse(Instant.now(), "Authentication is temporarily unavailable", null);
     }
 
     @ExceptionHandler(ResourceNotFoundException.class)
@@ -54,6 +80,12 @@ public class GlobalExceptionHandler {
         details.put("hasNonZeroHoldings", Boolean.toString(ex.hasNonZeroHoldings()));
 
         return new ErrorResponse(Instant.now(), ex.getMessage(), details);
+    }
+
+    @ExceptionHandler(EmailAlreadyRegisteredException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ErrorResponse handleEmailAlreadyRegistered(EmailAlreadyRegisteredException ex) {
+        return new ErrorResponse(Instant.now(), ex.getMessage(), null);
     }
 
     @ExceptionHandler(ConflictException.class)

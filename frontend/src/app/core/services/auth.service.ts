@@ -4,6 +4,13 @@ import { firstValueFrom } from 'rxjs';
 import { environment } from '@environments/environment.local';
 import { AUTH_FLOW } from '@core/http/auth-flow.token';
 import { DASHBOARD_PREFERENCES_CACHE_PREFIX } from '@core/constants/dashboard-preferences.constants';
+import {
+  ChallengeResponse,
+  LoginResult,
+  RegisterRequest,
+  RegistrationResponse,
+  RegistrationResult,
+} from '@core/models/auth.model';
 
 interface SessionResponse {
   email: string;
@@ -24,26 +31,74 @@ export class AuthService {
 
   constructor(private httpClient: HttpClient) {}
 
-  async register(email: string, password: string): Promise<void> {
+  async register(request: RegisterRequest): Promise<RegistrationResult> {
+    const registration = await firstValueFrom(
+      this.httpClient.post<RegistrationResponse>(
+        `${environment.apiUrl}/api/auth/register`,
+        request,
+        { context: this.credentialFlow },
+      ),
+    );
+
+    return {
+      status: registration.status === 'CONFIRMATION_REQUIRED' ? 'confirmation_required' : 'registered',
+      email: registration.email,
+      registrationId: registration.registrationId,
+    };
+  }
+
+  async confirmRegistration(registrationId: string, code: string): Promise<boolean> {
+    const response = await firstValueFrom(
+      this.httpClient.post<SessionResponse>(
+        `${environment.apiUrl}/api/auth/register/confirm`,
+        { registrationId, code },
+        { context: this.credentialFlow, observe: 'response' },
+      ),
+    );
+
+    if (response.status === 200 && response.body?.email) {
+      this.emailSignal.set(response.body.email);
+      return true;
+    }
+
+    return false;
+  }
+
+  async resendConfirmation(registrationId: string): Promise<void> {
     await firstValueFrom(
       this.httpClient.post(
-        `${environment.apiUrl}/api/auth/register`,
-        { email, password },
+        `${environment.apiUrl}/api/auth/register/resend`,
+        { registrationId },
         { context: this.credentialFlow },
       ),
     );
   }
 
-  async login(email: string, password: string): Promise<void> {
+  async login(email: string, password: string): Promise<LoginResult> {
     const response = await firstValueFrom(
-      this.httpClient.post<SessionResponse>(
+      this.httpClient.post<SessionResponse | ChallengeResponse>(
         `${environment.apiUrl}/api/auth/login`,
         { email, password },
-        { context: this.credentialFlow },
+        { context: this.credentialFlow, observe: 'response' },
       ),
     );
 
-    this.emailSignal.set(response.email);
+    const body = response.body;
+    if (response.status === 202 && body) {
+      const challenge = body as ChallengeResponse;
+      return {
+        status: 'challenge',
+        challenge: challenge.challenge,
+        continuation: challenge.continuation,
+      };
+    }
+
+    if (!body || !('email' in body)) {
+      throw new Error('Login returned no session.');
+    }
+
+    this.emailSignal.set(body.email);
+    return { status: 'authenticated', email: body.email };
   }
 
   async logout(): Promise<void> {

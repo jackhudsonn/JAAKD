@@ -23,7 +23,9 @@ public class UserProvisioner {
 
     // Creates the application identity anchor for a verified provider user, or
     // refreshes its email when it already exists. The provider stays the source
-    // of truth; this row is a projection refreshed at each sign-in.
+    // of truth; this row is a projection refreshed at each sign-in. New rows are
+    // flushed immediately because registration follows with a JDBC provider-link
+    // insert whose foreign key points at users.
     @Transactional
     public UUID ensureUser(UUID userId, String email) {
         return userRepository.findById(userId)
@@ -31,6 +33,6 @@ public class UserProvisioner {
                     existing.setEmail(email);
                     return existing.getUserId();
                 })
-                .orElseGet(() -> userRepository.save(new User(userId, email, Instant.now(clock))).getUserId());
+                .orElseGet(() -> userRepository.saveAndFlush(new User(userId, email, Instant.now(clock))).getUserId());
     }
 }

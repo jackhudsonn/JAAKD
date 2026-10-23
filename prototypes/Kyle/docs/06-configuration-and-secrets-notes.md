@@ -29,8 +29,7 @@ container path ignores them.
 - Literals in `docker-compose.yml`: database `jaakd`, role `jaakd_app`,
   published port `5433`, container port `5432`, the internal datasource URL,
   `IDENTITY_PROVIDER`, `AUTH_COOKIE_SECURE`.
-- Fixtures in `backend/db/init/` and `backend/db/development/`: the role
-  `jaakd_app` and the schema.
+- Fixtures in `backend/db/init/`: the role `jaakd_app` and the schema.
 
 ## The principle
 
