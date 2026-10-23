@@ -3,6 +3,7 @@ package io.github.jackhudsonn.jaakd.service;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -47,6 +48,14 @@ public class SessionService {
                 .filter(session -> !session.isExpired(now))
                 .flatMap(session -> userRepository.findById(session.getUserId()))
                 .map(user -> new AuthenticatedUser(user.getUserId(), user.getEmail()));
+    }
+
+    public Optional<Session> find(UUID sessionId) {
+        return sessionRepository.findById(sessionId);
+    }
+
+    public List<Session> findOtherSessions(UUID userId, UUID currentSessionId) {
+        return sessionRepository.findByUserIdAndSessionIdNot(userId, currentSessionId);
     }
 
     @Transactional

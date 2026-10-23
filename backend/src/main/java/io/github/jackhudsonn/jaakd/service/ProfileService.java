@@ -28,7 +28,12 @@ public class ProfileService {
     @Transactional
     public Profile createCurrentUserProfile(CreateProfileRequest request) {
         UUID userId = currentUserService.getUserId();
+        return createProfileForUser(userId, request);
+    }
 
+    // Used by registration, before a session exists.
+    @Transactional
+    public Profile createProfileForUser(UUID userId, CreateProfileRequest request) {
         if (profileRepository.existsById(userId)) {
             throw new ConflictException("Profile already exists for user: " + userId);
         }

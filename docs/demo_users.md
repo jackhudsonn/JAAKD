@@ -29,6 +29,10 @@ The backend must use the `development` Spring profile. That profile enables
 endpoint. The seed script authenticates as the seeded admin account when
 creating fixture logs and targets each demo user's portfolio.
 
+The script also requires `IDENTITY_PROVIDER=development` and exits before
+seeding otherwise. The seeded accounts use the development adapter's credential
+store, so they cannot sign in after switching the backend to Cognito.
+
 The script intentionally stops if any of the three demo accounts already
 exists. To recreate them from a clean local database:
 
@@ -48,9 +52,13 @@ SPRING_PROFILES_ACTIVE=development
 IDENTITY_PROVIDER=development
 ```
 
-`IDENTITY_PROVIDER` selects the authentication adapter. It does not enable demo
-fixtures. The `development` profile enables them through
-`app.demo-fixtures.enabled`; other profiles leave that property disabled.
+`IDENTITY_PROVIDER` selects the authentication adapter (`development` or
+`cognito`). It does not enable demo fixtures. The `development` profile enables
+them through `app.demo-fixtures.enabled`; other profiles leave that property
+disabled.
+
+Cognito requires the `COGNITO_*` values. Local development keeps the
+`development` adapter so the demo fixtures and seeded users continue to work.
 
 ## Fixture behavior agreed during refinement
 

@@ -2,6 +2,7 @@ package io.github.jackhudsonn.jaakd.identity.development;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -10,14 +11,15 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
-import io.github.jackhudsonn.jaakd.exception.ConflictException;
+import io.github.jackhudsonn.jaakd.exception.EmailAlreadyRegisteredException;
 import io.github.jackhudsonn.jaakd.exception.UnauthorizedException;
 import io.github.jackhudsonn.jaakd.identity.IdentityProvider;
+import io.github.jackhudsonn.jaakd.identity.RegistrationOutcome;
 import io.github.jackhudsonn.jaakd.identity.SignInOutcome;
 
-// Development adapter backed by the development-only development_credentials
-// table. It verifies credentials and returns an identity; it issues no tokens,
-// because the application owns sessions.
+// Development adapter backed by development_credentials. It verifies credentials
+// and returns an identity; it issues no tokens, because the application owns
+// sessions.
 @Component
 @ConditionalOnProperty(name = "identity.provider", havingValue = "development")
 public class DevelopmentIdentityProvider implements IdentityProvider {
@@ -33,16 +35,34 @@ public class DevelopmentIdentityProvider implements IdentityProvider {
     }
 
     @Override
-    public void register(String email, String password) {
+    public RegistrationOutcome register(UUID userId, String email, String password) {
         String normalized = normalize(email);
 
         if (!jdbcTemplate.queryForList("SELECT 1 FROM development_credentials WHERE email = ?", normalized).isEmpty()) {
-            throw new ConflictException("email already registered");
+            throw new EmailAlreadyRegisteredException();
         }
 
         jdbcTemplate.update(
                 "INSERT INTO development_credentials (\"userID\", email, \"passwordHash\") VALUES (?, ?, ?)",
-                UUID.randomUUID(), normalized, passwordEncoder.encode(password));
+                userId, normalized, passwordEncoder.encode(password));
+
+        return new RegistrationOutcome(userId.toString(), false, null);
+    }
+
+    @Override
+    public void link(UUID userId, String subject, String signUpSession) {
+        // The credential row already carries the application userID.
+    }
+
+    @Override
+    public Optional<SignInOutcome.Authenticated> confirmRegistration(UUID registrationId, String code) {
+        // No email confirmation step in development.
+        return Optional.empty();
+    }
+
+    @Override
+    public void resendConfirmation(UUID registrationId) {
+        // No email confirmation step in development.
     }
 
     @Override
@@ -53,7 +73,7 @@ public class DevelopmentIdentityProvider implements IdentityProvider {
             throw new UnauthorizedException("invalid email or password");
         }
 
-        return new SignInOutcome.Authenticated((UUID) credential.get("userID"), normalize(email));
+        return new SignInOutcome.Authenticated((UUID) credential.get("userID"), normalize(email), null);
     }
 
     @Override
@@ -70,8 +90,8 @@ public class DevelopmentIdentityProvider implements IdentityProvider {
     }
 
     @Override
-    public void signOut(String email) {
-        // The backend owns the session; there is no provider-side session to clear.
+    public void revoke(String refreshToken) {
+        // The development provider issues no provider-side session.
     }
 
     private Map<String, Object> findCredential(String email) {

@@ -461,8 +461,9 @@ satisfies what the core requires.
 Done (development path):
 
 - Schema split: `users` holds no credentials; a `sessions` table added; the
-  dev-only `development_credentials` table lives in `backend/db/development/` and is mounted
-  only in local development.
+  provider link tables `development_credentials` and `cognito_users` are part of
+  the base schema in every environment, and only the selected adapter reads its
+  own table.
 - Backend: `IdentityProvider` port with `DevelopmentIdentityProvider` (bcrypt over
   `development_credentials`), `SessionService`, `SessionAuthenticationFilter`,
   `UserProvisioner`, `AuthService`, and the `/auth/*` routes. Security is
@@ -475,7 +476,8 @@ Done (development path):
 Remaining:
 
 - Cognito adapter (`identity.provider=cognito`), with pool/app-client config
-  and challenge relay.
+  and challenge relay. Implemented in `07-cognito-identity-provider-notes.md`;
+  challenge completion remains deferred.
 - CSRF hardening beyond `SameSite=Lax` if the deployment is not same-site.
 
 ## Scope note
