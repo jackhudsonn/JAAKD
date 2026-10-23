@@ -1,13 +1,13 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '@core/services/auth.service';
+import { RegistrationContinuationService } from '@core/services/registration-continuation.service';
 import {
   LocationDataService,
   CountryOption,
 } from '@features/profile/services/location-data.service';
-import { ProfileService } from '@features/profile/services/profile.service';
 import { ErrorResponse, toUserFacingErrorMessage } from '@core/models/profile.model';
 
 import {
@@ -49,10 +49,12 @@ export class RegisterComponent {
 
   constructor(
     private authService: AuthService,
-    private profileService: ProfileService,
     private router: Router,
+    private route: ActivatedRoute,
+    private registrationContinuation: RegistrationContinuationService,
     private locationDataService: LocationDataService,
   ) {
+    this.email = this.route.snapshot.queryParamMap.get('email') ?? '';
     void this.loadCountries();
   }
   private async loadCountries() {
@@ -66,6 +68,7 @@ export class RegisterComponent {
   toggleConfirmPasswordVisibility() {
     this.showConfirmPassword = !this.showConfirmPassword;
   }
+
   async onCountryChange() {
     this.states.set(await this.locationDataService.getStates(this.countryCode));
 
@@ -100,8 +103,8 @@ export class RegisterComponent {
       return;
     }
 
-    if (this.password.length < 8) {
-      this.toastService.error('Password must be at least 8 characters.');
+    if (this.password.length < 6) {
+      this.toastService.error('Password must be at least 6 characters.');
       return;
     }
 
@@ -120,46 +123,33 @@ export class RegisterComponent {
     }
 
     try {
-      await this.authService.register(this.email, this.password);
-    } catch (error) {
-      this.toastService.error(
-        error instanceof HttpErrorResponse && error.status === 409
-          ? 'An account with this email already exists. Please sign in.'
-          : this.mapErrorToMessage(error),
-      );
-      return;
-    }
+      const result = await this.authService.register({
+        email: this.email,
+        password: this.password,
+        firstName: this.firstName,
+        lastName: this.lastName,
+        dob: this.dob,
+        city: this.city,
+        state: this.state,
+        country: this.country,
+        zipCode: this.zipCode,
+      });
 
-    try {
+      if (result.status !== 'registered') {
+        this.registrationContinuation.remember(result.email, result.registrationId);
+        this.toastService.success('Account created. Check your email for a confirmation code.');
+        await this.router.navigate(['/auth/confirm'], {
+          queryParams: { registrationId: result.registrationId, email: result.email },
+        });
+        return;
+      }
+
       await this.authService.login(this.email, this.password);
-    } catch (error) {
-      this.toastService.error(this.mapErrorToMessage(error));
-      return;
-    }
-
-    try {
-      await this.profileService.getCurrentProfile();
       this.toastService.success('Account created successfully.');
       await this.router.navigate(['/dashboard']);
-      return;
     } catch (error) {
-      if (error instanceof HttpErrorResponse && error.status === 404) {
-        try {
-          await this.profileService.createCurrentProfile({
-            firstName: this.firstName,
-            lastName: this.lastName,
-            dob: this.dob,
-            city: this.city,
-            state: this.state,
-            country: this.country,
-            zipCode: this.zipCode,
-          });
-
-          this.toastService.success('Account created successfully.');
-          await this.router.navigate(['/dashboard']);
-        } catch (createError) {
-          this.toastService.error(this.mapErrorToMessage(createError));
-        }
+      if (error instanceof HttpErrorResponse && error.status === 409) {
+        this.toastService.error('An account with this email already exists. Please sign in.');
         return;
       }
 
