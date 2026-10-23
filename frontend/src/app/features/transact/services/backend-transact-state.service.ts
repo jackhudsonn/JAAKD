@@ -1,5 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Injectable, computed, signal } from '@angular/core';
+import { ORDER_STATUS } from '@core/constants/order-status.constants';
 import {
   CASH_CURRENCIES,
   CashConversionResponse,
@@ -90,11 +91,15 @@ export class BackendTransactStateService implements TransactStatePort {
       const transaction = this.transactions().find((entry) => entry.id === orderId);
       if (
         transaction &&
-        (transaction.status === 'completed' ||
-          transaction.status === 'failed' ||
-          transaction.status === 'cancelled')
+        (transaction.status === ORDER_STATUS.EXECUTED ||
+          transaction.status === ORDER_STATUS.REJECTED ||
+          transaction.status === ORDER_STATUS.FAILED ||
+          transaction.status === ORDER_STATUS.CANCELLED)
       ) {
-        if (transaction.status === 'failed') {
+        if (
+          transaction.status === ORDER_STATUS.REJECTED ||
+          transaction.status === ORDER_STATUS.FAILED
+        ) {
           throw new Error(this.resolveFailureReason(orderId, side));
         }
 

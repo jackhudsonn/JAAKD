@@ -1,4 +1,5 @@
 import { Injectable, computed, inject } from '@angular/core';
+import { ORDER_STATUS, isActiveOrderStatus } from '@core/constants/order-status.constants';
 import { Holding, Order } from '@core/models';
 import { TRADE_MARKET_DATA_PORT } from './trade-market-data.port';
 import { TRADE_STATE_PORT } from './trade-state.port';
@@ -27,14 +28,11 @@ export class TradeOrderEngineService {
   readonly orders = this.ordersState.asReadonly();
 
   readonly openOrders = computed(() =>
-    this.ordersState().filter((order) => order.status === 'pending' || order.status === 'open'),
+    this.ordersState().filter((order) => isActiveOrderStatus(order.status)),
   );
 
   readonly historyOrders = computed(() =>
-    this.ordersState().filter(
-      (order) =>
-        order.status === 'filled' || order.status === 'cancelled' || order.status === 'rejected',
-    ),
+    this.ordersState().filter((order) => !isActiveOrderStatus(order.status)),
   );
 
   isKnownAssetSymbol(symbol: string): boolean {
@@ -76,7 +74,7 @@ export class TradeOrderEngineService {
       type: request.type,
       quantity: request.quantity,
       limitPrice: request.limitPrice,
-      status: request.kind === 'market' ? 'pending' : 'open',
+      status: request.kind === 'market' ? ORDER_STATUS.PENDING : ORDER_STATUS.ACCEPTED,
       createdAt: new Date().toISOString(),
     };
 
@@ -92,7 +90,11 @@ export class TradeOrderEngineService {
     this.ordersState.update((current) =>
       current.map((order) =>
         order.id === orderId
-          ? { ...order, status: 'cancelled' as const, cancelledAt: new Date().toISOString() }
+          ? {
+              ...order,
+              status: ORDER_STATUS.CANCELLED,
+              cancelledAt: new Date().toISOString(),
+            }
           : order,
       ),
     );
@@ -106,11 +108,14 @@ export class TradeOrderEngineService {
     const now = Date.now();
 
     for (const order of this.ordersState()) {
-      if (order.status === 'pending') {
+      if (
+        order.status === ORDER_STATUS.SUBMITTED ||
+        order.status === ORDER_STATUS.PENDING
+      ) {
         if (now - new Date(order.createdAt).getTime() >= this.marketData.marketOrderPendingMs) {
           this.fillOrder(order.id, this.marketData.getPrice(order.symbol));
         }
-      } else if (order.status === 'open' && order.limitPrice !== undefined) {
+      } else if (order.status === ORDER_STATUS.ACCEPTED && order.limitPrice !== undefined) {
         const price = this.marketData.getPrice(order.symbol);
         const crossed =
           order.type === 'buy' ? price <= order.limitPrice : price >= order.limitPrice;
@@ -132,7 +137,7 @@ export class TradeOrderEngineService {
         entry.id === orderId
           ? {
               ...entry,
-              status: 'filled' as const,
+              status: ORDER_STATUS.EXECUTED,
               fillPrice,
               filledAt: new Date().toISOString(),
             }

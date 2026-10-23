@@ -179,25 +179,25 @@ describe('dashboard-backend.mappers', () => {
         'order-open',
         'order-pending',
       ]);
-      expect(result.find((order) => order.id === 'order-pending')?.status).toBe('pending');
-      expect(result.find((order) => order.id === 'order-open')?.status).toBe('open');
+      expect(result.find((order) => order.id === 'order-pending')?.status).toBe('SUBMITTED');
+      expect(result.find((order) => order.id === 'order-open')?.status).toBe('ACCEPTED');
 
       const filled = result.find((order) => order.id === 'order-filled');
-      expect(filled?.status).toBe('filled');
+      expect(filled?.status).toBe('EXECUTED');
       expect(filled?.fillPrice).toBe(101.25);
       expect(filled?.filledAt).toBe('2026-01-01T12:00:00.000Z');
 
       const cancelled = result.find((order) => order.id === 'order-cancelled');
-      expect(cancelled?.status).toBe('cancelled');
+      expect(cancelled?.status).toBe('CANCELLED');
       expect(cancelled?.cancelledAt).toBe('2026-01-01T13:00:00.000Z');
 
       const rejected = result.find((order) => order.id === 'order-rejected');
-      expect(rejected?.status).toBe('rejected');
+      expect(rejected?.status).toBe('REJECTED');
       expect(rejected?.statusReason).toBe('Not enough cash');
       expect(rejected?.kind).toBe('market');
     });
 
-    it('maps FAILED as rejected and reads failureReason from metadata', () => {
+    it('preserves FAILED and reads failureReason from metadata', () => {
       const result = toOrders(
         [
           createOrderLog({
@@ -211,7 +211,7 @@ describe('dashboard-backend.mappers', () => {
       );
 
       expect(result).toHaveLength(1);
-      expect(result[0].status).toBe('rejected');
+      expect(result[0].status).toBe('FAILED');
       expect(result[0].statusReason).toBe('Processing error');
     });
 
@@ -279,7 +279,7 @@ describe('dashboard-backend.mappers', () => {
           amount: 100,
           currency: 'USD',
           method: 'bank_transfer',
-          status: 'completed',
+          status: 'EXECUTED',
           createdAt: '2026-01-01T00:00:00.000Z',
         },
       ]);
@@ -346,18 +346,18 @@ describe('dashboard-backend.mappers', () => {
         type: 'deposit',
         amount: 1000,
         method: 'bank_transfer',
-        status: 'completed',
+        status: 'EXECUTED',
         createdAt: '2026-01-01T08:00:00.000Z',
       });
 
       expect(result.find((transaction) => transaction.id === 'txn-withdraw')?.status).toBe(
-        'failed',
+        'FAILED',
       );
       expect(result.find((transaction) => transaction.id === 'txn-cancelled')?.status).toBe(
-        'cancelled',
+        'CANCELLED',
       );
       expect(result.find((transaction) => transaction.id === 'txn-pending')?.status).toBe(
-        'pending',
+        'PENDING',
       );
     });
 

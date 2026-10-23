@@ -1,5 +1,6 @@
 import { Component, computed, inject } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
+import { isActiveOrderStatus } from '@core/constants/order-status.constants';
 import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
 import { ScrollableListComponent } from '@shared/components/scrollable-list/scrollable-list.component';
 import { DASHBOARD_STATE_PORT } from '@features/dashboard/services/dashboard-state.port';
@@ -38,7 +39,7 @@ export class OpenOrdersWidgetComponent {
 
   items = computed<OpenItem[]>(() => {
     const transactionItems: OpenItem[] = this.transactions()
-      .filter((tx) => tx.status === 'pending')
+      .filter((tx) => isActiveOrderStatus(tx.status))
       .map((tx) => ({
         id: tx.id,
         createdAt: tx.createdAt,
@@ -49,7 +50,7 @@ export class OpenOrdersWidgetComponent {
       }));
 
     const orderItems: OpenItem[] = this.orders()
-      .filter((order) => order.status === 'pending' || order.status === 'open')
+      .filter((order) => isActiveOrderStatus(order.status))
       .map((order) => ({
         id: order.id,
         createdAt: order.createdAt,
