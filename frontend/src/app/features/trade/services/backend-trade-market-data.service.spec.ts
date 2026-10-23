@@ -53,7 +53,7 @@ describe('BackendTradeMarketDataService', () => {
       {
         symbol: 'AAPL',
         name: 'Apple Inc.',
-        instrumentType: 'stock',
+        instrumentType: 'equity',
         basePrice: 123.45,
       },
     ]);

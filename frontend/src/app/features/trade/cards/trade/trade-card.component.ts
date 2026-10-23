@@ -21,8 +21,8 @@ type InstrumentFilter = InstrumentType | 'all';
 const INSTRUMENT_OPTIONS: { id: InstrumentFilter; label: string }[] = [
   { id: 'all', label: 'All' },
   { id: 'crypto', label: 'Crypto' },
-  { id: 'stock', label: 'Stocks' },
-  { id: 'bond', label: 'Bonds' },
+  { id: 'equity', label: 'Equities' },
+  { id: 'etf', label: 'ETFs' },
 ];
 
 @Component({

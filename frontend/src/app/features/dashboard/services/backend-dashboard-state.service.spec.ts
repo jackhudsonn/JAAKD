@@ -219,13 +219,13 @@ describe('BackendDashboardStateService', () => {
         instrumentId: 'inst-aapl',
         symbol: 'AAPL',
         name: 'Apple',
-        instrumentType: 'stock',
+        instrumentType: 'equity',
       },
       {
         instrumentId: 'inst-vod',
         symbol: 'VOD',
         name: 'Vodafone',
-        instrumentType: 'stock',
+        instrumentType: 'equity',
       },
     ]);
   });
