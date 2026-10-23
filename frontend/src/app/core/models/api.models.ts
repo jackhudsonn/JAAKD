@@ -124,9 +124,11 @@ export interface QuoteResponse {
   changePercent: number | null;
 }
 
-export type CashCurrency = 'USD' | 'EUR' | 'GBP' | 'INR';
+export const CASH_CURRENCIES = ['USD', 'EUR', 'GBP', 'INR'] as const;
+export type CashCurrency = (typeof CASH_CURRENCIES)[number];
 
-export const CASH_CURRENCIES: readonly CashCurrency[] = ['USD', 'EUR', 'GBP', 'INR'];
+/** State amounts are stored in this currency; conversions pivot through it. */
+export const REPORTING_CURRENCY: CashCurrency = 'USD';
 
 export interface CashConversionRequest {
   sourceCurrency: CashCurrency;
