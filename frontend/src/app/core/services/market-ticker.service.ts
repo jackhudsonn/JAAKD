@@ -1,5 +1,9 @@
 import { Injectable } from '@angular/core';
-import { toQuoteSymbols } from '@features/dashboard/services/dashboard-backend.mappers';
+import {
+  toDisplaySymbol,
+  toQuoteSymbols,
+} from '@features/dashboard/services/dashboard-backend.mappers';
+import { roundChangePct } from '@shared/utils/format-percentage-change';
 import { InstrumentApiService } from './instrument-api.service';
 
 export interface MarketTickerItem {
@@ -23,7 +27,11 @@ export class MarketTickerService {
     const items: MarketTickerItem[] = [];
     for (const quote of await this.instrumentApiService.getQuotes(symbols)) {
       if (quote.price !== null && quote.price > 0) {
-        items.push({ symbol: quote.symbol, price: quote.price, changePct: quote.changePercent });
+        items.push({
+          symbol: toDisplaySymbol(quote.symbol),
+          price: quote.price,
+          changePct: quote.changePercent === null ? null : roundChangePct(quote.changePercent),
+        });
       }
     }
 

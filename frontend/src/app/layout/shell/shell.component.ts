@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, computed, signal } from '@angular/core';
 import { Router, RouterOutlet } from '@angular/router';
 import { AuthService } from '@core/services/auth.service';
 import { ProfileService } from '@features/profile/services/profile.service';
@@ -7,6 +7,9 @@ import { MarketTickerItem, MarketTickerService } from '@core/services/market-tic
 import { DecimalPipe, NgTemplateOutlet } from '@angular/common';
 import { formatPercentageChange } from '@shared/utils/format-percentage-change';
 import { isAdminOrAuditor } from '@core/models/profile.model';
+
+const TICKER_SECONDS_PER_ITEM = 3.5;
+
 @Component({
   selector: 'app-shell',
   standalone: true,
@@ -20,6 +23,9 @@ export class ShellComponent implements OnInit {
   canAccessAuditor = signal(false);
   tickerLoopItems = signal<MarketTickerItem[]>([]);
   tickerLoaded = signal(false);
+  readonly tickerDuration = computed(
+    () => `${this.tickerLoopItems().length * TICKER_SECONDS_PER_ITEM}s`,
+  );
   readonly formatChange = formatPercentageChange;
 
   constructor(
