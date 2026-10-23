@@ -1,0 +1,11 @@
+# Python packages for the analytics pipeline (copy job + dbt). Exact versions so every
+# machine (your laptop, the Lightsail Jenkins agent) installs the same thing.
+#   python -m venv .venv
+#   .venv/bin/pip install -r requirements.txt        (Windows: .venv\Scripts\pip ...)
+
+# Postgres driver used by copy/copy.py. [binary] bundles libpq, so no system install is needed.
+psycopg[binary]==3.3.6
+
+# dbt builds the analytics marts (dbt/). dbt-core is the tool; dbt-postgres is its Postgres adapter.
+dbt-core==1.12.6
+dbt-postgres==1.11.0

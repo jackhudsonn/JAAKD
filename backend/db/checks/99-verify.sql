@@ -47,6 +47,22 @@ WHERE conname = 'fk_profiles_users';
 SELECT has_table_privilege('jaakd_app', 'public.users', 'SELECT') AS jaakd_app_can_select_users;
 SELECT has_table_privilege('jaakd_app', 'public.sessions', 'INSERT') AS jaakd_app_can_insert_sessions;
 
+-- 2c) Analytics copy job role (only when jaakd_analytics_reader exists). Expected: every column true.
+SELECT
+  has_table_privilege('jaakd_analytics_reader', 'public."orderLogs"', 'SELECT') AS can_read_order_logs,
+  has_table_privilege('jaakd_analytics_reader', 'public."instrumentPrices"', 'SELECT') AS can_read_prices,
+  has_column_privilege('jaakd_analytics_reader', 'public.profiles', 'dob', 'SELECT') AS can_read_dob,
+  NOT has_table_privilege('jaakd_analytics_reader', 'public.users', 'SELECT') AS cannot_read_users,
+  NOT has_table_privilege('jaakd_analytics_reader', 'public.sessions', 'SELECT') AS cannot_read_sessions,
+  NOT has_table_privilege('jaakd_analytics_reader', 'public.payment_methods', 'SELECT') AS cannot_read_payment_methods,
+  NOT has_table_privilege('jaakd_analytics_reader', 'public.preferences', 'SELECT') AS cannot_read_preferences,
+  NOT has_table_privilege('jaakd_analytics_reader', 'public.watchlists', 'SELECT') AS cannot_read_watchlists,
+  NOT has_table_privilege('jaakd_analytics_reader', 'public.watchlist_items', 'SELECT') AS cannot_read_watchlist_items,
+  NOT has_column_privilege('jaakd_analytics_reader', 'public.profiles', 'firstName', 'SELECT') AS cannot_read_first_name,
+  NOT has_column_privilege('jaakd_analytics_reader', 'public.portfolios', 'portfolioName', 'SELECT') AS cannot_read_portfolio_name,
+  NOT has_table_privilege('jaakd_analytics_reader', 'public.holdings', 'INSERT, UPDATE, DELETE') AS cannot_write
+WHERE EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'jaakd_analytics_reader');
+
 -- 3) Deliberate bad insert to prove profiles must reference users
 -- Expected: this block fails on the profiles insert.
 BEGIN;

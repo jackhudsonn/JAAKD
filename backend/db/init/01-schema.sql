@@ -127,7 +127,7 @@ CREATE TABLE IF NOT EXISTS payment_methods (
 );
 
 -- Daily candles from Fauxnance, one row per instrument per trading day, refreshed nightly by PriceHistoryService.
--- close is the raw traded price; "adjClose" is restated for splits/dividends and is the one to use for returns.
+-- close is already adjusted for splits; "adjClose" is also adjusted for dividends and is the one to use for returns.
 CREATE TABLE IF NOT EXISTS "instrumentPrices" (
   "instrumentID" UUID NOT NULL,
   "priceDate" DATE NOT NULL,
@@ -363,6 +363,28 @@ TO jaakd_app;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE users, sessions TO jaakd_app;
 
 GRANT SELECT, INSERT, UPDATE ON TABLE "instrumentPrices" TO jaakd_app;
+
+-- Analytics copy job (analytics/copy): read-only, only the columns analytics needs.
+-- No access to users, sessions, payment_methods, preferences, watchlists, watchlist_items,
+-- portfolio names or profile names/address. dob is read only to compute an age band here.
+-- The role exists only when JAAKD_ANALYTICS_DB_PASSWORD is set (00-create-roles.sh).
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'jaakd_analytics_reader') THEN
+    GRANT USAGE ON SCHEMA public TO jaakd_analytics_reader;
+    GRANT SELECT ON TABLE
+      instruments,
+      holdings,
+      "orderLogs",
+      position_lots,
+      lot_matches,
+      "instrumentPrices"
+    TO jaakd_analytics_reader;
+    GRANT SELECT ("portfolioID", "userID") ON TABLE portfolios TO jaakd_analytics_reader;
+    GRANT SELECT ("userID", "userType", state, country, dob) ON TABLE profiles TO jaakd_analytics_reader;
+  END IF;
+END
+$$;
 
 -- 5) Seed Cash Instruments
 -- 5) Seed Cash Instruments (single statement, idempotent)

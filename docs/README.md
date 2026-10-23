@@ -106,6 +106,26 @@ pgAdmin opens its own SSH tunnel to the Docker host. In pgAdmin: **Register > Se
 
 Tables are under **Databases > jaakd > Schemas > public > Tables**. `jaakd_app` owns the application tables, so it can read them for inspection. Use pgAdmin to look, not to edit; change data through the app.
 
+#### Analytics database
+
+The analyst view has its own database, `jaakd_analytics`, in the `jaakd-analytics-postgres` container (see `analytics/`). It's an opt-in compose service: set `COMPOSE_PROFILES=analytics` in `.env` so `docker compose up -d --build` starts it with everything else, or start it on its own with `docker compose --profile analytics up -d jaakd-analytics-postgres`. It uses the stock `postgres:18` image, so there's nothing to build. `analytics/db/setup.sql` runs on its first start with an empty volume.
+
+Register a second server the same way, with the same SSH tunnel:
+
+- **Connection** tab: Host `<host>`, port `5434`, maintenance database `jaakd_analytics`, username `analytics_pipeline`.
+- **Advanced** tab: DB restriction `jaakd_analytics`.
+- Password: the `ANALYTICS_PIPELINE_DB_PASSWORD` value from the Docker host's `.env`.
+
+The tables are **not** in `public`. Look under **Databases > jaakd_analytics > Schemas**:
+
+- `raw`: the nightly copy of the prod tables (filled by `analytics/copy`).
+- `analytics_staging`: dbt views.
+- `analytics`: the dbt marts the backend reads.
+
+All three are empty until the copy job and dbt have run. If the tree looks stale, right-click **Schemas > Refresh**.
+
+To check what the read-only roles can see, register them as extra servers: `jaakd_analytics_reader` on port `5433` / `jaakd` (password `JAAKD_ANALYTICS_DB_PASSWORD`), and `analytics_app_reader` on port `5434` / `jaakd_analytics` (password `ANALYTICS_DB_PASSWORD`). Quote camelCase names in the Query Tool, e.g. `SELECT * FROM "orderLogs";`.
+
 ## Configuration
 
 ### Docker (compose)
@@ -116,6 +136,10 @@ Tables are under **Databases > jaakd > Schemas > public > Tables**. `jaakd_app` 
 - `JAAKD_APP_DB_PASSWORD` — the application-role password.
 - `IDENTITY_PROVIDER` — the identity provider adapter. Only `development` is implemented today.
 - `AUTH_COOKIE_SECURE` — whether the session cookie is sent only over HTTPS.
+- `JAAKD_ANALYTICS_DB_PASSWORD` — the password for `jaakd_analytics_reader`, the read-only role the analytics copy job uses on `jaakd`. Optional; the role is skipped when it's empty.
+- `ANALYTICS_PIPELINE_DB_PASSWORD` — the password for `analytics_pipeline`, which owns the analytics database.
+- `ANALYTICS_DB_PASSWORD` — the password for `analytics_app_reader`, the backend's read-only role on the analytics database.
+- `COMPOSE_PROFILES=analytics` — includes `jaakd-analytics-postgres` in `docker compose up`.
 
 Everything else is fixed in `docker-compose.yml` and can't be set from `.env`: the database `jaakd`, the role `jaakd_app`, the published Postgres port `5433`, and the backend's datasource URL and username on the internal network.
 

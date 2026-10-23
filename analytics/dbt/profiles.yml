@@ -1,0 +1,26 @@
+# How dbt connects to the analytics database. Everything comes from environment variables, so the
+# same file works locally, on the Lightsail Jenkins agent and on Aurora. The defaults are the local
+# jaakd-analytics-postgres container; the password has no default and must always be set.
+#   ANALYTICS_PIPELINE_DB_HOST      (default 127.0.0.1)
+#   ANALYTICS_PIPELINE_DB_PORT      (default 5434)
+#   ANALYTICS_PIPELINE_DB_NAME      (default jaakd_analytics)
+#   ANALYTICS_PIPELINE_DB_USER      (default analytics_pipeline)
+#   ANALYTICS_PIPELINE_DB_PASSWORD  (required)
+# dbt also loads the nearest .env at or above the current folder (the repo's .env when run from
+# analytics/). Variables already set in the shell win over the file.
+
+jaakd_analytics:
+  target: default
+  outputs:
+    default:
+      type: postgres
+      host: "{{ env_var('ANALYTICS_PIPELINE_DB_HOST', '127.0.0.1') }}"
+      port: "{{ env_var('ANALYTICS_PIPELINE_DB_PORT', '5434') | as_number }}"
+      dbname: "{{ env_var('ANALYTICS_PIPELINE_DB_NAME', 'jaakd_analytics') }}"
+      user: "{{ env_var('ANALYTICS_PIPELINE_DB_USER', 'analytics_pipeline') }}"
+      password: "{{ env_var('ANALYTICS_PIPELINE_DB_PASSWORD') }}"
+      # Schema for models without their own +schema; every folder in dbt_project.yml sets one.
+      schema: analytics_staging
+      threads: 2
+      # Fail fast instead of hanging when the database is unreachable (same as copy/copy_raw.py).
+      connect_timeout: 10

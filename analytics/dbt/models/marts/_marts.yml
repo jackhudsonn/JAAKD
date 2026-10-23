@@ -1,0 +1,288 @@
+# The marts: the tables the backend reads (AnalyticsService). Their columns are the contract in the plan's
+# Section 0. contract: enforced (dbt_project.yml) means dbt creates each table with exactly these columns and
+# types and fails the build if a model's SELECT doesn't match, so a change here can't silently break the API.
+# All money is USD.
+
+models:
+  - name: dim_instrument
+    description: One row per instrument, with its descriptive fields.
+    config:
+      indexes:
+        - columns: ["instrument_id"]
+          unique: true
+    columns:
+      - name: instrument_id
+        data_type: uuid
+        constraints:
+          - type: not_null
+      - name: ticker
+        data_type: text
+      - name: name
+        data_type: text
+      - name: market
+        data_type: text
+      - name: instrument_class
+        data_type: text
+      - name: trading_currency
+        data_type: text
+
+  - name: dim_portfolio
+    description: One row per portfolio, with its owner's non-identifying profile fields.
+    config:
+      indexes:
+        - columns: ["portfolio_id"]
+          unique: true
+    columns:
+      - name: portfolio_id
+        data_type: uuid
+        constraints:
+          - type: not_null
+      - name: user_id
+        data_type: uuid
+        constraints:
+          - type: not_null
+      - name: user_type
+        data_type: int
+        description: 0 retail, 1 admin, 2 auditor, 3 analyst (model/UserType.java).
+      - name: country
+        data_type: text
+      - name: state
+        data_type: text
+      - name: age_band
+        data_type: text
+        description: "<25, 25-34, 35-44, 45-54, 55-64, 65+ or unknown (computed on prod from dob)."
+
+  - name: fct_holding_daily
+    description: One row per holding per calendar day, from its first buy (or cash movement) to today.
+    config:
+      indexes:
+        - columns: ["holding_id", "as_of_date"]
+          unique: true
+        - columns: ["portfolio_id", "as_of_date"]
+    columns:
+      - name: holding_id
+        data_type: uuid
+        constraints:
+          - type: not_null
+      - name: portfolio_id
+        data_type: uuid
+        constraints:
+          - type: not_null
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_portfolio')
+                field: portfolio_id
+      - name: instrument_id
+        data_type: uuid
+        constraints:
+          - type: not_null
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_instrument')
+                field: instrument_id
+      - name: as_of_date
+        data_type: date
+        constraints:
+          - type: not_null
+      - name: quantity
+        data_type: numeric(19,6)
+        description: Shares, coins or units held at the end of the day (for cash, the balance in its own currency).
+      - name: cost_basis_usd
+        data_type: numeric(24,6)
+        description: What the shares still held cost (FIFO), at the day's exchange rate.
+      - name: market_value_usd
+        data_type: numeric(24,6)
+        description: quantity x the day's close (1 for cash), at the day's exchange rate.
+        data_tests:
+          - not_null
+      - name: realized_pnl_to_date_usd
+        data_type: numeric(24,6)
+        description: Profit or loss locked in by sales so far, converted on the day of each sale.
+      - name: unrealized_pnl_usd
+        data_type: numeric(24,6)
+        description: market_value_usd - cost_basis_usd.
+
+  - name: fct_instrument_price_daily
+    description: One row per instrument per day it has a real price (trading days only).
+    config:
+      indexes:
+        - columns: ["instrument_id", "price_date"]
+          unique: true
+    columns:
+      - name: instrument_id
+        data_type: uuid
+        constraints:
+          - type: not_null
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_instrument')
+                field: instrument_id
+      - name: price_date
+        data_type: date
+        constraints:
+          - type: not_null
+      - name: close
+        data_type: numeric(24,10)
+        description: The day's close in the instrument's own currency (already adjusted for splits).
+      - name: close_usd
+        data_type: numeric(24,6)
+        data_tests:
+          - not_null
+      - name: daily_return
+        data_type: double precision
+        description: adj_close / the previous trading day's adj_close - 1, e.g. 0.012 = +1.2%. Null on the first day.
+      - name: cumulative_return
+        data_type: double precision
+        description: adj_close / the first adj_close - 1. 0 on the first day.
+
+  - name: fct_portfolio_daily
+    description: One row per portfolio per calendar day, from its first holding to today.
+    config:
+      indexes:
+        - columns: ["portfolio_id", "as_of_date"]
+          unique: true
+    columns:
+      - name: portfolio_id
+        data_type: uuid
+        constraints:
+          - type: not_null
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_portfolio')
+                field: portfolio_id
+      - name: as_of_date
+        data_type: date
+        constraints:
+          - type: not_null
+      - name: market_value_usd
+        data_type: numeric(24,6)
+        description: The whole portfolio, holdings plus cash.
+        data_tests:
+          - not_null
+      - name: cash_usd
+        data_type: numeric(24,6)
+        description: The cash part of market_value_usd, all currencies converted.
+      - name: net_external_flow_usd
+        data_type: numeric(24,6)
+        description: Deposits - withdrawals that day (0 on days without either).
+      - name: daily_return
+        data_type: double precision
+        description: (value - net flow) / previous day's value - 1. Null when the previous day's value was 0.
+      - name: cumulative_twr
+        data_type: double precision
+        description: Time-weighted return since the first day, chaining daily_return.
+
+  - name: agg_instrument_performance
+    description: One row per priced instrument, with its returns, risk and platform holdings. Returns are ratios (0.05 = +5%).
+    config:
+      indexes:
+        - columns: ["instrument_id"]
+          unique: true
+    columns:
+      - name: instrument_id
+        data_type: uuid
+        constraints:
+          - type: not_null
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_instrument')
+                field: instrument_id
+      - name: ticker
+        data_type: text
+      - name: name
+        data_type: text
+      - name: instrument_class
+        data_type: text
+      - name: last_close_usd
+        data_type: numeric(24,6)
+      - name: return_1w
+        data_type: double precision
+      - name: return_1m
+        data_type: double precision
+      - name: return_3m
+        data_type: double precision
+      - name: return_ytd
+        data_type: double precision
+        description: Since the last close of the previous year.
+      - name: volatility_ann
+        data_type: double precision
+        description: Standard deviation of daily returns over the last year x sqrt(252).
+      - name: max_drawdown
+        data_type: double precision
+        description: Worst fall from a high to a later low over the last year (negative, or 0).
+      - name: holder_count
+        data_type: bigint
+        description: Portfolios holding it today.
+      - name: exposure_usd
+        data_type: numeric(24,6)
+        description: Total market value held across the platform today.
+      - name: net_flow_30d_usd
+        data_type: numeric(24,6)
+        description: Buys - sells over the last 30 days.
+
+  - name: agg_portfolio_performance
+    description: One row per portfolio, with today's value, time-weighted returns, risk and P&L. Returns are ratios.
+    config:
+      indexes:
+        - columns: ["portfolio_id"]
+          unique: true
+    columns:
+      - name: portfolio_id
+        data_type: uuid
+        constraints:
+          - type: not_null
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_portfolio')
+                field: portfolio_id
+      - name: user_id
+        data_type: uuid
+      - name: user_type
+        data_type: int
+      - name: country
+        data_type: text
+      - name: age_band
+        data_type: text
+      - name: market_value_usd
+        data_type: numeric(24,6)
+        description: Today's value, holdings plus cash (0 for a portfolio with no activity).
+      - name: return_1w
+        data_type: double precision
+      - name: return_1m
+        data_type: double precision
+      - name: return_3m
+        data_type: double precision
+      - name: return_ytd
+        data_type: double precision
+      - name: volatility_ann
+        data_type: double precision
+        description: Standard deviation of weekday daily returns over the last year x sqrt(252).
+      - name: max_drawdown
+        data_type: double precision
+        description: Worst fall from a high to a later low over the last year (negative, or 0).
+      - name: realized_pnl_usd
+        data_type: numeric(24,6)
+        description: Locked in by sales, investments only (see unrealized_pnl_usd).
+      - name: unrealized_pnl_usd
+        data_type: numeric(24,6)
+        description: >-
+          On investments still held. Neither P&L column includes currency gains on foreign cash, which are in
+          market_value_usd: value - net deposits = realized + unrealized + currency gains on cash.
+
+  - name: meta_build
+    description: One row with the times behind the analyst view's "Data as of" banner.
+    columns:
+      - name: source_snapshot_at
+        data_type: timestamp with time zone
+        description: When the latest copy run took its snapshot of prod.
+        data_tests:
+          - not_null
+      - name: built_at
+        data_type: timestamp with time zone
+        description: When this dbt build finished the marts.

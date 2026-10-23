@@ -10,6 +10,8 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
       JAAKD_APP_DB_PASSWORD: *jaakd-app-db-password
+      # Optional: read-only role for the analytics copy job; skipped when empty.
+      JAAKD_ANALYTICS_DB_PASSWORD: ${JAAKD_ANALYTICS_DB_PASSWORD:-}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d jaakd"]
       interval: 5s
@@ -25,7 +27,8 @@ services:
       - ./backend/db/development:/opt/jaakd-development:ro
 
   # Analyst view: separate analytics database (raw copy of prod + dbt marts, see analytics/).
-  # Opt-in: start it with `docker compose --profile analytics up -d jaakd-analytics-postgres`.
+  # Opt-in: start it with `docker compose --profile analytics up -d jaakd-analytics-postgres`,
+  # or set COMPOSE_PROFILES=analytics in .env to include it in every `docker compose up`.
   jaakd-analytics-postgres:
     image: postgres:18
     container_name: jaakd-analytics-postgres
