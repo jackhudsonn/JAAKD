@@ -46,12 +46,12 @@
   </div>
 
   <div class="form-field">
-    <label for="order-quantity">Quantity (whole shares)</label>
+    <label for="order-quantity">Quantity</label>
     <input
       id="order-quantity"
       type="number"
-      min="1"
-      step="1"
+      min="0"
+      step="any"
       placeholder="0"
       [ngModel]="quantity()"
       (ngModelChange)="quantity.set($event)"
@@ -73,33 +73,28 @@
     </div>
   }
 
-  <p class="order-hint">
-    @if (type() === 'buy') {
-      Max affordable: {{ maxBuyQuantity() }} share(s)
-    } @else {
-      Owned: {{ ownedQuantity() }} share(s)
-    }
-  </p>
-
   @if (showPriceUnavailableHint()) {
     <p class="order-hint">Indicative price unavailable. The order fills at the current quote.</p>
   }
 
-  @if (preview(); as orderPreview) {
-    <div class="order-preview">
-      <div class="order-preview-row">
-        <span>{{ orderPreview.label }}</span>
-        <span class="order-preview-value">{{ orderPreview.total | currency: 'USD' }}</span>
-      </div>
-      @if (orderPreview.cashAfter !== null) {
-        <div class="order-preview-row">
-          <span>Cash after order</span>
-          <span class="order-preview-value">{{ orderPreview.cashAfter | currency: 'USD' }}</span>
-        </div>
-      }
-      <p class="order-hint">Final price is the live quote at execution.</p>
+  <div class="order-preview">
+    <div class="order-preview-row">
+      <span>{{ preview().label }}</span>
+      <span class="order-preview-value">{{ (preview().total | currency: 'USD') ?? '-' }}</span>
     </div>
-  }
+    <div class="order-preview-row">
+      <span>Cash after order</span>
+      <span class="order-preview-value">{{ (preview().cashAfter | currency: 'USD') ?? '-' }}</span>
+    </div>
+    <p class="order-hint">
+      @if (type() === 'buy') {
+        Max affordable: {{ maxBuyQuantity() | number: '1.0-6' }} share(s)
+      } @else {
+        Owned: {{ ownedQuantity() | number: '1.0-6' }} share(s)
+      }
+    </p>
+    <p class="order-hint">Final price is the live quote at execution.</p>
+  </div>
 
   <div class="form-actions" [class.with-back]="showBackButton()">
     @if (showBackButton()) {

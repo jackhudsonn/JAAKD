@@ -1,5 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
+import { QuoteResponse } from '@core/models/api.models';
 import { HoldingApiService } from '@core/services/holding-api.service';
 import { InstrumentApiService } from '@core/services/instrument-api.service';
 import { OrderLogApiService } from '@core/services/order-log-api.service';
@@ -98,7 +99,7 @@ describe('BackendTradeStateService', () => {
   };
   const instrumentApiService = {
     list: vi.fn(async () => instruments),
-    getQuotes: vi.fn(async () => []),
+    getQuotes: vi.fn<() => Promise<QuoteResponse[]>>(async () => []),
   };
   const orderLogApiService = {
     listByPortfolio: vi.fn(async () => orderLogs),
@@ -183,6 +184,47 @@ describe('BackendTradeStateService', () => {
     expect(service.orders()).toEqual([]);
     expect(service.watchlists()).toEqual([]);
     expect(service.latestPriceBySymbolData().size).toBe(0);
+    expect(service.liveQuoteBySymbolData().size).toBe(0);
+  });
+
+  it('keeps live quote change percent from the quotes, under both crypto spellings', async () => {
+    instrumentApiService.getQuotes.mockResolvedValueOnce([
+      {
+        symbol: 'AAPL',
+        price: 110,
+        bid: null,
+        ask: null,
+        currency: 'USD',
+        asOf: null,
+        marketState: null,
+        changePercent: 10,
+      },
+      {
+        symbol: 'X:BTC-USD',
+        price: 60000,
+        bid: null,
+        ask: null,
+        currency: 'USD',
+        asOf: null,
+        marketState: null,
+        changePercent: -2.5,
+      },
+    ]);
+
+    await service.load();
+
+    expect(service.liveQuoteBySymbolData().get('AAPL')).toEqual({ price: 110, changePct: 10 });
+    expect(service.liveQuoteBySymbolData().get('BTC')?.changePct).toBe(-2.5);
+    expect(service.liveQuoteBySymbolData().get('X:BTC-USD')?.changePct).toBe(-2.5);
+  });
+
+  it('clears live quotes when loading quotes fails', async () => {
+    instrumentApiService.getQuotes.mockRejectedValueOnce(new Error('quotes down'));
+
+    await service.load();
+
+    expect(service.loadState()).toBe('ready');
+    expect(service.liveQuoteBySymbolData().size).toBe(0);
   });
 
   it('submits BUY order and reloads mapped state', async () => {

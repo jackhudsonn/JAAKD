@@ -15,9 +15,11 @@ import { OrderLogApiService } from '@core/services/order-log-api.service';
 import { PortfolioApiService } from '@core/services/portfolio-api.service';
 import { WatchlistApiService } from '@core/services/watchlist-api.service';
 import {
+  LiveQuote,
   toCash,
   toHoldings,
   toLatestPriceBySymbol,
+  toLiveQuoteBySymbol,
   toOrders,
   toPriceResolver,
   toQuotePriceBySymbol,
@@ -47,6 +49,7 @@ export class BackendTradeStateService implements TradeStatePort {
   readonly instrumentsData = signal<InstrumentResponse[]>([]);
   readonly orderLogsData = signal<OrderLogResponse[]>([]);
   readonly latestPriceBySymbolData = signal<Map<string, number>>(new Map());
+  readonly liveQuoteBySymbolData = signal<Map<string, LiveQuote>>(new Map());
   readonly watchlistsData = signal<WatchlistResponse[]>([]);
 
   private readonly portfolioId = signal<string | null>(null);
@@ -80,6 +83,7 @@ export class BackendTradeStateService implements TradeStatePort {
       this.watchlistsData.set([]);
       this.latestPriceBySymbolData.set(new Map());
       this.quotePriceBySymbol.set(new Map());
+      this.liveQuoteBySymbolData.set(new Map());
       this.accountCash.set(0);
       this.cashBalances.set({});
       this.holdings.set([]);
@@ -198,9 +202,11 @@ export class BackendTradeStateService implements TradeStatePort {
     try {
       const quotes = await this.instrumentApiService.getQuotes(toQuoteSymbols(instruments));
       this.quotePriceBySymbol.set(toQuotePriceBySymbol(quotes));
+      this.liveQuoteBySymbolData.set(toLiveQuoteBySymbol(quotes));
     } catch (error) {
       console.error('BackendTradeStateService.loadQuotes failed', error);
       this.quotePriceBySymbol.set(new Map());
+      this.liveQuoteBySymbolData.set(new Map());
     }
   }
 

@@ -27,6 +27,7 @@ import {
   TradeAssetPerformanceInterval,
 } from '@features/trade/services/trade-market-data.port';
 import { startCycleTimer } from '@shared/utils/cycle-timer';
+import { isFlatChange } from '@shared/utils/format-percentage-change';
 
 export type AssetOrderPlaced = OrderFormSubmit & { symbol: string };
 
@@ -105,12 +106,23 @@ export class AssetPopupComponent implements OnInit, OnDestroy {
     const values = this.performanceSeries().map((point) => point.value);
     return values.length > 0 ? Math.min(...values) : 0;
   });
-  changeAmount = computed(() => this.endValue() - this.startValue());
+  // With no series (backend mode), the change is measured from the asset's
+  // basePrice (previous close) so the header matches the Trade cards.
+  private changeBase = computed(() =>
+    this.performanceSeries().length > 0 ? this.startValue() : (this.asset()?.basePrice ?? 0),
+  );
+  private changeEnd = computed(() =>
+    this.performanceSeries().length > 0 ? this.endValue() : this.currentPrice(),
+  );
+  changeAmount = computed(() => this.changeEnd() - this.changeBase());
   changePct = computed(() => {
-    const start = this.startValue();
+    const start = this.changeBase();
     return start === 0 ? 0 : (this.changeAmount() / start) * 100;
   });
   isPositive = computed(() => this.changeAmount() >= 0);
+  // Flat only when both shown values round to 0.00; a cheap asset can move
+  // under a cent and still change by a visible percent.
+  isFlat = computed(() => isFlatChange(this.changeAmount()) && isFlatChange(this.changePct()));
 
   constructor() {
     effect(() => {

@@ -23,6 +23,7 @@ export class BackendTradeMarketDataService implements TradeMarketDataPort {
 
   listAssets(): readonly TradeMarketAsset[] {
     const prices = this.backendTradeStateService.latestPriceBySymbolData();
+    const liveQuotes = this.backendTradeStateService.liveQuoteBySymbolData();
 
     return this.backendTradeStateService
       .instrumentsData()
@@ -32,11 +33,15 @@ export class BackendTradeMarketDataService implements TradeMarketDataPort {
           return null;
         }
 
+        const price = prices.get(instrument.ticker) ?? 0;
+        // Quotes are filed under both "BTC" and "X:BTC-USD", so the ticker finds crypto either way.
+        const changePct = liveQuotes.get(instrument.ticker.toUpperCase())?.changePct ?? null;
+
         return {
           symbol: instrument.ticker,
           name: instrument.name,
           instrumentType,
-          basePrice: prices.get(instrument.ticker) ?? 0,
+          basePrice: this.toPreviousClose(price, changePct),
         };
       })
       .filter((asset): asset is TradeMarketAsset => asset !== null);
@@ -59,5 +64,15 @@ export class BackendTradeMarketDataService implements TradeMarketDataPort {
 
   isKnownSymbol(symbol: string): boolean {
     return this.listAssets().some((asset) => asset.symbol === symbol);
+  }
+
+  // basePrice is what the cards and popup measure the change against, so the
+  // previous close makes them show the quote's daily change.
+  private toPreviousClose(price: number, changePct: number | null): number {
+    if (changePct === null || changePct <= -100) {
+      return price;
+    }
+
+    return price / (1 + changePct / 100);
   }
 }
