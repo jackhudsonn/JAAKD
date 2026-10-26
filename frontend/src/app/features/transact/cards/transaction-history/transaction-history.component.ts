@@ -1,4 +1,4 @@
-import { Component, computed, input } from '@angular/core';
+import { Component, computed, input, output } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
 import { ScrollableListComponent } from '@shared/components/scrollable-list/scrollable-list.component';
@@ -24,6 +24,7 @@ import { Transaction } from '@core/models';
 })
 export class TransactionHistoryComponent {
   transactions = input.required<readonly Transaction[]>();
+  selectTransaction = output<string>();
 
   formatLabel = formatLabel;
   trackById = (transaction: Transaction) => transaction.id;

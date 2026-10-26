@@ -1,4 +1,5 @@
 import { Injectable, inject } from '@angular/core';
+import { ORDER_STATUS } from '@core/constants/order-status.constants';
 import { Deposit, Withdrawal } from '@core/models';
 import { CashConversionResponse, CashCurrency } from '@core/models/api.models';
 import { TransactOperationsService } from './transact-operations.service';
@@ -41,6 +42,28 @@ export class TransactFacadeService {
       request.fromCurrency,
       request.toCurrency,
       'bank_transfer',
+    );
+  }
+
+  async cancelTransaction(transactionId: string): Promise<void> {
+    const transaction = this.transactions().find((entry) => entry.id === transactionId);
+    if (!transaction) {
+      throw new Error('Transaction not found.');
+    }
+
+    if (transaction.status !== ORDER_STATUS.PENDING) {
+      throw new Error('Only pending transactions can be cancelled.');
+    }
+
+    if (this.state.cancelTransaction) {
+      await this.state.cancelTransaction(transactionId);
+      return;
+    }
+
+    this.state.transactions.update((current) =>
+      current.map((entry) =>
+        entry.id === transactionId ? { ...entry, status: ORDER_STATUS.CANCELLED } : entry,
+      ),
     );
   }
 }

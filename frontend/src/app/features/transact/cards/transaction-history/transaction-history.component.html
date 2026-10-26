@@ -10,7 +10,12 @@
 
   <app-scrollable-list [items]="rows()" [trackBy]="trackById" emptyMessage="No transactions yet.">
     <ng-template let-transaction>
-      <div class="transaction-row">
+      <button
+        type="button"
+        class="transaction-row"
+        [disabled]="transaction.status !== 'PENDING'"
+        (click)="selectTransaction.emit(transaction.id)"
+      >
         <span class="transaction-date">{{ transaction.createdAt | date: 'MMM d, y' }}</span>
 
         <span
@@ -33,7 +38,7 @@
           }}
         </span>
         <app-status-badge [status]="transaction.status" />
-      </div>
+      </button>
     </ng-template>
   </app-scrollable-list>
 </app-widget-card>

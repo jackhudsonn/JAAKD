@@ -142,6 +142,21 @@ export class BackendTransactStateService implements TransactStatePort {
     await this.refresh();
     return result;
   }
+
+  async cancelTransaction(transactionId: string): Promise<void> {
+    const transaction = this.transactions().find((entry) => entry.id === transactionId);
+    if (!transaction) {
+      throw new Error('Transaction not found.');
+    }
+
+    if (transaction.status !== ORDER_STATUS.PENDING) {
+      throw new Error('Only pending transactions can be cancelled.');
+    }
+
+    await this.orderLogApiService.cancel(transactionId);
+    await this.refresh();
+  }
+
   private async refresh(): Promise<void> {
     const portfolio = await this.portfolioApiService.ensureDefault();
     const [holdings, instruments, orderLogs] = await Promise.all([

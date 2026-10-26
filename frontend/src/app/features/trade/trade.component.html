@@ -1,7 +1,7 @@
 <main class="page-content trade-page">
   <!-- <h1>Trade</h1> -->
 
-  <p class="page-description">Perform trades and view your orders.</p>
+  <p class="page-description">Perform trades and view your trade history.</p>
 
   @if (backendDataMode && loadState() === 'loading') {
     <section class="trade-grid trade-grid-skeleton" aria-busy="true" aria-live="polite">
@@ -21,7 +21,7 @@
         <div class="trade-skeleton-line trade-skeleton-line-md"></div>
       </article>
 
-      <article class="trade-skeleton-card orders-card-slot">
+      <article class="trade-skeleton-card trade-history-card-slot">
         <div class="trade-skeleton-line trade-skeleton-line-sm"></div>
         <div class="trade-skeleton-line trade-skeleton-line-lg"></div>
         <div class="trade-skeleton-line trade-skeleton-line-lg"></div>
@@ -43,10 +43,9 @@
         (selectSymbol)="openAsset($event, false)"
       />
 
-      <app-orders-card
-        class="orders-card-slot"
-        [openOrders]="openOrders()"
-        [historyOrders]="historyOrders()"
+      <app-trade-history
+        class="trade-history-card-slot"
+        [orders]="orders()"
         (selectOrder)="openOrderDetails($event)"
       />
     </section>

@@ -15,6 +15,7 @@ export interface TransactStatePort {
     amount: number,
     currency?: CashCurrency,
   ): Promise<void>;
+  cancelTransaction?(transactionId: string): Promise<void>;
   convertCash?(
     fromCurrency: CashCurrency,
     toCurrency: CashCurrency,

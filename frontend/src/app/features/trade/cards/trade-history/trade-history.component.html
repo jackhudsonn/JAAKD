@@ -1,5 +1,5 @@
-<app-widget-card title="Orders">
-  <div class="orders-columns" role="row">
+<app-widget-card class="trade-history-card" title="Trade History">
+  <div class="trade-history-columns" role="row">
     <span class="column-label">Date</span>
     <span class="column-label">Type</span>
     <span class="column-label">Symbol</span>
@@ -7,38 +7,38 @@
     <span class="column-label">Status</span>
   </div>
 
-  <app-scrollable-list [items]="rows()" [trackBy]="trackByRow" emptyMessage="No orders yet.">
+  <app-scrollable-list [items]="rows()" [trackBy]="trackById" emptyMessage="No trade history yet.">
     <ng-template let-row>
       @if (row.isSelectable) {
         <button
           type="button"
-          class="orders-row selectable"
+          class="trade-row selectable"
           (click)="selectOrder.emit(row.order.id)"
         >
-          <span class="order-date">{{ row.order.createdAt | date: 'MMM d, y' }}</span>
+          <span class="trade-date">{{ row.order.createdAt | date: 'MMM d, y' }}</span>
           <span
-            class="order-type"
+            class="trade-type"
             [class.buy]="row.order.type === 'buy'"
             [class.sell]="row.order.type === 'sell'"
           >
             {{ row.order.type | titlecase }}
           </span>
-          <span class="order-symbol">{{ row.order.symbol }}</span>
-          <span class="order-qty">{{ row.order.quantity }}</span>
+          <span class="trade-symbol">{{ row.order.symbol }}</span>
+          <span class="trade-quantity">{{ row.order.quantity }}</span>
           <app-status-badge [status]="row.order.status" />
         </button>
       } @else {
-        <div class="orders-row">
-          <span class="order-date">{{ row.order.createdAt | date: 'MMM d, y' }}</span>
+        <div class="trade-row">
+          <span class="trade-date">{{ row.order.createdAt | date: 'MMM d, y' }}</span>
           <span
-            class="order-type"
+            class="trade-type"
             [class.buy]="row.order.type === 'buy'"
             [class.sell]="row.order.type === 'sell'"
           >
             {{ row.order.type | titlecase }}
           </span>
-          <span class="order-symbol">{{ row.order.symbol }}</span>
-          <span class="order-qty">{{ row.order.quantity }}</span>
+          <span class="trade-symbol">{{ row.order.symbol }}</span>
+          <span class="trade-quantity">{{ row.order.quantity }}</span>
           <app-status-badge [status]="row.order.status" />
         </div>
       }

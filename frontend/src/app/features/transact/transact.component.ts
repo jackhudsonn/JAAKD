@@ -1,4 +1,6 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, effect, inject, signal } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { MoveFundsFormComponent } from './cards/move-funds/move-funds.component';
 import { TransactionHistoryComponent } from './cards/transaction-history/transaction-history.component';
 import { CurrencyExchangeComponent } from './cards/currency-exchange/currency-exchange.component';
@@ -13,6 +15,7 @@ import { BackendTransactStateService } from './services/backend-transact-state.s
 import { TransactOperationsService } from './services/transact-operations.service';
 import { ToastService } from '@shared/components/toast/toast.service';
 import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
+import { TransactionDetailsPopupComponent } from './components/transaction-details-popup/transaction-details-popup.component';
 
 @Component({
   selector: 'app-transact',
@@ -28,23 +31,63 @@ import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.
     CurrencyExchangeComponent,
     TransactionHistoryComponent,
     WidgetCardComponent,
+    TransactionDetailsPopupComponent,
   ],
   templateUrl: './transact.component.html',
   styleUrl: './transact.component.css',
 })
-export class TransactComponent implements OnInit {
+export class TransactComponent implements OnInit, OnDestroy {
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly transactFacade = inject(TransactFacadeService);
   private readonly toastService = inject(ToastService);
+  private readonly requestedTransactionId = signal<string | null>(null);
+  private routeQuerySubscription?: Subscription;
 
   transactions = this.transactFacade.transactions;
+  readonly activeTransactionId = signal<string | null>(null);
+  readonly activeTransaction = computed(
+    () =>
+      this.transactions().find((transaction) => transaction.id === this.activeTransactionId()) ??
+      null,
+  );
   readonly backendDataMode = this.transactFacade.backendDataMode;
   readonly loadState = computed(() => this.transactFacade.loadState?.() ?? 'ready');
   readonly submittingAction = signal(false);
   readonly cashBalances = computed(() => this.transactFacade.cashBalances?.() ?? {});
   readonly currencies = computed(() => this.transactFacade.cashCurrencies?.() ?? CASH_CURRENCIES);
 
+  constructor() {
+    effect(() => {
+      const transactionId = this.requestedTransactionId();
+      if (!transactionId || (this.backendDataMode && this.loadState() !== 'ready')) {
+        return;
+      }
+
+      const transaction = this.transactions().find((entry) => entry.id === transactionId);
+      if (!transaction) {
+        return;
+      }
+
+      this.activeTransactionId.set(transactionId);
+      void this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { transactionId: null },
+        queryParamsHandling: 'merge',
+        replaceUrl: true,
+      });
+    });
+  }
+
   ngOnInit() {
     void this.transactFacade.load();
+    this.routeQuerySubscription = this.route.queryParamMap.subscribe((queryParams) => {
+      this.requestedTransactionId.set(queryParams.get('transactionId'));
+    });
+  }
+
+  ngOnDestroy() {
+    this.routeQuerySubscription?.unsubscribe();
   }
 
   async onDeposit(deposit: Deposit) {
@@ -100,6 +143,28 @@ export class TransactComponent implements OnInit {
 
   retryLoad() {
     void this.transactFacade.load();
+  }
+
+  closeTransactionPopup() {
+    this.activeTransactionId.set(null);
+  }
+
+  openTransactionDetails(transactionId: string) {
+    this.activeTransactionId.set(transactionId);
+  }
+
+  async cancelTransaction(transactionId: string) {
+    this.submittingAction.set(true);
+
+    try {
+      await this.transactFacade.cancelTransaction(transactionId);
+      this.toastService.success('Pending transaction cancelled.');
+      this.closeTransactionPopup();
+    } catch (error) {
+      this.toastService.error(this.toActionErrorMessage(error));
+    } finally {
+      this.submittingAction.set(false);
+    }
   }
 
   private toActionErrorMessage(error: unknown): string {
