@@ -43,8 +43,20 @@
       </div>
 
       <div class="history-slot">
-        <app-transaction-history [transactions]="transactions()" />
+        <app-transaction-history
+          [transactions]="transactions()"
+          (selectTransaction)="openTransactionDetails($event)"
+        />
       </div>
     </section>
+  }
+
+  @if (activeTransaction(); as transaction) {
+    <app-transaction-details-popup
+      [transaction]="transaction"
+      [cancelling]="submittingAction()"
+      (closed)="closeTransactionPopup()"
+      (cancel)="cancelTransaction($event)"
+    />
   }
 </main>

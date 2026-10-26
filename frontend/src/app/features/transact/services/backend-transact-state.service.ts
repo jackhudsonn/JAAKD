@@ -13,7 +13,10 @@ import { HoldingApiService } from '@core/services/holding-api.service';
 import { InstrumentApiService } from '@core/services/instrument-api.service';
 import { OrderLogApiService } from '@core/services/order-log-api.service';
 import { PortfolioApiService } from '@core/services/portfolio-api.service';
-import { toCashBalances, toTransactions } from '@features/dashboard/services/dashboard-backend.mappers';
+import {
+  toCashBalances,
+  toTransactions,
+} from '@features/dashboard/services/dashboard-backend.mappers';
 import { TransactStatePort } from './transact-state.port';
 
 export type TransactLoadState = 'loading' | 'ready' | 'error';
@@ -138,6 +141,21 @@ export class BackendTransactStateService implements TransactStatePort {
     await this.refresh();
     return result;
   }
+
+  async cancelTransaction(transactionId: string): Promise<void> {
+    const transaction = this.transactions().find((entry) => entry.id === transactionId);
+    if (!transaction) {
+      throw new Error('Transaction not found.');
+    }
+
+    if (transaction.status !== ORDER_STATUS.PENDING) {
+      throw new Error('Only pending transactions can be cancelled.');
+    }
+
+    await this.orderLogApiService.cancel(transactionId);
+    await this.refresh();
+  }
+
   private async refresh(): Promise<void> {
     const portfolio = await this.portfolioApiService.ensureDefault();
     const [holdings, instruments, orderLogs] = await Promise.all([

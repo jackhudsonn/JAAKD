@@ -30,7 +30,7 @@
   gap: var(--space-lg);
 }
 
-.orders-card-slot {
+.trade-history-card-slot {
   grid-column: 1 / -1;
 }
 
@@ -107,7 +107,7 @@
     grid-template-columns: 1fr;
   }
 
-  .orders-card-slot {
+  .trade-history-card-slot {
     grid-column: auto;
   }
 

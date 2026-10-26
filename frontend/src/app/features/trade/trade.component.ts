@@ -1,10 +1,10 @@
 import { Component, OnDestroy, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { ORDER_STATUS } from '@core/constants/order-status.constants';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { TradeCardComponent } from './cards/trade/trade-card.component';
 import { HoldingsCardComponent } from './cards/holdings/holdings-card.component';
-import { OrdersCardComponent } from './cards/orders/orders-card.component';
+import { TradeHistoryComponent } from './cards/trade-history/trade-history.component';
 import {
   AssetPopupComponent,
   AssetOrderPlaced,
@@ -38,7 +38,7 @@ import { OrderStatus } from '@core/models';
   imports: [
     TradeCardComponent,
     HoldingsCardComponent,
-    OrdersCardComponent,
+    TradeHistoryComponent,
     AssetPopupComponent,
     OrderDetailsPopupComponent,
   ],
@@ -47,6 +47,7 @@ import { OrderStatus } from '@core/models';
 })
 export class TradeComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly tradeFacade = inject(TradeFacadeService);
   private readonly tradeDeepLinkService = inject(TradeDeepLinkService);
   private readonly toastService = inject(ToastService);
@@ -64,8 +65,6 @@ export class TradeComponent implements OnInit, OnDestroy {
   });
   readonly maxWatchlistHoldings = this.tradeFacade.maxWatchlistHoldings;
 
-  openOrders = this.tradeFacade.openOrders;
-  historyOrders = this.tradeFacade.historyOrders;
   readonly backendDataMode = this.tradeFacade.backendDataMode;
   readonly loadState = computed(() => this.tradeFacade.loadState?.() ?? 'ready');
 
@@ -73,6 +72,7 @@ export class TradeComponent implements OnInit, OnDestroy {
   activeAssetSymbol = signal<string | null>(null);
   activeAssetShowChart = signal(false);
   activeOrderId = signal<string | null>(null);
+  private readonly requestedOrderId = signal<string | null>(null);
 
   activeOrder = computed(() => this.tradeFacade.getOrderById(this.activeOrderId()));
   activeAssetOwnedQuantity = computed(() =>
@@ -84,10 +84,30 @@ export class TradeComponent implements OnInit, OnDestroy {
 
   private stopTicking?: () => void;
   private routeQuerySubscription?: Subscription;
+  private orderQuerySubscription?: Subscription;
   private readonly previousOrderStatuses = new Map<string, OrderStatus>();
   private seededOrderStatusTracking = false;
 
   constructor() {
+    effect(() => {
+      const orderId = this.requestedOrderId();
+      if (!orderId || (this.backendDataMode && this.loadState() !== 'ready')) {
+        return;
+      }
+
+      if (!this.tradeFacade.getOrderById(orderId)) {
+        return;
+      }
+
+      this.activeOrderId.set(orderId);
+      void this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { orderId: null },
+        queryParamsHandling: 'merge',
+        replaceUrl: true,
+      });
+    });
+
     effect(() => {
       const currentOrders = this.orders();
       const currentLoadState = this.loadState();
@@ -146,11 +166,15 @@ export class TradeComponent implements OnInit, OnDestroy {
       this.route,
       (symbol) => this.openAsset(symbol, false),
     );
+    this.orderQuerySubscription = this.route.queryParamMap.subscribe((queryParams) => {
+      this.requestedOrderId.set(queryParams.get('orderId'));
+    });
   }
 
   ngOnDestroy() {
     this.stopTicking?.();
     this.routeQuerySubscription?.unsubscribe();
+    this.orderQuerySubscription?.unsubscribe();
   }
 
   openAsset(symbol: string, showChart = false) {

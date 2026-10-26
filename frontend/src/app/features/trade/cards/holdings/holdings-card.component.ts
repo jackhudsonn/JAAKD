@@ -55,8 +55,8 @@ export class HoldingsCardComponent implements OnInit, OnDestroy {
   private readonly marketData = inject(TRADE_MARKET_DATA_PORT);
   private readonly cashDisplayOrder: readonly string[] = CASH_CURRENCIES;
 
-  readonly holdingsListMinHeight = '255px';
-  readonly holdingsListMaxHeight = '255px';
+  readonly holdingsListMinHeight = '325px';
+  readonly holdingsListMaxHeight = '325px';
 
   holdings = input.required<readonly Holding[]>();
   accountCash = input.required<number>();

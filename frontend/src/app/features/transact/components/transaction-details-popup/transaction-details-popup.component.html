@@ -1,0 +1,47 @@
+<app-modal title="Transaction Details" (closed)="closed.emit()">
+  <div class="transaction-details">
+    <div class="detail-row">
+      <span class="detail-label">Type</span>
+      <span class="detail-value">{{ formatLabel(transaction().type) }}</span>
+    </div>
+
+    <div class="detail-row">
+      <span class="detail-label">Amount</span>
+      <span class="detail-value">{{
+        transaction().amount | currency: transaction().currency ?? 'USD'
+      }}</span>
+    </div>
+
+    <div class="detail-row">
+      <span class="detail-label">Method</span>
+      <span class="detail-value">
+        {{
+          transaction().type === 'exchange'
+            ? transaction().typeLabel
+            : formatLabel(transaction().method)
+        }}
+      </span>
+    </div>
+
+    <div class="detail-row">
+      <span class="detail-label">Status</span>
+      <app-status-badge [status]="transaction().status" />
+    </div>
+
+    <div class="detail-row">
+      <span class="detail-label">Date</span>
+      <span class="detail-value">{{ transaction().createdAt | date: 'MMM d, y, h:mm a' }}</span>
+    </div>
+
+    @if (canCancelTransaction()) {
+      <button
+        type="button"
+        class="btn btn-secondary cancel-btn"
+        [disabled]="cancelling()"
+        (click)="cancel.emit(transaction().id)"
+      >
+        {{ cancelling() ? 'Cancelling...' : 'Cancel Transaction' }}
+      </button>
+    }
+  </div>
+</app-modal>

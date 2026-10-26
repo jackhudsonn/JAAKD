@@ -1,76 +1,63 @@
+import { CurrencyPipe, DatePipe, TitleCasePipe } from '@angular/common';
 import { Component, computed, inject } from '@angular/core';
-import { DatePipe, DecimalPipe } from '@angular/common';
-import { isActiveOrderStatus } from '@core/constants/order-status.constants';
-import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
-import { ScrollableListComponent } from '@shared/components/scrollable-list/scrollable-list.component';
+import { Router } from '@angular/router';
+import { ORDER_STATUS } from '@core/constants/order-status.constants';
+import { Order, Transaction } from '@core/models';
 import { DASHBOARD_STATE_PORT } from '@features/dashboard/services/dashboard-state.port';
+import { ScrollableListComponent } from '@shared/components/scrollable-list/scrollable-list.component';
+import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
+import { formatLabel } from '@shared/utils/format-label';
 
-type OpenItem =
-  | {
-      id: string;
-      createdAt: string;
-      kind: 'transaction';
-      typeLabel: 'Deposit' | 'Withdrawal';
-      amount: number;
-      methodLabel: string;
-    }
-  | {
-      id: string;
-      createdAt: string;
-      kind: 'trade';
-      typeLabel: 'Buy' | 'Sell';
-      symbol: string;
-      quantity: number;
-    };
+type PendingOrderRow =
+  | { kind: 'trade'; id: string; createdAt: string; order: Order }
+  | { kind: 'transaction'; id: string; createdAt: string; transaction: Transaction };
 
 @Component({
   selector: 'app-open-orders-widget',
   standalone: true,
-  imports: [WidgetCardComponent, ScrollableListComponent, DatePipe, DecimalPipe],
+  imports: [WidgetCardComponent, ScrollableListComponent, CurrencyPipe, DatePipe, TitleCasePipe],
   templateUrl: './open-orders.component.html',
   styleUrl: './open-orders.component.css',
 })
 export class OpenOrdersWidgetComponent {
-  private readonly state = inject(DASHBOARD_STATE_PORT);
+  private readonly dashboardState = inject(DASHBOARD_STATE_PORT);
+  private readonly router = inject(Router);
 
-  // TODO: replace with TransactionsService.getPending() + OrdersService.getOpenOrders().
-  private readonly transactions = this.state.transactions;
-  private readonly orders = this.state.orders;
+  readonly formatLabel = formatLabel;
 
-  items = computed<OpenItem[]>(() => {
-    const transactionItems: OpenItem[] = this.transactions()
-      .filter((tx) => isActiveOrderStatus(tx.status))
-      .map((tx) => ({
-        id: tx.id,
-        createdAt: tx.createdAt,
-        kind: 'transaction' as const,
-        typeLabel: tx.type === 'deposit' ? 'Deposit' : 'Withdrawal',
-        amount: tx.amount,
-        methodLabel: this.formatMethod(tx.method),
-      }));
-
-    const orderItems: OpenItem[] = this.orders()
-      .filter((order) => isActiveOrderStatus(order.status))
-      .map((order) => ({
+  readonly rows = computed(() => {
+    const trades = this.dashboardState
+      .orders()
+      .filter((order) => order.status === ORDER_STATUS.PENDING)
+      .map((order): PendingOrderRow => ({
+        kind: 'trade',
         id: order.id,
         createdAt: order.createdAt,
-        kind: 'trade' as const,
-        typeLabel: order.type === 'buy' ? 'Buy' : 'Sell',
-        symbol: order.symbol,
-        quantity: order.quantity,
+        order,
+      }));
+    const transactions = this.dashboardState
+      .transactions()
+      .filter((transaction) => transaction.status === ORDER_STATUS.PENDING)
+      .map((transaction): PendingOrderRow => ({
+        kind: 'transaction',
+        id: transaction.id,
+        createdAt: transaction.createdAt,
+        transaction,
       }));
 
-    return [...transactionItems, ...orderItems].sort(
+    return [...trades, ...transactions].sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
   });
 
-  trackById = (item: OpenItem) => `${item.kind}-${item.id}`;
+  readonly trackById = (row: PendingOrderRow) => row.id;
 
-  private formatMethod(method: string) {
-    return method
-      .split('_')
-      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-      .join(' ');
+  openOrder(row: PendingOrderRow) {
+    if (row.kind === 'trade') {
+      void this.router.navigate(['/trade'], { queryParams: { orderId: row.id } });
+      return;
+    }
+
+    void this.router.navigate(['/transact'], { queryParams: { transactionId: row.id } });
   }
 }

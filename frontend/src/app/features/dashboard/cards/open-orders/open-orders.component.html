@@ -1,33 +1,46 @@
-<app-widget-card title="Open Orders">
-  <app-scrollable-list [items]="items()" [trackBy]="trackById" emptyMessage="No pending activity.">
-    <ng-template let-item>
-      @if (item.kind === 'transaction') {
-        <div class="activity-row transaction-row">
-          <span class="activity-date">{{ item.createdAt | date: 'MMM d, y' }}</span>
+<app-widget-card class="open-orders-card" title="Open Orders">
+  <app-scrollable-list
+    [items]="rows()"
+    [trackBy]="trackById"
+    [minHeight]="'325px'"
+    [maxHeight]="'325px'"
+    emptyMessage="No pending orders."
+  >
+    <ng-template let-row>
+      <button type="button" class="open-order-row" (click)="openOrder(row)">
+        <span class="order-date">{{ row.createdAt | date: 'MMM d, y' }}</span>
+
+        @if (row.kind === 'trade') {
           <span
-            class="activity-type"
-            [class.deposit]="item.typeLabel === 'Deposit'"
-            [class.withdrawal]="item.typeLabel === 'Withdrawal'"
+            class="order-type"
+            [class.buy]="row.order.type === 'buy'"
+            [class.sell]="row.order.type === 'sell'"
           >
-            {{ item.typeLabel }}
+            {{ row.order.type | titlecase }}
           </span>
-          <span class="activity-amount">${{ item.amount | number: '1.2-2' }}</span>
-          <span class="activity-meta">{{ item.methodLabel }}</span>
-        </div>
-      } @else {
-        <div class="activity-row trade-row">
-          <span class="activity-date">{{ item.createdAt | date: 'MMM d, y' }}</span>
+          <span class="order-symbol">{{ row.order.symbol }}</span>
+          <span class="order-method">{{ row.order.quantity }} {{ row.order.quantity === 1 ? "share" : "shares" }}</span>
+        } @else {
           <span
-            class="activity-type"
-            [class.buy]="item.typeLabel === 'Buy'"
-            [class.sell]="item.typeLabel === 'Sell'"
+            class="order-type"
+            [class.deposit]="row.transaction.type === 'deposit'"
+            [class.withdrawal]="row.transaction.type === 'withdrawal'"
+            [class.exchange]="row.transaction.type === 'exchange'"
           >
-            {{ item.typeLabel }}
+            {{ formatLabel(row.transaction.type) }}
           </span>
-          <span class="activity-symbol">{{ item.symbol }}</span>
-          <span class="activity-meta">Qty {{ item.quantity }}</span>
-        </div>
-      }
+          <span class="order-amount">{{
+            row.transaction.amount | currency: row.transaction.currency ?? 'USD'
+          }}</span>
+          <span class="order-method">
+            {{
+              row.transaction.type === 'exchange'
+                ? row.transaction.typeLabel
+                : formatLabel(row.transaction.method)
+            }}
+          </span>
+        }
+      </button>
     </ng-template>
   </app-scrollable-list>
 </app-widget-card>

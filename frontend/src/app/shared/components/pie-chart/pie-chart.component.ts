@@ -25,21 +25,7 @@ export interface PieChartSlice {
   selector: 'app-pie-chart',
   standalone: true,
   template: `<canvas #canvas></canvas>`,
-  styles: [
-    `
-      :host {
-        display: block;
-        height: 220px;
-        margin-top: var(--space-md);
-      }
-
-      canvas {
-        width: 100% !important;
-        height: 100% !important;
-        cursor: pointer;
-      }
-    `,
-  ],
+  styleUrls: ['pie-chart.component.css'],
 })
 export class PieChartComponent implements AfterViewInit, OnChanges, OnDestroy {
   slices = input.required<PieChartSlice[]>();

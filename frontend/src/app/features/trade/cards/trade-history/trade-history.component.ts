@@ -6,13 +6,8 @@ import { ScrollableListComponent } from '@shared/components/scrollable-list/scro
 import { StatusBadgeComponent } from '@shared/components/status-badge/status-badge.component';
 import { Order } from '@core/models';
 
-/**
- * Combined Orders card: open and completed/cancelled orders share a single
- * newest-first, scrollable list. Open orders and rejected orders
- * stay selectable — clicking opens the Order Details popup.
- */
 @Component({
-  selector: 'app-orders-card',
+  selector: 'app-trade-history',
   standalone: true,
   imports: [
     WidgetCardComponent,
@@ -21,17 +16,16 @@ import { Order } from '@core/models';
     DatePipe,
     TitleCasePipe,
   ],
-  templateUrl: './orders-card.component.html',
-  styleUrl: './orders-card.component.css',
+  templateUrl: './trade-history.component.html',
+  styleUrl: './trade-history.component.css',
 })
-export class OrdersCardComponent {
-  openOrders = input.required<readonly Order[]>();
-  historyOrders = input.required<readonly Order[]>();
+export class TradeHistoryComponent {
+  orders = input.required<readonly Order[]>();
 
   selectOrder = output<string>();
 
   rows = computed(() => {
-    const sorted = [...this.openOrders(), ...this.historyOrders()].sort(
+    const sorted = [...this.orders()].sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
 
@@ -46,5 +40,5 @@ export class OrdersCardComponent {
     }));
   });
 
-  trackByRow = (row: { order: Order }) => row.order.id;
+  trackById = (row: { order: Order }) => row.order.id;
 }
