@@ -111,10 +111,7 @@ export class BackendTradeStateService implements TradeStatePort {
 
     for (let attempt = 0; attempt < 30; attempt += 1) {
       const order = this.orders().find((entry) => entry.id === orderId);
-      if (
-        order &&
-        !isActiveOrderStatus(order.status)
-      ) {
+      if (order && !isActiveOrderStatus(order.status)) {
         return;
       }
 

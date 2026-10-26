@@ -41,7 +41,8 @@ export class AuthService {
     );
 
     return {
-      status: registration.status === 'CONFIRMATION_REQUIRED' ? 'confirmation_required' : 'registered',
+      status:
+        registration.status === 'CONFIRMATION_REQUIRED' ? 'confirmation_required' : 'registered',
       email: registration.email,
       registrationId: registration.registrationId,
     };

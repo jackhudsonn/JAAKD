@@ -37,7 +37,9 @@
       @if (!registrationId) {
         <p class="confirm-footer">
           We could not find this registration.
-          <a routerLink="/auth/register" [queryParams]="{ email: email }">Start registration again</a>.
+          <a routerLink="/auth/register" [queryParams]="{ email: email }"
+            >Start registration again</a
+          >.
         </p>
       }
 
