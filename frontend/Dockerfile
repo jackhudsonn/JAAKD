@@ -12,7 +12,9 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 EXPOSE 4200
-CMD ["npm", "start", "--", "--host", "0.0.0.0"]
+# Bind the IPv6 wildcard, which is dual-stack on Linux. `localhost` resolves to
+# ::1, so an IPv4-only bind resets those connections.
+CMD ["npm", "start", "--", "--host", "::"]
 
 # ---- Build stage ----
 FROM node:24-alpine AS build

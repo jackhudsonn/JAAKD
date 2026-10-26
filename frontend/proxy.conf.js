@@ -9,6 +9,15 @@
 // is reached on the published port.
 const target = process.env.BACKEND_TARGET ?? 'http://localhost:8081';
 
+// The browser's Origin names the dev server, but the backend sees this as a
+// server-to-server request. Rewrite it to the target so Spring treats it as
+// same-origin; otherwise every dev host other than the configured CORS origin
+// (127.0.0.1, a LAN IP) is rejected.
 module.exports = {
-  '/api': { target, secure: false, changeOrigin: true },
+  '/api': {
+    target,
+    secure: false,
+    changeOrigin: true,
+    headers: { Origin: target },
+  },
 };
