@@ -13,6 +13,7 @@ import {
   PositionLotResponse,
 } from '@core/services/audit-api.service';
 import { InstrumentApiService } from '@core/services/instrument-api.service';
+import { ToastService } from '@shared/components/toast/toast.service';
 
 interface OrderSummary {
   orderId: string;
@@ -21,15 +22,6 @@ interface OrderSummary {
   executionPrice: number;
   instrumentId: string;
   ownerName: string;
-}
-
-interface RequestDiagnostics {
-  action: string;
-  endpoint: string;
-  params: Record<string, string | number | undefined>;
-  statusCode: number | null;
-  rowsLoaded: number | null;
-  happenedAt: string;
 }
 
 interface OptionItem {
@@ -47,6 +39,7 @@ interface OptionItem {
 export class AuditorComponent {
   private readonly auditApi = inject(AuditApiService);
   private readonly instrumentApi = inject(InstrumentApiService);
+  private readonly toast = inject(ToastService);
 
   readonly pageSize = 20;
 
@@ -82,10 +75,6 @@ export class AuditorComponent {
   readonly loading = signal(false);
   readonly loadingDetails = signal(false);
   readonly loadingInstruments = signal(false);
-
-  readonly statusMessage = signal<string | null>(null);
-  readonly errorMessage = signal<string | null>(null);
-  readonly lastRequest = signal<RequestDiagnostics | null>(null);
 
   readonly userOptions = computed<OptionItem[]>(() =>
     this.users().map((user) => ({
@@ -192,7 +181,6 @@ export class AuditorComponent {
   }
 
   async refreshSummaries() {
-    this.clearMessages();
     this.loading.set(true);
 
     try {
@@ -233,33 +221,10 @@ export class AuditorComponent {
         hasNext: holdingsPage.hasNext,
       });
 
-      this.recordRequest(
-        'refreshSummaries',
-        '/api/audit/order-logs + /api/audit/holdings',
-        {
-          userId: this.selectedUserId() ?? undefined,
-          portfolioId: this.selectedPortfolioId() ?? undefined,
-          instrumentId: this.selectedInstrumentId() ?? undefined,
-          fromDate: this.fromDate() || undefined,
-          toDate: this.toDate() || undefined,
-          ordersPage: this.ordersPage(),
-          holdingsPage: this.holdingsPage(),
-        },
-        200,
-        ordersPage.content.length + holdingsPage.content.length,
-      );
-
-      this.statusMessage.set(
+      this.toast.success(
         `Loaded ${ordersPage.content.length} order rows and ${holdingsPage.content.length} holdings.`,
       );
     } catch (error) {
-      this.recordRequest(
-        'refreshSummaries',
-        '/api/audit/order-logs + /api/audit/holdings',
-        {},
-        this.resolveStatusCode(error),
-        null,
-      );
       this.handleError(error, 'Failed to load auditor summaries.');
     } finally {
       this.loading.set(false);
@@ -305,7 +270,6 @@ export class AuditorComponent {
     this.selectedOrderId.set(null);
     this.selectedOrderLogs.set([]);
 
-    this.clearMessages();
     this.loadingDetails.set(true);
 
     const fromDate = this.fromDate() || undefined;
@@ -326,32 +290,10 @@ export class AuditorComponent {
       this.holdingOrderLogs.set(orderLogsPage.content);
       this.positionLots.set(lotsPage.content);
       this.lotMatches.set(matchesPage.content);
-      this.recordRequest(
-        'selectHolding',
-        '/api/audit/holdings/{holdingId}/order-logs + lots + matches',
-        {
-          holdingId,
-          fromDate,
-          toDate,
-        },
-        200,
-        orderLogsPage.content.length + lotsPage.content.length + matchesPage.content.length,
-      );
-      this.statusMessage.set(
+      this.toast.success(
         `Loaded ${orderLogsPage.content.length} order logs, ${lotsPage.content.length} position lots, and ${matchesPage.content.length} lot matches.`,
       );
     } catch (error) {
-      this.recordRequest(
-        'selectHolding',
-        '/api/audit/holdings/{holdingId}/order-logs + lots + matches',
-        {
-          holdingId,
-          fromDate,
-          toDate,
-        },
-        this.resolveStatusCode(error),
-        null,
-      );
       this.handleError(error, 'Failed to load holding details.');
     } finally {
       this.loadingDetails.set(false);
@@ -425,39 +367,9 @@ export class AuditorComponent {
     this.portfolios.set(portfolios.content);
   }
 
-  private clearMessages() {
-    this.statusMessage.set(null);
-    this.errorMessage.set(null);
-  }
-
   private handleError(error: unknown, fallbackMessage: string) {
     const resolvedMessage = this.resolveErrorMessage(error);
-    this.errorMessage.set(resolvedMessage || fallbackMessage);
-  }
-
-  private resolveStatusCode(error: unknown): number | null {
-    if (!(error instanceof HttpErrorResponse)) {
-      return null;
-    }
-
-    return error.status || null;
-  }
-
-  private recordRequest(
-    action: string,
-    endpoint: string,
-    params: Record<string, string | number | undefined>,
-    statusCode: number | null,
-    rowsLoaded: number | null,
-  ) {
-    this.lastRequest.set({
-      action,
-      endpoint,
-      params,
-      statusCode,
-      rowsLoaded,
-      happenedAt: new Date().toISOString(),
-    });
+    this.toast.error(resolvedMessage || fallbackMessage);
   }
 
   private resolveSelectionInputs() {

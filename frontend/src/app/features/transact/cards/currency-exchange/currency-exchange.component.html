@@ -46,6 +46,20 @@
   <div class="exchange-result">
     <div class="exchange-summary">
       @if (backendDataMode()) {
+        @if (liveRateState() === 'ready') {
+          @if (liveReceiveAmount() !== null) {
+            <p class="exchange-total">
+              You receive about {{ liveReceiveAmount() | number: '1.2-2' }} {{ toCurrency() }}
+            </p>
+          }
+          <p class="exchange-rate">
+            1 {{ fromCurrency() }} = {{ liveRate() | number: '1.2-4' }} {{ toCurrency() }}
+          </p>
+        } @else if (liveRateState() === 'loading') {
+          <p class="exchange-rate">Loading live rate...</p>
+        } @else if (liveRateState() === 'unavailable') {
+          <p class="exchange-rate">Live rate unavailable, the final rate is set at conversion.</p>
+        }
         <p class="exchange-rate">
           Available: {{ fromBalance() | number: '1.2-2' }} {{ fromCurrency() }}
         </p>

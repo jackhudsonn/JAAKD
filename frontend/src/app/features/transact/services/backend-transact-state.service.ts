@@ -17,6 +17,7 @@ import {
   toCashBalances,
   toTransactions,
 } from '@features/dashboard/services/dashboard-backend.mappers';
+import { v4 as uuidv4 } from 'uuid';
 import { TransactStatePort } from './transact-state.port';
 
 export type TransactLoadState = 'loading' | 'ready' | 'error';
@@ -78,7 +79,7 @@ export class BackendTransactStateService implements TransactStatePort {
       return;
     }
 
-    const orderId = crypto.randomUUID();
+    const orderId = uuidv4();
 
     await this.orderLogApiService.submit({
       orderId,

@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
 import { ScrollableListComponent } from '@shared/components/scrollable-list/scrollable-list.component';
 import { startCycleTimer } from '@shared/utils/cycle-timer';
+import { isFlatChange } from '@shared/utils/format-percentage-change';
 import { InstrumentType } from '@core/models';
 import {
   TRADE_MARKET_DATA_PORT,
@@ -14,6 +15,7 @@ interface TickerRow {
   asset: TradeMarketAsset;
   price: number;
   changePct: number;
+  flat: boolean;
 }
 
 type InstrumentFilter = InstrumentType | 'all';
@@ -61,7 +63,8 @@ export class TradeCardComponent implements OnInit, OnDestroy {
       )
       .map((asset) => {
         const price = this.marketData.getPrice(asset.symbol);
-        return { asset, price, changePct: ((price - asset.basePrice) / asset.basePrice) * 100 };
+        const changePct = ((price - asset.basePrice) / asset.basePrice) * 100;
+        return { asset, price, changePct, flat: isFlatChange(changePct) };
       });
   });
 

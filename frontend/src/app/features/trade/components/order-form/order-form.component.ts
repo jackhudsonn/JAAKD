@@ -1,9 +1,9 @@
-import { CurrencyPipe } from '@angular/common';
+import { CurrencyPipe, DecimalPipe } from '@angular/common';
 import { Component, computed, effect, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { OrderKind, OrderType } from '@core/models';
 import { ToastService } from '@shared/components/toast/toast.service';
-import { toOrderPreview } from './order-preview.util';
+import { floorToQuantityDecimals, isValidQuantity, toOrderPreview } from './order-preview.util';
 
 export interface OrderFormSubmit {
   kind: OrderKind;
@@ -14,12 +14,12 @@ export interface OrderFormSubmit {
 
 /**
  * Buy/Sell form shared by the Asset Details popup (Trade card) and the
- * Chart popup (Watchlist card) — whole shares only, market or limit.
+ * Chart popup (Watchlist card). Fractional shares up to 6 decimals, market or limit.
  */
 @Component({
   selector: 'app-order-form',
   standalone: true,
-  imports: [FormsModule, CurrencyPipe],
+  imports: [FormsModule, CurrencyPipe, DecimalPipe],
   templateUrl: './order-form.component.html',
   styleUrl: './order-form.component.css',
 })
@@ -38,7 +38,7 @@ export class OrderFormComponent {
 
   type = signal<OrderType>('buy');
   kind = signal<OrderKind>('market');
-  quantity = signal<number | null>(null);
+  quantity = signal<number | null>(1);
   limitPrice = signal<number | null>(null);
 
   canSell = computed(() => this.ownedQuantity() > 0);
@@ -64,19 +64,20 @@ export class OrderFormComponent {
     });
   }
 
-  // Whole-share cap for buy orders, based on the price that would actually
-  // be charged (limit price for limit orders, current mock price for market).
+  // Buy cap at the quantity precision, rounded down so it never exceeds cash,
+  // based on the price that would actually be charged (limit price for limit
+  // orders, current price for market).
   maxBuyQuantity = computed(() => {
     const price =
       this.kind() === 'limit' ? (this.limitPrice() ?? this.currentPrice()) : this.currentPrice();
-    return price > 0 ? Math.floor(this.accountCash() / price) : 0;
+    return price > 0 ? floorToQuantityDecimals(this.accountCash() / price) : 0;
   });
 
   error = computed(() => {
     const quantity = this.quantity();
 
-    if (quantity === null || quantity <= 0 || !Number.isInteger(quantity)) {
-      return 'Enter a whole number of shares greater than zero.';
+    if (!isValidQuantity(quantity)) {
+      return 'Enter a quantity greater than zero (up to 6 decimals).';
     }
 
     if (this.kind() === 'limit' && (this.limitPrice() === null || this.limitPrice()! <= 0)) {
@@ -130,7 +131,7 @@ export class OrderFormComponent {
       limitPrice: this.kind() === 'limit' ? this.limitPrice()! : undefined,
     });
 
-    this.quantity.set(null);
+    this.quantity.set(1);
     this.limitPrice.set(null);
   }
 

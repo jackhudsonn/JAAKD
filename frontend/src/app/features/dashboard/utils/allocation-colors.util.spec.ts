@@ -20,4 +20,3 @@ describe('deterministicColorFromBase', () => {
     expect(deterministicColorFromBase('invalid-color', 'AAPL')).toBe('invalid-color');
   });
 });
-

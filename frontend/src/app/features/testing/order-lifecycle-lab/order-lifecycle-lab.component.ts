@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import type { OrderStatus } from '@core/constants/order-status.constants';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '@environments/environment.local';
+import { v4 as uuidv4 } from 'uuid';
 
 interface PortfolioResponse {
   portfolioId: string;
@@ -500,7 +501,7 @@ export class OrderLifecycleLabComponent implements OnInit, OnDestroy {
     this.depositingCash.set(true);
 
     try {
-      const orderId = payload.orderId.trim() || crypto.randomUUID();
+      const orderId = payload.orderId.trim() || uuidv4();
       await firstValueFrom(
         this.http.post<OrderLogResponse>(`${environment.apiUrl}/api/order-logs`, {
           orderId,
@@ -554,7 +555,7 @@ export class OrderLifecycleLabComponent implements OnInit, OnDestroy {
     this.submittingOrder.set(true);
 
     try {
-      const orderId = payload.orderId.trim() || crypto.randomUUID();
+      const orderId = payload.orderId.trim() || uuidv4();
 
       await firstValueFrom(
         this.http.post<OrderLogResponse>(`${environment.apiUrl}/api/order-logs`, {
@@ -624,7 +625,7 @@ export class OrderLifecycleLabComponent implements OnInit, OnDestroy {
         this.cryptoQuote.set(null);
       }
 
-      const orderId = payload.orderId.trim() || crypto.randomUUID();
+      const orderId = payload.orderId.trim() || uuidv4();
       await firstValueFrom(
         this.http.post<OrderLogResponse>(`${environment.apiUrl}/api/order-logs`, {
           orderId,
