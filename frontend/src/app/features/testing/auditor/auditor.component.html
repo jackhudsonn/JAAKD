@@ -178,7 +178,7 @@
               @for (holding of holdings(); track holding.holdingID) {
                 <tr class="clickable" (click)="selectHolding(holding.holdingID)">
                   <td>{{ holding.currentQuantity }}</td>
-                  <td>{{ holding.cumulativeRealizedPnl }}</td>
+                  <td>{{ (holding.cumulativeRealizedPnl | number: '1.2-2') ?? 'N/A' }}</td>
                   <td>{{ getInstrumentName(holding.instrumentID) }}</td>
                   <td>{{ formatOwnerName(holding) }}</td>
                   <td>{{ holding.updatedAt | date: 'short' }}</td>
@@ -337,7 +337,11 @@
                 @for (match of lotMatches(); track getLotMatchId(match)) {
                   <tr>
                     <td>{{ match.matchedQuantity }}</td>
-                    <td>{{ match.realizedPnlAmount ?? match.realizedPnl ?? '-' }}</td>
+                    <td>
+                      {{
+                        (match.realizedPnlAmount ?? match.realizedPnl | number: '1.2-2') ?? 'N/A'
+                      }}
+                    </td>
                     <td>{{ match.matchedAt | date: 'short' }}</td>
                     <td>{{ getLotMatchId(match) }}</td>
                   </tr>
