@@ -10,51 +10,63 @@
     </div>
 
     <div class="dashboard-toolbar">
-      <app-widget-selector [selected]="selectedWidgets()" (toggle)="onToggleWidget($event)" />
+      <app-widget-selector
+        [selected]="selectedWidgets()"
+        [showCount]="backendState.loadState() !== 'loading'"
+        (toggle)="onToggleWidget($event)"
+      />
     </div>
   </div>
 
-  <section class="widget-grid">
-    @for (widgetId of displayWidgets(); track widgetId; let last = $last, count = $count) {
-      <div
-        #widgetSlot
-        class="widget-slot"
-        [attr.data-widget-id]="widgetId"
-        [class.slot-centered]="last && count % 2 !== 0"
-        [class.widget-enter]="isEntering(widgetId)"
-        [class.widget-leave]="isLeaving(widgetId)"
-      >
-        @switch (widgetId) {
-          @case ('portfolio-value') {
-            <app-portfolio-value-widget />
+  <section class="widget-grid" [attr.aria-busy]="backendState.loadState() === 'loading'">
+    @if (backendState.loadState() === 'loading') {
+      @for (placeholder of loadingPlaceholders; track placeholder) {
+        <div class="widget-slot">
+          <app-widget-card title="Loading..." status="loading" />
+        </div>
+      }
+    } @else {
+      @for (widgetId of displayWidgets(); track widgetId; let last = $last, count = $count) {
+        <div
+          #widgetSlot
+          class="widget-slot"
+          [attr.data-widget-id]="widgetId"
+          [class.slot-centered]="last && count % 2 !== 0"
+          [class.widget-enter]="isEntering(widgetId)"
+          [class.widget-leave]="isLeaving(widgetId)"
+        >
+          @switch (widgetId) {
+            @case ('portfolio-value') {
+              <app-portfolio-value-widget />
+            }
+            @case ('open-orders') {
+              <app-open-orders-widget />
+            }
+            @case ('watchlist') {
+              <app-watchlist-widget
+                (createWatchlistRequested)="overlays()?.requestCreateWatchlist()"
+                (editWatchlistRequested)="overlays()?.requestEditWatchlist()"
+                (assetSelected)="overlays()?.requestWatchlistAsset($event)"
+                (addAssetRequested)="overlays()?.requestAddWatchlistAsset()"
+              />
+            }
+            @case ('top-movers') {
+              <app-top-movers-widget />
+            }
+            @case ('allocation-by-asset') {
+              <app-allocation-by-asset-widget
+                (assetSelected)="overlays()?.requestAllocationAsset($event)"
+              />
+            }
+            @case ('performance-graph') {
+              <app-performance-graph-widget />
+            }
+            @case ('to-be-deleted') {
+              <app-to-be-deleted-widget />
+            }
           }
-          @case ('open-orders') {
-            <app-open-orders-widget />
-          }
-          @case ('watchlist') {
-            <app-watchlist-widget
-              (createWatchlistRequested)="overlays()?.requestCreateWatchlist()"
-              (editWatchlistRequested)="overlays()?.requestEditWatchlist()"
-              (assetSelected)="overlays()?.requestWatchlistAsset($event)"
-              (addAssetRequested)="overlays()?.requestAddWatchlistAsset()"
-            />
-          }
-          @case ('top-movers') {
-            <app-top-movers-widget />
-          }
-          @case ('allocation-by-asset') {
-            <app-allocation-by-asset-widget
-              (assetSelected)="overlays()?.requestAllocationAsset($event)"
-            />
-          }
-          @case ('performance-graph') {
-            <app-performance-graph-widget />
-          }
-          @case ('to-be-deleted') {
-            <app-to-be-deleted-widget />
-          }
-        }
-      </div>
+        </div>
+      }
     }
   </section>
 

@@ -47,6 +47,7 @@ export class WidgetSelectorComponent {
   private elementRef = inject(ElementRef<HTMLElement>);
 
   selected = input.required<readonly WidgetId[]>();
+  showCount = input(true);
   toggle = output<WidgetId>();
 
   open = false;
