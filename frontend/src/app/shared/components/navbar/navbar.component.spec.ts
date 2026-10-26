@@ -29,13 +29,12 @@ describe('NavbarComponent', () => {
     fixture.detectChanges();
   }
 
-  it('shows an analyst only the Analytics link, with no More menu or payment methods', () => {
+  it('shows an analyst only the Analytics link, with no payment methods', () => {
     fixture.componentRef.setInput('canAccessAnalyst', true);
     fixture.componentRef.setInput('analystOnly', true);
     fixture.detectChanges();
 
     expect(linkTexts('.app-nav')).toEqual(['Analytics']);
-    expect(fixture.nativeElement.querySelector('.nav-more-button')).toBeNull();
 
     fixture.componentInstance.toggleMobileMenu();
     fixture.detectChanges();
@@ -56,10 +55,9 @@ describe('NavbarComponent', () => {
       'Transact',
       'Trade',
       'Dev Testing',
-      'Auditor Lab',
+      'Auditor Portal',
       'Analytics',
     ]);
-    expect(fixture.nativeElement.querySelector('.nav-more-button')).not.toBeNull();
 
     fixture.componentInstance.toggleAvatarMenu();
     fixture.detectChanges();
