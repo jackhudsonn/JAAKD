@@ -24,6 +24,7 @@ import {
   toQuoteSymbols,
   toWatchlists,
 } from '@features/dashboard/services/dashboard-backend.mappers';
+import { v4 as uuidv4 } from 'uuid';
 import { TradePlaceOrderRequest } from './trade-order-engine.service';
 import { TradeStatePort, TradeWatchlist } from './trade-state.port';
 
@@ -96,7 +97,7 @@ export class BackendTradeStateService implements TradeStatePort {
       return;
     }
 
-    const orderId = crypto.randomUUID();
+    const orderId = uuidv4();
 
     await this.orderLogApiService.submit({
       orderId,
