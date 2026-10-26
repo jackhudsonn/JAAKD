@@ -32,7 +32,7 @@ export class ConfirmRegistrationComponent {
     this.email = route.snapshot.queryParamMap.get('email') ?? '';
     this.registrationId =
       route.snapshot.queryParamMap.get('registrationId') ??
-      (this.email ? this.registrationContinuation.peek(this.email) ?? '' : '');
+      (this.email ? (this.registrationContinuation.peek(this.email) ?? '') : '');
   }
 
   async confirm() {
@@ -41,7 +41,9 @@ export class ConfirmRegistrationComponent {
       return;
     }
     if (!this.registrationId) {
-      this.toastService.error('We could not find this registration. Please start registration again.');
+      this.toastService.error(
+        'We could not find this registration. Please start registration again.',
+      );
       return;
     }
 
@@ -75,7 +77,9 @@ export class ConfirmRegistrationComponent {
       return;
     }
     if (!this.registrationId) {
-      this.toastService.error('We could not find this registration. Please start registration again.');
+      this.toastService.error(
+        'We could not find this registration. Please start registration again.',
+      );
       return;
     }
 
