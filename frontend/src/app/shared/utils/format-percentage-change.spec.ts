@@ -1,4 +1,4 @@
-import { formatPercentageChange, roundChangePct } from './format-percentage-change';
+import { formatPercentageChange, isFlatChange, roundChangePct } from './format-percentage-change';
 
 describe('formatPercentageChange', () => {
   it('shows gains with a plus sign and an up arrow', () => {
@@ -13,6 +13,20 @@ describe('formatPercentageChange', () => {
     expect(formatPercentageChange(-0.003)).toBe('0.00%');
     expect(formatPercentageChange(0.004)).toBe('0.00%');
     expect(formatPercentageChange(0)).toBe('0.00%');
+  });
+});
+
+describe('isFlatChange', () => {
+  it.each([0, 0.004, -0.004])('treats %s as flat', (value) => {
+    expect(isFlatChange(value)).toBe(true);
+  });
+
+  it.each([0.005, -0.006, 1.5, -2])('does not treat %s as flat', (value) => {
+    expect(isFlatChange(value)).toBe(false);
+  });
+
+  it.each([Number.NaN, Number.POSITIVE_INFINITY])('does not treat %s as flat', (value) => {
+    expect(isFlatChange(value)).toBe(false);
   });
 });
 

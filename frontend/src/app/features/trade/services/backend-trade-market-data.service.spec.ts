@@ -1,12 +1,33 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
+import { QuoteResponse } from '@core/models/api.models';
+import {
+  LiveQuote,
+  toLiveQuoteBySymbol,
+} from '@features/dashboard/services/dashboard-backend.mappers';
 import { BackendTradeMarketDataService } from './backend-trade-market-data.service';
 import { BackendTradeStateService } from './backend-trade-state.service';
 
+function quote(symbol: string, price: number, changePercent: number | null): QuoteResponse {
+  return {
+    symbol,
+    price,
+    bid: null,
+    ask: null,
+    currency: 'USD',
+    asOf: null,
+    marketState: null,
+    changePercent,
+  };
+}
+
 describe('BackendTradeMarketDataService', () => {
   let service: BackendTradeMarketDataService;
+  const liveQuoteBySymbolData = signal<Map<string, LiveQuote>>(new Map());
 
   beforeEach(() => {
+    liveQuoteBySymbolData.set(new Map());
+
     const stateStub = {
       instrumentsData: signal([
         {
@@ -15,6 +36,15 @@ describe('BackendTradeMarketDataService', () => {
           market: 'NASDAQ',
           name: 'Apple Inc.',
           instrumentClass: 'EQUITY',
+          logoUrl: null,
+          description: null,
+        },
+        {
+          instrumentId: 'inst-btc',
+          ticker: 'BTC',
+          market: 'CRYPTO',
+          name: 'Bitcoin',
+          instrumentClass: 'CRYPTO',
           logoUrl: null,
           description: null,
         },
@@ -31,9 +61,11 @@ describe('BackendTradeMarketDataService', () => {
       latestPriceBySymbolData: signal(
         new Map([
           ['AAPL', 123.45],
+          ['BTC', 60000],
           ['USD', 1],
         ]),
       ),
+      liveQuoteBySymbolData,
     };
 
     TestBed.configureTestingModule({
@@ -46,7 +78,7 @@ describe('BackendTradeMarketDataService', () => {
     service = TestBed.inject(BackendTradeMarketDataService);
   });
 
-  it('lists non-cash assets with backend latest prices', () => {
+  it('lists non-cash assets with the price as base when there is no live quote', () => {
     const assets = service.listAssets();
 
     expect(assets).toEqual([
@@ -56,7 +88,37 @@ describe('BackendTradeMarketDataService', () => {
         instrumentType: 'equity',
         basePrice: 123.45,
       },
+      {
+        symbol: 'BTC',
+        name: 'Bitcoin',
+        instrumentType: 'crypto',
+        basePrice: 60000,
+      },
     ]);
+  });
+
+  it('sets basePrice to the previous close from the quote change percent', () => {
+    liveQuoteBySymbolData.set(toLiveQuoteBySymbol([quote('AAPL', 123.45, 10)]));
+
+    const aapl = service.getAsset('AAPL')!;
+
+    expect(aapl.basePrice).toBeCloseTo(123.45 / 1.1, 6);
+    expect(((123.45 - aapl.basePrice) / aapl.basePrice) * 100).toBeCloseTo(10, 6);
+  });
+
+  it('finds crypto quotes filed as X:BTC-USD by the plain ticker', () => {
+    liveQuoteBySymbolData.set(toLiveQuoteBySymbol([quote('X:BTC-USD', 60000, -4)]));
+
+    expect(service.getAsset('BTC')!.basePrice).toBeCloseTo(60000 / 0.96, 6);
+  });
+
+  it('keeps the price as base when the change percent is null or zero', () => {
+    liveQuoteBySymbolData.set(
+      toLiveQuoteBySymbol([quote('AAPL', 123.45, null), quote('X:BTC-USD', 60000, 0)]),
+    );
+
+    expect(service.getAsset('AAPL')!.basePrice).toBe(123.45);
+    expect(service.getAsset('BTC')!.basePrice).toBe(60000);
   });
 
   it('resolves asset and symbol lookups', () => {
