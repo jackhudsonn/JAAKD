@@ -47,6 +47,7 @@ interface OptionItem {
 export class AuditorComponent {
   private readonly auditApi = inject(AuditApiService);
   private readonly instrumentApi = inject(InstrumentApiService);
+  private orderDetailsRequest = 0;
 
   readonly pageSize = 20;
 
@@ -78,6 +79,17 @@ export class AuditorComponent {
 
   readonly ordersMeta = signal({ totalElements: 0, totalPages: 0, hasNext: false });
   readonly holdingsMeta = signal({ totalElements: 0, totalPages: 0, hasNext: false });
+  readonly orderPageNumbers = computed(() => {
+    const totalPages = this.ordersMeta().totalPages;
+    if (totalPages <= 0) {
+      return [];
+    }
+
+    const currentPage = this.ordersPage();
+    return [...new Set([0, currentPage - 2, currentPage - 1, currentPage, currentPage + 1, currentPage + 2, totalPages - 1])]
+      .filter((page) => page >= 0 && page < totalPages)
+      .sort((a, b) => a - b);
+  });
 
   readonly loading = signal(false);
   readonly loadingDetails = signal(false);
@@ -267,7 +279,7 @@ export class AuditorComponent {
   }
 
   async goToOrdersPage(nextPage: number) {
-    if (nextPage < 0) {
+    if (nextPage < 0 || nextPage >= this.ordersMeta().totalPages || nextPage === this.ordersPage()) {
       return;
     }
 
@@ -285,8 +297,12 @@ export class AuditorComponent {
   }
 
   async selectOrder(orderId: string) {
+    const requestId = ++this.orderDetailsRequest;
     this.selectedOrderId.set(orderId);
     this.selectedOrderLogs.set([]);
+    this.clearHoldingDetails();
+    this.clearMessages();
+    this.loadingDetails.set(true);
 
     // Summary rows only carry the latest log per order, so fetch the full lifecycle.
     try {
@@ -294,9 +310,17 @@ export class AuditorComponent {
       const rows = [...result.content].sort(
         (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
       );
-      this.selectedOrderLogs.set(rows);
+      if (requestId === this.orderDetailsRequest) {
+        this.selectedOrderLogs.set(rows);
+      }
     } catch (error) {
-      this.handleError(error, 'Failed to load order lifecycle logs.');
+      if (requestId === this.orderDetailsRequest) {
+        this.handleError(error, 'Failed to load order lifecycle logs.');
+      }
+    } finally {
+      if (requestId === this.orderDetailsRequest) {
+        this.loadingDetails.set(false);
+      }
     }
   }
 

@@ -377,6 +377,28 @@ tbody tr:hover {
   background: var(--primary-tint-hover);
 }
 
+.clickable.selected {
+  background: var(--primary-tint);
+  outline: 1px solid var(--primary-edge);
+  outline-offset: -1px;
+}
+
+.clickable:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+.page-number.current-page {
+  border-color: var(--primary-edge);
+  background: var(--primary-tint);
+  color: var(--text-primary);
+}
+
+.page-ellipsis {
+  align-self: center;
+  color: var(--text-secondary);
+}
+
 .timeline-list {
   display: grid;
   gap: 0.7rem;

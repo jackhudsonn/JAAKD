@@ -126,7 +126,14 @@
             </thead>
             <tbody>
               @for (order of orderSummaries(); track order.orderId) {
-                <tr class="clickable" (click)="selectOrder(order.orderId)">
+                <tr
+                  class="clickable"
+                  [class.selected]="selectedOrderId() === order.orderId"
+                  role="button"
+                  tabindex="0"
+                  (click)="selectOrder(order.orderId)"
+                  (keydown.enter)="selectOrder(order.orderId)"
+                >
                   <td>{{ order.status }}</td>
                   <td>{{ order.executionPrice }}</td>
                   <td>{{ getInstrumentName(order.instrumentId) }}</td>
@@ -160,6 +167,22 @@
           >
             Next
           </button>
+          @for (pageNumber of orderPageNumbers(); track pageNumber; let index = $index) {
+            @if (index > 0 && pageNumber - orderPageNumbers()[index - 1] > 1) {
+              <span class="page-ellipsis" aria-hidden="true">...</span>
+            }
+            <button
+              type="button"
+              class="ghost page-number"
+              [class.current-page]="pageNumber === ordersPage()"
+              [attr.aria-current]="pageNumber === ordersPage() ? 'page' : null"
+              [attr.aria-label]="'Go to orders page ' + (pageNumber + 1)"
+              [disabled]="loading()"
+              (click)="goToOrdersPage(pageNumber)"
+            >
+              {{ pageNumber + 1 }}
+            </button>
+          }
         </div>
       </article>
 
@@ -228,13 +251,17 @@
       <h2>Order Lifecycle Logs</h2>
       <p class="panel-help">Log rows for selected order {{ selectedOrderId() }}.</p>
 
-      <div class="table-wrap">
+      @if (loadingDetails()) {
+        <p class="muted" role="status">Loading order lifecycle...</p>
+      } @else {
+        <div class="table-wrap">
         <table>
           <thead>
             <tr>
               <th>Status</th>
               <th>Side</th>
               <th>Qty</th>
+              <th>Quoted Price</th>
               <th>Execution Price</th>
               <th>Timestamp</th>
               <th>Log ID</th>
@@ -246,18 +273,20 @@
                 <td>{{ row.status }}</td>
                 <td>{{ row.side }}</td>
                 <td>{{ row.quantity }}</td>
+                <td>{{ row.quotedPrice ?? '—' }}</td>
                 <td>{{ row.executionPrice }}</td>
                 <td>{{ row.timestamp | date: 'short' }}</td>
                 <td>{{ row.logOrderId }}</td>
               </tr>
             } @empty {
               <tr>
-                <td colspan="6" class="muted">No log rows found for the selected order.</td>
+                <td colspan="7" class="muted">No log rows found for the selected order.</td>
               </tr>
             }
           </tbody>
         </table>
-      </div>
+        </div>
+      }
     </section>
   }
 

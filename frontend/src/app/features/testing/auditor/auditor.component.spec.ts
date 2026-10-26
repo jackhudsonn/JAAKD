@@ -259,6 +259,59 @@ describe('AuditorComponent', () => {
     expect(summaries[0].ownerName).toBe('Ada Lovelace');
   });
 
+  it('loads and chronologically sorts the selected order lifecycle', async () => {
+    const laterLog: AuditOrderLogResponse = {
+      logOrderId: 'log-2',
+      orderId: 'order-1',
+      portfolioId: 'portfolio-1',
+      instrumentId: 'instrument-1',
+      side: 'BUY',
+      quantity: 1,
+      timestamp: '2026-10-14T10:10:00Z',
+      metadata: null,
+      status: 'EXECUTED',
+      executionPrice: 100,
+      quotedPrice: 99,
+      ownerUserId: 'user-1',
+      ownerFirstName: 'Ada',
+      ownerLastName: 'Lovelace',
+    };
+    const earlierLog = { ...laterLog, logOrderId: 'log-1', timestamp: '2026-10-14T10:00:00Z', status: 'SUBMITTED' as const };
+    auditApiService.searchOrderLogs.mockResolvedValueOnce(page([laterLog, earlierLog]));
+
+    await component.selectOrder('order-1');
+
+    expect(auditApiService.searchOrderLogs).toHaveBeenCalledWith({
+      orderId: 'order-1',
+      page: 0,
+      size: 100,
+    });
+    expect(component.selectedOrderId()).toBe('order-1');
+    expect(component.selectedOrderLogs().map((row) => row.logOrderId)).toEqual(['log-1', 'log-2']);
+    expect(component.loadingDetails()).toBe(false);
+  });
+
+  it('navigates directly to an intermediate orders page', async () => {
+    auditApiService.searchOrderLogs.mockResolvedValueOnce({
+      ...page([]),
+      page: 3,
+      size: component.pageSize,
+      totalElements: 100,
+      totalPages: 5,
+      hasNext: true,
+    });
+    auditApiService.listHoldings.mockResolvedValueOnce(page([]));
+    component.ordersMeta.set({ totalElements: 100, totalPages: 5, hasNext: true });
+
+    await component.goToOrdersPage(3);
+
+    expect(component.ordersPage()).toBe(3);
+    expect(component.orderPageNumbers()).toEqual([0, 1, 2, 3, 4]);
+    expect(auditApiService.searchOrderLogs).toHaveBeenCalledWith(
+      expect.objectContaining({ page: 3, size: component.pageSize }),
+    );
+  });
+
   it('formats owner names from first and last name, falling back to user id', () => {
     expect(
       component.formatOwnerName({
