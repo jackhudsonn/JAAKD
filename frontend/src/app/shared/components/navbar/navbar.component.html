@@ -26,66 +26,6 @@
           Auditor Lab
         </a>
       }
-
-      <div class="menu-wrapper">
-        <button
-          type="button"
-          class="nav-more-button"
-          (click)="toggleMenu()"
-          [attr.aria-expanded]="menuOpen()"
-          aria-haspopup="menu"
-          aria-label="More navigation"
-        >
-          <span>More</span>
-          <span class="chevron" [class.open]="menuOpen()"></span>
-        </button>
-
-        @if (menuOpen()) {
-          <div class="nav-dropdown" role="menu" aria-label="More navigation links">
-            <a
-              routerLink="/dashboard"
-              routerLinkActive="active"
-              role="menuitem"
-              (click)="closeMenu()"
-            >
-              Dashboard
-            </a>
-
-            <a
-              routerLink="/transact"
-              routerLinkActive="active"
-              role="menuitem"
-              (click)="closeMenu()"
-            >
-              Transact
-            </a>
-
-            <a routerLink="/trade" routerLinkActive="active" role="menuitem" (click)="closeMenu()">
-              Trade
-            </a>
-
-            <a
-              routerLink="/testing/order-lifecycle"
-              routerLinkActive="active"
-              role="menuitem"
-              (click)="closeMenu()"
-            >
-              Dev Testing
-            </a>
-
-            @if (canAccessAuditor) {
-              <a
-                routerLink="/testing/auditor"
-                routerLinkActive="active"
-                role="menuitem"
-                (click)="closeMenu()"
-              >
-                Auditor Lab
-              </a>
-            }
-          </div>
-        }
-      </div>
     </nav>
 
     <div class="profile-end">
