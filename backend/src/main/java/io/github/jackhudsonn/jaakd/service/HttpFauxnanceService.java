@@ -1,6 +1,7 @@
 package io.github.jackhudsonn.jaakd.service;
 
 import java.net.URI;
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -44,17 +45,24 @@ public class HttpFauxnanceService implements FauxnanceService {
     private final RestTemplate fauxnanceRestTemplate;
     private final ObjectMapper objectMapper;
     private final FauxnanceProperties fauxnanceProperties;
+    private final ResponseCache<QuoteKey, List<FauxnanceQuoteResponse>> quoteCache;
+    private final ResponseCache<SymbolKey, FauxnanceSymbolResponse> symbolCache;
+    private final ResponseCache<SymbolKey, FauxnanceCandleResponse> candleCache;
     private final ExecutorService fauxnanceRequestExecutor;
     private final ScheduledExecutorService fauxnanceRetryScheduler;
 
     public HttpFauxnanceService(
         RestTemplate fauxnanceRestTemplate,
         ObjectMapper objectMapper,
-        FauxnanceProperties fauxnanceProperties
+        FauxnanceProperties fauxnanceProperties,
+        Clock clock
     ) {
         this.fauxnanceRestTemplate = fauxnanceRestTemplate;
         this.objectMapper = objectMapper;
         this.fauxnanceProperties = fauxnanceProperties;
+        this.quoteCache = new ResponseCache<>(clock);
+        this.symbolCache = new ResponseCache<>(clock);
+        this.candleCache = new ResponseCache<>(clock);
         this.fauxnanceRequestExecutor = Executors.newVirtualThreadPerTaskExecutor();
         this.fauxnanceRetryScheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
             Thread thread = new Thread(runnable, "fauxnance-retry-scheduler");
@@ -93,8 +101,15 @@ public class HttpFauxnanceService implements FauxnanceService {
     @Override
     public CompletableFuture<FauxnanceSymbolResponse> getSymbolAsync(String symbol) {
         String normalizedSymbol = normalizeSymbol(symbol);
-        return getJsonWithRetryAsync("/symbols/{symbol}", Map.of("symbol", normalizedSymbol))
-            .thenApply(this::parseSymbolResponse);
+        FauxnanceProperties.Cache cache = fauxnanceProperties.getCache();
+
+        return symbolCache.get(
+            new SymbolKey(normalizedSymbol),
+            cache.getSymbolTtl(),
+            cache.getStaleTtl(),
+            () -> getJsonWithRetryAsync("/symbols/{symbol}", Map.of("symbol", normalizedSymbol))
+                .thenApply(this::parseSymbolResponse)
+        );
     }
 
     @Override
@@ -105,8 +120,15 @@ public class HttpFauxnanceService implements FauxnanceService {
     @Override
     public CompletableFuture<FauxnanceCandleResponse> getCandlesAsync(String symbol) {
         String normalizedSymbol = normalizeSymbol(symbol);
-        return getJsonWithRetryAsync("/candles/{symbol}", Map.of("symbol", normalizedSymbol))
-            .thenApply(json -> toValue(json, FauxnanceCandleResponse.class, "/candles/{symbol}"));
+        FauxnanceProperties.Cache cache = fauxnanceProperties.getCache();
+
+        return candleCache.get(
+            new SymbolKey(normalizedSymbol),
+            cache.getCandleTtl(),
+            cache.getStaleTtl(),
+            () -> getJsonWithRetryAsync("/candles/{symbol}", Map.of("symbol", normalizedSymbol))
+                .thenApply(json -> toValue(json, FauxnanceCandleResponse.class, "/candles/{symbol}"))
+        );
     }
 
     @Override
@@ -116,24 +138,50 @@ public class HttpFauxnanceService implements FauxnanceService {
 
     @Override
     public CompletableFuture<List<FauxnanceQuoteResponse>> getQuotesAsync(List<String> symbols) {
+        List<String> normalizedSymbols;
+        try {
+            normalizedSymbols = normalizeQuoteSymbols(symbols);
+        } catch (RuntimeException ex) {
+            return CompletableFuture.failedFuture(ex);
+        }
+
+        FauxnanceProperties.Cache cache = fauxnanceProperties.getCache();
+
+        return quoteCache.get(
+            new QuoteKey(normalizedSymbols),
+            cache.getQuoteTtl(),
+            cache.getStaleTtl(),
+            () -> fetchQuotes(normalizedSymbols)
+        );
+    }
+
+    @Override
+    public List<FauxnanceQuoteResponse> getQuotesFresh(List<String> symbols) {
+        return await(fetchQuotes(normalizeQuoteSymbols(symbols)));
+    }
+
+    private List<String> normalizeQuoteSymbols(List<String> symbols) {
         if (symbols == null || symbols.isEmpty()) {
-            return CompletableFuture.failedFuture(
-                new FauxnanceClientException("At least one symbol is required for /quotes")
-            );
+            throw new FauxnanceClientException("At least one symbol is required for /quotes");
         }
 
         int maxBatchSize = fauxnanceProperties.getQuotes().getMaxBatchSize();
         if (symbols.size() > maxBatchSize) {
-            return CompletableFuture.failedFuture(new FauxnanceClientException(
+            throw new FauxnanceClientException(
                 "Fauxnance quote batch size exceeded: requested " + symbols.size() + ", max " + maxBatchSize
-            ));
+            );
         }
 
-        List<String> normalizedSymbols = symbols.stream()
+        return symbols.stream()
             .map(this::normalizeSymbol)
+            .distinct()
+            .sorted()
             .toList();
+    }
 
+    private CompletableFuture<List<FauxnanceQuoteResponse>> fetchQuotes(List<String> normalizedSymbols) {
         String symbolsQueryValue = String.join(",", normalizedSymbols);
+
         return getJsonWithRetryAsync(
             "/quotes",
             Map.of(),
@@ -416,5 +464,11 @@ public class HttpFauxnanceService implements FauxnanceService {
         }
 
         return symbol.trim().toUpperCase();
+    }
+
+    private record QuoteKey(List<String> symbols) {
+    }
+
+    private record SymbolKey(String symbol) {
     }
 }

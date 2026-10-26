@@ -47,7 +47,7 @@ public class FauxnanceQuoteService implements QuoteService {
     @Override
     public MarketQuote getQuote(UUID instrumentId) {
         String symbol = resolveSymbol(instrumentId);
-        List<FauxnanceQuoteResponse> quotes = fauxnanceService.getQuotes(List.of(symbol));
+        List<FauxnanceQuoteResponse> quotes = fauxnanceService.getQuotesFresh(List.of(symbol));
 
         if (quotes.isEmpty()) {
             throw new FauxnanceClientException("No quote returned for symbol: " + symbol);
@@ -69,7 +69,7 @@ public class FauxnanceQuoteService implements QuoteService {
         }
 
         List<String> symbols = new ArrayList<>(symbolByInstrumentId.values());
-        List<FauxnanceQuoteResponse> responses = fauxnanceService.getQuotes(symbols);
+        List<FauxnanceQuoteResponse> responses = fauxnanceService.getQuotesFresh(symbols);
 
         Map<String, FauxnanceQuoteResponse> responseBySymbol = new LinkedHashMap<>();
         for (FauxnanceQuoteResponse response : responses) {

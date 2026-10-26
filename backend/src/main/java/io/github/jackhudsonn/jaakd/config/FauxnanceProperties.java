@@ -26,6 +26,10 @@ public class FauxnanceProperties {
     @NotNull
     private Quotes quotes = new Quotes();
 
+    @Valid
+    @NotNull
+    private Cache cache = new Cache();
+
     public String getBaseUrl() {
         return baseUrl;
     }
@@ -72,6 +76,14 @@ public class FauxnanceProperties {
 
     public void setQuotes(Quotes quotes) {
         this.quotes = quotes;
+    }
+
+    public Cache getCache() {
+        return cache;
+    }
+
+    public void setCache(Cache cache) {
+        this.cache = cache;
     }
 
     public static class Timeout {
@@ -132,6 +144,52 @@ public class FauxnanceProperties {
 
         public void setMaxBatchSize(int maxBatchSize) {
             this.maxBatchSize = maxBatchSize;
+        }
+    }
+
+    public static class Cache {
+        @NotNull
+        private Duration quoteTtl = Duration.ofMinutes(15);
+
+        @NotNull
+        private Duration symbolTtl = Duration.ofMinutes(15);
+
+        @NotNull
+        private Duration candleTtl = Duration.ofMinutes(1);
+
+        @NotNull
+        private Duration staleTtl = Duration.ofMinutes(15);
+
+        public Duration getQuoteTtl() {
+            return quoteTtl;
+        }
+
+        public void setQuoteTtl(Duration quoteTtl) {
+            this.quoteTtl = quoteTtl;
+        }
+
+        public Duration getSymbolTtl() {
+            return symbolTtl;
+        }
+
+        public void setSymbolTtl(Duration symbolTtl) {
+            this.symbolTtl = symbolTtl;
+        }
+
+        public Duration getCandleTtl() {
+            return candleTtl;
+        }
+
+        public void setCandleTtl(Duration candleTtl) {
+            this.candleTtl = candleTtl;
+        }
+
+        public Duration getStaleTtl() {
+            return staleTtl;
+        }
+
+        public void setStaleTtl(Duration staleTtl) {
+            this.staleTtl = staleTtl;
         }
     }
 }
