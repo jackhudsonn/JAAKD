@@ -1,7 +1,9 @@
+import { CurrencyPipe } from '@angular/common';
 import { Component, computed, effect, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { OrderKind, OrderType } from '@core/models';
 import { ToastService } from '@shared/components/toast/toast.service';
+import { toOrderPreview } from './order-preview.util';
 
 export interface OrderFormSubmit {
   kind: OrderKind;
@@ -17,7 +19,7 @@ export interface OrderFormSubmit {
 @Component({
   selector: 'app-order-form',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, CurrencyPipe],
   templateUrl: './order-form.component.html',
   styleUrl: './order-form.component.css',
 })
@@ -42,6 +44,16 @@ export class OrderFormComponent {
   canSell = computed(() => this.ownedQuantity() > 0);
   readonly showPriceUnavailableHint = computed(
     () => this.backendDataMode() && this.currentPrice() <= 0,
+  );
+  readonly preview = computed(() =>
+    toOrderPreview({
+      type: this.type(),
+      kind: this.kind(),
+      quantity: this.quantity(),
+      limitPrice: this.limitPrice(),
+      currentPrice: this.currentPrice(),
+      accountCash: this.accountCash(),
+    }),
   );
 
   constructor() {
