@@ -6,9 +6,7 @@ import { PieChartComponent, PieChartSlice } from '@shared/components/pie-chart/p
 import { DASHBOARD_MARKET_DATA_PORT } from '@features/dashboard/services/dashboard-market-data.port';
 import { DASHBOARD_STATE_PORT } from '@features/dashboard/services/dashboard-state.port';
 import { CashCurrency, CASH_CURRENCIES, REPORTING_CURRENCY } from '@core/models/api.models';
-import {
-  convertAmountBetweenCurrencies,
-} from '@core/constants/cash-exchange-rates.constants';
+import { convertAmountBetweenCurrencies } from '@core/constants/cash-exchange-rates.constants';
 import { deterministicColorFromBase } from '@features/dashboard/utils/allocation-colors.util';
 
 const ALLOCATION_CATEGORIES = ['cash', 'equity', 'etf', 'crypto'] as const;
@@ -134,13 +132,11 @@ export class AllocationByAssetWidgetComponent {
   private readonly topLevelSlices = computed<PieChartSlice[]>(() => {
     const breakdowns = this.breakdowns();
 
-    return ALLOCATION_CATEGORIES
-      .map((category) => ({
-        label: category,
-        value: breakdowns[category].reduce((sum, slice) => sum + slice.value, 0),
-        color: CATEGORY_COLORS[category],
-      }))
-      .filter((slice) => breakdowns[slice.label].length > 0);
+    return ALLOCATION_CATEGORIES.map((category) => ({
+      label: category,
+      value: breakdowns[category].reduce((sum, slice) => sum + slice.value, 0),
+      color: CATEGORY_COLORS[category],
+    })).filter((slice) => breakdowns[slice.label].length > 0);
   });
 
   slices = computed<PieChartSlice[]>(() => {

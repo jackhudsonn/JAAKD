@@ -1,4 +1,4 @@
-import { Component, computed, input, signal } from '@angular/core';
+import { Component, computed, effect, inject, input, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DecimalPipe } from '@angular/common';
 import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
@@ -11,6 +11,8 @@ import {
   CASH_RATES_BY_USD,
   convertAmountBetweenCurrencies,
 } from '@core/constants/cash-exchange-rates.constants';
+import { InstrumentApiService } from '@core/services/instrument-api.service';
+import { invertRate, toFxSymbol, toPositiveRate, toReceiveAmount } from './fx-preview.util';
 
 @Component({
   selector: 'app-currency-exchange',
@@ -20,8 +22,11 @@ import {
   styleUrl: './currency-exchange.component.css',
 })
 export class CurrencyExchangeComponent {
+  private readonly instrumentApi = inject(InstrumentApiService);
+
   currencies = input<readonly CashCurrency[]>(CASH_CURRENCIES);
   private readonly ratesByUsd = CASH_RATES_BY_USD;
+  private liveRateRequestId = 0;
 
   amount = signal<number | null>(0.0);
   fromCurrency = signal<CashCurrency>('USD');
@@ -51,6 +56,54 @@ export class CurrencyExchangeComponent {
     const toRate = this.ratesByUsd[this.toCurrency()];
     return toRate / fromRate;
   });
+
+  liveRate = signal<number | null>(null);
+  liveRateState = signal<'idle' | 'loading' | 'ready' | 'unavailable'>('idle');
+  liveReceiveAmount = computed(() => toReceiveAmount(this.amount(), this.liveRate()));
+
+  constructor() {
+    effect(() => {
+      const from = this.fromCurrency();
+      const to = this.toCurrency();
+
+      if (!this.backendDataMode() || from === to) {
+        this.liveRateRequestId++;
+        this.liveRate.set(null);
+        this.liveRateState.set('idle');
+        return;
+      }
+
+      void this.loadLiveRate(from, to);
+    });
+  }
+
+  private async loadLiveRate(from: CashCurrency, to: CashCurrency) {
+    const requestId = ++this.liveRateRequestId;
+    this.liveRate.set(null);
+    this.liveRateState.set('loading');
+
+    const rate =
+      (await this.fetchRate(toFxSymbol(from, to))) ??
+      invertRate(await this.fetchRate(toFxSymbol(to, from)));
+
+    // A newer currency choice started its own request; drop this stale result.
+    if (requestId !== this.liveRateRequestId) {
+      return;
+    }
+
+    this.liveRate.set(rate);
+    this.liveRateState.set(rate === null ? 'unavailable' : 'ready');
+  }
+
+  private async fetchRate(symbol: string): Promise<number | null> {
+    try {
+      const quotes = await this.instrumentApi.getQuotes([symbol]);
+      return toPositiveRate(quotes.find((quote) => quote.symbol === symbol) ?? quotes[0]);
+    } catch (error) {
+      console.error(`CurrencyExchangeComponent quote for ${symbol} failed`, error);
+      return null;
+    }
+  }
 
   requestExchange() {
     const currentAmount = this.amount();

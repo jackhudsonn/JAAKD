@@ -9,12 +9,15 @@
         <span class="asset-price">{{ currentPrice() | number: '1.2-2' }}</span>
         <span
           class="asset-price-change"
-          [class.positive]="isPositive()"
-          [class.negative]="!isPositive()"
+          [class.positive]="isPositive() && !isFlat()"
+          [class.negative]="!isPositive() && !isFlat()"
+          [class.neutral]="isFlat()"
         >
-          {{ isPositive() ? '+' : '' }}${{ changeAmount() | number: '1.2-2' }} ({{
-            isPositive() ? '+' : ''
-          }}{{ changePct() | number: '1.2-2' }}%)
+          {{ isPositive() && !isFlat() ? '+' : '' }}${{
+            (isFlat() ? 0 : changeAmount()) | number: '1.2-2'
+          }}
+          ({{ isPositive() && !isFlat() ? '+' : ''
+          }}{{ (isFlat() ? 0 : changePct()) | number: '1.2-2' }}%)
         </span>
       </div>
     </div>

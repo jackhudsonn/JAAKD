@@ -59,8 +59,7 @@ function rgbToHsl(r: number, g: number, b: number): [number, number, number] {
   }
 
   const lightness = (max + min) / 2;
-  const saturation =
-    delta === 0 ? 0 : delta / (1 - Math.abs(2 * lightness - 1));
+  const saturation = delta === 0 ? 0 : delta / (1 - Math.abs(2 * lightness - 1));
 
   return [hue, saturation * 100, lightness * 100];
 }
@@ -107,4 +106,3 @@ function hslToHex(h: number, s: number, l: number): string {
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
-

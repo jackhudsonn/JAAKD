@@ -66,6 +66,10 @@
   color: var(--fail);
 }
 
+.asset-price-change.neutral {
+  color: var(--text-muted);
+}
+
 .interval-tabs {
   display: flex;
   flex-wrap: wrap;

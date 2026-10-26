@@ -12,7 +12,6 @@
   --panel-bg: color-mix(in srgb, var(--secondary-bg) 94%, black 6%);
   --surface-inset: rgba(0, 0, 0, 0.22);
   --surface-inset-hover: rgba(0, 0, 0, 0.3);
-  --surface-inset-strong: rgba(0, 0, 0, 0.32);
   --surface-raised: rgba(255, 255, 255, 0.04);
   --surface-raised-active: rgba(255, 255, 255, 0.06);
   --surface-raised-hover: rgba(255, 255, 255, 0.09);
@@ -34,14 +33,6 @@
   --placeholder-text: #c4c9c7;
   --option-text: #111827;
   --option-bg: #ffffff;
-
-  /* Banners */
-  --banner-success-border: rgba(29, 156, 89, 0.36);
-  --banner-success-bg: rgba(22, 74, 47, 0.36);
-  --banner-success-text: #beffdd;
-  --banner-error-border: rgba(204, 71, 71, 0.42);
-  --banner-error-bg: rgba(76, 27, 27, 0.44);
-  --banner-error-text: #ffdede;
 
   /* Status chips */
   --status-submitted-bg: rgba(73, 138, 255, 0.24);
@@ -110,25 +101,6 @@
   margin: 0;
   color: var(--text-secondary);
   font-size: 0.9rem;
-}
-
-.banner {
-  margin: 0;
-  border-radius: var(--radius-control);
-  padding: 0.65rem var(--space-sm);
-  font-size: 0.92rem;
-}
-
-.banner.success {
-  border: 1px solid var(--banner-success-border);
-  background: var(--banner-success-bg);
-  color: var(--banner-success-text);
-}
-
-.banner.error {
-  border: 1px solid var(--banner-error-border);
-  background: var(--banner-error-bg);
-  color: var(--banner-error-text);
 }
 
 .form-grid {
@@ -294,36 +266,6 @@ button:disabled {
   display: flex;
   gap: var(--space-sm);
   flex-wrap: wrap;
-}
-
-.diagnostics-panel {
-  gap: var(--space-xs);
-}
-
-.diagnostics-grid {
-  display: grid;
-  gap: 0.35rem;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-}
-
-.diagnostics-grid p {
-  margin: 0;
-}
-
-.diagnostics-params {
-  display: grid;
-  gap: 0.3rem;
-}
-
-.diagnostics-params pre {
-  margin: 0;
-  padding: 0.6rem;
-  border-radius: var(--radius-input);
-  border: 1px solid var(--quaternary-bg-border);
-  background: var(--surface-inset-strong);
-  color: var(--text-primary);
-  overflow: auto;
-  font-size: 0.8rem;
 }
 
 .muted {

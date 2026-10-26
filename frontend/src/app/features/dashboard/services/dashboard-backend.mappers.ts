@@ -250,8 +250,7 @@ export const toOrders = (
         ...(newestRow.status === ORDER_STATUS.CANCELLED
           ? { cancelledAt: newestRow.timestamp }
           : {}),
-        ...(newestRow.status === ORDER_STATUS.REJECTED ||
-        newestRow.status === ORDER_STATUS.FAILED
+        ...(newestRow.status === ORDER_STATUS.REJECTED || newestRow.status === ORDER_STATUS.FAILED
           ? { statusReason: extractStatusReason(newestRow.metadata) }
           : {}),
       },

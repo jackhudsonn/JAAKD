@@ -1,6 +1,7 @@
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpErrorResponse } from '@angular/common/http';
 import { AuditorComponent } from './auditor.component';
+import { ToastService } from '@shared/components/toast/toast.service';
 import {
   AuditApiService,
   AuditHoldingResponse,
@@ -23,7 +24,28 @@ function page<T>(content: T[]): AuditPageResponse<T> {
   };
 }
 
+function orderLog(overrides: Partial<AuditOrderLogResponse> = {}): AuditOrderLogResponse {
+  return {
+    logOrderId: 'log-1',
+    orderId: 'order-1',
+    portfolioId: 'portfolio-1',
+    instrumentId: 'instrument-1',
+    side: 'BUY',
+    quantity: 1,
+    timestamp: '2026-10-14T10:00:00Z',
+    metadata: null,
+    status: 'EXECUTED',
+    executionPrice: 100,
+    quotedPrice: 99,
+    ownerUserId: 'user-1',
+    ownerFirstName: 'Ada',
+    ownerLastName: 'Lovelace',
+    ...overrides,
+  };
+}
+
 describe('AuditorComponent', () => {
+  let fixture: ComponentFixture<AuditorComponent>;
   let component: AuditorComponent;
 
   const auditApiService = {
@@ -65,6 +87,11 @@ describe('AuditorComponent', () => {
     list: vi.fn<() => Promise<InstrumentResponse[]>>(async () => []),
   };
 
+  const toastService = {
+    success: vi.fn<(text: string) => number>(() => 1),
+    error: vi.fn<(text: string) => number>(() => 1),
+  };
+
   beforeEach(async () => {
     vi.restoreAllMocks();
     vi.clearAllMocks();
@@ -74,10 +101,11 @@ describe('AuditorComponent', () => {
       providers: [
         { provide: AuditApiService, useValue: auditApiService },
         { provide: InstrumentApiService, useValue: instrumentApiService },
+        { provide: ToastService, useValue: toastService },
       ],
     }).compileComponents();
 
-    const fixture = TestBed.createComponent(AuditorComponent);
+    fixture = TestBed.createComponent(AuditorComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });
@@ -295,8 +323,57 @@ describe('AuditorComponent', () => {
 
     await component.refreshSummaries();
 
-    expect(component.errorMessage()).toBe(
+    expect(toastService.error).toHaveBeenLastCalledWith(
       'The service is temporarily unavailable. Please try again later.',
     );
+  });
+
+  it('shows a success toast after loading summaries', async () => {
+    auditApiService.searchOrderLogs.mockResolvedValueOnce(page([orderLog()]));
+    auditApiService.listHoldings.mockResolvedValueOnce(page([]));
+
+    await component.refreshSummaries();
+
+    expect(toastService.success).toHaveBeenLastCalledWith('Loaded 1 order rows and 0 holdings.');
+  });
+
+  it('shows a success toast after loading holding details', async () => {
+    await component.selectHolding('holding-1');
+
+    expect(toastService.success).toHaveBeenLastCalledWith(
+      'Loaded 0 order logs, 0 position lots, and 0 lot matches.',
+    );
+  });
+
+  it('shows the fallback error toast when the error has no message', async () => {
+    auditApiService.listHoldingOrderLogs.mockRejectedValueOnce(new Error('network down'));
+
+    await component.selectHolding('holding-1');
+
+    expect(toastService.error).toHaveBeenLastCalledWith('Failed to load holding details.');
+  });
+
+  it('shows the quoted price next to the execution price, rounded to the cent', () => {
+    component.selectedOrderId.set('order-1');
+    component.selectedOrderLogs.set([
+      orderLog({ executionPrice: 100.456, quotedPrice: 99.5 }),
+      orderLog({ logOrderId: 'log-2', status: 'SUBMITTED', quotedPrice: null }),
+    ]);
+    fixture.detectChanges();
+
+    const element: HTMLElement = fixture.nativeElement;
+    const lifecycleTable = [...element.querySelectorAll('section.panel')]
+      .find((panel) => panel.querySelector('h2')?.textContent?.includes('Order Lifecycle Logs'))!
+      .querySelector('table')!;
+    const headers = [...lifecycleTable.querySelectorAll('th')].map((th) => th.textContent?.trim());
+    const rows = [...lifecycleTable.querySelectorAll('tbody tr')].map((tr) =>
+      [...tr.querySelectorAll('td')].map((td) => td.textContent?.trim()),
+    );
+
+    const executionIndex = headers.indexOf('Execution Price');
+    expect(headers[executionIndex + 1]).toBe('Quoted Price');
+    expect(rows[0][executionIndex]).toBe('100.46');
+    expect(rows[0][executionIndex + 1]).toBe('99.50');
+    expect(rows[1][executionIndex + 1]).toBe('N/A');
   });
 });

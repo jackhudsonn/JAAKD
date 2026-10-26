@@ -7,14 +7,6 @@
     </div>
   </header>
 
-  @if (statusMessage()) {
-    <p class="banner success">{{ statusMessage() }}</p>
-  }
-
-  @if (errorMessage()) {
-    <p class="banner error">{{ errorMessage() }}</p>
-  }
-
   <section class="panel filter-panel">
     <h2>Filters</h2>
     <p class="panel-help">
@@ -128,7 +120,7 @@
               @for (order of orderSummaries(); track order.orderId) {
                 <tr class="clickable" (click)="selectOrder(order.orderId)">
                   <td>{{ order.status }}</td>
-                  <td>{{ order.executionPrice }}</td>
+                  <td>{{ (order.executionPrice | number: '1.2-2') ?? 'N/A' }}</td>
                   <td>{{ getInstrumentName(order.instrumentId) }}</td>
                   <td>{{ order.ownerName }}</td>
                   <td>{{ order.timestamp | date: 'short' }}</td>
@@ -186,7 +178,7 @@
               @for (holding of holdings(); track holding.holdingID) {
                 <tr class="clickable" (click)="selectHolding(holding.holdingID)">
                   <td>{{ holding.currentQuantity }}</td>
-                  <td>{{ holding.cumulativeRealizedPnl }}</td>
+                  <td>{{ (holding.cumulativeRealizedPnl | number: '1.2-2') ?? 'N/A' }}</td>
                   <td>{{ getInstrumentName(holding.instrumentID) }}</td>
                   <td>{{ formatOwnerName(holding) }}</td>
                   <td>{{ holding.updatedAt | date: 'short' }}</td>
@@ -236,6 +228,7 @@
               <th>Side</th>
               <th>Qty</th>
               <th>Execution Price</th>
+              <th>Quoted Price</th>
               <th>Timestamp</th>
               <th>Log ID</th>
             </tr>
@@ -246,13 +239,14 @@
                 <td>{{ row.status }}</td>
                 <td>{{ row.side }}</td>
                 <td>{{ row.quantity }}</td>
-                <td>{{ row.executionPrice }}</td>
+                <td>{{ (row.executionPrice | number: '1.2-2') ?? 'N/A' }}</td>
+                <td>{{ (row.quotedPrice | number: '1.2-2') ?? 'N/A' }}</td>
                 <td>{{ row.timestamp | date: 'short' }}</td>
                 <td>{{ row.logOrderId }}</td>
               </tr>
             } @empty {
               <tr>
-                <td colspan="6" class="muted">No log rows found for the selected order.</td>
+                <td colspan="7" class="muted">No log rows found for the selected order.</td>
               </tr>
             }
           </tbody>
@@ -283,7 +277,7 @@
                 @for (row of holdingOrderLogs(); track row.logOrderId) {
                   <tr>
                     <td>{{ row.status }}</td>
-                    <td>{{ row.executionPrice }}</td>
+                    <td>{{ (row.executionPrice | number: '1.2-2') ?? 'N/A' }}</td>
                     <td>{{ row.timestamp | date: 'short' }}</td>
                     <td>{{ row.logOrderId }}</td>
                   </tr>
@@ -312,7 +306,7 @@
               <tbody>
                 @for (lot of positionLots(); track getPositionLotId(lot)) {
                   <tr>
-                    <td>{{ lot.unitCost }}</td>
+                    <td>{{ (lot.unitCost | number: '1.2-2') ?? 'N/A' }}</td>
                     <td>{{ lot.remainingQuantity }}</td>
                     <td>{{ lot.openedAt | date: 'short' }}</td>
                     <td>{{ getPositionLotId(lot) }}</td>
@@ -343,7 +337,11 @@
                 @for (match of lotMatches(); track getLotMatchId(match)) {
                   <tr>
                     <td>{{ match.matchedQuantity }}</td>
-                    <td>{{ match.realizedPnlAmount ?? match.realizedPnl ?? '-' }}</td>
+                    <td>
+                      {{
+                        (match.realizedPnlAmount ?? match.realizedPnl | number: '1.2-2') ?? 'N/A'
+                      }}
+                    </td>
                     <td>{{ match.matchedAt | date: 'short' }}</td>
                     <td>{{ getLotMatchId(match) }}</td>
                   </tr>
@@ -359,26 +357,4 @@
       </div>
     </section>
   }
-
-  <section class="panel diagnostics-panel">
-    <h2>Request Diagnostics</h2>
-    <p class="panel-help">Most recent endpoint call.</p>
-
-    @if (lastRequest()) {
-      <div class="diagnostics-grid">
-        <p><strong>Action:</strong> {{ lastRequest()!.action }}</p>
-        <p><strong>Endpoint:</strong> {{ lastRequest()!.endpoint }}</p>
-        <p><strong>Status:</strong> {{ lastRequest()!.statusCode ?? 'N/A' }}</p>
-        <p><strong>Rows:</strong> {{ lastRequest()!.rowsLoaded ?? 'N/A' }}</p>
-        <p><strong>At:</strong> {{ lastRequest()!.happenedAt | date: 'short' }}</p>
-      </div>
-
-      <div class="diagnostics-params">
-        <strong>Params</strong>
-        <pre>{{ lastRequest()!.params | json }}</pre>
-      </div>
-    } @else {
-      <p class="muted">No endpoint call has been recorded yet.</p>
-    }
-  </section>
 </section>

@@ -8,11 +8,7 @@
     <span class="column-label">Status</span>
   </div>
 
-  <app-scrollable-list
-    [items]="rows()"
-    [trackBy]="trackById"
-    emptyMessage="No transactions yet."
-  >
+  <app-scrollable-list [items]="rows()" [trackBy]="trackById" emptyMessage="No transactions yet.">
     <ng-template let-transaction>
       <div class="transaction-row">
         <span class="transaction-date">{{ transaction.createdAt | date: 'MMM d, y' }}</span>

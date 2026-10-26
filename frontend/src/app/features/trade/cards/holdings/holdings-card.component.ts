@@ -17,6 +17,7 @@ import { startCycleTimer } from '@shared/utils/cycle-timer';
 import { Holding, InstrumentType } from '@core/models';
 import { CASH_CURRENCIES } from '@core/models/api.models';
 import { TRADE_MARKET_DATA_PORT } from '@features/trade/services/trade-market-data.port';
+import { isFlatChange } from '@shared/utils/format-percentage-change';
 
 type HoldingsRow =
   | { kind: 'cash'; currency: string; amount: number }
@@ -26,6 +27,7 @@ type HoldingsRow =
       price: number;
       marketValue: number;
       changePct: number;
+      flat: boolean;
       name: string;
     };
 
@@ -103,6 +105,7 @@ export class HoldingsCardComponent implements OnInit, OnDestroy {
         price,
         marketValue: price * holding.quantity,
         changePct,
+        flat: isFlatChange(changePct),
         name: asset?.name ?? holding.symbol,
       });
     }
