@@ -1,5 +1,6 @@
 import { Component, input, output } from '@angular/core';
 import { DatePipe, DecimalPipe, TitleCasePipe } from '@angular/common';
+import { ORDER_STATUS } from '@core/constants/order-status.constants';
 import { ModalComponent } from '@shared/components/modal/modal.component';
 import { StatusBadgeComponent } from '@shared/components/status-badge/status-badge.component';
 import { formatLabel } from '@shared/utils/format-label';
@@ -22,6 +23,10 @@ export class OrderDetailsPopupComponent {
 
   canCancelOrder() {
     const status = this.order().status;
-    return status === 'pending' || status === 'open';
+    return (
+      status === ORDER_STATUS.SUBMITTED ||
+      status === ORDER_STATUS.PENDING ||
+      status === ORDER_STATUS.ACCEPTED
+    );
   }
 }
