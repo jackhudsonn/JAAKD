@@ -1,0 +1,194 @@
+.demographics-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+
+  gap: var(--space-lg);
+
+  margin-bottom: var(--space-md);
+}
+
+.demographics-controls .form-field {
+  margin-bottom: 0;
+}
+
+.demographics-controls .range-tabs {
+  margin-bottom: 0;
+}
+
+.field-label {
+  color: var(--secondary-dark);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.focus-field {
+  min-width: 280px;
+}
+
+.demographics-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+
+  gap: var(--space-lg);
+
+  margin-bottom: var(--space-lg);
+}
+
+@media (min-width: 901px) {
+  .demographics-grid {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    align-items: stretch;
+  }
+}
+
+.demographics-grid app-widget-card {
+  display: block;
+
+  --page-card-height: 100%;
+}
+
+/* The holdings list scrolls inside its card instead of making the card taller than the chart beside it. */
+.holdings-card .top-list {
+  max-height: 420px;
+
+  overflow-y: auto;
+
+  padding-right: var(--space-xxs);
+}
+
+@media (min-width: 901px) {
+  /* height 0 + min-height 100%: the card adds nothing to the row's height (the chart card sets it), then
+     stretches to fill it. */
+  .demographics-grid .holdings-card {
+    height: 0;
+    min-height: 100%;
+  }
+
+  .holdings-card .top-list {
+    max-height: none;
+    height: 100%;
+  }
+}
+
+/* Top holdings: rank, ticker over name, value over holders, and a bar for the share of the group's money. */
+
+.top-list {
+  display: flex;
+  flex-direction: column;
+
+  gap: var(--space-xs);
+
+  margin: 0;
+  padding: 0;
+
+  list-style: none;
+}
+
+.top-item {
+  width: 100%;
+
+  display: grid;
+  grid-template-columns: 1.75rem minmax(0, 1fr) auto;
+  grid-template-areas:
+    'rank names figures'
+    'rank bar bar';
+  align-items: center;
+
+  column-gap: var(--space-sm);
+  row-gap: var(--space-xxs);
+
+  padding: var(--space-sm);
+
+  background: var(--tertiary-bg);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+
+  color: var(--text-primary);
+  font: inherit;
+  text-align: left;
+
+  cursor: pointer;
+
+  transition: border-color 120ms ease;
+}
+
+.top-item:hover {
+  border-color: var(--primary);
+}
+
+.top-rank {
+  grid-area: rank;
+
+  width: 1.75rem;
+  height: 1.75rem;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+  background: var(--quaternary-bg);
+
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+}
+
+.top-names,
+.top-figures {
+  display: flex;
+  flex-direction: column;
+
+  min-width: 0;
+}
+
+.top-names {
+  grid-area: names;
+}
+
+.top-figures {
+  grid-area: figures;
+
+  align-items: flex-end;
+}
+
+.top-ticker,
+.top-value {
+  color: var(--secondary-light);
+  font-weight: 700;
+}
+
+.top-name {
+  overflow: hidden;
+
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.top-bar {
+  grid-area: bar;
+
+  height: 4px;
+
+  overflow: hidden;
+
+  border-radius: 2px;
+  background: var(--quaternary-bg);
+}
+
+.top-bar-fill {
+  display: block;
+
+  height: 100%;
+
+  background: var(--primary);
+
+  transition: width 300ms ease;
+}
+
+tbody tr.selected {
+  background: rgba(255, 140, 0, 0.12);
+}

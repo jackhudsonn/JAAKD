@@ -15,6 +15,11 @@ export interface LineChartPoint {
   value: number;
 }
 
+// How y-axis ticks and tooltips show values. 'percent' expects fractions (0.05 = 5%).
+export type LineChartValueFormat = 'currency' | 'percent' | 'number';
+
+const COMPARE_COLOR = '#aeb2b0';
+
 /**
  * Thin Chart.js line-chart wrapper. Owns chart creation/teardown so widgets
  * only need to pass in labelled data points.
@@ -28,6 +33,11 @@ export interface LineChartPoint {
 export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
   points = input.required<LineChartPoint[]>();
   positive = input<boolean>(true);
+  valueFormat = input<LineChartValueFormat>('currency');
+  // Optional second line drawn dashed for comparison (e.g. cost basis under market value), on the same labels.
+  comparePoints = input<LineChartPoint[] | null>(null);
+  seriesLabel = input<string>('');
+  compareLabel = input<string>('');
 
   @ViewChild('canvas') private canvasRef!: ElementRef<HTMLCanvasElement>;
   private chart?: Chart;
@@ -48,13 +58,7 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
           y: {
             ticks: {
               color: '#aeb2b0',
-              callback: (value) =>
-                new Intl.NumberFormat('en-US', {
-                  style: 'currency',
-                  currency: 'USD',
-                  notation: 'compact',
-                  maximumFractionDigits: 1,
-                }).format(Number(value)),
+              callback: (value) => this.formatValue(Number(value), true),
             },
             grid: { color: 'rgba(255,255,255,0.06)' },
           },
@@ -65,10 +69,8 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
             callbacks: {
               label: (context: any) => {
                 const val = context.parsed?.y ?? context.parsed ?? context.raw;
-                return new Intl.NumberFormat('en-US', {
-                  style: 'currency',
-                  currency: 'USD',
-                }).format(val);
+                const prefix = context.dataset.label ? `${context.dataset.label}: ` : '';
+                return `${prefix}${this.formatValue(Number(val), false)}`;
               },
             },
           },
@@ -78,7 +80,7 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    if ((changes['points'] || changes['positive']) && this.chart) {
+    if ((changes['points'] || changes['positive'] || changes['comparePoints']) && this.chart) {
       this.chart.data = this.toChartData();
       this.chart.update();
     }
@@ -88,24 +90,63 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
     this.chart?.destroy();
   }
 
+  private formatValue(value: number, compact: boolean): string {
+    switch (this.valueFormat()) {
+      case 'percent':
+        return new Intl.NumberFormat('en-US', {
+          style: 'percent',
+          maximumFractionDigits: compact ? 0 : 2,
+        }).format(value);
+      case 'number':
+        return new Intl.NumberFormat('en-US', {
+          notation: compact ? 'compact' : 'standard',
+          maximumFractionDigits: compact ? 1 : 6,
+        }).format(value);
+      default:
+        return new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: 'USD',
+          ...(compact ? { notation: 'compact', maximumFractionDigits: 1 } : {}),
+        }).format(value);
+    }
+  }
+
   private toChartData(): ChartData<'line'> {
     const points = this.points();
     const color = this.positive() ? '#4fc46a' : '#e45b65';
+    const comparePoints = this.comparePoints();
+
+    const datasets: ChartData<'line'>['datasets'] = [
+      {
+        label: this.seriesLabel(),
+        data: points.map((point) => point.value),
+        borderColor: color,
+        backgroundColor: `${color}22`,
+        pointRadius: (context) => (context.dataIndex === context.dataset.data.length - 1 ? 4 : 0),
+        pointHoverRadius: 6,
+        borderWidth: 2,
+        fill: !comparePoints,
+        tension: 0.35,
+      },
+    ];
+
+    if (comparePoints) {
+      datasets.push({
+        label: this.compareLabel(),
+        data: comparePoints.map((point) => point.value),
+        borderColor: COMPARE_COLOR,
+        borderDash: [6, 4],
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        borderWidth: 1.5,
+        fill: false,
+        tension: 0.35,
+      });
+    }
 
     return {
       labels: points.map((point) => point.label),
-      datasets: [
-        {
-          data: points.map((point) => point.value),
-          borderColor: color,
-          backgroundColor: `${color}22`,
-          pointRadius: (context) => (context.dataIndex === context.dataset.data.length - 1 ? 4 : 0),
-          pointHoverRadius: 6,
-          borderWidth: 2,
-          fill: true,
-          tension: 0.35,
-        },
-      ],
+      datasets,
     };
   }
 }

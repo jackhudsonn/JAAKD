@@ -3,12 +3,15 @@ package io.github.jackhudsonn.jaakd.controller;
 import io.github.jackhudsonn.jaakd.dto.AuditPageResponse;
 import io.github.jackhudsonn.jaakd.dto.analytics.AnalyticsMetaResponse;
 import io.github.jackhudsonn.jaakd.dto.analytics.ClassSummaryResponse;
+import io.github.jackhudsonn.jaakd.dto.analytics.ClassValuePoint;
 import io.github.jackhudsonn.jaakd.dto.analytics.HoldingSnapshotResponse;
 import io.github.jackhudsonn.jaakd.dto.analytics.HoldingValuePoint;
 import io.github.jackhudsonn.jaakd.dto.analytics.InstrumentPerformanceResponse;
 import io.github.jackhudsonn.jaakd.dto.analytics.InstrumentPricePoint;
 import io.github.jackhudsonn.jaakd.dto.analytics.PortfolioPerformanceResponse;
 import io.github.jackhudsonn.jaakd.dto.analytics.PortfolioValuePoint;
+import io.github.jackhudsonn.jaakd.dto.analytics.SegmentExposureResponse;
+import io.github.jackhudsonn.jaakd.dto.analytics.SegmentSummaryResponse;
 import io.github.jackhudsonn.jaakd.model.InstrumentClass;
 import io.github.jackhudsonn.jaakd.service.AnalyticsService;
 import org.springframework.http.HttpStatus;
@@ -41,20 +44,48 @@ public class AnalyticsController {
 
     @GetMapping("/summary")
     @ResponseStatus(HttpStatus.OK)
-    public List<ClassSummaryResponse> getSummary() {
-        return analyticsService.getClassSummary();
+    public List<ClassSummaryResponse> getSummary(
+        @RequestParam(required = false) String country,
+        @RequestParam(required = false) String ageBand
+    ) {
+        return analyticsService.getClassSummary(country, ageBand);
+    }
+
+    @GetMapping("/countries")
+    @ResponseStatus(HttpStatus.OK)
+    public List<String> getCountries() {
+        return analyticsService.getCountries();
+    }
+
+    @GetMapping("/segments")
+    @ResponseStatus(HttpStatus.OK)
+    public List<SegmentSummaryResponse> getSegments(@RequestParam(required = false) String by) {
+        return analyticsService.getSegments(by);
+    }
+
+    @GetMapping("/segments/exposure")
+    @ResponseStatus(HttpStatus.OK)
+    public List<SegmentExposureResponse> getSegmentExposure(
+        @RequestParam(required = false) String by,
+        @RequestParam(required = false) InstrumentClass instrumentClass,
+        @RequestParam(required = false) UUID instrumentId
+    ) {
+        return analyticsService.getSegmentExposure(by, instrumentClass, instrumentId);
     }
 
     @GetMapping("/instruments")
     @ResponseStatus(HttpStatus.OK)
     public AuditPageResponse<InstrumentPerformanceResponse> listInstruments(
         @RequestParam(required = false) InstrumentClass instrumentClass,
+        @RequestParam(required = false) String search,
+        @RequestParam(required = false) String country,
+        @RequestParam(required = false) String ageBand,
         @RequestParam(required = false) String sort,
         @RequestParam(required = false) String direction,
         @RequestParam(required = false) Integer page,
         @RequestParam(required = false) Integer size
     ) {
-        return analyticsService.listInstruments(instrumentClass, sort, direction, page, size);
+        return analyticsService.listInstruments(instrumentClass, search, country, ageBand, sort, direction, page, size);
     }
 
     @GetMapping("/instruments/{instrumentId}")
@@ -78,13 +109,12 @@ public class AnalyticsController {
     public AuditPageResponse<PortfolioPerformanceResponse> listPortfolios(
         @RequestParam(required = false) String country,
         @RequestParam(required = false) String ageBand,
-        @RequestParam(required = false) Integer userType,
         @RequestParam(required = false) String sort,
         @RequestParam(required = false) String direction,
         @RequestParam(required = false) Integer page,
         @RequestParam(required = false) Integer size
     ) {
-        return analyticsService.listPortfolios(country, ageBand, userType, sort, direction, page, size);
+        return analyticsService.listPortfolios(country, ageBand, sort, direction, page, size);
     }
 
     @GetMapping("/portfolios/{portfolioId}")
@@ -101,6 +131,17 @@ public class AnalyticsController {
         @RequestParam(required = false) LocalDate to
     ) {
         return analyticsService.getPortfolioSeries(portfolioId, from, to);
+    }
+
+    @GetMapping("/portfolios/{portfolioId}/class-series")
+    @ResponseStatus(HttpStatus.OK)
+    public List<ClassValuePoint> getPortfolioClassSeries(
+        @PathVariable UUID portfolioId,
+        @RequestParam InstrumentClass instrumentClass,
+        @RequestParam(required = false) LocalDate from,
+        @RequestParam(required = false) LocalDate to
+    ) {
+        return analyticsService.getPortfolioClassSeries(portfolioId, instrumentClass, from, to);
     }
 
     @GetMapping("/portfolios/{portfolioId}/holdings")

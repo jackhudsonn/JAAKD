@@ -1966,7 +1966,11 @@ paths:
     get:
       tags: [Analytics]
       summary: Exposure and returns by instrument class
+      description: Retail portfolios only. With country or ageBand, positions and exposure count only that segment.
       operationId: getAnalyticsSummary
+      parameters:
+        - $ref: "#/components/parameters/SegmentCountry"
+        - $ref: "#/components/parameters/SegmentAgeBand"
       responses:
         "200":
           description: One row per instrument class, largest exposure first
@@ -1976,6 +1980,108 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/ClassSummaryResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+
+  /api/analytics/countries:
+    get:
+      tags: [Analytics]
+      summary: Countries with at least one retail portfolio
+      description: For filter dropdowns. A missing country is "Unknown", listed last.
+      operationId: listAnalyticsCountries
+      responses:
+        "200":
+          description: Alphabetical, "Unknown" last
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+
+  /api/analytics/segments:
+    get:
+      tags: [Analytics]
+      summary: Retail portfolios grouped by age band or country, with each group's class mix
+      operationId: listAnalyticsSegments
+      parameters:
+        - name: by
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [ageBand, country]
+            default: ageBand
+      responses:
+        "200":
+          description: Age bands youngest first; countries alphabetically with "Unknown" last
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SegmentSummaryResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+
+  /api/analytics/segments/exposure:
+    get:
+      tags: [Analytics]
+      summary: Each age band's or country's exposure to one class or instrument
+      description: >-
+        Retail portfolios only, cash excluded. segmentTotalUsd is everything the segment has invested, so
+        exposureUsd / segmentTotalUsd compares segments of different sizes. Neither filter: all investments.
+      operationId: getAnalyticsSegmentExposure
+      parameters:
+        - name: by
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [ageBand, country]
+            default: ageBand
+        - name: instrumentClass
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [EQUITY, ETF, FX, CRYPTO]
+        - name: instrumentId
+          in: query
+          required: false
+          description: Not together with instrumentClass
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Same order as /api/analytics/segments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SegmentExposureResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -1987,6 +2093,9 @@ paths:
     get:
       tags: [Analytics]
       summary: Instrument performance leaderboard
+      description: >-
+        Holdings columns (holderCount, exposureUsd, netFlow30dUsd) count retail portfolios, narrowed to a segment
+        by country and ageBand. Returns and risk belong to the instrument and don't change with the segment.
       operationId: listInstrumentPerformance
       parameters:
         - name: instrumentClass
@@ -1995,6 +2104,14 @@ paths:
           schema:
             type: string
             enum: [EQUITY, ETF, FX, CRYPTO, CASH]
+        - name: search
+          in: query
+          required: false
+          description: Case-insensitive match anywhere in the ticker or name
+          schema:
+            type: string
+        - $ref: "#/components/parameters/SegmentCountry"
+        - $ref: "#/components/parameters/SegmentAgeBand"
         - name: sort
           in: query
           required: false
@@ -2097,32 +2214,17 @@ paths:
   /api/analytics/portfolios:
     get:
       tags: [Analytics]
-      summary: Portfolio performance across users
+      summary: Retail portfolio performance
       operationId: listPortfolioPerformance
       parameters:
-        - name: country
-          in: query
-          required: false
-          description: Case-insensitive exact match
-          schema:
-            type: string
-        - name: ageBand
-          in: query
-          required: false
-          schema:
-            type: string
-            enum: ["<25", "25-34", "35-44", "45-54", "55-64", "65+", unknown]
-        - name: userType
-          in: query
-          required: false
-          schema:
-            type: integer
+        - $ref: "#/components/parameters/SegmentCountry"
+        - $ref: "#/components/parameters/SegmentAgeBand"
         - name: sort
           in: query
           required: false
           schema:
             type: string
-            enum: [marketValue, return1w, return1m, return3m, returnYtd, volatility, maxDrawdown, realizedPnl, unrealizedPnl]
+            enum: [country, ageBand, marketValue, return1w, return1m, return3m, returnYtd, volatility, maxDrawdown, realizedPnl, unrealizedPnl]
             default: marketValue
         - name: direction
           in: query
@@ -2205,6 +2307,42 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/PortfolioValuePoint"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+
+  /api/analytics/portfolios/{portfolioId}/class-series:
+    get:
+      tags: [Analytics]
+      summary: Daily value and P&L of a portfolio's holdings in one instrument class
+      description: Defaults to the year ending today; at most five years per request.
+      operationId: getPortfolioClassSeries
+      parameters:
+        - $ref: "#/components/parameters/PortfolioId"
+        - name: instrumentClass
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [EQUITY, ETF, FX, CRYPTO, CASH]
+        - $ref: "#/components/parameters/SeriesFrom"
+        - $ref: "#/components/parameters/SeriesTo"
+      responses:
+        "200":
+          description: Oldest first; empty when the portfolio held nothing in the class
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ClassValuePoint"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -2344,6 +2482,20 @@ components:
         type: string
         maxLength: 20
       example: AAPL
+    SegmentCountry:
+      name: country
+      in: query
+      required: false
+      description: Owner's country, case-insensitive exact match ("Unknown" for none); see /api/analytics/countries
+      schema:
+        type: string
+    SegmentAgeBand:
+      name: ageBand
+      in: query
+      required: false
+      schema:
+        type: string
+        enum: ["<25", "25-34", "35-44", "45-54", "55-64", "65+", unknown]
     SeriesFrom:
       name: from
       in: query
@@ -3017,10 +3169,9 @@ components:
         userId:
           type: string
           format: uuid
-        userType:
-          type: integer
         country:
-          type: [string, "null"]
+          type: string
+          description: '"Unknown" when the owner has no country'
         ageBand:
           type: string
           enum: ["<25", "25-34", "35-44", "45-54", "55-64", "65+", unknown]
@@ -3126,6 +3277,63 @@ components:
           type: number
         unrealizedPnlUsd:
           type: [number, "null"]
+
+    ClassValuePoint:
+      type: object
+      description: One day of a portfolio's holdings in one class, added up (no quantity or time-weighted return)
+      properties:
+        date:
+          type: string
+          format: date
+        costBasisUsd:
+          type: number
+        marketValueUsd:
+          type: [number, "null"]
+        realizedPnlToDateUsd:
+          type: number
+        unrealizedPnlUsd:
+          type: [number, "null"]
+
+    SegmentSummaryResponse:
+      type: object
+      properties:
+        segment:
+          type: string
+          description: The age band or country
+        portfolioCount:
+          type: integer
+        marketValueUsd:
+          type: number
+        averageReturnYtd:
+          type: [number, "null"]
+        classes:
+          type: array
+          description: Largest exposure first; cash excluded
+          items:
+            $ref: "#/components/schemas/SegmentClassExposure"
+
+    SegmentExposureResponse:
+      type: object
+      properties:
+        segment:
+          type: string
+        exposureUsd:
+          type: number
+        holderCount:
+          type: integer
+        segmentTotalUsd:
+          type: number
+
+    SegmentClassExposure:
+      type: object
+      properties:
+        instrumentClass:
+          type: string
+          enum: [EQUITY, ETF, FX, CRYPTO]
+        exposureUsd:
+          type: number
+        holderCount:
+          type: integer
 
     AuditHoldingPageResponse:
       type: object

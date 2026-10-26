@@ -4,10 +4,10 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 // Pseudonymous by design: no names, emails, DOB or portfolio names leave the production database.
+// Retail portfolios only, so there's no user type.
 public record PortfolioPerformanceResponse(
     UUID portfolioId,
     UUID userId,
-    Integer userType,
     String country,
     String ageBand,
     BigDecimal marketValueUsd,

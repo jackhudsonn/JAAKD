@@ -1,6 +1,8 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { adminOrAuditorGuard } from './core/guards/admin-or-auditor.guard';
+import { analystHomeGuard } from './core/guards/analyst-home.guard';
+import { analystOrAdminGuard } from './core/guards/analyst-or-admin.guard';
 import { ShellComponent } from './layout/shell/shell.component';
 import { AuthShellComponent } from './layout/auth-shell/auth-shell.component';
 
@@ -44,6 +46,7 @@ export const routes: Routes = [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
       {
         path: 'dashboard',
+        canActivate: [analystHomeGuard],
         loadComponent: () =>
           import('./features/dashboard/dashboard.component').then((m) => m.DashboardComponent),
       },
@@ -74,6 +77,12 @@ export const routes: Routes = [
         canActivate: [adminOrAuditorGuard],
         loadComponent: () =>
           import('./features/testing/auditor/auditor.component').then((m) => m.AuditorComponent),
+      },
+      {
+        path: 'analyst',
+        canActivate: [analystOrAdminGuard],
+        loadChildren: () =>
+          import('./features/analyst/analyst.routes').then((m) => m.ANALYST_ROUTES),
       },
       {
         path: 'payment-methods',

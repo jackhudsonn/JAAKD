@@ -6,12 +6,16 @@ import io.github.jackhudsonn.jaakd.config.AnalyticsDatabase;
 import io.github.jackhudsonn.jaakd.dto.AuditPageResponse;
 import io.github.jackhudsonn.jaakd.dto.analytics.AnalyticsMetaResponse;
 import io.github.jackhudsonn.jaakd.dto.analytics.ClassSummaryResponse;
+import io.github.jackhudsonn.jaakd.dto.analytics.ClassValuePoint;
 import io.github.jackhudsonn.jaakd.dto.analytics.HoldingSnapshotResponse;
 import io.github.jackhudsonn.jaakd.dto.analytics.HoldingValuePoint;
 import io.github.jackhudsonn.jaakd.dto.analytics.InstrumentPerformanceResponse;
 import io.github.jackhudsonn.jaakd.dto.analytics.InstrumentPricePoint;
 import io.github.jackhudsonn.jaakd.dto.analytics.PortfolioPerformanceResponse;
 import io.github.jackhudsonn.jaakd.dto.analytics.PortfolioValuePoint;
+import io.github.jackhudsonn.jaakd.dto.analytics.SegmentClassExposure;
+import io.github.jackhudsonn.jaakd.dto.analytics.SegmentExposureResponse;
+import io.github.jackhudsonn.jaakd.dto.analytics.SegmentSummaryResponse;
 import io.github.jackhudsonn.jaakd.exception.AnalyticsNotFoundException;
 import io.github.jackhudsonn.jaakd.exception.AnalyticsUnavailableException;
 import io.github.jackhudsonn.jaakd.exception.ValidationException;
@@ -46,7 +50,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class AnalyticsServiceTest {
 
     private static final UUID AAPL = UUID.fromString("00000000-0000-0000-0000-00000000000a");
-    private static final UUID EURUSD = UUID.fromString("00000000-0000-0000-0000-00000000000d");
+    private static final UUID BTC = UUID.fromString("00000000-0000-0000-0000-00000000000c");
+    private static final UUID EURUSD =UUID.fromString("00000000-0000-0000-0000-00000000000d");
     private static final UUID PORTFOLIO_US = UUID.fromString("00000000-0000-0000-0000-0000000000f1");
     private static final UUID HOLDING_AAPL = UUID.fromString("00000000-0000-0000-0000-0000000000a1");
     private static final UUID UNKNOWN = UUID.fromString("99999999-9999-9999-9999-999999999999");
@@ -103,7 +108,7 @@ class AnalyticsServiceTest {
 
     @Test
     void getClassSummary_groupsByInstrumentClass() {
-        List<ClassSummaryResponse> summary = analyticsService.getClassSummary();
+        List<ClassSummaryResponse> summary = analyticsService.getClassSummary(null, null);
 
         assertEquals(2, summary.size());
         ClassSummaryResponse equity = summary.get(0);
@@ -116,7 +121,7 @@ class AnalyticsServiceTest {
 
     @Test
     void listInstruments_defaultsToLargestExposureFirst() {
-        AuditPageResponse<InstrumentPerformanceResponse> page = analyticsService.listInstruments(null, null, null, null, null);
+        AuditPageResponse<InstrumentPerformanceResponse> page = analyticsService.listInstruments(null, null, null, null, null, null, null, null);
 
         assertEquals(List.of("AAPL", "MSFT", "BTC-USD"), page.content().stream().map(InstrumentPerformanceResponse::ticker).toList());
         assertEquals(3, page.totalElements());
@@ -136,7 +141,7 @@ class AnalyticsServiceTest {
     @Test
     void listInstruments_filtersByClassAndPages() {
         AuditPageResponse<InstrumentPerformanceResponse> page = analyticsService.listInstruments(
-            InstrumentClass.EQUITY, "ticker", "asc", 1, 1
+            InstrumentClass.EQUITY, null, null, null, "ticker", "asc", 1, 1
         );
 
         assertEquals(List.of("MSFT"), page.content().stream().map(InstrumentPerformanceResponse::ticker).toList());
@@ -147,9 +152,9 @@ class AnalyticsServiceTest {
 
     @Test
     void listInstruments_putsMissingValuesLastWhicheverWayItSorts() {
-        List<String> ascending = analyticsService.listInstruments(null, "return1m", "asc", null, null)
+        List<String> ascending = analyticsService.listInstruments(null, null, null, null, "return1m", "asc", null, null)
             .content().stream().map(InstrumentPerformanceResponse::ticker).toList();
-        List<String> descending = analyticsService.listInstruments(null, "return1m", "desc", null, null)
+        List<String> descending = analyticsService.listInstruments(null, null, null, null, "return1m", "desc", null, null)
             .content().stream().map(InstrumentPerformanceResponse::ticker).toList();
 
         assertEquals(List.of("MSFT", "AAPL", "BTC-USD"), ascending);
@@ -160,13 +165,13 @@ class AnalyticsServiceTest {
     void listInstruments_rejectsUnknownSortAndDirection() {
         ValidationException badSort = assertThrows(
             ValidationException.class,
-            () -> analyticsService.listInstruments(null, "ticker; DROP TABLE x", null, null, null)
+            () -> analyticsService.listInstruments(null, null, null, null, "ticker; DROP TABLE x", null, null, null)
         );
         assertTrue(badSort.getMessage().startsWith("Sort must be one of: exposure, holders"));
 
-        assertThrows(ValidationException.class, () -> analyticsService.listInstruments(null, null, "sideways", null, null));
-        assertThrows(ValidationException.class, () -> analyticsService.listInstruments(null, null, null, -1, null));
-        assertThrows(ValidationException.class, () -> analyticsService.listInstruments(null, null, null, null, 101));
+        assertThrows(ValidationException.class, () -> analyticsService.listInstruments(null, null, null, null, null, "sideways", null, null));
+        assertThrows(ValidationException.class, () -> analyticsService.listInstruments(null, null, null, null, null, null, -1, null));
+        assertThrows(ValidationException.class, () -> analyticsService.listInstruments(null, null, null, null, null, null, null, 101));
     }
 
     @Test
@@ -201,32 +206,164 @@ class AnalyticsServiceTest {
     }
 
     @Test
+    void getClassSummary_countsOnlyTheRequestedSegment() {
+        List<ClassSummaryResponse> gb = analyticsService.getClassSummary("gb", null);
+
+        // GB 35-44 holds AAPL (10000) and BTC (5000); MSFT is still counted as an instrument, with no positions.
+        ClassSummaryResponse equity = gb.get(0);
+        ClassSummaryResponse crypto = gb.get(1);
+        assertEquals("CRYPTO", crypto.instrumentClass());
+        assertEquals(0, crypto.exposureUsd().compareTo(new BigDecimal("5000")));
+        assertEquals("EQUITY", equity.instrumentClass());
+        assertEquals(2, equity.instrumentCount());
+        assertEquals(1, equity.positionCount());
+        assertEquals(0, equity.exposureUsd().compareTo(new BigDecimal("10000")));
+    }
+
+    @Test
+    void listInstruments_searchesTickerAndNameIgnoringCase() {
+        List<String> byName = analyticsService.listInstruments(null, "micro", null, null, null, null, null, null)
+            .content().stream().map(InstrumentPerformanceResponse::ticker).toList();
+        List<String> byTicker = analyticsService.listInstruments(null, "btc", null, null, null, null, null, null)
+            .content().stream().map(InstrumentPerformanceResponse::ticker).toList();
+        long wildcard = analyticsService.listInstruments(null, "%", null, null, null, null, null, null).totalElements();
+
+        assertEquals(List.of("MSFT"), byName);
+        assertEquals(List.of("BTC-USD"), byTicker);
+        // A literal "%" matches nothing rather than everything.
+        assertEquals(0, wildcard);
+    }
+
+    @Test
+    void listInstruments_segmentFiltersChangeHoldingsColumnsAndOrder() {
+        AuditPageResponse<InstrumentPerformanceResponse> young = analyticsService.listInstruments(
+            null, null, "US", "25-34", null, null, null, null
+        );
+
+        // Every instrument is still listed; holdings figures are the segment's, and the order follows them.
+        assertEquals(List.of("AAPL", "MSFT", "BTC-USD"), young.content().stream().map(InstrumentPerformanceResponse::ticker).toList());
+        InstrumentPerformanceResponse aapl = young.content().get(0);
+        assertEquals(2, aapl.holderCount());
+        assertEquals(0, aapl.exposureUsd().compareTo(new BigDecimal("20000")));
+        assertEquals(0, aapl.netFlow30dUsd().compareTo(new BigDecimal("1000")));
+        InstrumentPerformanceResponse btc = young.content().get(2);
+        assertEquals(0, btc.holderCount());
+        assertEquals(0, btc.exposureUsd().compareTo(BigDecimal.ZERO));
+        // Returns belong to the instrument, not the segment.
+        assertEquals(0, aapl.return1w().compareTo(new BigDecimal("0.01")));
+
+        assertThrows(ValidationException.class,
+            () -> analyticsService.listInstruments(null, null, null, "25–34", null, null, null, null));
+    }
+
+    @Test
+    void getCountries_listsRetailCountriesWithUnknownForMissing() {
+        assertEquals(List.of("GB", "US", "Unknown"), analyticsService.getCountries());
+    }
+
+    @Test
+    void getSegments_groupsPortfoliosAndClassMixByAgeBand() {
+        List<SegmentSummaryResponse> segments = analyticsService.getSegments("ageBand");
+
+        assertEquals(List.of("25-34", "35-44", "unknown"), segments.stream().map(SegmentSummaryResponse::segment).toList());
+
+        SegmentSummaryResponse young = segments.get(0);
+        assertEquals(1, young.portfolioCount());
+        assertEquals(0, young.marketValueUsd().compareTo(new BigDecimal("4500")));
+        assertEquals(0, young.averageReturnYtd().compareTo(new BigDecimal("0.18")));
+        assertEquals(1, young.classes().size());
+        assertEquals("EQUITY", young.classes().get(0).instrumentClass());
+        assertEquals(0, young.classes().get(0).exposureUsd().compareTo(new BigDecimal("32000")));
+
+        SegmentSummaryResponse older = segments.get(1);
+        assertEquals(List.of("EQUITY", "CRYPTO"), older.classes().stream().map(SegmentClassExposure::instrumentClass).toList());
+
+        // No holdings yet: listed, with an empty class mix.
+        assertTrue(segments.get(2).classes().isEmpty());
+    }
+
+    @Test
+    void getSegments_groupsByCountryAndRejectsOtherDimensions() {
+        List<String> countries = analyticsService.getSegments("country").stream().map(SegmentSummaryResponse::segment).toList();
+
+        assertEquals(List.of("GB", "US", "Unknown"), countries);
+        assertThrows(ValidationException.class, () -> analyticsService.getSegments("state"));
+    }
+
+    @Test
+    void getSegmentExposure_comparesSegmentsForOneClassOrInstrument() {
+        List<SegmentExposureResponse> equity = analyticsService.getSegmentExposure("ageBand", InstrumentClass.EQUITY, null);
+        List<SegmentExposureResponse> bitcoin = analyticsService.getSegmentExposure("ageBand", null, BTC);
+
+        // 25-34 holds only equities (AAPL 20000 + MSFT 12000); 35-44 splits AAPL 10000 and BTC 5000.
+        assertEquals(List.of("25-34", "35-44"), equity.stream().map(SegmentExposureResponse::segment).toList());
+        assertEquals(0, equity.get(0).exposureUsd().compareTo(new BigDecimal("32000")));
+        assertEquals(4, equity.get(0).holderCount());
+        assertEquals(0, equity.get(0).segmentTotalUsd().compareTo(new BigDecimal("32000")));
+        assertEquals(0, equity.get(1).exposureUsd().compareTo(new BigDecimal("10000")));
+        assertEquals(0, equity.get(1).segmentTotalUsd().compareTo(new BigDecimal("15000")));
+
+        // A segment that doesn't hold it is still listed, with 0.
+        assertEquals(0, bitcoin.get(0).exposureUsd().compareTo(BigDecimal.ZERO));
+        assertEquals(0, bitcoin.get(1).exposureUsd().compareTo(new BigDecimal("5000")));
+
+        assertThrows(ValidationException.class,
+            () -> analyticsService.getSegmentExposure("ageBand", InstrumentClass.EQUITY, BTC));
+        assertThrows(ValidationException.class,
+            () -> analyticsService.getSegmentExposure("state", null, null));
+    }
+
+    @Test
     void listPortfolios_filtersCaseInsensitivelyByCountryAndByAgeBand() {
-        AuditPageResponse<PortfolioPerformanceResponse> us = analyticsService.listPortfolios("us", null, null, null, null, null, null);
-        AuditPageResponse<PortfolioPerformanceResponse> older = analyticsService.listPortfolios(null, "35-44", 0, null, null, null, null);
-        AuditPageResponse<PortfolioPerformanceResponse> admins = analyticsService.listPortfolios(null, null, 1, null, null, null, null);
+        AuditPageResponse<PortfolioPerformanceResponse> us = analyticsService.listPortfolios("us", null, null, null, null, null);
+        AuditPageResponse<PortfolioPerformanceResponse> older = analyticsService.listPortfolios(null, "35-44", null, null, null, null);
+        AuditPageResponse<PortfolioPerformanceResponse> unknown = analyticsService.listPortfolios("unknown", null, null, null, null, null);
 
         assertEquals(List.of(PORTFOLIO_US), us.content().stream().map(PortfolioPerformanceResponse::portfolioId).toList());
         assertEquals(List.of("GB"), older.content().stream().map(PortfolioPerformanceResponse::country).toList());
-        assertEquals(0, admins.totalElements());
+        // A missing country is reported, and can be filtered, as "Unknown".
+        assertEquals(List.of("Unknown"), unknown.content().stream().map(PortfolioPerformanceResponse::country).toList());
     }
 
     @Test
     void listPortfolios_rejectsUnknownAgeBand() {
-        
         ValidationException badBand = assertThrows(
             ValidationException.class,
-            () -> analyticsService.listPortfolios(null, "25–34", null, null, null, null, null)
+            () -> analyticsService.listPortfolios(null, "25–34", null, null, null, null)
         );
         assertTrue(badBand.getMessage().startsWith("Age band must be one of: <25, 25-34"));
     }
 
     @Test
     void listPortfolios_sortsByRequestedColumn() {
-        List<String> byReturn = analyticsService.listPortfolios(null, null, null, "returnYtd", "desc", null, null)
+        List<String> byReturn = analyticsService.listPortfolios(null, null, "returnYtd", "desc", null, null)
             .content().stream().map(PortfolioPerformanceResponse::country).toList();
+        List<String> byCountry = analyticsService.listPortfolios(null, null, "country", "asc", null, null)
+            .content().stream().map(PortfolioPerformanceResponse::country).toList();
+        List<String> byAgeBand = analyticsService.listPortfolios(null, null, "ageBand", "desc", null, null)
+            .content().stream().map(PortfolioPerformanceResponse::ageBand).toList();
 
-        assertEquals(List.of("US", "GB"), byReturn);
+        assertEquals(List.of("US", "GB", "Unknown"), byReturn);
+        assertEquals(List.of("GB", "US", "Unknown"), byCountry);
+        assertEquals(List.of("unknown", "35-44", "25-34"), byAgeBand);
+    }
+
+    @Test
+    void getPortfolioClassSeries_addsUpOneClassPerDay() {
+        List<ClassValuePoint> equity = analyticsService.getPortfolioClassSeries(PORTFOLIO_US, InstrumentClass.EQUITY, null, null);
+
+        assertEquals(List.of(LocalDate.of(2026, 10, 15), LocalDate.of(2026, 10, 16)),
+            equity.stream().map(ClassValuePoint::date).toList());
+        // 15th: AAPL 3420 + MSFT 820. 16th: AAPL 3434.6, MSFT sold with 120 realized.
+        assertEquals(0, equity.get(0).marketValueUsd().compareTo(new BigDecimal("4240")));
+        assertEquals(0, equity.get(1).marketValueUsd().compareTo(new BigDecimal("3434.6")));
+        assertEquals(0, equity.get(1).realizedPnlToDateUsd().compareTo(new BigDecimal("120")));
+
+        assertTrue(analyticsService.getPortfolioClassSeries(PORTFOLIO_US, InstrumentClass.CRYPTO, null, null).isEmpty());
+        assertThrows(ValidationException.class,
+            () -> analyticsService.getPortfolioClassSeries(PORTFOLIO_US, null, null, null));
+        assertThrows(AnalyticsNotFoundException.class,
+            () -> analyticsService.getPortfolioClassSeries(UNKNOWN, InstrumentClass.EQUITY, null, null));
     }
 
     @Test
@@ -242,7 +379,8 @@ class AnalyticsServiceTest {
     void getPortfolioHoldings_returnsOpenPositionsOnTheLatestDay() {
         List<HoldingSnapshotResponse> holdings = analyticsService.getPortfolioHoldings(PORTFOLIO_US);
 
-        assertEquals(1, holdings.size());
+        // AAPL and USD cash; MSFT was sold to 0 on the latest day.
+        assertEquals(List.of("AAPL", "USD"), holdings.stream().map(HoldingSnapshotResponse::ticker).toList());
         HoldingSnapshotResponse aapl = holdings.get(0);
         assertEquals(HOLDING_AAPL, aapl.holdingId());
         assertEquals("AAPL", aapl.ticker());
@@ -273,7 +411,7 @@ class AnalyticsServiceTest {
 
         AnalyticsUnavailableException ex = assertThrows(
             AnalyticsUnavailableException.class,
-            () -> analyticsService.listInstruments(null, null, null, null, null)
+            () -> analyticsService.listInstruments(null, null, null, null, null, null, null, null)
         );
         assertEquals("Analytics data is temporarily unavailable", ex.getMessage());
     }

@@ -217,16 +217,54 @@ models:
         description: Worst fall from a high to a later low over the last year (negative, or 0).
       - name: holder_count
         data_type: bigint
-        description: Portfolios holding it today.
+        description: Retail portfolios holding it today.
       - name: exposure_usd
         data_type: numeric(24,6)
-        description: Total market value held across the platform today.
+        description: Total market value retail portfolios hold today.
       - name: net_flow_30d_usd
         data_type: numeric(24,6)
-        description: Buys - sells over the last 30 days.
+        description: Retail buys - sells over the last 30 days.
+
+  - name: agg_instrument_segment
+    description: >-
+      One row per instrument, country and age band with retail holdings or recent trades (no cash). Summed over
+      all segments it gives agg_instrument_performance's holder_count, exposure_usd and net_flow_30d_usd.
+    config:
+      indexes:
+        - columns: ["instrument_id", "country", "age_band"]
+          unique: true
+        - columns: ["country"]
+        - columns: ["age_band"]
+    columns:
+      - name: instrument_id
+        data_type: uuid
+        constraints:
+          - type: not_null
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_instrument')
+                field: instrument_id
+      - name: country
+        data_type: text
+        description: The owner's country, or 'Unknown'.
+        constraints:
+          - type: not_null
+      - name: age_band
+        data_type: text
+        description: The owner's age band (<25 ... 65+), or 'unknown'.
+        constraints:
+          - type: not_null
+      - name: holder_count
+        data_type: bigint
+      - name: exposure_usd
+        data_type: numeric(24,6)
+      - name: net_flow_30d_usd
+        data_type: numeric(24,6)
 
   - name: agg_portfolio_performance
-    description: One row per portfolio, with today's value, time-weighted returns, risk and P&L. Returns are ratios.
+    description: >-
+      One row per retail portfolio, with today's value, time-weighted returns, risk and P&L. Returns are ratios.
     config:
       indexes:
         - columns: ["portfolio_id"]

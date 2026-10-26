@@ -4,8 +4,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.github.jackhudsonn.jaakd.config.SecurityConfig;
 import io.github.jackhudsonn.jaakd.dto.AuditPageResponse;
+import io.github.jackhudsonn.jaakd.dto.analytics.ClassValuePoint;
 import io.github.jackhudsonn.jaakd.dto.analytics.InstrumentPerformanceResponse;
 import io.github.jackhudsonn.jaakd.dto.analytics.PortfolioValuePoint;
+import io.github.jackhudsonn.jaakd.dto.analytics.SegmentClassExposure;
+import io.github.jackhudsonn.jaakd.dto.analytics.SegmentSummaryResponse;
 import io.github.jackhudsonn.jaakd.exception.AnalyticsNotFoundException;
 import io.github.jackhudsonn.jaakd.exception.AnalyticsUnavailableException;
 import io.github.jackhudsonn.jaakd.exception.ForbiddenException;
@@ -75,12 +78,15 @@ class AnalyticsControllerContractTest {
             3, new BigDecimal("30000"), new BigDecimal("1500")
         );
 
-        when(analyticsService.listInstruments(InstrumentClass.EQUITY, "return1m", "asc", 0, 10))
+        when(analyticsService.listInstruments(InstrumentClass.EQUITY, "app", "USA", "25-34", "return1m", "asc", 0, 10))
             .thenReturn(new AuditPageResponse<>(List.of(aapl), 0, 10, 1, 1, false));
 
         mockMvc.perform(get("/api/analytics/instruments")
                 .cookie(authCookie())
                 .queryParam("instrumentClass", "EQUITY")
+                .queryParam("search", "app")
+                .queryParam("country", "USA")
+                .queryParam("ageBand", "25-34")
                 .queryParam("sort", "return1m")
                 .queryParam("direction", "asc")
                 .queryParam("page", "0")
@@ -92,7 +98,44 @@ class AnalyticsControllerContractTest {
             .andExpect(jsonPath("$.content[0].netFlow30dUsd").value(1500))
             .andExpect(jsonPath("$.totalElements").value(1));
 
-        verify(analyticsService).listInstruments(InstrumentClass.EQUITY, "return1m", "asc", 0, 10);
+        verify(analyticsService).listInstruments(InstrumentClass.EQUITY, "app", "USA", "25-34", "return1m", "asc", 0, 10);
+    }
+
+    @Test
+    void getPortfolioClassSeries_requiresAClass() throws Exception {
+        UUID portfolioId = UUID.randomUUID();
+
+        mockMvc.perform(get("/api/analytics/portfolios/{portfolioId}/class-series", portfolioId)
+                .cookie(authCookie())
+                .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isBadRequest());
+
+        when(analyticsService.getPortfolioClassSeries(portfolioId, InstrumentClass.EQUITY, null, null))
+            .thenReturn(List.of(new ClassValuePoint(LocalDate.of(2026, 10, 16), new BigDecimal("3000"),
+                new BigDecimal("3434.6"), new BigDecimal("120"), new BigDecimal("434.6"))));
+
+        mockMvc.perform(get("/api/analytics/portfolios/{portfolioId}/class-series", portfolioId)
+                .cookie(authCookie())
+                .queryParam("instrumentClass", "EQUITY")
+                .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].marketValueUsd").value(3434.6));
+    }
+
+    @Test
+    void getSegments_bindsDimension() throws Exception {
+        when(analyticsService.getSegments("country")).thenReturn(List.of(
+            new SegmentSummaryResponse("USA", 2, new BigDecimal("9000"), new BigDecimal("0.05"),
+                List.of(new SegmentClassExposure("EQUITY", new BigDecimal("6000"), 2)))
+        ));
+
+        mockMvc.perform(get("/api/analytics/segments")
+                .cookie(authCookie())
+                .queryParam("by", "country")
+                .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].segment").value("USA"))
+            .andExpect(jsonPath("$[0].classes[0].instrumentClass").value("EQUITY"));
     }
 
     @Test
@@ -130,7 +173,7 @@ class AnalyticsControllerContractTest {
 
     @Test
     void invalidSort_returnsBadRequest() throws Exception {
-        when(analyticsService.listPortfolios(null, null, null, "nope", null, null, null))
+        when(analyticsService.listPortfolios(null, null, "nope", null, null, null))
             .thenThrow(new ValidationException("Sort must be one of: marketValue"));
 
         mockMvc.perform(get("/api/analytics/portfolios")
@@ -173,7 +216,7 @@ class AnalyticsControllerContractTest {
 
     @Test
     void analyticsDown_returnsServiceUnavailable() throws Exception {
-        when(analyticsService.getClassSummary()).thenThrow(new AnalyticsUnavailableException("Analytics is not enabled"));
+        when(analyticsService.getClassSummary(null, null)).thenThrow(new AnalyticsUnavailableException("Analytics is not enabled"));
 
         mockMvc.perform(get("/api/analytics/summary")
                 .cookie(authCookie())

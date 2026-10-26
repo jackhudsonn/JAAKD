@@ -10,8 +10,8 @@
 --   volatility_ann  standard deviation of daily returns x sqrt(252 trading days a year)
 --   max_drawdown    the worst fall from a high to a later low, e.g. -0.3 = -30%
 -- (Crypto trades every day, so sqrt(365) would suit it better; 252 keeps every instrument on the same scale.)
--- holder_count and exposure_usd are as of today; net_flow_30d_usd is buys - sells over the last 30 days, in USD
--- at each order's execution date.
+-- holder_count, exposure_usd and net_flow_30d_usd count retail portfolios only, summed from
+-- agg_instrument_segment (see there).
 
 {% set return_windows = {
     'return_1w': "latest.price_date - interval '7 days'",
@@ -54,32 +54,15 @@ risk as (
     group by instrument_id
 ),
 
-holdings_today as (
+-- Retail holdings and flows, summed over every country and age band.
+platform as (
     select
         instrument_id,
-        count(*) filter (where quantity > 0) as holder_count,
-        sum(market_value_usd) as exposure_usd
-    from {{ ref('fct_holding_daily') }}
-    where as_of_date = current_date
+        sum(holder_count) as holder_count,
+        sum(exposure_usd) as exposure_usd,
+        sum(net_flow_30d_usd) as net_flow_30d_usd
+    from {{ ref('agg_instrument_segment') }}
     group by instrument_id
-),
-
-flows_30d as (
-    select
-        orders.instrument_id,
-        sum(
-            case when orders.side = 'BUY' then 1 else -1 end
-            * orders.quantity * orders.execution_price * fx.usd_rate
-        ) as net_flow_30d_usd
-    from {{ ref('stg_order_logs') }} as orders
-    join {{ ref('dim_instrument') }} as instruments
-        on instruments.instrument_id = orders.instrument_id
-    join {{ ref('int_fx_to_usd') }} as fx
-        on fx.currency = instruments.trading_currency
-        and fx.date_day = cast(orders.executed_at at time zone 'UTC' as date)
-    where orders.side in ('BUY', 'SELL')
-        and orders.executed_at >= current_date - interval '30 days'
-    group by orders.instrument_id
 )
 
 select
@@ -104,15 +87,13 @@ select
     {%- endfor %}
     cast(risk.volatility_ann as double precision) as volatility_ann,
     cast(risk.max_drawdown as double precision) as max_drawdown,
-    coalesce(holdings_today.holder_count, 0) as holder_count,
-    round(coalesce(holdings_today.exposure_usd, 0), 6) as exposure_usd,
-    round(coalesce(flows_30d.net_flow_30d_usd, 0), 6) as net_flow_30d_usd
+    cast(coalesce(platform.holder_count, 0) as bigint) as holder_count,
+    round(coalesce(platform.exposure_usd, 0), 6) as exposure_usd,
+    round(coalesce(platform.net_flow_30d_usd, 0), 6) as net_flow_30d_usd
 from latest
 join {{ ref('dim_instrument') }} as instruments
     on instruments.instrument_id = latest.instrument_id
 left join risk
     on risk.instrument_id = latest.instrument_id
-left join holdings_today
-    on holdings_today.instrument_id = latest.instrument_id
-left join flows_30d
-    on flows_30d.instrument_id = latest.instrument_id
+left join platform
+    on platform.instrument_id = latest.instrument_id

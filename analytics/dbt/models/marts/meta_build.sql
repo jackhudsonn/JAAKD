@@ -10,6 +10,7 @@
 -- depends_on: {{ ref('fct_instrument_price_daily') }}
 -- depends_on: {{ ref('fct_holding_daily') }}
 -- depends_on: {{ ref('fct_portfolio_daily') }}
+-- depends_on: {{ ref('agg_instrument_segment') }}
 -- depends_on: {{ ref('agg_instrument_performance') }}
 -- depends_on: {{ ref('agg_portfolio_performance') }}
 

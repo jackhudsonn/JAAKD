@@ -4,12 +4,16 @@ import io.github.jackhudsonn.jaakd.config.AnalyticsDatabase;
 import io.github.jackhudsonn.jaakd.dto.AuditPageResponse;
 import io.github.jackhudsonn.jaakd.dto.analytics.AnalyticsMetaResponse;
 import io.github.jackhudsonn.jaakd.dto.analytics.ClassSummaryResponse;
+import io.github.jackhudsonn.jaakd.dto.analytics.ClassValuePoint;
 import io.github.jackhudsonn.jaakd.dto.analytics.HoldingSnapshotResponse;
 import io.github.jackhudsonn.jaakd.dto.analytics.HoldingValuePoint;
 import io.github.jackhudsonn.jaakd.dto.analytics.InstrumentPerformanceResponse;
 import io.github.jackhudsonn.jaakd.dto.analytics.InstrumentPricePoint;
 import io.github.jackhudsonn.jaakd.dto.analytics.PortfolioPerformanceResponse;
 import io.github.jackhudsonn.jaakd.dto.analytics.PortfolioValuePoint;
+import io.github.jackhudsonn.jaakd.dto.analytics.SegmentClassExposure;
+import io.github.jackhudsonn.jaakd.dto.analytics.SegmentExposureResponse;
+import io.github.jackhudsonn.jaakd.dto.analytics.SegmentSummaryResponse;
 import io.github.jackhudsonn.jaakd.exception.AnalyticsNotFoundException;
 import io.github.jackhudsonn.jaakd.exception.AnalyticsUnavailableException;
 import io.github.jackhudsonn.jaakd.exception.ValidationException;
@@ -23,8 +27,11 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,6 +56,7 @@ public class AnalyticsService {
     private static final int MAX_SERIES_YEARS = 5;
 
     // Request sort keys mapped to columns. Only these strings ever reach ORDER BY.
+    // Holdings columns come from the segment totals (s), so they sort by the filtered numbers.
     private static final Map<String, String> INSTRUMENT_SORTS = Map.ofEntries(
         entry("ticker", "a.ticker"),
         entry("name", "a.name"),
@@ -60,15 +68,27 @@ public class AnalyticsService {
         entry("returnYtd", "a.return_ytd"),
         entry("volatility", "a.volatility_ann"),
         entry("maxDrawdown", "a.max_drawdown"),
-        entry("holders", "a.holder_count"),
-        entry("exposure", "a.exposure_usd"),
-        entry("netFlow30d", "a.net_flow_30d_usd")
+        entry("holders", "COALESCE(s.holder_count, 0)"),
+        entry("exposure", "COALESCE(s.exposure_usd, 0)"),
+        entry("netFlow30d", "COALESCE(s.net_flow_30d_usd, 0)")
     );
 
-    // Age bands the copy job computes on prod from profiles.dob 
+    // Age bands the copy job computes on prod from profiles.dob, youngest first.
     private static final List<String> AGE_BANDS = List.of("<25", "25-34", "35-44", "45-54", "55-64", "65+", "unknown");
 
+    // The marts store a missing country as this (agg_instrument_segment), so it can be filtered on.
+    private static final String UNKNOWN_COUNTRY = "Unknown";
+
+    private static final String PORTFOLIO_COUNTRY = "COALESCE(p.country, '" + UNKNOWN_COUNTRY + "')";
+
+    // Alphabetical with "Unknown" last. Sorted here rather than in SQL, where collations disagree about case.
+    private static final Comparator<String> COUNTRY_ORDER = Comparator
+        .comparing((String country) -> country.equals(UNKNOWN_COUNTRY))
+        .thenComparing(String.CASE_INSENSITIVE_ORDER);
+
     private static final Map<String, String> PORTFOLIO_SORTS = Map.ofEntries(
+        entry("country", PORTFOLIO_COUNTRY),
+        entry("ageBand", "p.age_band"),
         entry("marketValue", "p.market_value_usd"),
         entry("return1w", "p.return_1w"),
         entry("return1m", "p.return_1m"),
@@ -80,22 +100,45 @@ public class AnalyticsService {
         entry("unrealizedPnl", "p.unrealized_pnl_usd")
     );
 
+    // What /segments can group by: the column in agg_instrument_segment and the matching expression on
+    // agg_portfolio_performance.
+    private static final Map<String, SegmentDimension> SEGMENT_DIMENSIONS = Map.of(
+        "ageBand", new SegmentDimension("age_band", "p.age_band"),
+        "country", new SegmentDimension("country", PORTFOLIO_COUNTRY)
+    );
+
+    // Retail holdings per instrument, summed over the segments that match the filters (%s: the filter clauses).
+    private static final String SEGMENT_TOTALS = """
+        WITH s AS (
+            SELECT instrument_id,
+                   SUM(holder_count) AS holder_count,
+                   SUM(exposure_usd) AS exposure_usd,
+                   SUM(net_flow_30d_usd) AS net_flow_30d_usd
+            FROM analytics.agg_instrument_segment
+            WHERE 1 = 1%s
+            GROUP BY instrument_id
+        )
+        """;
+
     // Aliases without the underscore before digits let DataClassRowMapper match record components like return1w.
     private static final String INSTRUMENT_SELECT = """
         SELECT a.instrument_id, a.ticker, a.name, d.market, a.instrument_class, d.trading_currency,
                a.last_close_usd, a.return_1w AS return1w, a.return_1m AS return1m, a.return_3m AS return3m,
-               a.return_ytd, a.volatility_ann, a.max_drawdown, a.holder_count, a.exposure_usd,
-               a.net_flow_30d_usd AS net_flow30d_usd
+               a.return_ytd, a.volatility_ann, a.max_drawdown,
+               COALESCE(s.holder_count, 0) AS holder_count,
+               COALESCE(s.exposure_usd, 0) AS exposure_usd,
+               COALESCE(s.net_flow_30d_usd, 0) AS net_flow30d_usd
         FROM analytics.agg_instrument_performance a
         JOIN analytics.dim_instrument d ON d.instrument_id = a.instrument_id
+        LEFT JOIN s ON s.instrument_id = a.instrument_id
         """;
 
     private static final String PORTFOLIO_SELECT = """
-        SELECT p.portfolio_id, p.user_id, p.user_type, p.country, p.age_band, p.market_value_usd,
+        SELECT p.portfolio_id, p.user_id, %s AS country, p.age_band, p.market_value_usd,
                p.return_1w AS return1w, p.return_1m AS return1m, p.return_3m AS return3m, p.return_ytd,
                p.volatility_ann, p.max_drawdown, p.realized_pnl_usd, p.unrealized_pnl_usd
         FROM analytics.agg_portfolio_performance p
-        """;
+        """.formatted(PORTFOLIO_COUNTRY);
 
     private final ObjectProvider<AnalyticsDatabase> analyticsDatabase;
     private final Clock clock;
@@ -112,23 +155,34 @@ public class AnalyticsService {
             .orElse(new AnalyticsMetaResponse(null, null)));
     }
 
-    public List<ClassSummaryResponse> getClassSummary() {
-        return query(db -> db.sql("""
-                SELECT instrument_class,
+    // Per instrument class; with a country or age band, positions and exposure count only that segment.
+    public List<ClassSummaryResponse> getClassSummary(String country, String ageBand) {
+        Map<String, Object> params = new LinkedHashMap<>();
+        String segmentTotals = segmentTotals(country, ageBand, params);
+
+        return query(db -> db.sql(segmentTotals + """
+                SELECT a.instrument_class,
                        COUNT(*) AS instrument_count,
-                       COALESCE(SUM(holder_count), 0) AS position_count,
-                       COALESCE(SUM(exposure_usd), 0) AS exposure_usd,
-                       AVG(return_1m) AS average_return1m
-                FROM analytics.agg_instrument_performance
-                GROUP BY instrument_class
-                ORDER BY exposure_usd DESC, instrument_class
+                       COALESCE(SUM(s.holder_count), 0) AS position_count,
+                       COALESCE(SUM(s.exposure_usd), 0) AS exposure_usd,
+                       AVG(a.return_1m) AS average_return1m
+                FROM analytics.agg_instrument_performance a
+                LEFT JOIN s ON s.instrument_id = a.instrument_id
+                GROUP BY a.instrument_class
+                ORDER BY exposure_usd DESC, a.instrument_class
                 """)
+            .params(params)
             .query(ClassSummaryResponse.class)
             .list());
     }
 
+    // search matches ticker or name, ignoring case. country and ageBand narrow the holdings columns (holders,
+    // exposure, net flow) to that segment; returns and risk belong to the instrument, so they don't change.
     public AuditPageResponse<InstrumentPerformanceResponse> listInstruments(
         InstrumentClass instrumentClass,
+        String search,
+        String country,
+        String ageBand,
         String sort,
         String direction,
         Integer page,
@@ -140,12 +194,18 @@ public class AnalyticsService {
         String orderBy = orderBy(INSTRUMENT_SORTS, sort, "exposure", direction, "a.instrument_id");
 
         Map<String, Object> params = new LinkedHashMap<>();
-        String where = "";
+        String segmentTotals = segmentTotals(country, ageBand, params);
+
+        StringBuilder where = new StringBuilder(" WHERE 1 = 1");
         if (instrumentClass != null) {
-            where = " WHERE a.instrument_class = :instrumentClass";
+            where.append(" AND a.instrument_class = :instrumentClass");
             params.put("instrumentClass", instrumentClass.name());
         }
-        String filter = where;
+        if (search != null && !search.isBlank()) {
+            where.append(" AND (a.ticker ILIKE :search OR a.name ILIKE :search)");
+            params.put("search", containsPattern(search.trim()));
+        }
+        String filter = where.toString();
 
         return query(db -> {
             long total = db.sql("SELECT COUNT(*) FROM analytics.agg_instrument_performance a" + filter)
@@ -153,7 +213,9 @@ public class AnalyticsService {
                 .query(Long.class)
                 .single();
 
-            List<InstrumentPerformanceResponse> content = db.sql(INSTRUMENT_SELECT + filter + orderBy + " LIMIT :limit OFFSET :offset")
+            List<InstrumentPerformanceResponse> content = db.sql(
+                    segmentTotals + INSTRUMENT_SELECT + filter + orderBy + " LIMIT :limit OFFSET :offset"
+                )
                 .params(params)
                 .param("limit", resolvedSize)
                 .param("offset", (long) resolvedPage * resolvedSize)
@@ -165,7 +227,9 @@ public class AnalyticsService {
     }
 
     public InstrumentPerformanceResponse getInstrument(UUID instrumentId) {
-        return query(db -> db.sql(INSTRUMENT_SELECT + " WHERE a.instrument_id = :instrumentId")
+        String segmentTotals = segmentTotals(null, null, new LinkedHashMap<>());
+
+        return query(db -> db.sql(segmentTotals + INSTRUMENT_SELECT + " WHERE a.instrument_id = :instrumentId")
             .param("instrumentId", instrumentId)
             .query(InstrumentPerformanceResponse.class)
             .optional()
@@ -192,10 +256,22 @@ public class AnalyticsService {
         });
     }
 
+    // Countries that have at least one retail portfolio, for the filter dropdowns. "Unknown" goes last.
+    public List<String> getCountries() {
+        return query(db -> db.sql("""
+                SELECT DISTINCT %s AS country
+                FROM analytics.agg_portfolio_performance p
+                """.formatted(PORTFOLIO_COUNTRY))
+            .query(String.class)
+            .list()
+            .stream()
+            .sorted(COUNTRY_ORDER)
+            .toList());
+    }
+
     public AuditPageResponse<PortfolioPerformanceResponse> listPortfolios(
         String country,
         String ageBand,
-        Integer userType,
         String sort,
         String direction,
         Integer page,
@@ -209,20 +285,13 @@ public class AnalyticsService {
         Map<String, Object> params = new LinkedHashMap<>();
         StringBuilder where = new StringBuilder(" WHERE 1 = 1");
         if (country != null && !country.isBlank()) {
-            where.append(" AND UPPER(p.country) = UPPER(:country)");
+            where.append(" AND UPPER(" + PORTFOLIO_COUNTRY + ") = UPPER(:country)");
             params.put("country", country.trim());
         }
-        if (ageBand != null && !ageBand.isBlank()) {
-            String band = ageBand.trim();
-            if (!AGE_BANDS.contains(band)) {
-                throw new ValidationException("Age band must be one of: " + String.join(", ", AGE_BANDS));
-            }
+        String band = resolveAgeBand(ageBand);
+        if (band != null) {
             where.append(" AND p.age_band = :ageBand");
             params.put("ageBand", band);
-        }
-        if (userType != null) {
-            where.append(" AND p.user_type = :userType");
-            params.put("userType", userType);
         }
         String filter = where.toString();
 
@@ -298,6 +367,155 @@ public class AnalyticsService {
         });
     }
 
+    // The portfolio's holdings in one instrument class, added up per day.
+    public List<ClassValuePoint> getPortfolioClassSeries(
+        UUID portfolioId,
+        InstrumentClass instrumentClass,
+        LocalDate from,
+        LocalDate to
+    ) {
+        if (instrumentClass == null) {
+            throw new ValidationException("instrumentClass is required");
+        }
+        DateRange range = resolveRange(from, to);
+
+        return query(db -> {
+            requireExists(db, "SELECT COUNT(*) FROM analytics.dim_portfolio WHERE portfolio_id = :id", portfolioId, "portfolio");
+
+            return db.sql("""
+                    SELECT h.as_of_date AS "date",
+                           SUM(h.cost_basis_usd) AS cost_basis_usd,
+                           SUM(h.market_value_usd) AS market_value_usd,
+                           SUM(h.realized_pnl_to_date_usd) AS realized_pnl_to_date_usd,
+                           SUM(h.unrealized_pnl_usd) AS unrealized_pnl_usd
+                    FROM analytics.fct_holding_daily h
+                    JOIN analytics.dim_instrument i ON i.instrument_id = h.instrument_id
+                    WHERE h.portfolio_id = :portfolioId
+                      AND i.instrument_class = :instrumentClass
+                      AND h.as_of_date BETWEEN :from AND :to
+                    GROUP BY h.as_of_date
+                    ORDER BY h.as_of_date
+                    """)
+                .param("portfolioId", portfolioId)
+                .param("instrumentClass", instrumentClass.name())
+                .param("from", range.from())
+                .param("to", range.to())
+                .query(ClassValuePoint.class)
+                .list();
+        });
+    }
+
+    // Retail portfolios grouped by age band or country, with each group's class mix. Age bands come youngest
+    // first; countries alphabetically.
+    public List<SegmentSummaryResponse> getSegments(String by) {
+        String dimensionKey = by == null || by.isBlank() ? "ageBand" : by.trim();
+        SegmentDimension dimension = SEGMENT_DIMENSIONS.get(dimensionKey);
+        if (dimension == null) {
+            throw new ValidationException("by must be one of: ageBand, country");
+        }
+
+        return query(db -> {
+            List<SegmentRow> segments = db.sql("""
+                    SELECT %1$s AS segment,
+                           COUNT(*) AS portfolio_count,
+                           COALESCE(SUM(p.market_value_usd), 0) AS market_value_usd,
+                           AVG(p.return_ytd) AS average_return_ytd
+                    FROM analytics.agg_portfolio_performance p
+                    GROUP BY %1$s
+                    """.formatted(dimension.portfolioExpression()))
+                .query(SegmentRow.class)
+                .list();
+
+            Map<String, List<SegmentClassExposure>> classesBySegment = new LinkedHashMap<>();
+            db.sql("""
+                    SELECT s.%1$s AS segment, d.instrument_class,
+                           SUM(s.exposure_usd) AS exposure_usd,
+                           SUM(s.holder_count) AS holder_count
+                    FROM analytics.agg_instrument_segment s
+                    JOIN analytics.dim_instrument d ON d.instrument_id = s.instrument_id
+                    GROUP BY s.%1$s, d.instrument_class
+                    ORDER BY exposure_usd DESC, d.instrument_class
+                    """.formatted(dimension.segmentColumn()))
+                .query(SegmentClassRow.class)
+                .list()
+                .forEach(row -> classesBySegment
+                    .computeIfAbsent(row.segment(), key -> new ArrayList<>())
+                    .add(new SegmentClassExposure(row.instrumentClass(), row.exposureUsd(), row.holderCount())));
+
+            Comparator<SegmentRow> order = dimensionKey.equals("ageBand")
+                ? Comparator.comparingInt(row -> AGE_BANDS.indexOf(row.segment()))
+                : Comparator.comparing(SegmentRow::segment, COUNTRY_ORDER);
+
+            return segments.stream()
+                .sorted(order)
+                .map(row -> new SegmentSummaryResponse(
+                    row.segment(),
+                    row.portfolioCount(),
+                    row.marketValueUsd(),
+                    row.averageReturnYtd(),
+                    classesBySegment.getOrDefault(row.segment(), List.of())
+                ))
+                .toList();
+        });
+    }
+
+    // Per age band or country: retail exposure to one instrument class or one instrument (or everything when
+    // neither is given), next to the segment's total investments. Same order as getSegments.
+    public List<SegmentExposureResponse> getSegmentExposure(String by, InstrumentClass instrumentClass, UUID instrumentId) {
+        String dimensionKey = by == null || by.isBlank() ? "ageBand" : by.trim();
+        SegmentDimension dimension = SEGMENT_DIMENSIONS.get(dimensionKey);
+        if (dimension == null) {
+            throw new ValidationException("by must be one of: ageBand, country");
+        }
+        if (instrumentClass != null && instrumentId != null) {
+            throw new ValidationException("Give instrumentClass or instrumentId, not both");
+        }
+
+        Map<String, Object> params = new LinkedHashMap<>();
+        StringBuilder focus = new StringBuilder();
+        if (instrumentClass != null) {
+            focus.append(" AND d.instrument_class = :instrumentClass");
+            params.put("instrumentClass", instrumentClass.name());
+        }
+        if (instrumentId != null) {
+            focus.append(" AND s.instrument_id = :instrumentId");
+            params.put("instrumentId", instrumentId);
+        }
+
+        String sql = """
+            WITH totals AS (
+                SELECT s.%1$s AS segment, SUM(s.exposure_usd) AS segment_total_usd
+                FROM analytics.agg_instrument_segment s
+                GROUP BY s.%1$s
+            ),
+            focus AS (
+                SELECT s.%1$s AS segment, SUM(s.exposure_usd) AS exposure_usd, SUM(s.holder_count) AS holder_count
+                FROM analytics.agg_instrument_segment s
+                JOIN analytics.dim_instrument d ON d.instrument_id = s.instrument_id
+                WHERE 1 = 1%2$s
+                GROUP BY s.%1$s
+            )
+            SELECT t.segment,
+                   COALESCE(f.exposure_usd, 0) AS exposure_usd,
+                   COALESCE(f.holder_count, 0) AS holder_count,
+                   t.segment_total_usd
+            FROM totals t
+            LEFT JOIN focus f ON f.segment = t.segment
+            """.formatted(dimension.segmentColumn(), focus);
+
+        Comparator<SegmentExposureResponse> order = dimensionKey.equals("ageBand")
+            ? Comparator.comparingInt(row -> AGE_BANDS.indexOf(row.segment()))
+            : Comparator.comparing(SegmentExposureResponse::segment, COUNTRY_ORDER);
+
+        return query(db -> db.sql(sql)
+            .params(params)
+            .query(SegmentExposureResponse.class)
+            .list()
+            .stream()
+            .sorted(order)
+            .toList());
+    }
+
     public List<HoldingValuePoint> getHoldingSeries(UUID holdingId, LocalDate from, LocalDate to) {
         DateRange range = resolveRange(from, to);
 
@@ -332,6 +550,38 @@ public class AnalyticsService {
             log.warn("Analytics query failed: {}", ex.getMessage());
             throw new AnalyticsUnavailableException("Analytics data is temporarily unavailable", ex);
         }
+    }
+
+    // The WITH s AS (...) block for instrument queries, filtered to a country and/or age band when given.
+    private static String segmentTotals(String country, String ageBand, Map<String, Object> params) {
+        StringBuilder filters = new StringBuilder();
+        if (country != null && !country.isBlank()) {
+            filters.append(" AND UPPER(country) = UPPER(:segmentCountry)");
+            params.put("segmentCountry", country.trim());
+        }
+        String band = resolveAgeBand(ageBand);
+        if (band != null) {
+            filters.append(" AND age_band = :segmentAgeBand");
+            params.put("segmentAgeBand", band);
+        }
+        return SEGMENT_TOTALS.formatted(filters);
+    }
+
+    private static String resolveAgeBand(String ageBand) {
+        if (ageBand == null || ageBand.isBlank()) {
+            return null;
+        }
+        String band = ageBand.trim();
+        if (!AGE_BANDS.contains(band)) {
+            throw new ValidationException("Age band must be one of: " + String.join(", ", AGE_BANDS));
+        }
+        return band;
+    }
+
+    // "app" -> "%app%", with LIKE's own wildcards escaped so "100%" searches for a literal percent sign.
+    private static String containsPattern(String search) {
+        String escaped = search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
+        return "%" + escaped + "%";
     }
 
     private static void requireExists(JdbcClient db, String countSql, UUID id, String resource) {
@@ -399,5 +649,14 @@ public class AnalyticsService {
     }
 
     private record DateRange(LocalDate from, LocalDate to) {
+    }
+
+    private record SegmentDimension(String segmentColumn, String portfolioExpression) {
+    }
+
+    private record SegmentRow(String segment, long portfolioCount, BigDecimal marketValueUsd, BigDecimal averageReturnYtd) {
+    }
+
+    private record SegmentClassRow(String segment, String instrumentClass, BigDecimal exposureUsd, long holderCount) {
     }
 }

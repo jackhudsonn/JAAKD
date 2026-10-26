@@ -1,6 +1,7 @@
 -- One row per portfolio: today's value, how it has performed, and its profit or loss. This is the analyst
 -- view's portfolio table; the owner fields (user type, country, age band) are there to filter and group by.
--- Portfolios with no activity yet are included, with a value of 0 and no returns.
+-- Retail portfolios only: admins, auditors and analysts don't trade. Portfolios with no activity yet are
+-- included, with a value of 0 and no returns.
 --
 -- Returns over a window use the time-weighted return, so deposits and withdrawals don't count:
 -- (1 + cumulative_twr today) / (1 + cumulative_twr on the window's start date) - 1. fct_portfolio_daily has
@@ -88,3 +89,4 @@ left join risk
     on risk.portfolio_id = portfolios.portfolio_id
 left join pnl_today
     on pnl_today.portfolio_id = portfolios.portfolio_id
+where portfolios.user_type = 0
