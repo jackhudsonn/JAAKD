@@ -3,7 +3,7 @@
     type="button"
     class="btn widget-selector-trigger"
     (click)="toggleOpen()"
-    [attr.aria-label]="'Widgets (' + count() + '/' + catalogue.length + ')'"
+    [attr.aria-label]="showCount() ? 'Widgets (' + count() + '/' + catalogue.length + ')' : 'Widgets'"
   >
     <span class="widget-selector-trigger-compact">
       <svg
@@ -20,7 +20,9 @@
         <rect x="14" y="13" width="7" height="7" rx="1.5" />
       </svg>
     </span>
-    <span class="widget-selector-badge">{{ count() }}</span>
+    @if (showCount()) {
+      <span class="widget-selector-badge">{{ count() }}</span>
+    }
   </button>
 
   <div class="widget-selector-panel" [class.open]="open" [attr.aria-hidden]="!open">

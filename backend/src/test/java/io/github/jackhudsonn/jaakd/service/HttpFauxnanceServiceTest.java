@@ -17,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
+import java.time.Clock;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -24,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -45,7 +47,8 @@ class HttpFauxnanceServiceTest {
         httpFauxnanceService = new HttpFauxnanceService(
             restTemplate,
             new ObjectMapper(),
-            properties
+            properties,
+            Clock.systemUTC()
         );
     }
 
@@ -150,5 +153,49 @@ class HttpFauxnanceServiceTest {
         assertEquals("equity", symbol.type());
         assertEquals("NASDAQ", symbol.exchange());
         assertEquals("USD", symbol.currency());
+    }
+
+    @Test
+    void getQuotes_reusesResponseForSameNormalizedSymbols() {
+        String json = """
+            {
+              "data": {
+                "quotes": [
+                  {"symbol": "AAPL", "price": 100.0, "currency": "USD"}
+                ]
+              }
+            }
+            """;
+
+        when(restTemplate.exchange(any(URI.class), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class)))
+            .thenReturn(ResponseEntity.ok(json));
+
+        httpFauxnanceService.getQuotes(List.of("AAPL"));
+        httpFauxnanceService.getQuotes(List.of(" aapl "));
+
+        verify(restTemplate, times(1))
+            .exchange(any(URI.class), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class));
+    }
+
+    @Test
+    void getQuotesFresh_bypassesCache() {
+        String json = """
+            {
+              "data": {
+                "quotes": [
+                  {"symbol": "AAPL", "price": 100.0, "currency": "USD"}
+                ]
+              }
+            }
+            """;
+
+        when(restTemplate.exchange(any(URI.class), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class)))
+            .thenReturn(ResponseEntity.ok(json));
+
+        httpFauxnanceService.getQuotes(List.of("AAPL"));
+        httpFauxnanceService.getQuotesFresh(List.of("AAPL"));
+
+        verify(restTemplate, times(2))
+            .exchange(any(URI.class), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class));
     }
 }

@@ -1,5 +1,9 @@
 /* Page layout styles live in styles/layout.css */
 
+.transact-page {
+  --page-card-height: 440px;
+}
+
 .transact-forms {
   display: grid;
   grid-template-columns: minmax(0, 1fr);

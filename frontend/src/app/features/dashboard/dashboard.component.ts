@@ -21,6 +21,7 @@ import { DASHBOARD_STATE_PORT } from '@features/dashboard/services/dashboard-sta
 import { BackendDashboardStateService } from '@features/dashboard/services/backend-dashboard-state.service';
 import { DashboardWatchlistOverlayFacade } from './components/overlays/watchlist/dashboard-watchlist-overlay.facade';
 import { sanitizeDashboardWidgetIds } from './utils/dashboard-widget-preferences.util';
+import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
 
 @Component({
   selector: 'app-dashboard',
@@ -39,12 +40,14 @@ import { sanitizeDashboardWidgetIds } from './utils/dashboard-widget-preferences
     PerformanceGraphWidgetComponent,
     ToBeDeletedWidgetComponent,
     DashboardOverlaysComponent,
+    WidgetCardComponent,
   ],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css',
 })
 export class DashboardComponent implements OnInit {
   readonly backendState = inject(BackendDashboardStateService);
+  readonly loadingPlaceholders = [0, 1, 2, 3];
 
   readonly overlays = viewChild(DashboardOverlaysComponent);
 
