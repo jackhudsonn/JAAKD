@@ -13,7 +13,10 @@ import { HoldingApiService } from '@core/services/holding-api.service';
 import { InstrumentApiService } from '@core/services/instrument-api.service';
 import { OrderLogApiService } from '@core/services/order-log-api.service';
 import { PortfolioApiService } from '@core/services/portfolio-api.service';
-import { toCashBalances, toTransactions } from '@features/dashboard/services/dashboard-backend.mappers';
+import {
+  toCashBalances,
+  toTransactions,
+} from '@features/dashboard/services/dashboard-backend.mappers';
 import { v4 as uuidv4 } from 'uuid';
 import { TransactStatePort } from './transact-state.port';
 

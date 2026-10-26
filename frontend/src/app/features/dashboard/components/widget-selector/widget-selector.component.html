@@ -3,7 +3,9 @@
     type="button"
     class="btn widget-selector-trigger"
     (click)="toggleOpen()"
-    [attr.aria-label]="showCount() ? 'Widgets (' + count() + '/' + catalogue.length + ')' : 'Widgets'"
+    [attr.aria-label]="
+      showCount() ? 'Widgets (' + count() + '/' + catalogue.length + ')' : 'Widgets'
+    "
   >
     <span class="widget-selector-trigger-compact">
       <svg

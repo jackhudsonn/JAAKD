@@ -108,10 +108,7 @@ export class TradeOrderEngineService {
     const now = Date.now();
 
     for (const order of this.ordersState()) {
-      if (
-        order.status === ORDER_STATUS.SUBMITTED ||
-        order.status === ORDER_STATUS.PENDING
-      ) {
+      if (order.status === ORDER_STATUS.SUBMITTED || order.status === ORDER_STATUS.PENDING) {
         if (now - new Date(order.createdAt).getTime() >= this.marketData.marketOrderPendingMs) {
           this.fillOrder(order.id, this.marketData.getPrice(order.symbol));
         }
