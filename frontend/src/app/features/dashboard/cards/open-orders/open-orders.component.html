@@ -2,8 +2,8 @@
   <app-scrollable-list
     [items]="rows()"
     [trackBy]="trackById"
-    [minHeight]="'325px'"
-    [maxHeight]="'325px'"
+    [minHeight]="openOrdersListMinHeight"
+    [maxHeight]="openOrdersListMaxHeight"
     emptyMessage="No pending orders."
   >
     <ng-template let-row>

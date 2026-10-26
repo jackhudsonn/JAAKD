@@ -22,6 +22,8 @@ type PendingOrderRow =
 export class OpenOrdersWidgetComponent {
   private readonly dashboardState = inject(DASHBOARD_STATE_PORT);
   private readonly router = inject(Router);
+  readonly openOrdersListMinHeight = '325px';
+  readonly openOrdersListMaxHeight = '325px';
 
   readonly formatLabel = formatLabel;
 
