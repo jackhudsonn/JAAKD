@@ -85,6 +85,22 @@
     <p class="order-hint">Indicative price unavailable. The order fills at the current quote.</p>
   }
 
+  @if (preview(); as orderPreview) {
+    <div class="order-preview">
+      <div class="order-preview-row">
+        <span>{{ orderPreview.label }}</span>
+        <span class="order-preview-value">{{ orderPreview.total | currency: 'USD' }}</span>
+      </div>
+      @if (orderPreview.cashAfter !== null) {
+        <div class="order-preview-row">
+          <span>Cash after order</span>
+          <span class="order-preview-value">{{ orderPreview.cashAfter | currency: 'USD' }}</span>
+        </div>
+      }
+      <p class="order-hint">Final price is the live quote at execution.</p>
+    </div>
+  }
+
   <div class="form-actions" [class.with-back]="showBackButton()">
     @if (showBackButton()) {
       <button type="button" class="btn btn-secondary form-back" (click)="onBack()">
