@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { QuoteResponse } from '@core/models/api.models';
 import { HoldingApiService } from '@core/services/holding-api.service';
 import { InstrumentApiService } from '@core/services/instrument-api.service';
 import { OrderLogApiService } from '@core/services/order-log-api.service';
@@ -114,7 +115,7 @@ describe('BackendDashboardStateService', () => {
 
   const instrumentApiService = {
     list: vi.fn(async () => instruments),
-    getQuotes: vi.fn(async () => []),
+    getQuotes: vi.fn(async (): Promise<QuoteResponse[]> => []),
   };
 
   const orderLogApiService = {
@@ -165,6 +166,26 @@ describe('BackendDashboardStateService', () => {
     service = TestBed.inject(BackendDashboardStateService);
   });
 
+  it('exposes live quotes from the same quotes call used for holdings', async () => {
+    instrumentApiService.getQuotes.mockResolvedValueOnce([
+      {
+        symbol: 'AAPL',
+        price: 190,
+        bid: null,
+        ask: null,
+        currency: 'USD',
+        asOf: null,
+        marketState: null,
+        changePercent: -0.75,
+      },
+    ]);
+
+    await service.load();
+
+    expect(instrumentApiService.getQuotes).toHaveBeenCalledTimes(1);
+    expect(service.liveQuotes().get('AAPL')).toEqual({ price: 190, changePct: -0.75 });
+  });
+
   it('loads backend dashboard cash, holdings, orders, transactions, and watchlist', async () => {
     await service.load();
 
@@ -182,12 +203,14 @@ describe('BackendDashboardStateService', () => {
         amount: 5000,
         currency: 'USD',
         method: 'bank_transfer',
-        status: 'completed',
+        status: 'EXECUTED',
         createdAt: '2026-01-01T00:01:00.000Z',
       },
     ]);
 
-    expect(service.watchlists()).toEqual([{ id: 'watchlist-1', name: 'My Watchlist', symbols: ['AAPL'] }]);
+    expect(service.watchlists()).toEqual([
+      { id: 'watchlist-1', name: 'My Watchlist', symbols: ['AAPL'] },
+    ]);
     expect(service.activeWatchlistId()).toBe('watchlist-1');
     expect(service.dashboardOpenOrders()).toEqual([]);
     expect(service.dashboardWidgets()).toEqual(preferences.dashboardWidgets);
@@ -196,13 +219,13 @@ describe('BackendDashboardStateService', () => {
         instrumentId: 'inst-aapl',
         symbol: 'AAPL',
         name: 'Apple',
-        instrumentType: 'stock',
+        instrumentType: 'equity',
       },
       {
         instrumentId: 'inst-vod',
         symbol: 'VOD',
         name: 'Vodafone',
-        instrumentType: 'stock',
+        instrumentType: 'equity',
       },
     ]);
   });

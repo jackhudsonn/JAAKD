@@ -1,7 +1,8 @@
+import type { OrderStatus } from '@core/constants/order-status.constants';
+
 export type InstrumentClass = 'EQUITY' | 'ETF' | 'FX' | 'CRYPTO' | 'CASH';
 export type OrderSide = 'BUY' | 'SELL' | 'DEPOSIT' | 'WITHDRAW' | 'FX';
-export type OrderStatus =
-  'SUBMITTED' | 'PENDING' | 'CANCELLED' | 'ACCEPTED' | 'REJECTED' | 'EXECUTED' | 'FAILED';
+export type { OrderStatus };
 
 export interface PortfolioResponse {
   portfolioId: string;
@@ -121,11 +122,14 @@ export interface QuoteResponse {
   currency: string | null;
   asOf: string | null;
   marketState: string | null;
+  changePercent: number | null;
 }
 
-export type CashCurrency = 'USD' | 'EUR' | 'GBP' | 'INR';
+export const CASH_CURRENCIES = ['USD', 'EUR', 'GBP', 'INR'] as const;
+export type CashCurrency = (typeof CASH_CURRENCIES)[number];
 
-export const CASH_CURRENCIES: readonly CashCurrency[] = ['USD', 'EUR', 'GBP', 'INR'];
+/** State amounts are stored in this currency; conversions pivot through it. */
+export const REPORTING_CURRENCY: CashCurrency = 'USD';
 
 export interface CashConversionRequest {
   sourceCurrency: CashCurrency;

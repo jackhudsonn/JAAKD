@@ -8,6 +8,24 @@ CREATE TABLE IF NOT EXISTS users (
   "createdAt" TIMESTAMP NOT NULL DEFAULT now()
 );
 
+-- Provider-owned identity link tables.
+CREATE TABLE IF NOT EXISTS development_credentials (
+  "userID" UUID PRIMARY KEY,
+  email TEXT UNIQUE NOT NULL,
+  "passwordHash" TEXT NOT NULL,
+  "createdAt" TIMESTAMP NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS cognito_users (
+  "identityID" UUID PRIMARY KEY,
+  "userID" UUID NOT NULL UNIQUE REFERENCES users("userID") ON DELETE CASCADE,
+  subject TEXT NOT NULL UNIQUE,
+  status TEXT NOT NULL CHECK (status IN ('PENDING', 'CONFIRMED')),
+  "signUpSession" TEXT,
+  "createdAt" TIMESTAMP NOT NULL DEFAULT now(),
+  "expiresAt" TIMESTAMP
+);
+
 -- Server-side session store. The browser holds only the opaque "sessionID";
 -- credentials and provider tokens stay on the server.
 CREATE TABLE IF NOT EXISTS sessions (
@@ -360,7 +378,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE
   payment_methods
 TO jaakd_app;
 
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE users, sessions TO jaakd_app;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE users, sessions, development_credentials, cognito_users TO jaakd_app;
 
 GRANT SELECT, INSERT, UPDATE ON TABLE "instrumentPrices" TO jaakd_app;
 

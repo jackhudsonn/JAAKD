@@ -1,13 +1,16 @@
-import { CashCurrency } from './api.models';
+import type { OrderStatus } from '@core/constants/order-status.constants';
+import { CashCurrency, InstrumentClass } from './api.models';
 // Domain interfaces — expand as the backend API is defined
 
-export type InstrumentType = 'crypto' | 'stock' | 'bond';
+export type InstrumentType = 'crypto' | 'equity' | 'etf';
+export type HoldingInstrumentClass = Extract<InstrumentClass, 'EQUITY' | 'ETF' | 'CRYPTO'>;
 export type OrderKind = 'market' | 'limit';
 export type OrderType = 'buy' | 'sell';
-export type OrderStatus = 'pending' | 'open' | 'filled' | 'cancelled' | 'rejected';
+export type { OrderStatus };
 export interface Holding {
   symbol: string;
   instrumentType: InstrumentType;
+  instrumentClass?: HoldingInstrumentClass;
   quantity: number;
   indicativePrice?: number;
   priceStatus?: 'available' | 'price unavailable';
@@ -22,7 +25,6 @@ export interface Order {
   quantity: number;
   /** Only present on limit orders. */
   limitPrice?: number;
-  /** Set once the order fills (market: mock price at fill time; limit: the limit price). */
   fillPrice?: number;
   status: OrderStatus;
   createdAt: string;
@@ -43,7 +45,7 @@ export interface MarketQuote {
 
 export type TransactionType = 'deposit' | 'withdrawal' | 'exchange';
 export type PaymentMethod = 'bank_transfer';
-export type TransactionStatus = 'pending' | 'completed' | 'failed' | 'cancelled';
+export type TransactionStatus = OrderStatus;
 
 export interface Transaction {
   id: string;

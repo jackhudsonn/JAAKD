@@ -71,7 +71,7 @@ fi
 
 TEST_EMAIL="integration.$(date +%s)@example.com"
 TEST_PASSWORD="Password123!"
-REGISTER_BODY="{\"email\":\"$TEST_EMAIL\",\"password\":\"$TEST_PASSWORD\"}"
+REGISTER_BODY="{\"email\":\"$TEST_EMAIL\",\"password\":\"$TEST_PASSWORD\",\"firstName\":\"Joanna\",\"lastName\":\"Investor\",\"dob\":\"1990-04-12\",\"city\":\"Boston\",\"state\":\"Massachusetts\",\"country\":\"United States\",\"zipCode\":\"02110\"}"
 REGISTER_CODE="$(status_code POST "$BACKEND/api/auth/register" "$REGISTER_BODY")"
 if [[ "$REGISTER_CODE" == "201" ]]; then
   PASS "POST /api/auth/register returns 201"
@@ -102,10 +102,10 @@ fi
 
 PROFILE_BODY='{"firstName":"Joanna","lastName":"Investor","dob":"1990-04-12","city":"Boston","state":"Massachusetts","country":"United States","zipCode":"02110"}'
 CREATE_PROFILE_CODE="$(status_code POST "$BACKEND/api/profile" "$PROFILE_BODY")"
-if [[ "$CREATE_PROFILE_CODE" == "201" ]]; then
-  PASS "POST /api/profile returns 201"
+if [[ "$CREATE_PROFILE_CODE" == "409" ]]; then
+  PASS "profile was created during registration"
 else
-  FAIL "POST /api/profile expected 201 got $CREATE_PROFILE_CODE"
+  FAIL "POST /api/profile after registration expected 409 got $CREATE_PROFILE_CODE"
 fi
 
 GET_PROFILE_CODE="$(status_code GET "$BACKEND/api/profile")"

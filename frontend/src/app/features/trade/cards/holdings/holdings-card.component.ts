@@ -40,8 +40,8 @@ const HOLDINGS_FILTER_OPTIONS: { id: HoldingsFilter; label: string }[] = [
   { id: 'all', label: 'All' },
   { id: 'cash', label: 'Cash' },
   { id: 'crypto', label: 'Crypto' },
-  { id: 'stock', label: 'Stocks' },
-  { id: 'bond', label: 'Bonds' },
+  { id: 'equity', label: 'Equities' },
+  { id: 'etf', label: 'ETFs' },
 ];
 
 @Component({

@@ -1,16 +1,19 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, computed, signal } from '@angular/core';
 import { Router, RouterOutlet } from '@angular/router';
 import { AuthService } from '@core/services/auth.service';
 import { ProfileService } from '@features/profile/services/profile.service';
 import { NavbarComponent } from '@shared/components/navbar/navbar.component';
 import { MarketTickerItem, MarketTickerService } from '@core/services/market-ticker.service';
-import { NgTemplateOutlet } from '@angular/common';
+import { DecimalPipe, NgTemplateOutlet } from '@angular/common';
 import { formatPercentageChange } from '@shared/utils/format-percentage-change';
 import { isAdminOrAuditor } from '@core/models/profile.model';
+
+const TICKER_SECONDS_PER_ITEM = 3.5;
+
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [RouterOutlet, NavbarComponent, NgTemplateOutlet],
+  imports: [RouterOutlet, NavbarComponent, NgTemplateOutlet, DecimalPipe],
   templateUrl: './shell.component.html',
   styleUrl: './shell.component.css',
 })
@@ -18,8 +21,11 @@ export class ShellComponent implements OnInit {
   userEmail = signal<string | null>(null);
   displayName = signal<string | null>(null);
   canAccessAuditor = signal(false);
-  marketTicker: MarketTickerItem[] = [];
-  tickerLoopItems: MarketTickerItem[] = [];
+  tickerLoopItems = signal<MarketTickerItem[]>([]);
+  tickerLoaded = signal(false);
+  readonly tickerDuration = computed(
+    () => `${this.tickerLoopItems().length * TICKER_SECONDS_PER_ITEM}s`,
+  );
   readonly formatChange = formatPercentageChange;
 
   constructor(
@@ -30,9 +36,7 @@ export class ShellComponent implements OnInit {
   ) {}
 
   async ngOnInit() {
-    this.marketTicker = this.marketTickerService.getTickerItems();
-
-    this.tickerLoopItems = [...this.marketTicker, ...this.marketTicker];
+    void this.loadMarketTicker();
     this.userEmail.set(this.authService.userEmail());
 
     try {
@@ -44,6 +48,17 @@ export class ShellComponent implements OnInit {
       this.displayName.set(null);
       this.canAccessAuditor.set(false);
     }
+  }
+
+  private async loadMarketTicker() {
+    try {
+      const items = await this.marketTickerService.getTickerItems();
+      this.tickerLoopItems.set([...items, ...items]);
+    } catch (error) {
+      console.error('ShellComponent market ticker failed', error);
+      this.tickerLoopItems.set([]);
+    }
+    this.tickerLoaded.set(true);
   }
 
   async logout() {

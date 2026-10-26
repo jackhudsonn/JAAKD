@@ -1,15 +1,22 @@
+.dashboard-page {
+  --page-card-height: 440px;
+}
+
 .dashboard-topbar {
+  position: relative;
+
   display: flex;
   align-items: center;
   justify-content: space-between;
 
   gap: var(--space-md);
 
-  margin-bottom: var(--space-md);
+  margin-bottom: var(--space-lg);
 }
 
 .dashboard-header {
   min-width: 0;
+  padding-right: calc(40px + var(--space-md));
 }
 
 /* the shared .page-description bottom margin isn't needed here — the
@@ -19,6 +26,10 @@
 }
 
 .dashboard-toolbar {
+  position: absolute;
+  top: 8px;
+  right: 0;
+
   display: flex;
   justify-content: flex-end;
   flex-shrink: 0;

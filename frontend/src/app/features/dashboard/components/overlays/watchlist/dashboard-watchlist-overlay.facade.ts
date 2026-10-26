@@ -30,8 +30,8 @@ export interface DashboardInstrumentOption {
 const INSTRUMENT_OPTIONS: DashboardInstrumentOption[] = [
   { id: 'all', label: 'All' },
   { id: 'crypto', label: 'Crypto' },
-  { id: 'stock', label: 'Stocks' },
-  { id: 'bond', label: 'Bonds' },
+  { id: 'equity', label: 'Equities' },
+  { id: 'etf', label: 'ETFs' },
 ];
 
 const WATCHLIST_NAME_PATTERN = /^[A-Za-z0-9' -]+$/;
@@ -107,9 +107,16 @@ export class DashboardWatchlistOverlayFacade {
           asset.name.toLowerCase().includes(query),
       )
       .map((asset) => {
-        const knownAsset = this.backendDataMode
-          ? undefined
-          : this.marketData.getAsset(asset.symbol);
+        if (this.backendDataMode) {
+          const quote = this.state.liveQuotes?.().get(asset.symbol.toUpperCase());
+          return {
+            asset,
+            price: quote?.price ?? null,
+            changePct: quote?.changePct ?? null,
+          };
+        }
+
+        const knownAsset = this.marketData.getAsset(asset.symbol);
         const numericPrice = knownAsset ? this.marketData.getPrice(asset.symbol) : null;
         const changePct =
           knownAsset && numericPrice !== null && knownAsset.basePrice > 0
@@ -144,11 +151,12 @@ export class DashboardWatchlistOverlayFacade {
 
     const asset = this.backendDataMode ? undefined : this.marketData.getAsset(symbol);
     if (!asset && this.backendDataMode) {
+      const quote = this.state.liveQuotes?.().get(symbol.toUpperCase());
       return {
         symbol,
         name: symbol,
-        price: null,
-        changePct: null,
+        price: quote?.price ?? null,
+        changePct: quote?.changePct ?? null,
       };
     }
 
@@ -345,7 +353,9 @@ export class DashboardWatchlistOverlayFacade {
       this.maxHoldingsPerWatchlist !== null &&
       active.symbols.length >= this.maxHoldingsPerWatchlist
     ) {
-      this.toastService.error(`Each watchlist is limited to ${this.maxHoldingsPerWatchlist} items.`);
+      this.toastService.error(
+        `Each watchlist is limited to ${this.maxHoldingsPerWatchlist} items.`,
+      );
       return;
     }
 
@@ -460,7 +470,7 @@ export class DashboardWatchlistOverlayFacade {
 
     if (!WATCHLIST_NAME_PATTERN.test(trimmedName)) {
       this.toastService.error(
-        "Watchlist name can contain letters, numbers, spaces, apostrophes, and hyphens.",
+        'Watchlist name can contain letters, numbers, spaces, apostrophes, and hyphens.',
       );
       return null;
     }

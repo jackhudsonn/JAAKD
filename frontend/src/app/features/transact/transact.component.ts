@@ -12,6 +12,7 @@ import { TRANSACT_STATE_PORT } from './services/transact-state.port';
 import { BackendTransactStateService } from './services/backend-transact-state.service';
 import { TransactOperationsService } from './services/transact-operations.service';
 import { ToastService } from '@shared/components/toast/toast.service';
+import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
 
 @Component({
   selector: 'app-transact',
@@ -22,7 +23,12 @@ import { ToastService } from '@shared/components/toast/toast.service';
     TransactOperationsService,
     { provide: TRANSACT_STATE_PORT, useExisting: BackendTransactStateService },
   ],
-  imports: [MoveFundsFormComponent, CurrencyExchangeComponent, TransactionHistoryComponent],
+  imports: [
+    MoveFundsFormComponent,
+    CurrencyExchangeComponent,
+    TransactionHistoryComponent,
+    WidgetCardComponent,
+  ],
   templateUrl: './transact.component.html',
   styleUrl: './transact.component.css',
 })

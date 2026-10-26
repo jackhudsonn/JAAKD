@@ -8,12 +8,12 @@ import {
   QuoteResponse,
   WatchlistResponse,
 } from '@core/models/api.models';
-import { Holding, InstrumentType, Order, Transaction } from '@core/models';
+import { ORDER_STATUS, isActiveOrderStatus } from '@core/constants/order-status.constants';
+import { Holding, HoldingInstrumentClass, InstrumentType, Order, Transaction } from '@core/models';
 import { SharedWatchlist } from '@core/mocks/watchlist.mock';
+import { roundChangePct } from '@shared/utils/format-percentage-change';
 
-const OPEN_STATUSES = new Set(['SUBMITTED', 'PENDING', 'ACCEPTED']);
 const TRADE_SIDES = new Set(['BUY', 'SELL']);
-const EXECUTED_STATUS = 'EXECUTED';
 
 const toTimestamp = (value: string): number => new Date(value).getTime();
 
@@ -29,7 +29,7 @@ const buildLatestExecutedPriceByInstrumentId = (
   const latestByInstrumentId = new Map<string, { timestamp: number; price: number }>();
 
   for (const row of orderLogs) {
-    if (row.status !== EXECUTED_STATUS || row.executionPrice <= 0) {
+    if (row.status !== ORDER_STATUS.EXECUTED || row.executionPrice <= 0) {
       continue;
     }
 
@@ -85,10 +85,25 @@ const extractStatusReason = (metadata: string | null): string => {
 export const toInstrumentType = (instrumentClass: InstrumentClass): InstrumentType | null => {
   switch (instrumentClass) {
     case 'EQUITY':
+      return 'equity';
     case 'ETF':
-      return 'stock';
+      return 'etf';
     case 'CRYPTO':
       return 'crypto';
+    case 'FX':
+    case 'CASH':
+      return null;
+  }
+};
+
+const toHoldingInstrumentClass = (
+  instrumentClass: InstrumentClass,
+): HoldingInstrumentClass | null => {
+  switch (instrumentClass) {
+    case 'EQUITY':
+    case 'ETF':
+    case 'CRYPTO':
+      return instrumentClass;
     case 'FX':
     case 'CASH':
       return null;
@@ -106,6 +121,27 @@ export const toCash = (holdings: HoldingResponse[], instruments: InstrumentRespo
   }
 
   return 0;
+};
+
+export const toCashBalances = (
+  holdings: HoldingResponse[],
+  instruments: InstrumentResponse[],
+): Record<string, number> => {
+  const cashTickerById = new Map(
+    instruments
+      .filter((instrument) => instrument.instrumentClass === 'CASH')
+      .map((instrument) => [instrument.instrumentId, instrument.ticker]),
+  );
+  const balances: Record<string, number> = {};
+
+  for (const holding of holdings) {
+    const ticker = cashTickerById.get(holding.instrumentID);
+    if (ticker) {
+      balances[ticker] = holding.currentQuantity;
+    }
+  }
+
+  return balances;
 };
 
 export const toHoldings = (
@@ -132,6 +168,10 @@ export const toHoldings = (
     if (!instrumentType) {
       continue;
     }
+    const instrumentClass = toHoldingInstrumentClass(instrument.instrumentClass);
+    if (!instrumentClass) {
+      continue;
+    }
 
     const indicativePrice = holdingPriceResolver.isKnownSymbol(instrument.ticker)
       ? holdingPriceResolver.getPrice(instrument.ticker)
@@ -140,6 +180,7 @@ export const toHoldings = (
     mapped.push({
       symbol: instrument.ticker,
       instrumentType,
+      instrumentClass,
       quantity: holding.currentQuantity,
       indicativePrice,
       priceStatus: indicativePrice > 0 ? 'available' : 'price unavailable',
@@ -197,62 +238,25 @@ export const toOrders = (
       type: newestRow.side === 'BUY' ? 'buy' : 'sell',
       quantity: newestRow.quantity,
       createdAt: firstRow.timestamp,
-      status: 'pending',
+      status: newestRow.status,
     };
 
-    switch (newestRow.status) {
-      case 'SUBMITTED':
-      case 'PENDING':
-        mappedWithSortKey.push({
-          order: {
-            ...baseOrder,
-            status: 'pending',
-          },
-          newestTimestamp: toTimestamp(newestRow.timestamp),
-        });
-        break;
-      case 'ACCEPTED':
-        mappedWithSortKey.push({
-          order: {
-            ...baseOrder,
-            status: 'open',
-          },
-          newestTimestamp: toTimestamp(newestRow.timestamp),
-        });
-        break;
-      case 'EXECUTED':
-        mappedWithSortKey.push({
-          order: {
-            ...baseOrder,
-            status: 'filled',
-            fillPrice: newestRow.executionPrice,
-            filledAt: newestRow.timestamp,
-          },
-          newestTimestamp: toTimestamp(newestRow.timestamp),
-        });
-        break;
-      case 'CANCELLED':
-        mappedWithSortKey.push({
-          order: {
-            ...baseOrder,
-            status: 'cancelled',
-            cancelledAt: newestRow.timestamp,
-          },
-          newestTimestamp: toTimestamp(newestRow.timestamp),
-        });
-        break;
-      case 'REJECTED':
-      case 'FAILED':
-        mappedWithSortKey.push({
-          order: {
-            ...baseOrder,
-            status: 'rejected',
-            statusReason: extractStatusReason(newestRow.metadata),
-          },
-          newestTimestamp: toTimestamp(newestRow.timestamp),
-        });
-        break;
-    }
+    mappedWithSortKey.push({
+      order: {
+        ...baseOrder,
+        ...(newestRow.status === ORDER_STATUS.EXECUTED
+          ? { fillPrice: newestRow.executionPrice, filledAt: newestRow.timestamp }
+          : {}),
+        ...(newestRow.status === ORDER_STATUS.CANCELLED
+          ? { cancelledAt: newestRow.timestamp }
+          : {}),
+        ...(newestRow.status === ORDER_STATUS.REJECTED ||
+        newestRow.status === ORDER_STATUS.FAILED
+          ? { statusReason: extractStatusReason(newestRow.metadata) }
+          : {}),
+      },
+      newestTimestamp: toTimestamp(newestRow.timestamp),
+    });
   }
 
   return mappedWithSortKey
@@ -310,23 +314,6 @@ export const toTransactions = (
       continue;
     }
 
-    let status: Transaction['status'] = 'pending';
-    switch (newestRow.status) {
-      case 'EXECUTED':
-        status = 'completed';
-        break;
-      case 'REJECTED':
-      case 'FAILED':
-        status = 'failed';
-        break;
-      case 'CANCELLED':
-        status = 'cancelled';
-        break;
-      default:
-        status = 'pending';
-        break;
-    }
-
     const isExchange = newestRow.side === 'FX';
     const sourceCurrency = readMetadataValue(newestRow.metadata, 'sourceCurrency');
     const targetCurrency = readMetadataValue(newestRow.metadata, 'targetCurrency');
@@ -344,7 +331,7 @@ export const toTransactions = (
         amount: newestRow.quantity,
         ...(currency ? { currency } : {}),
         method: 'bank_transfer',
-        status,
+        status: newestRow.status,
         createdAt: firstRow.timestamp,
       },
       newestTimestamp: toTimestamp(newestRow.timestamp),
@@ -442,7 +429,7 @@ export const toOpenOrders = (
     const firstRow = sortedByTime[0];
     const newestRow = sortedByTime[sortedByTime.length - 1];
 
-    if (!OPEN_STATUSES.has(newestRow.status)) {
+    if (!isActiveOrderStatus(newestRow.status)) {
       continue;
     }
 
@@ -468,7 +455,7 @@ export const toOpenOrders = (
       type: newestRow.side === 'BUY' ? 'buy' : 'sell',
       quantity: newestRow.quantity,
       fillPrice: newestRow.executionPrice === 0 ? undefined : newestRow.executionPrice,
-      status: newestRow.status === 'ACCEPTED' ? 'open' : 'pending',
+      status: newestRow.status,
       createdAt: firstRow.timestamp,
     });
   }
@@ -476,21 +463,60 @@ export const toOpenOrders = (
   return mapped.sort((a, b) => toTimestamp(b.createdAt) - toTimestamp(a.createdAt));
 };
 
+// Fauxnance prices crypto only as X:<ticker>-USD; a plain "BTC" is quoted as a stock there.
+const toFauxnanceSymbol = (instrument: InstrumentResponse): string => {
+  const ticker = instrument.ticker.toUpperCase();
+  return instrument.instrumentClass === 'CRYPTO' && !ticker.startsWith('X:')
+    ? `X:${ticker}-USD`
+    : instrument.ticker;
+};
+
+// "X:BTC-USD" -> "BTC"; every other symbol is returned unchanged.
+export const toDisplaySymbol = (symbol: string): string =>
+  /^X:([^-]+)-/i.exec(symbol)?.[1] ?? symbol;
+
+// Crypto can be stored as "BTC" or "X:BTC-USD", so a quote is filed under both spellings.
+const setQuoteKeys = <T>(map: Map<string, T>, symbol: string, value: T): void => {
+  const key = symbol.toUpperCase();
+  map.set(key, value);
+  map.set(toDisplaySymbol(key), value);
+};
+
 export const toQuoteSymbols = (instruments: InstrumentResponse[]): string[] =>
   instruments
     .filter((instrument) => toInstrumentType(instrument.instrumentClass) !== null)
-    .map((instrument) => instrument.ticker);
+    .map(toFauxnanceSymbol);
 
 export const toQuotePriceBySymbol = (quotes: QuoteResponse[]): Map<string, number> => {
   const prices = new Map<string, number>();
 
   for (const quote of quotes) {
     if (quote.price !== null && quote.price > 0) {
-      prices.set(quote.symbol.toUpperCase(), quote.price);
+      setQuoteKeys(prices, quote.symbol, quote.price);
     }
   }
 
   return prices;
+};
+
+export interface LiveQuote {
+  price: number;
+  changePct: number | null;
+}
+
+export const toLiveQuoteBySymbol = (quotes: QuoteResponse[]): Map<string, LiveQuote> => {
+  const liveQuotes = new Map<string, LiveQuote>();
+
+  for (const quote of quotes) {
+    if (quote.price !== null && quote.price > 0) {
+      setQuoteKeys(liveQuotes, quote.symbol, {
+        price: quote.price,
+        changePct: quote.changePercent === null ? null : roundChangePct(quote.changePercent),
+      });
+    }
+  }
+
+  return liveQuotes;
 };
 
 export const toPriceResolver = (prices: Map<string, number>): HoldingPriceResolver => ({

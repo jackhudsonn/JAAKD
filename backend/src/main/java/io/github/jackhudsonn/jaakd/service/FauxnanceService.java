@@ -35,4 +35,7 @@ public interface FauxnanceService {
     List<FauxnanceQuoteResponse> getQuotes(List<String> symbols);
 
     CompletableFuture<List<FauxnanceQuoteResponse>> getQuotesAsync(List<String> symbols);
+
+    // Bypasses the read cache. Order pricing must reflect the latest upstream quote.
+    List<FauxnanceQuoteResponse> getQuotesFresh(List<String> symbols);
 }

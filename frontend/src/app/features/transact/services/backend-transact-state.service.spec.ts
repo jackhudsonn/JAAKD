@@ -141,7 +141,7 @@ describe('BackendTransactStateService', () => {
         amount: 5000,
         currency: 'USD',
         method: 'bank_transfer',
-        status: 'completed',
+        status: 'EXECUTED',
         createdAt: '2026-01-01T00:00:00.000Z',
       },
     ]);
@@ -258,7 +258,7 @@ describe('BackendTransactStateService', () => {
     await vi.advanceTimersByTimeAsync(1000);
     await movementPromise;
 
-    expect(service.transactions()[0]?.status).toBe('completed');
+    expect(service.transactions()[0]?.status).toBe('EXECUTED');
 
     randomUuidSpy.mockRestore();
   });
@@ -300,7 +300,7 @@ describe('BackendTransactStateService', () => {
       service
         .transactions()
         .find((transaction) => transaction.id === '33333333-3333-3333-3333-333333333333')?.status,
-    ).toBe('pending');
+    ).toBe('PENDING');
 
     randomUuidSpy.mockRestore();
   });

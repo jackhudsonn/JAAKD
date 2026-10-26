@@ -19,6 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -28,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -49,7 +51,8 @@ class HttpFauxnanceServiceTest {
         httpFauxnanceService = new HttpFauxnanceService(
             restTemplate,
             new ObjectMapper(),
-            properties
+            properties,
+            Clock.systemUTC()
         );
     }
 
@@ -70,7 +73,8 @@ class HttpFauxnanceServiceTest {
                       "ask": 100.5,
                       "currency": "USD",
                       "asOf": "2026-10-08T10:00:00Z",
-                      "marketState": "open"
+                      "marketState": "open",
+                      "changePercent": 1.25
                     }
                   }
                 ]
@@ -87,6 +91,7 @@ class HttpFauxnanceServiceTest {
         assertEquals("AAPL", quotes.get(0).symbol());
         assertEquals("USD", quotes.get(0).currency());
         assertEquals("open", quotes.get(0).marketState());
+        assertEquals(1.25, quotes.get(0).changePercent());
 
         ArgumentCaptor<URI> uriCaptor = ArgumentCaptor.forClass(URI.class);
         verify(restTemplate).exchange(uriCaptor.capture(), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class));
@@ -236,5 +241,68 @@ class HttpFauxnanceServiceTest {
         verify(restTemplate).exchange(uriCaptor.capture(), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class));
 
         assertTrue(uriCaptor.getValue().toString().endsWith("/candles/AAPL"));
+    }
+
+    @Test
+    void getCandles_cachesPerSymbolAndDateRange() {
+        String json = """
+            { "data": { "symbol": "AAPL", "currency": "USD", "candles": [] } }
+            """;
+
+        when(restTemplate.exchange(any(URI.class), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class)))
+            .thenReturn(ResponseEntity.ok(json));
+
+        LocalDate from = LocalDate.of(2026, 10, 1);
+        LocalDate to = LocalDate.of(2026, 10, 16);
+        httpFauxnanceService.getCandles("AAPL", from, to);
+        httpFauxnanceService.getCandles(" aapl ", from, to);
+        httpFauxnanceService.getCandles("AAPL", from, to.plusDays(1));
+
+        verify(restTemplate, times(2))
+            .exchange(any(URI.class), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class));
+    }
+
+    @Test
+    void getQuotes_reusesResponseForSameNormalizedSymbols() {
+        String json = """
+            {
+              "data": {
+                "quotes": [
+                  {"symbol": "AAPL", "price": 100.0, "currency": "USD"}
+                ]
+              }
+            }
+            """;
+
+        when(restTemplate.exchange(any(URI.class), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class)))
+            .thenReturn(ResponseEntity.ok(json));
+
+        httpFauxnanceService.getQuotes(List.of("AAPL"));
+        httpFauxnanceService.getQuotes(List.of(" aapl "));
+
+        verify(restTemplate, times(1))
+            .exchange(any(URI.class), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class));
+    }
+
+    @Test
+    void getQuotesFresh_bypassesCache() {
+        String json = """
+            {
+              "data": {
+                "quotes": [
+                  {"symbol": "AAPL", "price": 100.0, "currency": "USD"}
+                ]
+              }
+            }
+            """;
+
+        when(restTemplate.exchange(any(URI.class), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class)))
+            .thenReturn(ResponseEntity.ok(json));
+
+        httpFauxnanceService.getQuotes(List.of("AAPL"));
+        httpFauxnanceService.getQuotesFresh(List.of("AAPL"));
+
+        verify(restTemplate, times(2))
+            .exchange(any(URI.class), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class));
     }
 }

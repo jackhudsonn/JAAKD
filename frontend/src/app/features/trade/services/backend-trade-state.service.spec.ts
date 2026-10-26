@@ -165,7 +165,9 @@ describe('BackendTradeStateService', () => {
     expect(service.cashBalances()).toEqual({ USD: 5000, EUR: 300 });
     expect(service.holdings()).toHaveLength(1);
     expect(service.orders()).toHaveLength(1);
-    expect(service.watchlists()).toEqual([{ id: 'watchlist-1', name: 'My Watchlist', symbols: ['AAPL'] }]);
+    expect(service.watchlists()).toEqual([
+      { id: 'watchlist-1', name: 'My Watchlist', symbols: ['AAPL'] },
+    ]);
     expect(service.latestPriceBySymbolData().get('AAPL')).toBe(100);
   });
 

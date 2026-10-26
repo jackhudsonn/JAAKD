@@ -44,7 +44,7 @@ Use trades to track changes to holdings, cost basis, and realized/unrealized P&L
 Spring Boot API backend for JAAKD.
 
 - The Angular frontend authenticates against the backend and receives an HttpOnly session cookie; it never holds a token.
-- The backend owns sessions and talks to the configured identity provider. Only the `development` provider is implemented today; the seam is in place for others.
+- The backend owns sessions and talks to the configured identity provider. `development` and `cognito` adapters are implemented; the frontend stays provider-blind.
 - Backend connects to our PostgreSQL database using the `jaakd_app` role.
 - Trading/profile data is served only through backend REST APIs.
 
@@ -96,6 +96,14 @@ bash scripts/integration-test.sh
 
 The script registers a test user, checks the auth and backend endpoints, and confirms the matching rows in Postgres.
 
+### Browsing the database (command line)
+
+The Postgres container includes `psql`:
+
+```bash
+docker compose exec -it jaakd-postgres psql -U postgres -d jaakd
+```
+
 ### Browsing the database (pgAdmin)
 
 pgAdmin opens its own SSH tunnel to the Docker host. In pgAdmin: **Register > Server**, then:
@@ -134,12 +142,21 @@ To check what the read-only roles can see, register them as extra servers: `jaak
 
 - `POSTGRES_PASSWORD` — the Postgres superuser password.
 - `JAAKD_APP_DB_PASSWORD` — the application-role password.
-- `IDENTITY_PROVIDER` — the identity provider adapter. Only `development` is implemented today.
+- `IDENTITY_PROVIDER` — the identity provider adapter: `development` or `cognito`.
 - `AUTH_COOKIE_SECURE` — whether the session cookie is sent only over HTTPS.
 - `JAAKD_ANALYTICS_DB_PASSWORD` — the password for `jaakd_analytics_reader`, the read-only role the analytics copy job uses on `jaakd`. Optional; the role is skipped when it's empty.
 - `ANALYTICS_PIPELINE_DB_PASSWORD` — the password for `analytics_pipeline`, which owns the analytics database.
 - `ANALYTICS_DB_PASSWORD` — the password for `analytics_app_reader`, the backend's read-only role on the analytics database.
 - `COMPOSE_PROFILES=analytics` — includes `jaakd-analytics-postgres` in `docker compose up`.
+- `COGNITO_REGION` — the AWS region of the Cognito user pool. Required when `IDENTITY_PROVIDER=cognito`.
+- `COGNITO_USER_POOL_ID` — the Cognito user-pool ID. Required when `IDENTITY_PROVIDER=cognito`.
+- `COGNITO_CLIENT_ID` — the backend app-client ID. Required when `IDENTITY_PROVIDER=cognito`.
+- `COGNITO_CLIENT_SECRET` — the backend app-client secret. Required when `IDENTITY_PROVIDER=cognito`.
+- `COGNITO_API_CALL_TIMEOUT` — total time allowed for a Cognito API call, as an ISO-8601 duration (default `PT10S`).
+- `COGNITO_API_CALL_ATTEMPT_TIMEOUT` — time allowed for each Cognito API retry attempt, as an ISO-8601 duration (default `PT5S`).
+- `COGNITO_RETRY_ATTEMPTS` — number of retries for failed Cognito API calls (default `2`).
+
+The AWS-side console setup is in `docs/cognito-setup.md`.
 
 Everything else is fixed in `docker-compose.yml` and can't be set from `.env`: the database `jaakd`, the role `jaakd_app`, the published Postgres port `5433`, and the backend's datasource URL and username on the internal network.
 
@@ -151,7 +168,8 @@ The backend loads the `.env` in the project directory via `spring.config.import`
 - `SPRING_DATASOURCE_USERNAME` (`jaakd_app`)
 - `SPRING_DATASOURCE_PASSWORD` (the `JAAKD_APP_DB_PASSWORD` value)
 
-`IDENTITY_PROVIDER` and `AUTH_COOKIE_SECURE` are read from `.env`.
+`IDENTITY_PROVIDER`, `AUTH_COOKIE_SECURE`, and the `COGNITO_*` values are read
+from `.env` when present.
 
 ### Frontend environment
 
@@ -170,6 +188,9 @@ To avoid manually setting up a user account (signing in, adding bank accounts, a
 ```bash
 node scripts/seed-demo-users.js
 ```
+
+The script requires `IDENTITY_PROVIDER=development` and exits before seeding
+otherwise.
 
 ### Useful commands
 

@@ -37,8 +37,8 @@ class FauxnanceQuoteServiceTest {
         Instrument instrument = buildInstrument(instrumentId, "AAPL");
 
         when(instrumentService.getInstrumentById(instrumentId)).thenReturn(instrument);
-        when(fauxnanceService.getQuotes(List.of("AAPL")))
-            .thenReturn(List.of(new FauxnanceQuoteResponse("AAPL", 100.0, 99.0, 101.0, "USD", "2026-10-08T10:00:00Z", "open")));
+        when(fauxnanceService.getQuotesFresh(List.of("AAPL")))
+            .thenReturn(List.of(new FauxnanceQuoteResponse("AAPL", 100.0, 99.0, 101.0, "USD", "2026-10-08T10:00:00Z", "open", null)));
 
         Double price = fauxnanceQuoteService.getExecutionPrice(instrumentId, OrderSide.BUY);
         assertEquals(101.0, price);
@@ -50,8 +50,8 @@ class FauxnanceQuoteServiceTest {
         Instrument instrument = buildInstrument(instrumentId, "AAPL");
 
         when(instrumentService.getInstrumentById(instrumentId)).thenReturn(instrument);
-        when(fauxnanceService.getQuotes(List.of("AAPL")))
-            .thenReturn(List.of(new FauxnanceQuoteResponse("AAPL", 100.0, 99.0, null, "USD", "2026-10-08T10:00:00Z", "open")));
+        when(fauxnanceService.getQuotesFresh(List.of("AAPL")))
+            .thenReturn(List.of(new FauxnanceQuoteResponse("AAPL", 100.0, 99.0, null, "USD", "2026-10-08T10:00:00Z", "open", null)));
 
         Double price = fauxnanceQuoteService.getExecutionPrice(instrumentId, OrderSide.BUY);
         assertNull(price);
@@ -63,8 +63,8 @@ class FauxnanceQuoteServiceTest {
         Instrument instrument = buildInstrument(instrumentId, "MSFT");
 
         when(instrumentService.getInstrumentById(instrumentId)).thenReturn(instrument);
-        when(fauxnanceService.getQuotes(List.of("MSFT")))
-            .thenReturn(List.of(new FauxnanceQuoteResponse("MSFT", 200.0, 199.5, 200.5, "USD", "2026-10-08T10:00:00Z", "open")));
+        when(fauxnanceService.getQuotesFresh(List.of("MSFT")))
+            .thenReturn(List.of(new FauxnanceQuoteResponse("MSFT", 200.0, 199.5, 200.5, "USD", "2026-10-08T10:00:00Z", "open", null)));
 
         Double price = fauxnanceQuoteService.getExecutionPrice(instrumentId, OrderSide.SELL);
         assertEquals(199.5, price);
@@ -76,8 +76,8 @@ class FauxnanceQuoteServiceTest {
         Instrument instrument = buildInstrument(instrumentId, "MSFT");
 
         when(instrumentService.getInstrumentById(instrumentId)).thenReturn(instrument);
-        when(fauxnanceService.getQuotes(List.of("MSFT")))
-            .thenReturn(List.of(new FauxnanceQuoteResponse("MSFT", 200.0, null, 200.5, "USD", "2026-10-08T10:00:00Z", "open")));
+        when(fauxnanceService.getQuotesFresh(List.of("MSFT")))
+            .thenReturn(List.of(new FauxnanceQuoteResponse("MSFT", 200.0, null, 200.5, "USD", "2026-10-08T10:00:00Z", "open", null)));
 
         Double price = fauxnanceQuoteService.getExecutionPrice(instrumentId, OrderSide.SELL);
         assertNull(price);

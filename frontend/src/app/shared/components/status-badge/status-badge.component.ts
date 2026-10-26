@@ -1,17 +1,6 @@
 import { Component, computed, input } from '@angular/core';
+import { OrderStatus } from '@core/constants/order-status.constants';
 import { formatLabel } from '@shared/utils/format-label';
-
-// Covers both transaction and order lifecycle states so the badge can be
-// reused across the transact and trade pages.
-export type StatusBadgeStatus =
-  | 'pending'
-  | 'open'
-  | 'completed'
-  | 'filled'
-  | 'partially_filled'
-  | 'cancelled'
-  | 'failed'
-  | 'rejected';
 
 @Component({
   selector: 'app-status-badge',
@@ -20,7 +9,7 @@ export type StatusBadgeStatus =
   styleUrl: './status-badge.component.css',
 })
 export class StatusBadgeComponent {
-  status = input.required<StatusBadgeStatus>();
+  status = input.required<OrderStatus>();
 
   label = computed(() => formatLabel(this.status()));
 }

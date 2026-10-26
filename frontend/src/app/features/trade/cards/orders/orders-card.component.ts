@@ -1,29 +1,15 @@
-import {
-  Component,
-  OnDestroy,
-  OnInit,
-  computed,
-  inject,
-  input,
-  output,
-  signal,
-} from '@angular/core';
+import { Component, computed, input, output } from '@angular/core';
 import { DatePipe, TitleCasePipe } from '@angular/common';
+import { ORDER_STATUS } from '@core/constants/order-status.constants';
 import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
 import { ScrollableListComponent } from '@shared/components/scrollable-list/scrollable-list.component';
 import { StatusBadgeComponent } from '@shared/components/status-badge/status-badge.component';
-import { startCycleTimer } from '@shared/utils/cycle-timer';
 import { Order } from '@core/models';
-import { TRADE_MARKET_DATA_PORT } from '@features/trade/services/trade-market-data.port';
-
-type SortKey = 'createdAt' | 'symbol' | 'status';
-type SortDirection = 'asc' | 'desc';
 
 /**
  * Combined Orders card: open and completed/cancelled orders share a single
- * sortable, scrollable list. Open orders (pending/open) and rejected orders
- * stay selectable — clicking opens the Order Details popup — and pending
- * rows show a live countdown while they are awaiting execution.
+ * newest-first, scrollable list. Open orders and rejected orders
+ * stay selectable — clicking opens the Order Details popup.
  */
 @Component({
   selector: 'app-orders-card',
@@ -38,80 +24,27 @@ type SortDirection = 'asc' | 'desc';
   templateUrl: './orders-card.component.html',
   styleUrl: './orders-card.component.css',
 })
-export class OrdersCardComponent implements OnInit, OnDestroy {
-  private readonly marketData = inject(TRADE_MARKET_DATA_PORT);
-
+export class OrdersCardComponent {
   openOrders = input.required<readonly Order[]>();
   historyOrders = input.required<readonly Order[]>();
 
   selectOrder = output<string>();
 
-  private tick = signal(0);
-  private stopTicking?: () => void;
-
-  private sortKey = signal<SortKey>('createdAt');
-  private sortDirection = signal<SortDirection>('desc');
-
-  // Recomputed every second so the pending-market-order countdown stays live.
   rows = computed(() => {
-    this.tick();
-    const now = Date.now();
-
-    const key = this.sortKey();
-    const factor = this.sortDirection() === 'asc' ? 1 : -1;
-
-    const sorted = [...this.openOrders(), ...this.historyOrders()].sort((a, b) => {
-      if (key === 'createdAt') {
-        return (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()) * factor;
-      }
-
-      return a[key].localeCompare(b[key]) * factor;
-    });
+    const sorted = [...this.openOrders(), ...this.historyOrders()].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
 
     return sorted.map((order) => ({
       order,
-      isOpen: order.status === 'pending' || order.status === 'open',
-      isRejected: order.status === 'rejected',
-      isSelectable: order.status === 'pending' || order.status === 'open' || order.status === 'rejected',
-      secondsRemaining:
-        order.status === 'pending'
-          ? Math.max(
-              0,
-              Math.ceil(
-                (this.marketData.marketOrderPendingMs -
-                  (now - new Date(order.createdAt).getTime())) /
-                  1000,
-              ),
-            )
-          : null,
+      isSelectable:
+        order.status === ORDER_STATUS.SUBMITTED ||
+        order.status === ORDER_STATUS.PENDING ||
+        order.status === ORDER_STATUS.ACCEPTED ||
+        order.status === ORDER_STATUS.REJECTED ||
+        order.status === ORDER_STATUS.FAILED,
     }));
   });
 
   trackByRow = (row: { order: Order }) => row.order.id;
-
-  ngOnInit() {
-    this.stopTicking = startCycleTimer(1, 1000, () => this.tick.update((value) => value + 1));
-  }
-
-  ngOnDestroy() {
-    this.stopTicking?.();
-  }
-
-  setSort(key: SortKey) {
-    if (this.sortKey() === key) {
-      this.sortDirection.update((direction) => (direction === 'asc' ? 'desc' : 'asc'));
-      return;
-    }
-
-    this.sortKey.set(key);
-    this.sortDirection.set('desc');
-  }
-
-  sortIndicator(key: SortKey): string {
-    if (this.sortKey() !== key) {
-      return '';
-    }
-
-    return this.sortDirection() === 'asc' ? '▲' : '▼';
-  }
 }

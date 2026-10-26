@@ -89,15 +89,23 @@ export interface AuditOrderLogSearchRequest extends AuditPaging {
 export class AuditApiService {
   constructor(private readonly httpClient: HttpClient) {}
 
-  searchUsers(query?: string, paging?: AuditPaging): Promise<AuditPageResponse<AuditUserSearchResponse>> {
+  searchUsers(
+    query?: string,
+    paging?: AuditPaging,
+  ): Promise<AuditPageResponse<AuditUserSearchResponse>> {
     return this.getPage('/api/audit/users', buildParams({ query, ...paging }));
   }
 
-  searchOrderLogs(request: AuditOrderLogSearchRequest): Promise<AuditPageResponse<AuditOrderLogResponse>> {
+  searchOrderLogs(
+    request: AuditOrderLogSearchRequest,
+  ): Promise<AuditPageResponse<AuditOrderLogResponse>> {
     return this.getPage('/api/audit/order-logs', buildParams(request));
   }
 
-  listUserPortfolios(userId: string, paging?: AuditPaging): Promise<AuditPageResponse<PortfolioResponse>> {
+  listUserPortfolios(
+    userId: string,
+    paging?: AuditPaging,
+  ): Promise<AuditPageResponse<PortfolioResponse>> {
     return this.getPage(`/api/audit/users/${userId}/portfolios`, buildParams(paging));
   }
 
@@ -121,16 +129,24 @@ export class AuditApiService {
     return this.getPage(`/api/audit/holdings/${holdingId}/order-logs`, buildParams(options));
   }
 
-  listHoldingPositionLots(holdingId: string, paging?: AuditPaging): Promise<AuditPageResponse<PositionLotResponse>> {
+  listHoldingPositionLots(
+    holdingId: string,
+    paging?: AuditPaging,
+  ): Promise<AuditPageResponse<PositionLotResponse>> {
     return this.getPage(`/api/audit/holdings/${holdingId}/position-lots`, buildParams(paging));
   }
 
-  listHoldingLotMatches(holdingId: string, paging?: AuditPaging): Promise<AuditPageResponse<LotMatchResponse>> {
+  listHoldingLotMatches(
+    holdingId: string,
+    paging?: AuditPaging,
+  ): Promise<AuditPageResponse<LotMatchResponse>> {
     return this.getPage(`/api/audit/holdings/${holdingId}/lot-matches`, buildParams(paging));
   }
 
   private getPage<T>(path: string, params: HttpParams): Promise<AuditPageResponse<T>> {
-    return firstValueFrom(this.httpClient.get<AuditPageResponse<T>>(`${environment.apiUrl}${path}`, { params }));
+    return firstValueFrom(
+      this.httpClient.get<AuditPageResponse<T>>(`${environment.apiUrl}${path}`, { params }),
+    );
   }
 }
 

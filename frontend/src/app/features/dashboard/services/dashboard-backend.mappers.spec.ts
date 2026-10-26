@@ -6,11 +6,13 @@ import {
 } from '@core/models/api.models';
 import {
   toCash,
+  toDisplaySymbol,
   toHoldings,
   toInstrumentType,
   toLatestPriceBySymbol,
   toOpenOrders,
   toOrders,
+  toLiveQuoteBySymbol,
   toPriceResolver,
   toQuotePriceBySymbol,
   toQuoteSymbols,
@@ -28,8 +30,8 @@ const EQUITY_INSTRUMENT: InstrumentResponse = {
   description: null,
 };
 
-const STOCK_INSTRUMENT: InstrumentResponse = {
-  instrumentId: 'inst-stock',
+const SECOND_EQUITY_INSTRUMENT: InstrumentResponse = {
+  instrumentId: 'inst-equity-2',
   ticker: 'MSFT',
   market: 'NASDAQ',
   name: 'Microsoft Corp.',
@@ -38,11 +40,11 @@ const STOCK_INSTRUMENT: InstrumentResponse = {
   description: null,
 };
 
-const BOND_INSTRUMENT: InstrumentResponse = {
-  instrumentId: 'inst-bond',
+const ETF_INSTRUMENT: InstrumentResponse = {
+  instrumentId: 'inst-etf',
   ticker: 'BND',
   market: 'NASDAQ',
-  name: 'Vanguard Bond ETF',
+  name: 'Vanguard Aggregate ETF',
   instrumentClass: 'ETF',
   logoUrl: null,
   description: null,
@@ -178,25 +180,25 @@ describe('dashboard-backend.mappers', () => {
         'order-open',
         'order-pending',
       ]);
-      expect(result.find((order) => order.id === 'order-pending')?.status).toBe('pending');
-      expect(result.find((order) => order.id === 'order-open')?.status).toBe('open');
+      expect(result.find((order) => order.id === 'order-pending')?.status).toBe('SUBMITTED');
+      expect(result.find((order) => order.id === 'order-open')?.status).toBe('ACCEPTED');
 
       const filled = result.find((order) => order.id === 'order-filled');
-      expect(filled?.status).toBe('filled');
+      expect(filled?.status).toBe('EXECUTED');
       expect(filled?.fillPrice).toBe(101.25);
       expect(filled?.filledAt).toBe('2026-01-01T12:00:00.000Z');
 
       const cancelled = result.find((order) => order.id === 'order-cancelled');
-      expect(cancelled?.status).toBe('cancelled');
+      expect(cancelled?.status).toBe('CANCELLED');
       expect(cancelled?.cancelledAt).toBe('2026-01-01T13:00:00.000Z');
 
       const rejected = result.find((order) => order.id === 'order-rejected');
-      expect(rejected?.status).toBe('rejected');
+      expect(rejected?.status).toBe('REJECTED');
       expect(rejected?.statusReason).toBe('Not enough cash');
       expect(rejected?.kind).toBe('market');
     });
 
-    it('maps FAILED as rejected and reads failureReason from metadata', () => {
+    it('preserves FAILED and reads failureReason from metadata', () => {
       const result = toOrders(
         [
           createOrderLog({
@@ -210,7 +212,7 @@ describe('dashboard-backend.mappers', () => {
       );
 
       expect(result).toHaveLength(1);
-      expect(result[0].status).toBe('rejected');
+      expect(result[0].status).toBe('FAILED');
       expect(result[0].statusReason).toBe('Processing error');
     });
 
@@ -278,7 +280,7 @@ describe('dashboard-backend.mappers', () => {
           amount: 100,
           currency: 'USD',
           method: 'bank_transfer',
-          status: 'completed',
+          status: 'EXECUTED',
           createdAt: '2026-01-01T00:00:00.000Z',
         },
       ]);
@@ -345,18 +347,18 @@ describe('dashboard-backend.mappers', () => {
         type: 'deposit',
         amount: 1000,
         method: 'bank_transfer',
-        status: 'completed',
+        status: 'EXECUTED',
         createdAt: '2026-01-01T08:00:00.000Z',
       });
 
       expect(result.find((transaction) => transaction.id === 'txn-withdraw')?.status).toBe(
-        'failed',
+        'FAILED',
       );
       expect(result.find((transaction) => transaction.id === 'txn-cancelled')?.status).toBe(
-        'cancelled',
+        'CANCELLED',
       );
       expect(result.find((transaction) => transaction.id === 'txn-pending')?.status).toBe(
-        'pending',
+        'PENDING',
       );
     });
 
@@ -422,7 +424,7 @@ describe('dashboard-backend.mappers', () => {
               {
                 listItemId: 'item-1',
                 watchlistId: 'watchlist-1',
-                instrumentId: STOCK_INSTRUMENT.instrumentId,
+                instrumentId: SECOND_EQUITY_INSTRUMENT.instrumentId,
               },
               {
                 listItemId: 'item-2',
@@ -442,7 +444,7 @@ describe('dashboard-backend.mappers', () => {
             items: [],
           },
         ],
-        [EQUITY_INSTRUMENT, STOCK_INSTRUMENT],
+        [EQUITY_INSTRUMENT, SECOND_EQUITY_INSTRUMENT],
       );
 
       expect(result).toEqual([
@@ -479,21 +481,21 @@ describe('dashboard-backend.mappers', () => {
         }),
         createOrderLog({
           orderId: 'price-msft-quoted',
-          instrumentId: STOCK_INSTRUMENT.instrumentId,
+          instrumentId: SECOND_EQUITY_INSTRUMENT.instrumentId,
           timestamp: '2026-01-01T10:00:00.000Z',
           executionPrice: 0,
           quotedPrice: 210,
         }),
         createOrderLog({
           orderId: 'price-msft-quoted-newer',
-          instrumentId: STOCK_INSTRUMENT.instrumentId,
+          instrumentId: SECOND_EQUITY_INSTRUMENT.instrumentId,
           timestamp: '2026-01-01T11:00:00.000Z',
           executionPrice: 0,
           quotedPrice: 220,
         }),
         createOrderLog({
           orderId: 'price-bnd-invalid',
-          instrumentId: BOND_INSTRUMENT.instrumentId,
+          instrumentId: ETF_INSTRUMENT.instrumentId,
           timestamp: '2026-01-01T12:00:00.000Z',
           executionPrice: 0,
           quotedPrice: 0,
@@ -502,8 +504,8 @@ describe('dashboard-backend.mappers', () => {
 
       const result = toLatestPriceBySymbol(orderLogs, [
         EQUITY_INSTRUMENT,
-        STOCK_INSTRUMENT,
-        BOND_INSTRUMENT,
+        SECOND_EQUITY_INSTRUMENT,
+        ETF_INSTRUMENT,
       ]);
 
       expect(result.get('AAPL')).toBe(100);
@@ -520,7 +522,11 @@ describe('dashboard-backend.mappers', () => {
       name: 'Euro',
     };
 
-    const quote = (symbol: string, price: number | null): QuoteResponse => ({
+    const quote = (
+      symbol: string,
+      price: number | null,
+      changePercent: number | null = null,
+    ): QuoteResponse => ({
       symbol,
       price,
       bid: null,
@@ -528,6 +534,7 @@ describe('dashboard-backend.mappers', () => {
       currency: 'USD',
       asOf: null,
       marketState: null,
+      changePercent,
     });
 
     it('toCash returns the USD balance when several cash currencies exist', () => {
@@ -564,6 +571,35 @@ describe('dashboard-backend.mappers', () => {
       expect(toQuoteSymbols([EQUITY_INSTRUMENT, CASH_INSTRUMENT, fxInstrument])).toEqual(['AAPL']);
     });
 
+    it('toQuoteSymbols sends crypto in the Fauxnance X:<ticker>-USD format', () => {
+      const btc: InstrumentResponse = {
+        ...EQUITY_INSTRUMENT,
+        instrumentId: 'inst-btc',
+        ticker: 'BTC',
+        instrumentClass: 'CRYPTO',
+      };
+      const storedEth: InstrumentResponse = {
+        ...btc,
+        instrumentId: 'inst-eth',
+        ticker: 'X:ETH-USD',
+      };
+
+      expect(toQuoteSymbols([btc, storedEth])).toEqual(['X:BTC-USD', 'X:ETH-USD']);
+    });
+
+    it('toQuotePriceBySymbol files a crypto quote under both ticker spellings', () => {
+      const prices = toQuotePriceBySymbol([quote('X:BTC-USD', 61200)]);
+
+      expect(prices.get('BTC')).toBe(61200);
+      expect(prices.get('X:BTC-USD')).toBe(61200);
+    });
+
+    it('toDisplaySymbol shows crypto without the Fauxnance prefix', () => {
+      expect(toDisplaySymbol('X:BTC-USD')).toBe('BTC');
+      expect(toDisplaySymbol('AAPL')).toBe('AAPL');
+      expect(toDisplaySymbol('FX:EURUSD')).toBe('FX:EURUSD');
+    });
+
     it('toQuotePriceBySymbol keeps only positive prices', () => {
       const prices = toQuotePriceBySymbol([
         quote('aapl', 190),
@@ -574,6 +610,24 @@ describe('dashboard-backend.mappers', () => {
       expect(prices.get('AAPL')).toBe(190);
       expect(prices.has('MSFT')).toBe(false);
       expect(prices.has('BND')).toBe(false);
+    });
+
+    it('toLiveQuoteBySymbol keeps priced quotes with their change', () => {
+      const liveQuotes = toLiveQuoteBySymbol([
+        quote('nvda', 118.6, 1.84),
+        quote('BTC', 61200),
+        quote('MSFT', null, 0.5),
+      ]);
+
+      expect(liveQuotes.get('NVDA')).toEqual({ price: 118.6, changePct: 1.84 });
+      expect(liveQuotes.get('BTC')).toEqual({ price: 61200, changePct: null });
+      expect(liveQuotes.has('MSFT')).toBe(false);
+    });
+
+    it('toLiveQuoteBySymbol rounds a tiny loss to a plain zero change', () => {
+      const liveQuotes = toLiveQuoteBySymbol([quote('AAPL', 190, -0.003)]);
+
+      expect(Object.is(liveQuotes.get('AAPL')?.changePct, 0)).toBe(true);
     });
 
     it('toPriceResolver reads prices case-insensitively', () => {

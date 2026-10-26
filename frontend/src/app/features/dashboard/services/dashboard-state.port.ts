@@ -2,6 +2,7 @@ import { InjectionToken, Signal, WritableSignal } from '@angular/core';
 import { MOCK_RETURNS, MOCK_STATE, MockOrder } from '@core/mocks/state.mock';
 import { SharedWatchlist, WATCHLIST_CONSTRAINTS } from '@core/mocks/watchlist.mock';
 import { Holding, InstrumentType, Order, Transaction } from '@core/models';
+import { LiveQuote } from './dashboard-backend.mappers';
 
 export interface DashboardWatchlistInstrumentOption {
   instrumentId: string;
@@ -12,6 +13,7 @@ export interface DashboardWatchlistInstrumentOption {
 
 export interface DashboardStatePort {
   readonly accountCash: WritableSignal<number>;
+  readonly cashBalances?: WritableSignal<Record<string, number>>;
   readonly holdings: WritableSignal<Holding[]>;
   readonly orders: WritableSignal<Order[]>;
   readonly transactions: WritableSignal<Transaction[]>;
@@ -23,6 +25,7 @@ export interface DashboardStatePort {
   readonly backendDataMode?: boolean;
   readonly backendWatchlistInstrumentOptions?: Signal<DashboardWatchlistInstrumentOption[]>;
   readonly dashboardWidgets?: Signal<readonly string[] | null>;
+  readonly liveQuotes?: Signal<ReadonlyMap<string, LiveQuote>>;
   load?(): Promise<void>;
   setWatchlistMembership?(symbol: string, watchlistId: string, included: boolean): Promise<void>;
   createWatchlist?(watchlistName: string): Promise<void>;
@@ -35,6 +38,7 @@ export const DASHBOARD_STATE_PORT = new InjectionToken<DashboardStatePort>('DASH
   providedIn: 'root',
   factory: () => ({
     accountCash: MOCK_STATE.accountCash,
+    cashBalances: MOCK_STATE.cashBalances,
     holdings: MOCK_STATE.holdings,
     orders: MOCK_STATE.orders,
     transactions: MOCK_STATE.transactions,

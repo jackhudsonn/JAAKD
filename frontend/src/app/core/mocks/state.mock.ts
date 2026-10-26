@@ -1,7 +1,9 @@
 import { signal } from '@angular/core';
+import { ORDER_STATUS } from '@core/constants/order-status.constants';
 import {
   Holding,
   Order,
+  OrderStatus,
   PaymentMethod,
   Transaction,
   TransactionStatus,
@@ -15,7 +17,7 @@ export interface MockOrder {
   side: 'buy' | 'sell';
   quantity: number;
   price: number;
-  status: 'pending' | 'partially_filled';
+  status: OrderStatus;
 }
 
 export const MOCK_ACCOUNT_CASH = 0;
@@ -37,6 +39,7 @@ export const MOCK_RETURNS = {
 
 export const MOCK_STATE = {
   accountCash: signal<number>(MOCK_ACCOUNT_CASH),
+  cashBalances: signal<Record<string, number>>({ USD: MOCK_ACCOUNT_CASH }),
   holdings: signal<Holding[]>([...MOCK_HOLDINGS]),
   orders: signal<Order[]>([...TRADE_MOCK_OPEN_ORDERS, ...TRADE_MOCK_ORDER_HISTORY]),
   watchlists: signal<SharedWatchlist[]>([...MOCK_WATCHLISTS]),
@@ -46,7 +49,7 @@ export const MOCK_STATE = {
 };
 
 export function addMockTransaction(type: TransactionType, amount: number, method: PaymentMethod) {
-  const status: TransactionStatus = 'pending';
+  const status: TransactionStatus = ORDER_STATUS.PENDING;
 
   const transaction: Transaction = {
     id: `txn-${Date.now()}`,
@@ -69,7 +72,7 @@ export function addMockExchangeTransaction(
   pairLabel: string,
   method: PaymentMethod = 'bank_transfer',
 ) {
-  const status: TransactionStatus = 'pending';
+  const status: TransactionStatus = ORDER_STATUS.PENDING;
 
   const transaction: Transaction = {
     id: `txn-${Date.now()}`,

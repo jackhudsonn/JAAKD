@@ -2,6 +2,8 @@
 
 const { execFileSync } = require("node:child_process");
 const { randomUUID } = require("node:crypto");
+const fs = require("node:fs");
+const path = require("node:path");
 
 const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8081";
 const AUDITOR_CONTAINER = process.env.AUDITOR_DB_CONTAINER || "jaakd-postgres";
@@ -11,7 +13,7 @@ const NETWORK_RETRY_DELAY_MS = 1000;
 const AUDITOR_ACCOUNT = {
   userId: "7d01f6ba-39bf-4f09-b6f8-4adcaef2f7f4",
   email: "auditor@123.com",
-  password: "12345678",
+  password: "DemoAuditor!12345",
   role: "AUDITOR",
   profile: {
     userType: 2,
@@ -26,601 +28,12 @@ const AUDITOR_ACCOUNT = {
 };
 
 // Instrument creation is admin-only, so instruments are created under this account.
-const ADMIN_ACCOUNT = {
-  userId: "3b8f5c1e-9a4d-4f2b-8c6e-1d2a7f9e0b45",
-  email: "admin@123.com",
-  password: "12345678",
-  role: "ADMIN",
-  profile: {
-    userType: 1,
-    firstName: "Dev",
-    lastName: "Admin",
-    city: "Austin",
-    state: "TX",
-    country: "US",
-    zipCode: "73301",
-    username: "dev_admin",
-  },
-};
+const ADMIN_ACCOUNT = JSON.parse(fs.readFileSync(path.resolve(__dirname, "ADMIN_ACCOUNT.json"), "utf-8"));
 console.log(`Using backend URL: ${BACKEND_URL}`);
 
-const USERS = [
-  {
-    level: "newbie",
-    email: "demo.newbie@jaakd.local",
-    password: "DemoNewbie!12345",
-    profile: {
-      firstName: "Nina",
-      lastName: "Newbie",
-      city: "Austin",
-      state: "TX",
-      country: "USA",
-      zipCode: "73301",
-    },
-    paymentMethods: [
-      {
-        nickname: "Primary checking",
-        accountHolderName: "Nina Newbie",
-        bankName: "Austin Community Bank",
-        accountType: "checking",
-        routingNumber: "111000025",
-        accountNumber: "9001203412",
-      },
-    ],
-    portfolioName: "Newbie Growth Portfolio",
-    widgets: [
-      "performance-graph",
-      "watchlist",
-      "portfolio-value",
-      "allocation-by-asset",
-    ],
-    watchlists: [
-      {
-        name: "My Watchlist",
-        symbols: [],
-      },
-    ],
-    instruments: [
-      {
-        ticker: "AAPL",
-        market: "NASDAQ",
-        name: "Apple Inc",
-        instrumentClass: "EQUITY",
-      },
-      {
-        ticker: "MSFT",
-        market: "NASDAQ",
-        name: "Microsoft Corp",
-        instrumentClass: "EQUITY",
-      },
-      {
-        ticker: "TSLA",
-        market: "NASDAQ",
-        name: "Tesla Inc",
-        instrumentClass: "EQUITY",
-      },
-      {
-        ticker: "VOO",
-        market: "NYSE",
-        name: "Vanguard S&P 500 ETF",
-        instrumentClass: "ETF",
-      },
-    ],
-    orders: [],
-  },
-  {
-    level: "intermediate",
-    email: "demo.intermediate@jaakd.local",
-    password: "DemoIntermediate!12345",
-    profile: {
-      firstName: "Ivy",
-      lastName: "Intermediate",
-      city: "Chicago",
-      state: "IL",
-      country: "USA",
-      zipCode: "60601",
-    },
-    paymentMethods: [
-      {
-        nickname: "Salary account",
-        accountHolderName: "Ivy Intermediate",
-        bankName: "Midwest Federal Credit Union",
-        accountType: "checking",
-        routingNumber: "021000021",
-        accountNumber: "665544332211",
-      },
-    ],
-    portfolioName: "Intermediate Multi-Sector",
-    widgets: [
-      "watchlist",
-      "performance-graph",
-      "open-orders",
-      "portfolio-value",
-      "allocation-by-asset",
-    ],
-    watchlists: [
-      {
-        name: "My Watchlist",
-        symbols: ["NVDA", "AMZN", "GOOGL", "VOO"],
-      },
-    ],
-    instruments: [
-      {
-        ticker: "NVDA",
-        market: "NASDAQ",
-        name: "NVIDIA Corp",
-        instrumentClass: "EQUITY",
-      },
-      {
-        ticker: "AMZN",
-        market: "NASDAQ",
-        name: "Amazon.com Inc",
-        instrumentClass: "EQUITY",
-      },
-      {
-        ticker: "GOOGL",
-        market: "NASDAQ",
-        name: "Alphabet Inc Class A",
-        instrumentClass: "EQUITY",
-      },
-      {
-        ticker: "META",
-        market: "NASDAQ",
-        name: "Meta Platforms Inc",
-        instrumentClass: "EQUITY",
-      },
-      {
-        ticker: "JPM",
-        market: "NYSE",
-        name: "JPMorgan Chase & Co",
-        instrumentClass: "EQUITY",
-      },
-      {
-        ticker: "XOM",
-        market: "NYSE",
-        name: "Exxon Mobil Corp",
-        instrumentClass: "EQUITY",
-      },
-      {
-        ticker: "VOO",
-        market: "NYSE",
-        name: "Vanguard S&P 500 ETF",
-        instrumentClass: "ETF",
-      },
-    ],
-    orders: [
-      {
-        key: "usd-deposit-01",
-        ticker: "USD",
-        side: "DEPOSIT",
-        quantity: 50000,
-      },
-      { key: "eur-deposit-01", ticker: "EUR", side: "DEPOSIT", quantity: 7000 },
-      {
-        key: "buy-voo-01",
-        ticker: "VOO",
-        side: "BUY",
-        quantity: 35,
-        executionPrice: 530.8,
-      },
-      {
-        key: "buy-nvda-01",
-        ticker: "NVDA",
-        side: "BUY",
-        quantity: 20,
-        executionPrice: 121.25,
-      },
-      {
-        key: "buy-amzn-01",
-        ticker: "AMZN",
-        side: "BUY",
-        quantity: 15,
-        executionPrice: 189.4,
-      },
-      {
-        key: "buy-googl-01",
-        ticker: "GOOGL",
-        side: "BUY",
-        quantity: 18,
-        executionPrice: 176.9,
-      },
-      {
-        key: "sell-nvda-01",
-        ticker: "NVDA",
-        side: "SELL",
-        quantity: 5,
-        executionPrice: 128.1,
-      },
-      {
-        key: "sell-voo-01",
-        ticker: "VOO",
-        side: "SELL",
-        quantity: 4,
-        executionPrice: 541.3,
-      },
-      {
-        key: "withdraw-usd-01",
-        ticker: "USD",
-        side: "WITHDRAW",
-        quantity: 2500,
-      },
-      {
-        key: "pending-voo-01",
-        ticker: "VOO",
-        side: "BUY",
-        quantity: 3,
-        status: "PENDING",
-        executionPrice: 535.2,
-      },
-      {
-        key: "rejected-amzn-01",
-        ticker: "AMZN",
-        side: "BUY",
-        quantity: 2,
-        status: "REJECTED",
-        executionPrice: 190.1,
-      },
-      {
-        key: "failed-googl-01",
-        ticker: "GOOGL",
-        side: "BUY",
-        quantity: 2,
-        status: "FAILED",
-        executionPrice: 178.4,
-      },
-    ],
-  },
-  {
-    level: "pro",
-    email: "demo.pro@jaakd.local",
-    password: "DemoPro!12345",
-    profile: {
-      firstName: "Priya",
-      lastName: "Pro",
-      city: "New York",
-      state: "NY",
-      country: "USA",
-      zipCode: "10001",
-    },
-    paymentMethods: [
-      {
-        nickname: "Operations checking",
-        accountHolderName: "Priya Pro",
-        bankName: "Manhattan Financial",
-        accountType: "checking",
-        routingNumber: "026009593",
-        accountNumber: "3322110099887766",
-      },
-      {
-        nickname: "Treasury savings",
-        accountHolderName: "Priya Pro",
-        bankName: "Manhattan Financial",
-        accountType: "savings",
-        routingNumber: "026009593",
-        accountNumber: "4455667788990011",
-      },
-    ],
-    portfolioName: "Pro Global Macro",
-    widgets: [
-      "top-movers",
-      "performance-graph",
-      "allocation-by-asset",
-      "open-orders",
-      "portfolio-value",
-      "watchlist",
-    ],
-    watchlists: [
-      {
-        name: "My Watchlist",
-        symbols: [
-          "AAPL",
-          "MSFT",
-          "NVDA",
-          "AMZN",
-          "GOOGL",
-          "META",
-          "JPM",
-          "XOM",
-          "VOO",
-          "TLT",
-          "BTC",
-          "ETH",
-          "USD",
-          "EUR",
-          "INR",
-        ],
-      },
-      {
-        name: "Crypto Movers",
-        symbols: ["BTC", "ETH"],
-      },
-      {
-        name: "Income Ideas",
-        symbols: ["VOO", "TLT"],
-      },
-      {
-        name: "Empty Sandbox",
-        symbols: [],
-      },
-    ],
-    instruments: [
-      {
-        ticker: "AAPL",
-        market: "NASDAQ",
-        name: "Apple Inc",
-        instrumentClass: "EQUITY",
-      },
-      {
-        ticker: "MSFT",
-        market: "NASDAQ",
-        name: "Microsoft Corp",
-        instrumentClass: "EQUITY",
-      },
-      {
-        ticker: "NVDA",
-        market: "NASDAQ",
-        name: "NVIDIA Corp",
-        instrumentClass: "EQUITY",
-      },
-      {
-        ticker: "AMZN",
-        market: "NASDAQ",
-        name: "Amazon.com Inc",
-        instrumentClass: "EQUITY",
-      },
-      {
-        ticker: "GOOGL",
-        market: "NASDAQ",
-        name: "Alphabet Inc Class A",
-        instrumentClass: "EQUITY",
-      },
-      {
-        ticker: "META",
-        market: "NASDAQ",
-        name: "Meta Platforms Inc",
-        instrumentClass: "EQUITY",
-      },
-      {
-        ticker: "JPM",
-        market: "NYSE",
-        name: "JPMorgan Chase & Co",
-        instrumentClass: "EQUITY",
-      },
-      {
-        ticker: "XOM",
-        market: "NYSE",
-        name: "Exxon Mobil Corp",
-        instrumentClass: "EQUITY",
-      },
-      {
-        ticker: "VOO",
-        market: "NYSE",
-        name: "Vanguard S&P 500 ETF",
-        instrumentClass: "ETF",
-      },
-      {
-        ticker: "TLT",
-        market: "NASDAQ",
-        name: "iShares 20+ Year Treasury Bond ETF",
-        instrumentClass: "ETF",
-      },
-      {
-        ticker: "BTC",
-        market: "CRYPTO",
-        name: "Bitcoin",
-        instrumentClass: "CRYPTO",
-      },
-      {
-        ticker: "ETH",
-        market: "CRYPTO",
-        name: "Ethereum",
-        instrumentClass: "CRYPTO",
-      },
-    ],
-    orders: [
-      {
-        key: "usd-deposit-01",
-        ticker: "USD",
-        side: "DEPOSIT",
-        quantity: 150000,
-      },
-      {
-        key: "usd-deposit-02",
-        ticker: "USD",
-        side: "DEPOSIT",
-        quantity: 250000,
-      },
-      {
-        key: "eur-deposit-01",
-        ticker: "EUR",
-        side: "DEPOSIT",
-        quantity: 30000,
-      },
-      {
-        key: "inr-deposit-01",
-        ticker: "INR",
-        side: "DEPOSIT",
-        quantity: 4000000,
-      },
-      {
-        key: "buy-voo-01",
-        ticker: "VOO",
-        side: "BUY",
-        quantity: 70,
-        executionPrice: 529.4,
-      },
-      {
-        key: "buy-aapl-01",
-        ticker: "AAPL",
-        side: "BUY",
-        quantity: 50,
-        executionPrice: 193.25,
-      },
-      {
-        key: "buy-msft-01",
-        ticker: "MSFT",
-        side: "BUY",
-        quantity: 40,
-        executionPrice: 412.6,
-      },
-      {
-        key: "buy-nvda-01",
-        ticker: "NVDA",
-        side: "BUY",
-        quantity: 60,
-        executionPrice: 122.4,
-      },
-      {
-        key: "buy-amzn-01",
-        ticker: "AMZN",
-        side: "BUY",
-        quantity: 45,
-        executionPrice: 188.7,
-      },
-      {
-        key: "buy-googl-01",
-        ticker: "GOOGL",
-        side: "BUY",
-        quantity: 55,
-        executionPrice: 175.9,
-      },
-      {
-        key: "buy-meta-01",
-        ticker: "META",
-        side: "BUY",
-        quantity: 30,
-        executionPrice: 506.2,
-      },
-      {
-        key: "buy-jpm-01",
-        ticker: "JPM",
-        side: "BUY",
-        quantity: 35,
-        executionPrice: 209.15,
-      },
-      {
-        key: "buy-xom-01",
-        ticker: "XOM",
-        side: "BUY",
-        quantity: 70,
-        executionPrice: 118.3,
-      },
-      {
-        key: "buy-tlt-01",
-        ticker: "TLT",
-        side: "BUY",
-        quantity: 85,
-        executionPrice: 91.7,
-      },
-      {
-        key: "buy-btc-01",
-        ticker: "BTC",
-        side: "BUY",
-        quantity: 2.4,
-        executionPrice: 62450,
-      },
-      {
-        key: "buy-eth-01",
-        ticker: "ETH",
-        side: "BUY",
-        quantity: 18,
-        executionPrice: 3225,
-      },
-      {
-        key: "sell-voo-01",
-        ticker: "VOO",
-        side: "SELL",
-        quantity: 8,
-        executionPrice: 545.4,
-      },
-      {
-        key: "sell-nvda-01",
-        ticker: "NVDA",
-        side: "SELL",
-        quantity: 12,
-        executionPrice: 129.6,
-      },
-      {
-        key: "sell-btc-01",
-        ticker: "BTC",
-        side: "SELL",
-        quantity: 0.7,
-        executionPrice: 66880,
-      },
-      {
-        key: "withdraw-eur-01",
-        ticker: "EUR",
-        side: "WITHDRAW",
-        quantity: 2500,
-      },
-      {
-        key: "withdraw-inr-01",
-        ticker: "INR",
-        side: "WITHDRAW",
-        quantity: 250000,
-      },
-      {
-        key: "pending-tlt-01",
-        ticker: "TLT",
-        side: "BUY",
-        quantity: 5,
-        status: "PENDING",
-        executionPrice: 92.3,
-      },
-      {
-        key: "rejected-eth-01",
-        ticker: "ETH",
-        side: "BUY",
-        quantity: 1,
-        status: "REJECTED",
-        executionPrice: 3300,
-      },
-      {
-        key: "failed-xom-01",
-        ticker: "XOM",
-        side: "BUY",
-        quantity: 4,
-        status: "FAILED",
-        executionPrice: 120.2,
-      },
-      {
-        key: "cancelled-aapl-01",
-        ticker: "AAPL",
-        side: "BUY",
-        quantity: 3,
-        status: "CANCELLED",
-        executionPrice: 198.6,
-      },
-    ],
-  },
-];
+const USERS = JSON.parse(fs.readFileSync(path.resolve(__dirname, "USERS.json"), "utf-8"));
 
-const CASH_INSTRUMENTS = [
-  {
-    ticker: "USD",
-    market: "INTERNAL",
-    name: "US Dollar Cash Balance",
-    instrumentClass: "CASH",
-    tradingCurrency: "USD",
-    description: "Base cash ledger for USD balances",
-  },
-  {
-    ticker: "INR",
-    market: "INTERNAL",
-    name: "Indian Rupee Cash Balance",
-    instrumentClass: "CASH",
-    tradingCurrency: "INR",
-    description: "Cash ledger instrument for INR balances",
-  },
-  {
-    ticker: "EUR",
-    market: "INTERNAL",
-    name: "Euro Cash Balance",
-    instrumentClass: "CASH",
-    tradingCurrency: "EUR",
-    description: "Cash ledger instrument for EUR balances",
-  },
-];
+const CASH_INSTRUMENTS = JSON.parse(fs.readFileSync(path.resolve(__dirname, "CASH_INSTRUMENTS.json"), "utf-8"));
 
 async function requestJson({
   method,
@@ -715,6 +128,51 @@ function sqlLiteral(value) {
   return `'${String(value).replace(/'/g, "''")}'`;
 }
 
+function readEnvFile() {
+  const envPath = path.resolve(__dirname, "..", ".env");
+  if (!fs.existsSync(envPath)) {
+    return {};
+  }
+
+  const values = {};
+  for (const line of fs.readFileSync(envPath, "utf8").split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) {
+      continue;
+    }
+
+    const separator = trimmed.indexOf("=");
+    if (separator <= 0) {
+      continue;
+    }
+
+    const key = trimmed.slice(0, separator).trim();
+    let value = trimmed.slice(separator + 1).trim();
+    if (
+      value.length >= 2 &&
+      ((value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'")))
+    ) {
+      value = value.slice(1, -1);
+    }
+    values[key] = value;
+  }
+
+  return values;
+}
+
+function assertDevelopmentProvider() {
+  const configured = process.env.IDENTITY_PROVIDER ?? readEnvFile().IDENTITY_PROVIDER;
+  if (configured === "development") {
+    return;
+  }
+
+  throw new Error(
+    `This seed script requires IDENTITY_PROVIDER=development (current: ${configured || "unset"}). ` +
+      "Set it in .env and recreate the backend before seeding.",
+  );
+}
+
 function ensurePrivilegedAccount(account) {
   const sql = `
 INSERT INTO users ("userID", email, roles)
@@ -805,7 +263,17 @@ async function registerAndLogin(user) {
     await requestJson({
       method: "POST",
       path: "/api/auth/register",
-      body: { email: user.email, password: user.password },
+      body: {
+        email: user.email,
+        password: user.password,
+        firstName: user.profile.firstName,
+        lastName: user.profile.lastName,
+        dob: user.profile.dob ?? null,
+        city: user.profile.city,
+        state: user.profile.state,
+        country: user.profile.country,
+        zipCode: user.profile.zipCode,
+      },
       expectedStatuses: [201, 409],
     });
   } catch (error) {
@@ -1241,6 +709,7 @@ function printCredentials() {
 }
 
 async function main() {
+  assertDevelopmentProvider();
   console.log(`Seeding demo users using backend: ${BACKEND_URL}`);
   printCredentials();
 

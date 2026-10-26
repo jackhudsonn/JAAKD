@@ -14,7 +14,7 @@ describe('DashboardWatchlistOverlayFacade', () => {
       {
         symbol: 'AAPL',
         name: 'Apple',
-        instrumentType: 'stock' as const,
+        instrumentType: 'equity' as const,
         basePrice: 100,
       },
     ]),
@@ -23,7 +23,7 @@ describe('DashboardWatchlistOverlayFacade', () => {
         return {
           symbol: 'AAPL',
           name: 'Apple',
-          instrumentType: 'stock' as const,
+          instrumentType: 'equity' as const,
           basePrice: 100,
         };
       }
@@ -58,13 +58,13 @@ describe('DashboardWatchlistOverlayFacade', () => {
         instrumentId: 'inst-vod',
         symbol: 'VOD',
         name: 'Vodafone',
-        instrumentType: 'stock' as const,
+        instrumentType: 'equity' as const,
       },
       {
         instrumentId: 'inst-aapl',
         symbol: 'AAPL',
         name: 'Apple',
-        instrumentType: 'stock' as const,
+        instrumentType: 'equity' as const,
       },
     ]),
     load: vi.fn(async () => undefined),

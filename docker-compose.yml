@@ -22,9 +22,6 @@ services:
     volumes:
       - jaakd-postgres-data:/var/lib/postgresql
       - ./backend/db/init:/docker-entrypoint-initdb.d:ro
-      # Development-only credential store; applied by 02-development-credentials.sh
-      # and absent in production. Not part of the application schema.
-      - ./backend/db/development:/opt/jaakd-development:ro
 
   # Analyst view: separate analytics database (raw copy of prod + dbt marts, see analytics/).
   # Opt-in: start it with `docker compose --profile analytics up -d jaakd-analytics-postgres`,
@@ -73,6 +70,13 @@ services:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:?SPRING_PROFILES_ACTIVE is required}
       IDENTITY_PROVIDER: ${IDENTITY_PROVIDER:?IDENTITY_PROVIDER is required}
       AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:?AUTH_COOKIE_SECURE is required}
+      COGNITO_REGION: ${COGNITO_REGION:-}
+      COGNITO_USER_POOL_ID: ${COGNITO_USER_POOL_ID:-}
+      COGNITO_CLIENT_ID: ${COGNITO_CLIENT_ID:-}
+      COGNITO_CLIENT_SECRET: ${COGNITO_CLIENT_SECRET:-}
+      COGNITO_API_CALL_TIMEOUT: ${COGNITO_API_CALL_TIMEOUT:-PT10S}
+      COGNITO_API_CALL_ATTEMPT_TIMEOUT: ${COGNITO_API_CALL_ATTEMPT_TIMEOUT:-PT5S}
+      COGNITO_RETRY_ATTEMPTS: ${COGNITO_RETRY_ATTEMPTS:-2}
       FAUXNANCE_BASE_URL: ${FAUXNANCE_BASE_URL:?FAUXNANCE_BASE_URL is required}
       FAUXNANCE_API_KEY: ${FAUXNANCE_API_KEY:?FAUXNANCE_API_KEY is required}
       # Analyst view: read-only connection to the analytics database (see analytics/). Off unless enabled in .env.

@@ -43,6 +43,7 @@ export interface PieChartSlice {
 })
 export class PieChartComponent implements AfterViewInit, OnChanges, OnDestroy {
   slices = input.required<PieChartSlice[]>();
+  tooltipValuePrefix = input('');
 
   // Emits the clicked slice (if any) so parent widgets can drill down.
   sliceClick = output<PieChartSlice>();
@@ -67,7 +68,7 @@ export class PieChartComponent implements AfterViewInit, OnChanges, OnDestroy {
                 const total = values.reduce((sum, point) => sum + point, 0);
                 const percent = total > 0 ? (value / total) * 100 : 0;
 
-                return `${context.label}: ${value.toLocaleString(undefined, {
+                return `${this.tooltipValuePrefix()}${value.toLocaleString(undefined, {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
                 })} (${percent.toFixed(1)}%)`;
@@ -77,6 +78,11 @@ export class PieChartComponent implements AfterViewInit, OnChanges, OnDestroy {
           legend: {
             position: 'bottom',
             labels: { color: '#d6d8d7', boxWidth: 12, padding: 12 },
+            onClick: (_event, legendItem) => {
+              if (typeof legendItem.index === 'number') {
+                this.emitSliceByIndex(legendItem.index);
+              }
+            },
           },
         },
       },
@@ -100,10 +106,16 @@ export class PieChartComponent implements AfterViewInit, OnChanges, OnDestroy {
       return;
     }
 
-    const slice = this.slices()[element.index];
-    if (slice) {
-      this.sliceClick.emit(slice);
+    this.emitSliceByIndex(element.index);
+  }
+
+  private emitSliceByIndex(index: number) {
+    const slice = this.slices()[index];
+    if (!slice) {
+      return;
     }
+
+    this.sliceClick.emit(slice);
   }
 
   private toChartData(): ChartData<'doughnut'> {

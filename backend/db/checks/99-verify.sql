@@ -4,7 +4,7 @@
 SELECT table_name
 FROM information_schema.tables
 WHERE table_schema = 'public'
-  AND table_name IN ('profiles', 'portfolios', 'instruments', 'holdings', 'orderLogs', 'position_lots', 'lot_matches', 'watchlists', 'watchlist_items', 'preferences', 'payment_methods', 'users', 'instrumentPrices')
+  AND table_name IN ('profiles', 'portfolios', 'instruments', 'holdings', 'orderLogs', 'position_lots', 'lot_matches', 'watchlists', 'watchlist_items', 'preferences', 'payment_methods', 'users', 'development_credentials', 'cognito_users', 'instrumentPrices')
 ORDER BY table_name;
 
 -- 1b) Ensure the canonical cash instrument exists
@@ -46,6 +46,8 @@ WHERE conname = 'fk_profiles_users';
 -- 2b) Role privilege checks
 SELECT has_table_privilege('jaakd_app', 'public.users', 'SELECT') AS jaakd_app_can_select_users;
 SELECT has_table_privilege('jaakd_app', 'public.sessions', 'INSERT') AS jaakd_app_can_insert_sessions;
+SELECT has_table_privilege('jaakd_app', 'public.development_credentials', 'SELECT') AS jaakd_app_can_select_development_credentials;
+SELECT has_table_privilege('jaakd_app', 'public.cognito_users', 'SELECT') AS jaakd_app_can_select_cognito_users;
 
 -- 2c) Analytics copy job role (only when jaakd_analytics_reader exists). Expected: every column true.
 SELECT
@@ -58,6 +60,8 @@ SELECT
   NOT has_table_privilege('jaakd_analytics_reader', 'public.preferences', 'SELECT') AS cannot_read_preferences,
   NOT has_table_privilege('jaakd_analytics_reader', 'public.watchlists', 'SELECT') AS cannot_read_watchlists,
   NOT has_table_privilege('jaakd_analytics_reader', 'public.watchlist_items', 'SELECT') AS cannot_read_watchlist_items,
+  NOT has_table_privilege('jaakd_analytics_reader', 'public.development_credentials', 'SELECT') AS cannot_read_development_credentials,
+  NOT has_table_privilege('jaakd_analytics_reader', 'public.cognito_users', 'SELECT') AS cannot_read_cognito_users,
   NOT has_column_privilege('jaakd_analytics_reader', 'public.profiles', 'firstName', 'SELECT') AS cannot_read_first_name,
   NOT has_column_privilege('jaakd_analytics_reader', 'public.portfolios', 'portfolioName', 'SELECT') AS cannot_read_portfolio_name,
   NOT has_table_privilege('jaakd_analytics_reader', 'public.holdings', 'INSERT, UPDATE, DELETE') AS cannot_write
@@ -76,8 +80,8 @@ ROLLBACK;
 -- Expected: this script fails on the second holdings insert.
 BEGIN;
 
-INSERT INTO users ("userID")
-VALUES ('00000000-0000-0000-0000-000000000001')
+INSERT INTO users ("userID", email)
+VALUES ('00000000-0000-0000-0000-000000000001', 'verify@example.com')
 ON CONFLICT ("userID") DO NOTHING;
 
 INSERT INTO profiles ("userID", "userType")
@@ -88,8 +92,8 @@ INSERT INTO portfolios ("portfolioID", "userID", "portfolioName")
 VALUES ('00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000001', 'verify-portfolio')
 ON CONFLICT ("portfolioID") DO NOTHING;
 
-INSERT INTO instruments ("instrumentID", ticker, market, name, "instrumentClass")
-VALUES ('00000000-0000-0000-0000-000000000003', 'VCHK', 'TEST', 'Verify Check', 'EQUITY')
+INSERT INTO instruments ("instrumentID", ticker, market, name, "instrumentClass", "tradingCurrency")
+VALUES ('00000000-0000-0000-0000-000000000003', 'VCHK', 'TEST', 'Verify Check', 'EQUITY', 'USD')
 ON CONFLICT ("instrumentID") DO NOTHING;
 
 INSERT INTO holdings ("holdingID", "portfolioID", "instrumentID", "currentQuantity", "cumulativeRealizedPnl", "updatedAt")

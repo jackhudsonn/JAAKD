@@ -1,10 +1,22 @@
-<main class="page-content">
+<main class="page-content transact-page">
   <!-- <h1>Transact</h1> -->
 
   <p class="page-description">Deposit or withdraw funds and review your transaction history.</p>
 
   @if (backendDataMode && loadState() === 'loading') {
-    <p class="page-description">Loading transact data...</p>
+    <section class="transact-forms" aria-busy="true">
+      <div class="top-slot">
+        <app-widget-card title="Move Funds" status="loading" />
+      </div>
+
+      <div class="top-slot">
+        <app-widget-card title="Currency Exchange" status="loading" />
+      </div>
+
+      <div class="history-slot">
+        <app-widget-card title="Transaction History" status="loading" />
+      </div>
+    </section>
   } @else if (backendDataMode && loadState() === 'error') {
     <p class="page-description">We couldn't load your transact data. Try again.</p>
     <button type="button" class="btn btn-secondary" (click)="retryLoad()">Retry</button>
