@@ -20,6 +20,32 @@ export type LineChartValueFormat = 'currency' | 'percent' | 'number';
 
 const COMPARE_COLOR = '#aeb2b0';
 
+// compact: short form for y-axis ticks ("$1.2K", "5%"); otherwise the full value for tooltips.
+export function formatChartValue(
+  value: number,
+  format: LineChartValueFormat,
+  compact: boolean,
+): string {
+  switch (format) {
+    case 'percent':
+      return new Intl.NumberFormat('en-US', {
+        style: 'percent',
+        maximumFractionDigits: compact ? 0 : 2,
+      }).format(value);
+    case 'number':
+      return new Intl.NumberFormat('en-US', {
+        notation: compact ? 'compact' : 'standard',
+        maximumFractionDigits: compact ? 1 : 6,
+      }).format(value);
+    default:
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        ...(compact ? { notation: 'compact', maximumFractionDigits: 1 } : {}),
+      }).format(value);
+  }
+}
+
 /**
  * Thin Chart.js line-chart wrapper. Owns chart creation/teardown so widgets
  * only need to pass in labelled data points.
@@ -91,24 +117,7 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
   }
 
   private formatValue(value: number, compact: boolean): string {
-    switch (this.valueFormat()) {
-      case 'percent':
-        return new Intl.NumberFormat('en-US', {
-          style: 'percent',
-          maximumFractionDigits: compact ? 0 : 2,
-        }).format(value);
-      case 'number':
-        return new Intl.NumberFormat('en-US', {
-          notation: compact ? 'compact' : 'standard',
-          maximumFractionDigits: compact ? 1 : 6,
-        }).format(value);
-      default:
-        return new Intl.NumberFormat('en-US', {
-          style: 'currency',
-          currency: 'USD',
-          ...(compact ? { notation: 'compact', maximumFractionDigits: 1 } : {}),
-        }).format(value);
-    }
+    return formatChartValue(value, this.valueFormat(), compact);
   }
 
   private toChartData(): ChartData<'line'> {
