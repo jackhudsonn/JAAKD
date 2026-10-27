@@ -44,7 +44,6 @@ export class BackendTradeStateService implements TradeStatePort {
   readonly watchlists = signal<TradeWatchlist[]>([]);
   readonly maxWatchlistHoldings = WATCHLIST_CONSTRAINTS.maxHoldingsPerWatchlist;
 
-  readonly backendDataMode = true;
   readonly loadState = signal<TradeLoadState>('loading');
 
   readonly instrumentsData = signal<InstrumentResponse[]>([]);

@@ -36,7 +36,6 @@ export class MoveFundsFormComponent implements OnInit {
   selectedCurrency: CashCurrency = 'USD';
   selectedMethodId = '';
   pendingAction = signal<PendingFundsAction | null>(null);
-  backendDataMode = input(false);
   submitting = input(false);
   currencies = input<readonly CashCurrency[]>(CASH_CURRENCIES);
 

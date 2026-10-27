@@ -2,23 +2,20 @@
   <div class="portfolio-value-content">
     <div class="value-display">
       <p class="value-label">Total Value</p>
+      @let value = figures();
       <p class="value-amount">
-        @if (holdingsPriceMissing) {
+        @if (value.total === null) {
           <span class="unavailable">Market prices unavailable</span>
-        } @else if (totalCurrency; as currency) {
-          {{ formatCurrency(totalAmount, currency) }}
         } @else {
-          {{ totalAmount | number: '1.2-2' }}
+          {{ formatCurrency(value.total, reportingCurrency) }}
         }
       </p>
       <p class="value-breakdown">
-        Cash {{ formatCurrency(cashAmount, reportingCurrency) }} · Holdings
-        @if (holdingsPriceMissing) {
+        Cash {{ formatCurrency(value.cash, reportingCurrency) }} · Holdings
+        @if (value.holdings === null) {
           price unavailable
-        } @else if (holdingsCurrency; as currency) {
-          {{ formatCurrency(holdingsAmount, currency) }}
         } @else {
-          {{ holdingsAmount | number: '1.2-2' }}
+          {{ formatCurrency(value.holdings, reportingCurrency) }}
         }
       </p>
     </div>

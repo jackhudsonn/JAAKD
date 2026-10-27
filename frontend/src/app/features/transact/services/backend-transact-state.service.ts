@@ -27,7 +27,6 @@ export type TransactLoadState = 'loading' | 'ready' | 'error';
 })
 export class BackendTransactStateService implements TransactStatePort {
   readonly transactions = signal<Transaction[]>([]);
-  readonly backendDataMode = true;
   readonly loadState = signal<TransactLoadState>('loading');
   readonly cashBalances = signal<Record<string, number>>({});
   readonly cashCurrencies = computed(() =>

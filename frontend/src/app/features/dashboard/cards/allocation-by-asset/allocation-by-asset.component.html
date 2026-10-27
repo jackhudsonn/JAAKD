@@ -16,11 +16,25 @@
     </div>
   }
 
-  <app-pie-chart
-    [slices]="slices()"
-    [tooltipValueFormatter]="formatTooltipCurrency"
-    (sliceClick)="onSliceClick($event)"
-  />
+  @if (displayRateAvailable()) {
+    <app-pie-chart
+      [slices]="slices()"
+      [tooltipValuePrefix]="tooltipValuePrefix()"
+      (sliceClick)="onSliceClick($event)"
+    />
+  } @else {
+    <p class="unavailable-note">FX rate unavailable for {{ displayCurrency() }}.</p>
+  }
+
+  @if (unavailableFxCurrencies().length > 0) {
+    <div class="unavailable-prices">
+      @for (currency of unavailableFxCurrencies(); track currency) {
+        <p class="unavailable-price-row">
+          FX rate unavailable for {{ currency }}; it is excluded from this chart.
+        </p>
+      }
+    </div>
+  }
 
   @if (unavailablePriceHoldings().length > 0) {
     <div class="unavailable-prices">

@@ -1,0 +1,29 @@
+<div class="asset-summary">
+  <div class="asset-summary-header">
+    <span class="asset-summary-symbol">{{ asset().symbol | displaySymbol }}</span>
+
+    @if (asset().instrumentType; as instrumentType) {
+      <span class="asset-summary-type">{{ instrumentType | titlecase }}</span>
+    }
+
+    @if (hasChange()) {
+      <span
+        class="asset-summary-change"
+        [class.positive]="isPositive() && !isFlat()"
+        [class.negative]="!isPositive() && !isFlat()"
+        [class.neutral]="isFlat()"
+      >
+        {{ isPositive() && !isFlat() ? '+' : '' }}{{ displayChangePct() | number: '1.2-2' }}%
+      </span>
+    }
+  </div>
+
+  <p class="asset-summary-price">
+    Current Price:
+    @if (asset().price === null) {
+      Price unavailable
+    } @else {
+      {{ formatCurrency(asset().price!, asset().currency) }}
+    }
+  </p>
+</div>

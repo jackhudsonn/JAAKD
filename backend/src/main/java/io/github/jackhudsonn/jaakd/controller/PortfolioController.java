@@ -13,9 +13,11 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import io.github.jackhudsonn.jaakd.dto.CreatePortfolioRequest;
+import io.github.jackhudsonn.jaakd.dto.PortfolioPerformancePointResponse;
 import io.github.jackhudsonn.jaakd.dto.PortfolioResponse;
 import io.github.jackhudsonn.jaakd.dto.UpdatePortfolioRequest;
 import io.github.jackhudsonn.jaakd.model.Portfolio;
+import io.github.jackhudsonn.jaakd.service.PortfolioPerformanceService;
 import io.github.jackhudsonn.jaakd.service.PortfolioService;
 
 import java.util.ArrayList;
@@ -27,9 +29,14 @@ import java.util.UUID;
 public class PortfolioController {
 
 	private final PortfolioService portfolioService;
+	private final PortfolioPerformanceService portfolioPerformanceService;
 
-	public PortfolioController(PortfolioService portfolioService) {
+	public PortfolioController(
+			PortfolioService portfolioService,
+			PortfolioPerformanceService portfolioPerformanceService
+	) {
 		this.portfolioService = portfolioService;
+		this.portfolioPerformanceService = portfolioPerformanceService;
 	}
 
 	@GetMapping
@@ -51,6 +58,22 @@ public class PortfolioController {
 	public PortfolioResponse getPortfolioById(@PathVariable UUID portfolioId) {
 		Portfolio portfolio = portfolioService.getCurrentUserPortfolioById(portfolioId);
 		return toResponse(portfolio);
+	}
+
+	@GetMapping("/{portfolioId}/performance")
+	@ResponseStatus(HttpStatus.OK)
+	public List<PortfolioPerformancePointResponse> getPortfolioPerformance(@PathVariable UUID portfolioId) {
+		Portfolio portfolio = portfolioService.getCurrentUserPortfolioById(portfolioId);
+		List<PortfolioPerformanceService.DailyValue> dailyValues =
+				portfolioPerformanceService.getDailyValues(portfolio.getPortfolioId());
+		List<PortfolioPerformancePointResponse> responses = new ArrayList<>();
+
+		for (int i = 0; i < dailyValues.size(); i++) {
+			PortfolioPerformanceService.DailyValue dailyValue = dailyValues.get(i);
+			responses.add(new PortfolioPerformancePointResponse(dailyValue.date(), dailyValue.value()));
+		}
+
+		return responses;
 	}
 
 	@PostMapping

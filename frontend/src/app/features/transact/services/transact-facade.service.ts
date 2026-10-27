@@ -19,7 +19,6 @@ export class TransactFacadeService {
   private readonly operations = inject(TransactOperationsService);
 
   readonly transactions = this.state.transactions.asReadonly();
-  readonly backendDataMode = this.state.backendDataMode ?? false;
   readonly loadState = this.state.loadState;
   readonly cashBalances = this.state.cashBalances;
   readonly cashCurrencies = this.state.cashCurrencies;

@@ -68,7 +68,7 @@ public class OrderLogService {
 
     public List<OrderLog> getOrderLogsForPortfolio(UUID portfolioId) {
         UUID userId = currentUserService.getUserId();
-        
+
         return orderLogRepository.findOwnedByPortfolioNewestFirst(portfolioId, userId);
     }
 
@@ -94,7 +94,7 @@ public class OrderLogService {
         UUID userId = currentUserService.getUserId();
 
         Optional<OrderLog> maybeOrderLog = orderLogRepository.findOwnedByLogOrderId(logOrderId, userId);
-        
+
         if (maybeOrderLog.isEmpty()) {
             throw new OrderLogNotFoundException(logOrderId);
         }
@@ -103,13 +103,14 @@ public class OrderLogService {
     }
 
     @Transactional
+    @RequiresUserType({ UserType.ADMIN, UserType.RETAIL_CLIENT })
     public OrderLog createOrderLog(CreateOrderLogRequest request) {
         // 1. Resolve current user
         UUID userId = currentUserService.getUserId();
 
         // 2. Ensure portfolio exists and belongs to user
         Optional<Portfolio> maybePortfolio = portfolioRepository.findOwnedByPortfolioId(request.portfolioId(), userId);
-        
+
         if (maybePortfolio.isEmpty()) {
             throw new PortfolioNotFoundException(request.portfolioId());
         }
@@ -118,11 +119,11 @@ public class OrderLogService {
 
         // 3. Ensure instrument exists
         Optional<Instrument> maybeInstrument = instrumentRepository.findById(request.instrumentId());
-        
+
         if (maybeInstrument.isEmpty()) {
             throw new InstrumentNotFoundException(request.instrumentId());
         }
-        
+
         Instrument instrument = maybeInstrument.get();
 
         // 4. Build order log and defaults
@@ -223,7 +224,7 @@ public class OrderLogService {
         if (lastException != null) {
             reason = reason + ": " + lastException.getMessage();
         }
-        
+
         throw new InvalidTradeException(reason);
     }
 
@@ -457,6 +458,7 @@ public class OrderLogService {
     }
 
     @Transactional
+    @RequiresUserType({ UserType.ADMIN, UserType.RETAIL_CLIENT })
     public OrderLog cancelOrder(UUID orderId) {
         UUID userId = currentUserService.getUserId();
 

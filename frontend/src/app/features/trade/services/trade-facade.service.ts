@@ -26,7 +26,6 @@ export class TradeFacadeService {
   readonly orders = this.orderEngine.orders;
 
   readonly maxWatchlistHoldings = this.watchlistService.maxWatchlistHoldings;
-  readonly backendDataMode = this.state.backendDataMode ?? false;
   readonly loadState = this.state.loadState;
   readonly cashBalances = computed(() => this.state.cashBalances?.() ?? null);
 

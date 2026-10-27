@@ -55,7 +55,6 @@ Angular frontend for JAAKD.
 - Trading/profile APIs call the backend under `/api`.
 - The browser calls its own origin; the server in front (the dev-server proxy, or nginx for a deployed build) forwards `/api` to the backend. See "Frontend environment".
 - The interceptor sends requests with credentials; the backend session cookie authorizes them. No token is held in the browser.
-- Some dashboard widgets still read from `src/app/core/mocks/mock-data.ts` and are replaced incrementally.
 
 ### Auditor testing environment
 

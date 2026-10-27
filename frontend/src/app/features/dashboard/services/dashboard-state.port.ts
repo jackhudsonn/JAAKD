@@ -1,7 +1,8 @@
 import { InjectionToken, Signal, WritableSignal } from '@angular/core';
-import { CashCurrency } from '@core/models/api.models';
+import { CashCurrency, PortfolioPerformancePoint } from '@core/models/api.models';
 import { WATCHLIST_CONSTRAINTS } from '@core/constants/watchlist.constants';
 import { Holding, InstrumentType, Order, SharedWatchlist, Transaction } from '@core/models';
+import type { CashRatesByUsd } from '@core/utils/cash-fx';
 import { LiveQuote } from './dashboard-backend.mappers';
 
 export interface DashboardWatchlistInstrumentOption {
@@ -24,7 +25,11 @@ export interface DashboardStatePort {
   readonly backendWatchlistInstrumentOptions?: Signal<DashboardWatchlistInstrumentOption[]>;
   readonly dashboardWidgets?: Signal<readonly string[] | null>;
   readonly liveQuotes?: Signal<ReadonlyMap<string, LiveQuote>>;
+  readonly cashRatesByUsd?: Signal<CashRatesByUsd>;
+  readonly performance?: Signal<PortfolioPerformancePoint[]>;
+  readonly performanceLoadState?: Signal<'loading' | 'idle' | 'error'>;
   load?(): Promise<void>;
+  loadPerformance?(): Promise<void>;
   setWatchlistMembership?(symbol: string, watchlistId: string, included: boolean): Promise<void>;
   createWatchlist?(watchlistName: string): Promise<void>;
   renameWatchlist?(watchlistId: string, watchlistName: string): Promise<void>;

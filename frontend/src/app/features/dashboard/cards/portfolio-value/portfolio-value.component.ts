@@ -1,15 +1,14 @@
-import { Component, inject } from '@angular/core';
-import { DecimalPipe, NgTemplateOutlet } from '@angular/common';
+import { Component, computed, inject } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
 import { DASHBOARD_STATE_PORT } from '@features/dashboard/services/dashboard-state.port';
-import type { CashCurrency } from '@core/models/api.models';
 import { REPORTING_CURRENCY } from '@core/models/api.models';
 import { formatCurrency } from '@shared/utils/display-format';
 import { isFlatChange } from '@shared/utils/format-percentage-change';
+import { USD_RATES_BY_USD } from '@core/utils/cash-fx';
 import {
   formatSignedPct,
   formatSignedUsd,
-  toAllTimeReturn,
   toCashInUsd,
   toHoldingsValueInUsd,
   toNetDepositsInUsd,
@@ -34,10 +33,16 @@ const toReturnView = (amount: number, base: number | null): ReturnView => {
   };
 };
 
+interface ValueFigures {
+  cash: number;
+  holdings: number | null;
+  total: number | null;
+}
+
 @Component({
   selector: 'app-portfolio-value-widget',
   standalone: true,
-  imports: [WidgetCardComponent, DecimalPipe, NgTemplateOutlet],
+  imports: [WidgetCardComponent, NgTemplateOutlet],
   templateUrl: './portfolio-value.component.html',
   styleUrl: './portfolio-value.component.css',
 })
@@ -51,55 +56,48 @@ export class PortfolioValueWidgetComponent {
     return this.state.holdings().length > 0 || this.state.transactions().length > 0;
   }
 
+  private get cashRates() {
+    return this.state.cashRatesByUsd?.() ?? USD_RATES_BY_USD;
+  }
+
+  // One total for the whole card, in USD. It is the card's own cash plus holdings straight away, and switches
+  // to the Performance graph's last point once that request succeeds, so both cards end on the same number;
+  // a slow or failed graph request never blanks the card. Holdings is total minus cash, so the line adds up.
+  readonly figures = computed<ValueFigures>(() => {
+    const rates = this.cashRates;
+    const accountCash = this.state.accountCash();
+    const cash = toCashInUsd(accountCash, this.state.cashBalances?.(), rates) ?? accountCash;
+    const ownHoldings = toHoldingsValueInUsd(this.state.holdings(), rates);
+    const graphTotal =
+      this.state.performanceLoadState?.() === 'idle'
+        ? (this.state.performance?.().at(-1)?.value ?? null)
+        : null;
+    const total = graphTotal ?? (ownHoldings === null ? null : cash + ownHoldings);
+    return { cash, holdings: total === null ? null : total - cash, total };
+  });
+
   get allTimeReturn(): ReturnView | null {
-    const transactions = this.state.transactions();
-    const cash = toCashInUsd(this.state.accountCash(), this.state.cashBalances?.());
-    const amount = toAllTimeReturn(cash, this.state.holdings(), transactions);
-    return amount === null ? null : toReturnView(amount, toNetDepositsInUsd(transactions));
-  }
-
-  get todayReturn(): ReturnView {
-    const holdings = this.state.holdings();
-    const amount = toTodayReturn(holdings, this.state.liveQuotes?.() ?? new Map());
-    const holdingsValue = toHoldingsValueInUsd(holdings);
-    return toReturnView(amount, holdingsValue === null ? null : holdingsValue - amount);
-  }
-
-  get cashAmount() {
-    return this.state.accountCash();
-  }
-
-  get holdingsAmount() {
-    return this.state
-      .holdings()
-      .reduce((total, holding) => total + holding.quantity * (holding.indicativePrice ?? 0), 0);
-  }
-
-  // Null when holdings are in more than one currency, so the amount is shown without a symbol.
-  get holdingsCurrency(): CashCurrency | null {
-    const currencies = new Set(
-      this.state.holdings().map((holding) => {
-        return holding.currency ?? REPORTING_CURRENCY;
-      }),
-    );
-    if (currencies.size > 1) {
+    const { total } = this.figures();
+    const netDeposits = toNetDepositsInUsd(this.state.transactions(), this.cashRates);
+    if (total === null || netDeposits === null) {
       return null;
     }
 
-    const [assetCurrency] = currencies;
-    return assetCurrency ?? REPORTING_CURRENCY;
+    return toReturnView(total - netDeposits, netDeposits);
   }
 
-  get holdingsPriceMissing() {
-    return this.state.holdings().some((holding) => holding.indicativePrice == null);
-  }
+  // Today's gain comes from the live quotes; its % is measured against yesterday's value of the same total.
+  get todayReturn(): ReturnView | null {
+    const amount = toTodayReturn(
+      this.state.holdings(),
+      this.state.liveQuotes?.() ?? new Map(),
+      this.cashRates,
+    );
+    if (amount === null) {
+      return null;
+    }
 
-  get totalAmount() {
-    return this.cashAmount + this.holdingsAmount;
-  }
-
-  // Cash is USD, so the total only gets a symbol when the holdings are USD too.
-  get totalCurrency(): CashCurrency | null {
-    return this.holdingsCurrency === REPORTING_CURRENCY ? REPORTING_CURRENCY : null;
+    const { total } = this.figures();
+    return toReturnView(amount, total === null ? null : total - amount);
   }
 }

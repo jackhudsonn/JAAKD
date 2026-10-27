@@ -1,0 +1,48 @@
+.asset-summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.asset-summary-header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+}
+
+.asset-summary-symbol {
+  color: var(--secondary-light);
+  font-weight: 700;
+}
+
+.asset-summary-type {
+  padding: var(--space-xxs) var(--space-sm);
+
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+
+  background: var(--tertiary-bg);
+  border-radius: var(--radius-sm);
+}
+
+.asset-summary-change {
+  margin-left: auto;
+
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.asset-summary-change.positive {
+  color: var(--success);
+}
+
+.asset-summary-change.negative {
+  color: var(--fail);
+}
+
+.asset-summary-price {
+  margin: 0;
+  color: var(--text-secondary);
+}

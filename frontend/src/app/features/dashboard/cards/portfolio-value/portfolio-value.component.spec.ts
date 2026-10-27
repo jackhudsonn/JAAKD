@@ -39,6 +39,6 @@ describe('PortfolioValueWidgetComponent', () => {
     expect(text).toContain('$1,050.00');
     expect(text).toContain('Cash $500.00 · Holdings $550.00');
     expect(text).toContain('All-Time Return+$50.00+5.00%');
-    expect(text).toContain("Today's Return+$50.00+10.00%");
+    expect(text).toContain("Today's Return+$50.00+5.00%");
   });
 });
