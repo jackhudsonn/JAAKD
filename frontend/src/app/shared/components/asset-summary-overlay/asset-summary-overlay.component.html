@@ -1,0 +1,11 @@
+@if (asset(); as summary) {
+  <app-modal
+    [title]="title() ?? summary.name ?? (summary.symbol | displaySymbol)"
+    (closed)="closed.emit()"
+  >
+    <div class="asset-summary-overlay">
+      <app-asset-summary [asset]="summary" />
+      <ng-content />
+    </div>
+  </app-modal>
+}

@@ -1,20 +1,16 @@
 import { Component, input, output } from '@angular/core';
-import { DecimalPipe } from '@angular/common';
 import { ModalComponent } from '@shared/components/modal/modal.component';
-import { DisplaySymbolPipe } from '@shared/pipes/display-symbol.pipe';
-import { formatCurrency } from '@shared/utils/display-format';
+import { AssetSummaryOverlayComponent } from '@shared/components/asset-summary-overlay/asset-summary-overlay.component';
 import { DashboardWatchlistAssetSummary } from './dashboard-watchlist-overlay.facade';
 
 @Component({
   selector: 'app-watchlist-dialog-overlays',
   standalone: true,
-  imports: [ModalComponent, DecimalPipe, DisplaySymbolPipe],
+  imports: [ModalComponent, AssetSummaryOverlayComponent],
   templateUrl: './watchlist-dialog-overlays.component.html',
   styleUrl: './watchlist-dialog-overlays.component.css',
 })
 export class WatchlistDialogOverlaysComponent {
-  readonly formatCurrency = formatCurrency;
-
   watchlistDialogMode = input<'create' | 'edit' | null>(null);
   watchlistNameDraft = input('');
   canCreateWatchlist = input(false);

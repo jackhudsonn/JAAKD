@@ -49,11 +49,34 @@
   white-space: nowrap;
   gap: var(--space-xs);
   padding: 0 var(--space-md);
+
+  background: none;
+  border: 0;
   border-right: 1px solid var(--surface-divider);
+
+  color: inherit;
+  font: inherit;
   font-size: var(--font-size-xs);
+  text-align: left;
+
+  cursor: pointer;
 }
-.market-ticker:hover .ticker-track {
+.ticker-item:hover,
+.ticker-item:focus-visible {
+  background: rgba(255, 255, 255, 0.06);
+}
+.ticker-item:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+.market-ticker:hover .ticker-track,
+.market-ticker:focus-within .ticker-track {
   animation-play-state: paused;
+}
+
+.ticker-details-actions {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .ticker-change {

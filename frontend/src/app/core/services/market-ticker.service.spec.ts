@@ -64,8 +64,24 @@ describe('MarketTickerService', () => {
 
     expect(instrumentApi.getQuotes).toHaveBeenCalledWith(['NVDA', 'X:BTC-USD', 'AAPL']);
     expect(items).toEqual([
-      { symbol: 'NVDA', price: 118.6, currency: 'USD', changePct: 1.84 },
-      { symbol: 'BTC', price: 61200, currency: 'USD', changePct: null },
+      {
+        ticker: 'NVDA',
+        symbol: 'NVDA',
+        name: 'NVDA',
+        instrumentType: 'equity',
+        price: 118.6,
+        currency: 'USD',
+        changePct: 1.84,
+      },
+      {
+        ticker: 'BTC',
+        symbol: 'BTC',
+        name: 'BTC',
+        instrumentType: 'crypto',
+        price: 61200,
+        currency: 'USD',
+        changePct: null,
+      },
     ]);
   });
 
@@ -76,7 +92,10 @@ describe('MarketTickerService', () => {
     const [item] = await service.getTickerItems();
 
     expect(item).toEqual({
+      ticker: 'RELIANCE.NS',
       symbol: 'RELIANCE',
+      name: 'RELIANCE.NS',
+      instrumentType: 'equity',
       price: 1234.5,
       currency: 'INR',
       changePct: 0.3,

@@ -1,8 +1,9 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
+import { adminOnlyGuard } from './core/guards/admin-only.guard';
 import { adminOrAuditorGuard } from './core/guards/admin-or-auditor.guard';
-import { analystHomeGuard } from './core/guards/analyst-home.guard';
 import { analystOrAdminGuard } from './core/guards/analyst-or-admin.guard';
+import { tradingAccessGuard } from './core/guards/trading-access.guard';
 import { ShellComponent } from './layout/shell/shell.component';
 import { AuthShellComponent } from './layout/auth-shell/auth-shell.component';
 
@@ -46,17 +47,19 @@ export const routes: Routes = [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
       {
         path: 'dashboard',
-        canActivate: [analystHomeGuard],
+        canActivate: [tradingAccessGuard],
         loadComponent: () =>
           import('./features/dashboard/dashboard.component').then((m) => m.DashboardComponent),
       },
       {
         path: 'transact',
+        canActivate: [tradingAccessGuard],
         loadComponent: () =>
           import('./features/transact/transact.component').then((m) => m.TransactComponent),
       },
       {
         path: 'trade',
+        canActivate: [tradingAccessGuard],
         loadComponent: () =>
           import('./features/trade/trade.component').then((m) => m.TradeComponent),
       },
@@ -67,6 +70,7 @@ export const routes: Routes = [
       },
       {
         path: 'testing/order-lifecycle',
+        canActivate: [adminOnlyGuard],
         loadComponent: () =>
           import('./features/testing/order-lifecycle-lab/order-lifecycle-lab.component').then(
             (m) => m.OrderLifecycleLabComponent,
@@ -86,6 +90,7 @@ export const routes: Routes = [
       },
       {
         path: 'payment-methods',
+        canActivate: [tradingAccessGuard],
         loadComponent: () =>
           import('./features/payment/payment.component').then((m) => m.PaymentComponent),
       },
