@@ -3,6 +3,7 @@ import { Component, computed, inject, output, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
 import { PieChartComponent, PieChartSlice } from '@shared/components/pie-chart/pie-chart.component';
+import { DisplaySymbolPipe } from '@shared/pipes/display-symbol.pipe';
 import { DASHBOARD_MARKET_DATA_PORT } from '@features/dashboard/services/dashboard-market-data.port';
 import { DASHBOARD_STATE_PORT } from '@features/dashboard/services/dashboard-state.port';
 import { CashCurrency, CASH_CURRENCIES, REPORTING_CURRENCY } from '@core/models/api.models';
@@ -48,7 +49,7 @@ interface UnavailablePriceHolding {
 @Component({
   selector: 'app-allocation-by-asset-widget',
   standalone: true,
-  imports: [WidgetCardComponent, PieChartComponent, DecimalPipe],
+  imports: [WidgetCardComponent, PieChartComponent, DecimalPipe, DisplaySymbolPipe],
   templateUrl: './allocation-by-asset.component.html',
   styleUrl: './allocation-by-asset.component.css',
 })

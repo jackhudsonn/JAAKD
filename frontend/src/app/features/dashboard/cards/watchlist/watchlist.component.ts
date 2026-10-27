@@ -2,6 +2,7 @@ import { Component, OnDestroy, OnInit, computed, inject, output, signal } from '
 import { DecimalPipe } from '@angular/common';
 import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
 import { ScrollableListComponent } from '@shared/components/scrollable-list/scrollable-list.component';
+import { DisplaySymbolPipe } from '@shared/pipes/display-symbol.pipe';
 import { startCycleTimer } from '@shared/utils/cycle-timer';
 import { DASHBOARD_MARKET_DATA_PORT } from '@features/dashboard/services/dashboard-market-data.port';
 import { DASHBOARD_STATE_PORT } from '@features/dashboard/services/dashboard-state.port';
@@ -16,7 +17,7 @@ interface WatchlistRow {
 @Component({
   selector: 'app-watchlist-widget',
   standalone: true,
-  imports: [WidgetCardComponent, ScrollableListComponent, DecimalPipe],
+  imports: [WidgetCardComponent, ScrollableListComponent, DecimalPipe, DisplaySymbolPipe],
   templateUrl: './watchlist.component.html',
   styleUrl: './watchlist.component.css',
 })

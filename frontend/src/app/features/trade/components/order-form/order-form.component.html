@@ -86,15 +86,16 @@
       <span>Cash after order</span>
       <span class="order-preview-value">{{ (preview().cashAfter | currency: 'USD') ?? '-' }}</span>
     </div>
-    <p class="order-hint">
+    <div class="order-preview-row">
+      <span>Max affordable</span>
       @if (type() === 'buy') {
-        Max affordable: {{ maxBuyQuantity() | number: '1.0-6' }} share(s)
+        <span class="order-preview-value">{{ maxBuyQuantity() | number: '1.0-6' }} share(s)</span>
       } @else {
-        Owned: {{ ownedQuantity() | number: '1.0-6' }} share(s)
+        <span class="order-preview-value">{{ ownedQuantity() | number: '1.0-6' }} share(s)</span>
       }
-    </p>
-    <p class="order-hint">Final price is the live quote at execution.</p>
+    </div>
   </div>
+  <p class="order-hint">Final price is the live quote at execution.</p>
 
   <div class="form-actions" [class.with-back]="showBackButton()">
     @if (showBackButton()) {

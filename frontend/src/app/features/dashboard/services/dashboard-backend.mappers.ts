@@ -11,6 +11,7 @@ import {
 import { ORDER_STATUS, isActiveOrderStatus } from '@core/constants/order-status.constants';
 import { Holding, HoldingInstrumentClass, InstrumentType, Order, Transaction } from '@core/models';
 import { SharedWatchlist } from '@core/mocks/watchlist.mock';
+import { toDisplaySymbol } from '@shared/utils/display-symbol';
 import { roundChangePct } from '@shared/utils/format-percentage-change';
 
 const TRADE_SIDES = new Set(['BUY', 'SELL']);
@@ -469,10 +470,6 @@ const toFauxnanceSymbol = (instrument: InstrumentResponse): string => {
     ? `X:${ticker}-USD`
     : instrument.ticker;
 };
-
-// "X:BTC-USD" -> "BTC"; every other symbol is returned unchanged.
-export const toDisplaySymbol = (symbol: string): string =>
-  /^X:([^-]+)-/i.exec(symbol)?.[1] ?? symbol;
 
 // Crypto can be stored as "BTC" or "X:BTC-USD", so a quote is filed under both spellings.
 const setQuoteKeys = <T>(map: Map<string, T>, symbol: string, value: T): void => {

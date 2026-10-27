@@ -1,12 +1,13 @@
 import { Component, input, output } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { ModalComponent } from '@shared/components/modal/modal.component';
+import { DisplaySymbolPipe } from '@shared/pipes/display-symbol.pipe';
 import { DashboardWatchlistAssetSummary } from './dashboard-watchlist-overlay.facade';
 
 @Component({
   selector: 'app-watchlist-dialog-overlays',
   standalone: true,
-  imports: [ModalComponent, DecimalPipe],
+  imports: [ModalComponent, DecimalPipe, DisplaySymbolPipe],
   templateUrl: './watchlist-dialog-overlays.component.html',
   styleUrl: './watchlist-dialog-overlays.component.css',
 })

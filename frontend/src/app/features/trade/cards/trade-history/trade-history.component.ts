@@ -4,6 +4,7 @@ import { ORDER_STATUS } from '@core/constants/order-status.constants';
 import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
 import { ScrollableListComponent } from '@shared/components/scrollable-list/scrollable-list.component';
 import { StatusBadgeComponent } from '@shared/components/status-badge/status-badge.component';
+import { DisplaySymbolPipe } from '@shared/pipes/display-symbol.pipe';
 import { Order } from '@core/models';
 
 @Component({
@@ -13,6 +14,7 @@ import { Order } from '@core/models';
     WidgetCardComponent,
     ScrollableListComponent,
     StatusBadgeComponent,
+    DisplaySymbolPipe,
     DatePipe,
     TitleCasePipe,
   ],

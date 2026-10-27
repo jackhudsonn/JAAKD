@@ -13,6 +13,7 @@ import {
 } from '@angular/core';
 import { DecimalPipe, TitleCasePipe } from '@angular/common';
 import { ModalComponent } from '@shared/components/modal/modal.component';
+import { DisplaySymbolPipe } from '@shared/pipes/display-symbol.pipe';
 import { ToastService } from '@shared/components/toast/toast.service';
 import {
   LineChartComponent,
@@ -54,7 +55,14 @@ export interface AssetSetWatchlistMembershipRequest {
 @Component({
   selector: 'app-asset-popup',
   standalone: true,
-  imports: [ModalComponent, LineChartComponent, OrderFormComponent, DecimalPipe, TitleCasePipe],
+  imports: [
+    ModalComponent,
+    LineChartComponent,
+    OrderFormComponent,
+    DecimalPipe,
+    TitleCasePipe,
+    DisplaySymbolPipe,
+  ],
   templateUrl: './asset-popup.component.html',
   styleUrl: './asset-popup.component.css',
 })

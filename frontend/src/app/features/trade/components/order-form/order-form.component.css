@@ -90,6 +90,7 @@
 
 .order-hint {
   margin: 0;
+  text-align: center;
 
   color: var(--text-muted);
   font-size: var(--font-size-xs);

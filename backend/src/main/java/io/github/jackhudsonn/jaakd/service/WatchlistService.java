@@ -3,6 +3,7 @@ package io.github.jackhudsonn.jaakd.service;
 import io.github.jackhudsonn.jaakd.dto.CreateWatchlistEntryRequest;
 import io.github.jackhudsonn.jaakd.dto.CreateWatchlistRequest;
 import io.github.jackhudsonn.jaakd.dto.UpdateWatchlistRequest;
+import io.github.jackhudsonn.jaakd.exception.InvalidInstrumentException;
 import io.github.jackhudsonn.jaakd.exception.InstrumentNotFoundException;
 import io.github.jackhudsonn.jaakd.exception.PortfolioNotFoundException;
 import io.github.jackhudsonn.jaakd.exception.ValidationException;
@@ -11,6 +12,7 @@ import io.github.jackhudsonn.jaakd.exception.WatchlistItemConflictException;
 import io.github.jackhudsonn.jaakd.exception.WatchlistItemNotFoundException;
 import io.github.jackhudsonn.jaakd.exception.WatchlistNotFoundException;
 import io.github.jackhudsonn.jaakd.model.Instrument;
+import io.github.jackhudsonn.jaakd.model.InstrumentClass;
 import io.github.jackhudsonn.jaakd.model.Portfolio;
 import io.github.jackhudsonn.jaakd.model.Watchlist;
 import io.github.jackhudsonn.jaakd.model.WatchlistItem;
@@ -117,6 +119,17 @@ public class WatchlistService {
             .orElseThrow(() -> new WatchlistNotFoundException(watchlistId));
         Instrument instrument = instrumentRepository.findById(request.instrumentId())
             .orElseThrow(() -> new InstrumentNotFoundException(request.instrumentId()));
+
+        InstrumentClass instrumentClass = instrument.getInstrumentClass();
+        if (
+            instrumentClass != InstrumentClass.EQUITY
+                && instrumentClass != InstrumentClass.ETF
+                && instrumentClass != InstrumentClass.CRYPTO
+        ) {
+            throw new InvalidInstrumentException(
+                "Only equities, ETFs, and crypto instruments can be added to a watchlist."
+            );
+        }
 
         if (watchlistItemRepository.findByWatchlistWatchlistIdAndInstrumentInstrumentId(
             watchlistId,

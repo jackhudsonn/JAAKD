@@ -6,7 +6,6 @@ import {
 } from '@core/models/api.models';
 import {
   toCash,
-  toDisplaySymbol,
   toHoldings,
   toInstrumentType,
   toLatestPriceBySymbol,
@@ -592,12 +591,6 @@ describe('dashboard-backend.mappers', () => {
 
       expect(prices.get('BTC')).toBe(61200);
       expect(prices.get('X:BTC-USD')).toBe(61200);
-    });
-
-    it('toDisplaySymbol shows crypto without the Fauxnance prefix', () => {
-      expect(toDisplaySymbol('X:BTC-USD')).toBe('BTC');
-      expect(toDisplaySymbol('AAPL')).toBe('AAPL');
-      expect(toDisplaySymbol('FX:EURUSD')).toBe('FX:EURUSD');
     });
 
     it('toQuotePriceBySymbol keeps only positive prices', () => {

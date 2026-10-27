@@ -39,7 +39,7 @@
             (click)="addSymbolToActiveWatchlist.emit(row.asset.symbol)"
           >
             <div class="listing-info">
-              <span class="symbol">{{ row.asset.symbol }}</span>
+              <span class="symbol">{{ row.asset.symbol | displaySymbol }}</span>
               <span class="name">{{ row.asset.name }}</span>
             </div>
             <div class="price-stack">

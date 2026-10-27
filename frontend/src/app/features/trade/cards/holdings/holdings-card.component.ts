@@ -13,6 +13,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
 import { ScrollableListComponent } from '@shared/components/scrollable-list/scrollable-list.component';
+import { DisplaySymbolPipe } from '@shared/pipes/display-symbol.pipe';
 import { startCycleTimer } from '@shared/utils/cycle-timer';
 import { Holding, InstrumentType } from '@core/models';
 import { CASH_CURRENCIES } from '@core/models/api.models';
@@ -49,7 +50,13 @@ const HOLDINGS_FILTER_OPTIONS: { id: HoldingsFilter; label: string }[] = [
 @Component({
   selector: 'app-holdings-card',
   standalone: true,
-  imports: [WidgetCardComponent, ScrollableListComponent, FormsModule, DecimalPipe],
+  imports: [
+    WidgetCardComponent,
+    ScrollableListComponent,
+    FormsModule,
+    DecimalPipe,
+    DisplaySymbolPipe,
+  ],
   templateUrl: './holdings-card.component.html',
   styleUrl: './holdings-card.component.css',
 })

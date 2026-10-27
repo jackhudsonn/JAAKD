@@ -5,6 +5,7 @@ import {
   DASHBOARD_STATE_PORT,
   DashboardStatePort,
 } from '@features/dashboard/services/dashboard-state.port';
+import { ToastService } from '@shared/components/toast/toast.service';
 import { DashboardWatchlistOverlayFacade } from './dashboard-watchlist-overlay.facade';
 
 describe('DashboardWatchlistOverlayFacade', () => {
@@ -114,5 +115,16 @@ describe('DashboardWatchlistOverlayFacade', () => {
     facade.requestWatchlistAsset('VOD');
     await facade.removeSelectedWatchlistAsset();
     expect(state.setWatchlistMembership).toHaveBeenCalledWith('VOD', 'watchlist', false);
+  });
+
+  it('shows the backend validation message when an instrument cannot be added', async () => {
+    const message = 'Only equities, ETFs, and crypto instruments can be added to a watchlist.';
+    const toastService = TestBed.inject(ToastService);
+    const errorToast = vi.spyOn(toastService, 'error');
+    vi.mocked(state.setWatchlistMembership!).mockRejectedValueOnce({ error: { message } });
+
+    await facade.addSymbolToActiveWatchlist('USD');
+
+    expect(errorToast).toHaveBeenCalledWith(message);
   });
 });

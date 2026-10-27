@@ -10,11 +10,7 @@
   <app-scrollable-list [items]="rows()" [trackBy]="trackById" emptyMessage="No trade history yet.">
     <ng-template let-row>
       @if (row.isSelectable) {
-        <button
-          type="button"
-          class="trade-row selectable"
-          (click)="selectOrder.emit(row.order.id)"
-        >
+        <button type="button" class="trade-row selectable" (click)="selectOrder.emit(row.order.id)">
           <span class="trade-date">{{ row.order.createdAt | date: 'MMM d, y' }}</span>
           <span
             class="trade-type"
@@ -23,7 +19,7 @@
           >
             {{ row.order.type | titlecase }}
           </span>
-          <span class="trade-symbol">{{ row.order.symbol }}</span>
+          <span class="trade-symbol">{{ row.order.symbol | displaySymbol }}</span>
           <span class="trade-quantity">{{ row.order.quantity }}</span>
           <app-status-badge [status]="row.order.status" />
         </button>
@@ -37,7 +33,7 @@
           >
             {{ row.order.type | titlecase }}
           </span>
-          <span class="trade-symbol">{{ row.order.symbol }}</span>
+          <span class="trade-symbol">{{ row.order.symbol | displaySymbol }}</span>
           <span class="trade-quantity">{{ row.order.quantity }}</span>
           <app-status-badge [status]="row.order.status" />
         </div>

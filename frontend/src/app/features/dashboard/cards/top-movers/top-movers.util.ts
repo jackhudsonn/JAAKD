@@ -1,5 +1,6 @@
-import { LiveQuote, toDisplaySymbol } from '@features/dashboard/services/dashboard-backend.mappers';
+import { LiveQuote } from '@features/dashboard/services/dashboard-backend.mappers';
 import { DashboardMover } from '@features/dashboard/services/dashboard-market-data.port';
+import { toDisplaySymbol } from '@shared/utils/display-symbol';
 
 export const TOP_MOVERS_LIMIT = 5;
 

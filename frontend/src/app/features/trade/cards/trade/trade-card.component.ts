@@ -3,6 +3,7 @@ import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
 import { ScrollableListComponent } from '@shared/components/scrollable-list/scrollable-list.component';
+import { DisplaySymbolPipe } from '@shared/pipes/display-symbol.pipe';
 import { startCycleTimer } from '@shared/utils/cycle-timer';
 import { isFlatChange } from '@shared/utils/format-percentage-change';
 import { InstrumentType } from '@core/models';
@@ -30,7 +31,13 @@ const INSTRUMENT_OPTIONS: { id: InstrumentFilter; label: string }[] = [
 @Component({
   selector: 'app-trade-card',
   standalone: true,
-  imports: [WidgetCardComponent, ScrollableListComponent, FormsModule, DecimalPipe],
+  imports: [
+    WidgetCardComponent,
+    ScrollableListComponent,
+    FormsModule,
+    DecimalPipe,
+    DisplaySymbolPipe,
+  ],
   templateUrl: './trade-card.component.html',
   styleUrl: './trade-card.component.css',
 })

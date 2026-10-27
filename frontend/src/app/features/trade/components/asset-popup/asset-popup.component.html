@@ -1,7 +1,7 @@
-<app-modal [title]="asset()?.name ?? symbol()" (closed)="closed.emit()">
+<app-modal [title]="asset()?.name ?? (symbol() | displaySymbol)" (closed)="closed.emit()">
   <div class="asset-popup">
     <div class="asset-header">
-      <span class="asset-symbol">{{ symbol() }}</span>
+      <span class="asset-symbol">{{ symbol() | displaySymbol }}</span>
       @if (asset()) {
         <span class="asset-type">{{ asset()!.instrumentType | titlecase }}</span>
       }
@@ -32,7 +32,10 @@
             [attr.aria-expanded]="watchlistDropdownOpen()"
             aria-label="Toggle watchlist selector"
           >
-            <span>{{ symbol() }} is in {{ watchlistMembershipCount() }} watchlist(s)</span>
+            <span
+              >{{ symbol() | displaySymbol }} is in
+              {{ watchlistMembershipCount() }} watchlist(s)</span
+            >
             <span class="watchlist-selector-chevron" [class.open]="watchlistDropdownOpen()">▾</span>
           </button>
 
@@ -82,7 +85,7 @@
         </div>
 
         <button type="button" class="btn btn-primary trade-cta" (click)="openTradeView()">
-          Trade {{ symbol() }}
+          Trade {{ symbol() | displaySymbol }}
         </button>
       </div>
     } @else {

@@ -1,5 +1,5 @@
 @if (asset(); as selectedAsset) {
-  <app-modal [title]="selectedAsset.symbol" (closed)="closed.emit()">
+  <app-modal [title]="selectedAsset.symbol | displaySymbol" (closed)="closed.emit()">
     <div class="allocation-details">
       <p class="allocation-line">
         <span>Current Price</span>

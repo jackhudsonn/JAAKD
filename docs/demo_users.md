@@ -16,6 +16,14 @@ and historical timestamp so seed data is not run through the live market-hours
 validation path. The endpoint is disabled outside the development Spring
 profile and requires an `ADMIN` account.
 
+The shared tradable-instrument catalog comes from `scripts/instruments.csv`.
+The script ensures this catalog once with the seeded admin before creating
+demo-user portfolios; instrument records are shared and are not seeded once
+per user. Personas in `scripts/USERS.json` refer to catalog tickers in their
+orders and watchlists rather than defining instruments themselves. The CSV's
+`instrumentID` values are ignored; instrument IDs are assigned by the JPA
+entity when the API creates a record.
+
 ## Running the seed
 
 Start the local stack, then run:

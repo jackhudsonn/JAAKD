@@ -1,8 +1,6 @@
 import { Injectable } from '@angular/core';
-import {
-  toDisplaySymbol,
-  toQuoteSymbols,
-} from '@features/dashboard/services/dashboard-backend.mappers';
+import { toQuoteSymbols } from '@features/dashboard/services/dashboard-backend.mappers';
+import { toDisplaySymbol } from '@shared/utils/display-symbol';
 import { roundChangePct } from '@shared/utils/format-percentage-change';
 import { InstrumentApiService } from './instrument-api.service';
 

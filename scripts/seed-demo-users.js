@@ -33,7 +33,119 @@ console.log(`Using backend URL: ${BACKEND_URL}`);
 
 const USERS = JSON.parse(fs.readFileSync(path.resolve(__dirname, "USERS.json"), "utf-8"));
 
-const CASH_INSTRUMENTS = JSON.parse(fs.readFileSync(path.resolve(__dirname, "CASH_INSTRUMENTS.json"), "utf-8"));
+function readInstrumentCatalog() {
+  const contents = fs.readFileSync(path.resolve(__dirname, "instruments.csv"), "utf8");
+  const rows = [];
+  let row = [];
+  let field = "";
+  let quoted = false;
+
+  for (let index = 0; index < contents.length; index += 1) {
+    const character = contents[index];
+
+    if (quoted) {
+      if (character === '"' && contents[index + 1] === '"') {
+        field += '"';
+        index += 1;
+      } else if (character === '"') {
+        quoted = false;
+      } else {
+        field += character;
+      }
+    } else if (character === '"' && field.length === 0) {
+      quoted = true;
+    } else if (character === ",") {
+      row.push(field);
+      field = "";
+    } else if (character === "\n" || character === "\r") {
+      if (character === "\r" && contents[index + 1] === "\n") {
+        index += 1;
+      }
+      row.push(field);
+      if (row.some((value) => value.length > 0)) {
+        rows.push(row);
+      }
+      row = [];
+      field = "";
+    } else {
+      field += character;
+    }
+  }
+
+  if (quoted) {
+    throw new Error("Unterminated quoted field in scripts/instruments.csv.");
+  }
+
+  if (field.length > 0 || row.length > 0) {
+    row.push(field);
+    rows.push(row);
+  }
+
+  const headers = rows.shift();
+  const requiredHeaders = [
+    "ticker",
+    "market",
+    "name",
+    "instrumentClass",
+    "tradingCurrency",
+    "logoUrl",
+    "description",
+  ];
+
+  if (!headers || requiredHeaders.some((header) => !headers.includes(header))) {
+    throw new Error(
+      `scripts/instruments.csv must include these columns: ${requiredHeaders.join(", ")}.`,
+    );
+  }
+
+  const instruments = rows.map((values, rowIndex) => {
+    if (values.length !== headers.length) {
+      throw new Error(
+        `Invalid column count in scripts/instruments.csv at row ${rowIndex + 2}.`,
+      );
+    }
+
+    const record = Object.fromEntries(
+      headers.map((header, index) => [header, values[index].trim()]),
+    );
+
+    for (const header of requiredHeaders) {
+      if (!record[header] && header !== "logoUrl" && header !== "description") {
+        throw new Error(
+          `Missing ${header} in scripts/instruments.csv at row ${rowIndex + 2}.`,
+        );
+      }
+    }
+
+    return {
+      ticker: record.ticker,
+      market: record.market,
+      name: record.name,
+      instrumentClass: record.instrumentClass,
+      tradingCurrency: record.tradingCurrency,
+      logoUrl: record.logoUrl === "NULL" || !record.logoUrl ? null : record.logoUrl,
+      description:
+        record.description === "NULL" || !record.description ? null : record.description,
+    };
+  });
+
+  const tickers = new Set();
+  for (const instrument of instruments) {
+    const ticker = instrument.ticker.toUpperCase();
+    if (tickers.has(ticker)) {
+      throw new Error(`Duplicate instrument ticker in scripts/instruments.csv: ${ticker}.`);
+    }
+    tickers.add(ticker);
+  }
+
+  if (instruments.length === 0) {
+    throw new Error("scripts/instruments.csv does not contain any instruments.");
+  }
+
+  return instruments;
+}
+
+const INSTRUMENTS = readInstrumentCatalog();
 
 async function requestJson({
   method,
@@ -467,20 +579,10 @@ async function ensureInstrument(cookie, instrument) {
   return retry.data;
 }
 
-async function ensureInstruments(cookie, scenario) {
-  const specByTicker = new Map();
-
-  for (const item of CASH_INSTRUMENTS) {
-    specByTicker.set(item.ticker, item);
-  }
-
-  for (const item of scenario.instruments) {
-    specByTicker.set(item.ticker, item);
-  }
-
+async function ensureInstruments(cookie) {
   const instrumentsByTicker = new Map();
 
-  for (const item of specByTicker.values()) {
+  for (const item of INSTRUMENTS) {
     const ensured = await ensureInstrument(cookie, item);
     instrumentsByTicker.set(ensured.ticker.toUpperCase(), ensured);
   }
@@ -653,12 +755,11 @@ async function updatePreferences(cookie, portfolioId, widgets) {
   });
 }
 
-async function seedScenario(scenario, adminCookie) {
+async function seedScenario(scenario, adminCookie, instrumentsByTicker) {
   const cookie = await registerAndLogin(scenario);
   await ensureProfile(cookie, scenario.profile);
   const paymentMethods = await ensurePaymentMethods(cookie, scenario);
   const portfolio = await ensurePortfolio(cookie, scenario.portfolioName);
-  const instrumentsByTicker = await ensureInstruments(adminCookie, scenario);
   const watchlist = await ensureWatchlist(cookie, portfolio.portfolioId, scenario, instrumentsByTicker);
   const orders = await seedOrders(
     cookie,
@@ -717,12 +818,14 @@ async function main() {
   ensurePrivilegedAccount(ADMIN_ACCOUNT);
   console.log(`Auditor and admin accounts seeded in ${AUDITOR_CONTAINER}.`);
   const adminCookie = await registerAndLogin(ADMIN_ACCOUNT);
+  const instrumentsByTicker = await ensureInstruments(adminCookie);
+  console.log(`Ensured ${instrumentsByTicker.size} shared instruments.`);
 
   const summaries = [];
 
   for (const scenario of USERS) {
     console.log(`Seeding level: ${scenario.level}`);
-    const summary = await seedScenario(scenario, adminCookie);
+    const summary = await seedScenario(scenario, adminCookie, instrumentsByTicker);
     summaries.push(summary);
     console.log(`Finished level: ${scenario.level}`);
   }

@@ -39,7 +39,7 @@
           (click)="selectSymbol.emit(row.holding.symbol)"
         >
           <div class="listing-info">
-            <span class="symbol">{{ row.holding.symbol }}</span>
+            <span class="symbol">{{ row.holding.symbol | displaySymbol }}</span>
             <span class="name">{{ row.name }}</span>
           </div>
 
