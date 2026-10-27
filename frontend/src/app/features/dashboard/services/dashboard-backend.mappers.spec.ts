@@ -198,7 +198,6 @@ describe('dashboard-backend.mappers', () => {
       const rejected = result.find((order) => order.id === 'order-rejected');
       expect(rejected?.status).toBe('REJECTED');
       expect(rejected?.statusReason).toBe('Not enough cash');
-      expect(rejected?.kind).toBe('market');
     });
 
     it('preserves FAILED and reads failureReason from metadata', () => {

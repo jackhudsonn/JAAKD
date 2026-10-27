@@ -1,4 +1,4 @@
-import { OrderKind, OrderType } from '@core/models';
+import { OrderType } from '@core/models';
 
 // Order quantities are stored as NUMERIC(19,6) on the backend.
 export const MAX_QUANTITY_DECIMALS = 6;
@@ -6,9 +6,7 @@ const QUANTITY_SCALE = 10 ** MAX_QUANTITY_DECIMALS;
 
 export interface OrderPreviewInput {
   type: OrderType;
-  kind: OrderKind;
   quantity: number | null;
-  limitPrice: number | null;
   currentPrice: number;
   accountCash: number;
 }
@@ -40,8 +38,8 @@ export function floorToQuantityDecimals(value: number): number {
  * price is not usable yet, so the form shows "-" instead of a wrong number.
  */
 export function toOrderPreview(input: OrderPreviewInput): OrderPreview {
-  const { type, kind, quantity, limitPrice, currentPrice, accountCash } = input;
-  const price = kind === 'limit' ? limitPrice : currentPrice;
+  const { type, quantity, currentPrice, accountCash } = input;
+  const price = currentPrice;
   const label = type === 'buy' ? 'Estimated cost' : 'Estimated proceeds';
 
   if (!isValidQuantity(quantity) || price === null || !(price > 0)) {

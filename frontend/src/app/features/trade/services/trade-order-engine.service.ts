@@ -6,10 +6,8 @@ import { TRADE_STATE_PORT } from './trade-state.port';
 
 export interface TradePlaceOrderRequest {
   symbol: string;
-  kind: Order['kind'];
   type: Order['type'];
   quantity: number;
-  limitPrice?: number;
 }
 
 @Injectable({

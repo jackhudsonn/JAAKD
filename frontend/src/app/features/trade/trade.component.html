@@ -3,7 +3,7 @@
 
   <p class="page-description">Perform trades and view your trade history.</p>
 
-  @if (backendDataMode && loadState() === 'loading') {
+  @if (loadState() === 'loading') {
     <section class="trade-grid trade-grid-skeleton" aria-busy="true" aria-live="polite">
       <p class="sr-only">Loading trade data...</p>
 
@@ -29,7 +29,7 @@
         <div class="trade-skeleton-line trade-skeleton-line-lg"></div>
       </article>
     </section>
-  } @else if (backendDataMode && loadState() === 'error') {
+  } @else if (loadState() === 'error') {
     <p class="page-description">We couldn't load your trade data. Try again.</p>
     <button type="button" class="btn btn-secondary" (click)="retryLoad()">Retry</button>
   } @else {
@@ -38,7 +38,6 @@
 
       <app-holdings-card
         [holdings]="holdings()"
-        [accountCash]="accountCash()"
         [cashBalances]="cashBalances()"
         (selectSymbol)="openAsset($event)"
       />
@@ -56,7 +55,6 @@
       [symbol]="symbol"
       [ownedQuantity]="activeAssetOwnedQuantity()"
       [accountCash]="accountCash()"
-      [backendDataMode]="backendDataMode"
       [watchlists]="watchlistOptionsForActiveAsset()"
       [maxWatchlistHoldings]="maxWatchlistHoldings"
       (closed)="closeAssetPopup()"

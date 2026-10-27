@@ -17,12 +17,13 @@ find src -type f \( -name "*.ts" -o -name "*.html" -o -name "*.scss" -o -name "*
 ```
 
 Use the following command to have fresh database and rebuild - containers will build up
+
 ```bash
 docker-compose down -v && docker-compose up -d --build
 ```
 
-
 For sonarqube
+
 ```bash
 
 mvn clean test

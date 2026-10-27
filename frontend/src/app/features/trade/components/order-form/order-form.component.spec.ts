@@ -47,7 +47,7 @@ describe('OrderFormComponent', () => {
 
     component.submit();
 
-    expect(placed).toEqual([{ kind: 'market', type: 'buy', quantity: 2.5, limitPrice: undefined }]);
+    expect(placed).toEqual([{ type: 'buy', quantity: 2.5 }]);
     expect(component.quantity()).toBe(1);
   });
 

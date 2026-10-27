@@ -8,12 +8,7 @@
   "packageRules": [
     {
       "description": "Only major and security updates",
-      "matchUpdateTypes": [
-        "minor",
-        "patch",
-        "pin",
-        "digest"
-      ],
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
       "enabled": false
     }
   ]

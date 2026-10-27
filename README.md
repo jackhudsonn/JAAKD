@@ -34,7 +34,7 @@ cp .env.example .env
 - `COGNITO_API_CALL_ATTEMPT_TIMEOUT` — time allowed for each Cognito API retry attempt, as an ISO-8601 duration (default `PT5S`).
 - `COGNITO_RETRY_ATTEMPTS` — number of retries for failed Cognito API calls (default `2`).
 - `AUTH_COOKIE_SECURE` — whether the session cookie is sent only over HTTPS.
-- `FAUXNANCE_BASE_URL` — the Fauxnance API url 
+- `FAUXNANCE_BASE_URL` — the Fauxnance API url
 - `FAUXNANCE_API_KEY` — the Fauxance API Key
 
 Generate each password with `openssl rand -hex 32` and never commit `.env`. After pulling, compare it with `.env.example` and add any new settings.

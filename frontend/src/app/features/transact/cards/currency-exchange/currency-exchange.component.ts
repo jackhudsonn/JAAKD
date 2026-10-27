@@ -7,12 +7,8 @@ import { output } from '@angular/core';
 import { ExchangeRequest } from '@features/transact/services/transact-facade.service';
 import { CASH_CURRENCIES, CashCurrency } from '@core/models/api.models';
 import { ConfirmActionsComponent } from '../../components/confirm-actions/confirm-actions.component';
-import {
-  CASH_RATES_BY_USD,
-  convertAmountBetweenCurrencies,
-} from '@core/constants/cash-exchange-rates.constants';
 import { InstrumentApiService } from '@core/services/instrument-api.service';
-import { invertRate, toFxSymbol, toPositiveRate, toReceiveAmount } from './fx-preview.util';
+import { invertRate, toFxSymbol, toPositiveRate, toReceiveAmount } from '@core/utils/cash-fx';
 
 @Component({
   selector: 'app-currency-exchange',
@@ -25,7 +21,6 @@ export class CurrencyExchangeComponent {
   private readonly instrumentApi = inject(InstrumentApiService);
 
   currencies = input<readonly CashCurrency[]>(CASH_CURRENCIES);
-  private readonly ratesByUsd = CASH_RATES_BY_USD;
   private liveRateRequestId = 0;
 
   amount = signal<number | null>(0.0);
@@ -35,27 +30,11 @@ export class CurrencyExchangeComponent {
 
   exchangeSubmitted = output<ExchangeRequest>();
 
-  backendDataMode = input(false);
   balances = input<Record<string, number>>({});
   submitting = input(false);
 
   fromBalance = computed(() => this.balances()[this.fromCurrency()] ?? 0);
   sameCurrency = computed(() => this.fromCurrency() === this.toCurrency());
-
-  convertedAmount = computed(() => {
-    const value = this.amount();
-    if (!value || value <= 0) {
-      return 0;
-    }
-
-    return convertAmountBetweenCurrencies(value, this.fromCurrency(), this.toCurrency());
-  });
-
-  quoteRate = computed(() => {
-    const fromRate = this.ratesByUsd[this.fromCurrency()];
-    const toRate = this.ratesByUsd[this.toCurrency()];
-    return toRate / fromRate;
-  });
 
   liveRate = signal<number | null>(null);
   liveRateState = signal<'idle' | 'loading' | 'ready' | 'unavailable'>('idle');
@@ -66,7 +45,7 @@ export class CurrencyExchangeComponent {
       const from = this.fromCurrency();
       const to = this.toCurrency();
 
-      if (!this.backendDataMode() || from === to) {
+      if (from === to) {
         this.liveRateRequestId++;
         this.liveRate.set(null);
         this.liveRateState.set('idle');

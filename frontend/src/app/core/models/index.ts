@@ -4,7 +4,6 @@ import type { CashCurrency, InstrumentClass } from './api.models';
 
 export type InstrumentType = 'crypto' | 'equity' | 'etf';
 export type HoldingInstrumentClass = Extract<InstrumentClass, 'EQUITY' | 'ETF' | 'CRYPTO'>;
-export type OrderKind = 'market' | 'limit';
 export type OrderType = 'buy' | 'sell';
 export type { OrderStatus };
 
@@ -29,11 +28,8 @@ export interface Order {
   symbol: string;
   currency?: CashCurrency;
   instrumentType: InstrumentType;
-  kind: OrderKind;
   type: OrderType;
   quantity: number;
-  /** Only present on limit orders. */
-  limitPrice?: number;
   fillPrice?: number;
   status: OrderStatus;
   createdAt: string;

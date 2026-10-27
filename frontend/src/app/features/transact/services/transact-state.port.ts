@@ -4,7 +4,6 @@ import { CashConversionResponse, CashCurrency } from '@core/models/api.models';
 
 export interface TransactStatePort {
   readonly transactions: WritableSignal<Transaction[]>;
-  readonly backendDataMode?: boolean;
   readonly loadState?: Signal<'loading' | 'ready' | 'error'>;
   readonly cashBalances?: Signal<Record<string, number>>;
   readonly cashCurrencies?: Signal<readonly CashCurrency[]>;

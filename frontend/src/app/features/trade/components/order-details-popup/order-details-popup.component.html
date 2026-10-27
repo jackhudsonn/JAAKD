@@ -17,23 +17,9 @@
     </div>
 
     <div class="detail-row">
-      <span class="detail-label">Type</span>
-      <span class="detail-value">{{ order().kind | titlecase }}</span>
-    </div>
-
-    <div class="detail-row">
       <span class="detail-label">Quantity</span>
       <span class="detail-value">{{ order().quantity }}</span>
     </div>
-
-    @if (order().limitPrice !== undefined) {
-      <div class="detail-row">
-        <span class="detail-label">Limit Price</span>
-        <span class="detail-value">{{
-          formatCurrency(order().limitPrice!, order().currency ?? fallbackCurrency)
-        }}</span>
-      </div>
-    }
 
     <div class="detail-row">
       <span class="detail-label">Status</span>
