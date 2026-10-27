@@ -79,7 +79,12 @@
         "side": "DEPOSIT",
         "quantity": 50000
       },
-      { "key": "eur-deposit-01", "ticker": "EUR", "side": "DEPOSIT", "quantity": 7000 },
+      {
+        "key": "eur-deposit-01",
+        "ticker": "EUR",
+        "side": "DEPOSIT",
+        "quantity": 7000
+      },
       {
         "key": "buy-voo-01",
         "ticker": "VOO",

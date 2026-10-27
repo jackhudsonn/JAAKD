@@ -3,11 +3,11 @@
 `scripts/seed-demo-users.js` creates three local-only accounts that give
 developers realistic profiles to use while building and reviewing features:
 
-| Account | Purpose |
-| --- | --- |
-| `demo.newbie@jaakd.local` | A newly onboarded user with a profile and payment method, no transactions, and a default empty `My Watchlist`. |
-| `demo.intermediate@jaakd.local` | A smaller portfolio with executed trades plus pending, rejected, and failed order examples, and a default `My Watchlist` preloaded with a few symbols. |
-| `demo.pro@jaakd.local` | A populated multi-instrument portfolio with about 40 executed trades, about 10 funding rows, and multiple named watchlists (including empty and high-item watchlists). |
+| Account                         | Purpose                                                                                                                                                                |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `demo.newbie@jaakd.local`       | A newly onboarded user with a profile and payment method, no transactions, and a default empty `My Watchlist`.                                                         |
+| `demo.intermediate@jaakd.local` | A smaller portfolio with executed trades plus pending, rejected, and failed order examples, and a default `My Watchlist` preloaded with a few symbols.                 |
+| `demo.pro@jaakd.local`          | A populated multi-instrument portfolio with about 40 executed trades, about 10 funding rows, and multiple named watchlists (including empty and high-item watchlists). |
 
 The script uses the existing application APIs and the existing FIFO accounting
 service for executed fixtures. It does not change the database schema. The

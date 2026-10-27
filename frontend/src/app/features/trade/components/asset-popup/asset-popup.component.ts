@@ -57,7 +57,6 @@ export class AssetPopupComponent {
   symbol = input.required<string>();
   ownedQuantity = input(0);
   accountCash = input(0);
-  backendDataMode = input(false);
   watchlists = input<readonly AssetPopupWatchlistOption[]>([]);
   maxWatchlistHoldings = input<number | null>(null);
 

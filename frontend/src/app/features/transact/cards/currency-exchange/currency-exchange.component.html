@@ -1,9 +1,4 @@
-<app-widget-card
-  title="Currency Exchange"
-  [subtitle]="
-    backendDataMode() ? 'Convert between your cash balances' : 'Quick mock conversion preview'
-  "
->
+<app-widget-card title="Currency Exchange" subtitle="Convert between your cash balances">
   <div class="exchange-form">
     <div class="form-field">
       <label for="exchange-amount">Amount</label>
@@ -45,31 +40,23 @@
 
   <div class="exchange-result">
     <div class="exchange-summary">
-      @if (backendDataMode()) {
-        @if (liveRateState() === 'ready') {
-          @if (liveReceiveAmount() !== null) {
-            <p class="exchange-total">
-              You receive about {{ liveReceiveAmount() | number: '1.2-2' }} {{ toCurrency() }}
-            </p>
-          }
-          <p class="exchange-rate">
-            1 {{ fromCurrency() }} = {{ liveRate() | number: '1.2-4' }} {{ toCurrency() }}
+      @if (liveRateState() === 'ready') {
+        @if (liveReceiveAmount() !== null) {
+          <p class="exchange-total">
+            You receive about {{ liveReceiveAmount() | number: '1.2-2' }} {{ toCurrency() }}
           </p>
-        } @else if (liveRateState() === 'loading') {
-          <p class="exchange-rate">Loading live rate...</p>
-        } @else if (liveRateState() === 'unavailable') {
-          <p class="exchange-rate">Live rate unavailable, the final rate is set at conversion.</p>
         }
         <p class="exchange-rate">
-          Available: {{ fromBalance() | number: '1.2-2' }} {{ fromCurrency() }}
+          1 {{ fromCurrency() }} = {{ liveRate() | number: '1.2-4' }} {{ toCurrency() }}
         </p>
-      } @else {
-        <p class="exchange-total">{{ convertedAmount() | number: '1.2-2' }} {{ toCurrency() }}</p>
-
-        <p class="exchange-rate">
-          1 {{ fromCurrency() }} = {{ quoteRate() | number: '1.2-4' }} {{ toCurrency() }}
-        </p>
+      } @else if (liveRateState() === 'loading') {
+        <p class="exchange-rate">Loading live rate...</p>
+      } @else if (liveRateState() === 'unavailable') {
+        <p class="exchange-rate">Live rate unavailable, the final rate is set at conversion.</p>
       }
+      <p class="exchange-rate">
+        Available: {{ fromBalance() | number: '1.2-2' }} {{ fromCurrency() }}
+      </p>
       @if (sameCurrency()) {
         <p class="form-error same-currency-error">Choose two different currencies.</p>
       }

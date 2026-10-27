@@ -309,6 +309,7 @@ ORDER BY o."timestamp" DESC;
 ```
 
 **getFxOrderLogsByPortfolio** (`GET /api/order-logs/portfolio/{portfolioId}/fx`): FX conversion history only, newest first.
+
 ```sql
 SELECT o.* FROM "orderLogs" o
 JOIN portfolios p ON p."portfolioID" = o."portfolioID"

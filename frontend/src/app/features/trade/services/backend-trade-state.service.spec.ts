@@ -257,7 +257,7 @@ describe('BackendTradeStateService', () => {
 
     await service.load();
     expect(service.loadState()).toBe('ready');
-    await service.submitOrder({ symbol: 'AAPL', kind: 'market', type: 'buy', quantity: 3 });
+    await service.submitOrder({ symbol: 'AAPL', type: 'buy', quantity: 3 });
 
     expect(orderLogApiService.submit).toHaveBeenCalledWith({
       orderId: '11111111-1111-1111-1111-111111111111',

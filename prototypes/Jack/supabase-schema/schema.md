@@ -11,7 +11,7 @@ the team should agree on before writing migrations.
   can plug in later (see §7).
 - **Instruments**: multi-asset from day one — equities, options, futures, FX, crypto.
   Handled with a discriminator + JSONB attributes column, not one table per asset class.
-- **Order types**: market, limit, stop, stop-limit. Minimal `time_in_force` (`day`, `gtc`)
+- **Order types**: market and stop. Minimal `time_in_force` (`day`, `gtc`)
   included because stop orders are meaningless without it; extra TIFs (`ioc`, `fok`) are
   a data-only addition later, not a schema change.
 - **Money movement**: no real bank integration at MVP. A "fake bank" ledger
@@ -160,26 +160,25 @@ schema migration, just an agreed JSON shape and application-level validation.
 
 ### `public.orders`
 
-| column             | type          | null?                                    | notes                                                                  |
-| ------------------ | ------------- | ---------------------------------------- | ---------------------------------------------------------------------- |
-| order_id           | uuid          | PK, default `gen_random_uuid()`          |                                                                        |
-| account_id         | uuid          | not null, FK → `public.accounts`         |                                                                        |
-| instrument_id      | uuid          | not null, FK → `public.instruments`      |                                                                        |
-| side               | text          | not null                                 | `buy` / `sell`                                                         |
-| order_type         | text          | not null                                 | `market` / `limit` / `stop` / `stop_limit`                             |
-| time_in_force      | text          | not null, default `'day'`                | `day` / `gtc`                                                          |
-| limit_price        | numeric(18,8) | nullable                                 | required iff `order_type in ('limit','stop_limit')` (check constraint) |
-| stop_price         | numeric(18,8) | nullable                                 | required iff `order_type in ('stop','stop_limit')` (check constraint)  |
-| quantity           | numeric(18,8) | not null                                 | `check (quantity > 0)`                                                 |
-| remaining_quantity | numeric(18,8) | not null                                 | decremented as fills happen                                            |
-| status             | text          | not null, default `'pending_risk_check'` | see `app.order_status` lookup for the full lifecycle                   |
-| client_order_id    | text          | not null                                 | client-generated idempotency key                                       |
-| submitted_at       | timestamptz   | not null, default `now()`                |                                                                        |
-| updated_at         | timestamptz   | not null, default `now()`                | bumped on every state change                                           |
-| version            | integer       | not null, default `1`                    | optimistic concurrency for concurrent fill/cancel races                |
+| column             | type          | null?                                    | notes                                                   |
+| ------------------ | ------------- | ---------------------------------------- | ------------------------------------------------------- |
+| order_id           | uuid          | PK, default `gen_random_uuid()`          |                                                         |
+| account_id         | uuid          | not null, FK → `public.accounts`         |                                                         |
+| instrument_id      | uuid          | not null, FK → `public.instruments`      |                                                         |
+| side               | text          | not null                                 | `buy` / `sell`                                          |
+| order_type         | text          | not null                                 | `market` / `stop`                                       |
+| time_in_force      | text          | not null, default `'day'`                | `day` / `gtc`                                           |
+| stop_price         | numeric(18,8) | nullable                                 | required iff `order_type = 'stop'` (check constraint)   |
+| quantity           | numeric(18,8) | not null                                 | `check (quantity > 0)`                                  |
+| remaining_quantity | numeric(18,8) | not null                                 | decremented as fills happen                             |
+| status             | text          | not null, default `'pending_risk_check'` | see `app.order_status` lookup for the full lifecycle    |
+| client_order_id    | text          | not null                                 | client-generated idempotency key                        |
+| submitted_at       | timestamptz   | not null, default `now()`                |                                                         |
+| updated_at         | timestamptz   | not null, default `now()`                | bumped on every state change                            |
+| version            | integer       | not null, default `1`                    | optimistic concurrency for concurrent fill/cancel races |
 
 Constraints: `UNIQUE(account_id, client_order_id)` (idempotent submission),
-`CHECK` linking `order_type` to required price fields.
+`CHECK` requiring `stop_price` for stop orders and no stop price for market orders.
 
 RLS: `select` where `account_id` belongs to `auth.uid()`; `staff`/`auditor` see all.
 No client `insert`/`update`/`delete` grants — see §2 for rationale. The backend writes

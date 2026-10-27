@@ -36,7 +36,6 @@ describe('HoldingsCardComponent change display', () => {
     fixture.componentRef.setInput('holdings', [
       { symbol: 'AAPL', instrumentType: 'equity', quantity: 1 },
     ]);
-    fixture.componentRef.setInput('accountCash', 0);
     // Only the holding row; cash rows have their own fixed 0.00%.
     fixture.componentInstance.instrument.set('equity');
     fixture.detectChanges();

@@ -8,9 +8,7 @@ import {
 
 const base: OrderPreviewInput = {
   type: 'buy',
-  kind: 'market',
   quantity: 3,
-  limitPrice: null,
   currentPrice: 10,
   accountCash: 100,
 };
@@ -35,15 +33,8 @@ describe('toOrderPreview', () => {
     expect(preview.cashAfter).toBe(95);
   });
 
-  it('uses the limit price for limit orders', () => {
-    const preview = toOrderPreview({ ...base, kind: 'limit', limitPrice: 12.5 });
-
-    expect(preview.total).toBe(37.5);
-    expect(preview.cashAfter).toBe(62.5);
-  });
-
-  it('uses the current price for market orders even when a limit price is set', () => {
-    expect(toOrderPreview({ ...base, limitPrice: 50 }).total).toBe(30);
+  it('uses the current price to estimate an order', () => {
+    expect(toOrderPreview({ ...base, currentPrice: 12.5 }).total).toBe(37.5);
   });
 
   it('allows cash after to go below zero so the shortfall is visible', () => {
@@ -71,10 +62,6 @@ describe('toOrderPreview', () => {
 
   it.each([0, -5, Number.NaN])('returns empty values for current price %s', (currentPrice) => {
     expect(toOrderPreview({ ...base, currentPrice }).total).toBeNull();
-  });
-
-  it.each([null, 0, -2])('returns empty values for limit price %s', (limitPrice) => {
-    expect(toOrderPreview({ ...base, kind: 'limit', limitPrice }).total).toBeNull();
   });
 });
 

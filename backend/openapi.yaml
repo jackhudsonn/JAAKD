@@ -96,7 +96,8 @@ paths:
     post:
       tags: [Auth]
       summary: Confirm a registration email
-      description: Confirms the Cognito email verification code for the registration
+      description:
+        Confirms the Cognito email verification code for the registration
         identified by `registrationId`. Returns 200 and sets the session cookie when
         Cognito can complete sign-in from the confirmation session; returns 204 when
         the user must sign in separately.
@@ -2152,7 +2153,22 @@ paths:
           required: false
           schema:
             type: string
-            enum: [ticker, name, instrumentClass, lastClose, return1w, return1m, return3m, returnYtd, volatility, maxDrawdown, holders, exposure, netFlow30d]
+            enum:
+              [
+                ticker,
+                name,
+                instrumentClass,
+                lastClose,
+                return1w,
+                return1m,
+                return3m,
+                returnYtd,
+                volatility,
+                maxDrawdown,
+                holders,
+                exposure,
+                netFlow30d,
+              ]
             default: exposure
         - name: direction
           in: query
@@ -2259,7 +2275,20 @@ paths:
           required: false
           schema:
             type: string
-            enum: [country, ageBand, marketValue, return1w, return1m, return3m, returnYtd, volatility, maxDrawdown, realizedPnl, unrealizedPnl]
+            enum:
+              [
+                country,
+                ageBand,
+                marketValue,
+                return1w,
+                return1m,
+                return3m,
+                returnYtd,
+                volatility,
+                maxDrawdown,
+                realizedPnl,
+                unrealizedPnl,
+              ]
             default: marketValue
         - name: direction
           in: query
@@ -3525,7 +3554,8 @@ components:
           format: double
     CreateDemoOrderLogRequest:
       type: object
-      required: [orderId, portfolioId, instrumentId, side, quantity, status, timestamp]
+      required:
+        [orderId, portfolioId, instrumentId, side, quantity, status, timestamp]
       properties:
         orderId:
           type: string
@@ -3645,7 +3675,14 @@ components:
     CreatePaymentMethodRequest:
       type: object
       required:
-        [nickname, accountHolderName, bankName, accountType, routingNumber, accountNumber]
+        [
+          nickname,
+          accountHolderName,
+          bankName,
+          accountType,
+          routingNumber,
+          accountNumber,
+        ]
       properties:
         nickname:
           type: string

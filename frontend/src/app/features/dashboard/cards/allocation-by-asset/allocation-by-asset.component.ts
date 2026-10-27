@@ -6,7 +6,11 @@ import { PieChartComponent, PieChartSlice } from '@shared/components/pie-chart/p
 import { DisplaySymbolPipe } from '@shared/pipes/display-symbol.pipe';
 import { DASHBOARD_STATE_PORT } from '@features/dashboard/services/dashboard-state.port';
 import { CashCurrency, CASH_CURRENCIES, REPORTING_CURRENCY } from '@core/models/api.models';
-import { convertAmountBetweenCurrencies } from '@core/constants/cash-exchange-rates.constants';
+import {
+  CashRatesByUsd,
+  USD_RATES_BY_USD,
+  convertAmountBetweenCurrencies,
+} from '@core/utils/cash-fx';
 import { deterministicColorFromBase } from '@features/dashboard/utils/allocation-colors.util';
 
 const ALLOCATION_CATEGORIES = ['cash', 'equity', 'etf', 'crypto'] as const;
@@ -31,6 +35,9 @@ const CURRENCY_SYMBOLS: Record<CashCurrency, string> = {
   GBP: '£',
   INR: '₹',
 };
+
+const isPositiveRate = (rate: number | undefined): rate is number =>
+  rate !== undefined && rate > 0;
 
 export interface AllocationAssetSelection {
   symbol: string;
@@ -62,6 +69,12 @@ export class AllocationByAssetWidgetComponent {
   assetSelected = output<AllocationAssetSelection>();
   readonly displayCurrencies = CASH_CURRENCIES;
   readonly displayCurrency = signal<CashCurrency>(REPORTING_CURRENCY);
+  private readonly cashRates = computed<CashRatesByUsd>(
+    () => this.state.cashRatesByUsd?.() ?? USD_RATES_BY_USD,
+  );
+  readonly displayRateAvailable = computed(() =>
+    isPositiveRate(this.cashRates()[this.displayCurrency()]),
+  );
 
   // null == showing the top-level "by type" view.
   selectedCategory = signal<AllocationCategory | null>(null);
@@ -82,6 +95,7 @@ export class AllocationByAssetWidgetComponent {
       crypto: [],
     };
 
+    const rates = this.cashRates();
     const balances = this.cashBalances?.() ?? { USD: this.accountCash() };
     for (const [currency, amount] of Object.entries(balances)) {
       if (Math.abs(amount) <= Number.EPSILON) {
@@ -92,9 +106,19 @@ export class AllocationByAssetWidgetComponent {
         continue;
       }
 
+      const value = convertAmountBetweenCurrencies(
+        amount,
+        cashCurrency,
+        REPORTING_CURRENCY,
+        rates,
+      );
+      if (value === null) {
+        continue;
+      }
+
       byCategory.cash.push({
         label: cashCurrency,
-        value: convertAmountBetweenCurrencies(amount, cashCurrency, REPORTING_CURRENCY),
+        value,
         color: deterministicColorFromBase(CATEGORY_COLORS.cash, cashCurrency),
       });
     }
@@ -107,7 +131,16 @@ export class AllocationByAssetWidgetComponent {
       }
 
       const category: AllocationCategory = holding.instrumentType;
-      const value = holding.quantity * holding.indicativePrice;
+      const value = convertAmountBetweenCurrencies(
+        holding.quantity * holding.indicativePrice,
+        holding.currency ?? REPORTING_CURRENCY,
+        REPORTING_CURRENCY,
+        rates,
+      );
+      if (value === null) {
+        continue;
+      }
+
       const existing = bySymbol.get(holding.symbol);
 
       bySymbol.set(holding.symbol, {
@@ -127,9 +160,42 @@ export class AllocationByAssetWidgetComponent {
     return byCategory;
   });
 
-  private convertDisplayAmount(usdAmount: number) {
-    return convertAmountBetweenCurrencies(usdAmount, REPORTING_CURRENCY, this.displayCurrency());
+  private convertDisplayAmount(usdAmount: number): number | null {
+    return convertAmountBetweenCurrencies(
+      usdAmount,
+      REPORTING_CURRENCY,
+      this.displayCurrency(),
+      this.cashRates(),
+    );
   }
+
+  readonly unavailableFxCurrencies = computed<CashCurrency[]>(() => {
+    const rates = this.cashRates();
+    const missing = new Set<CashCurrency>();
+    const balances = this.cashBalances?.() ?? { USD: this.accountCash() };
+
+    for (const [currency, amount] of Object.entries(balances)) {
+      if (Math.abs(amount) <= Number.EPSILON) {
+        continue;
+      }
+      const cashCurrency = CASH_CURRENCIES.find((entry) => entry === currency);
+      if (cashCurrency && !isPositiveRate(rates[cashCurrency])) {
+        missing.add(cashCurrency);
+      }
+    }
+
+    for (const holding of this.holdings()) {
+      if (holding.indicativePrice === null || holding.indicativePrice === undefined) {
+        continue;
+      }
+      const currency = holding.currency ?? REPORTING_CURRENCY;
+      if (!isPositiveRate(rates[currency])) {
+        missing.add(currency);
+      }
+    }
+
+    return [...missing];
+  });
 
   private readonly topLevelSlices = computed<PieChartSlice[]>(() => {
     const breakdowns = this.breakdowns();
@@ -142,12 +208,16 @@ export class AllocationByAssetWidgetComponent {
   });
 
   slices = computed<PieChartSlice[]>(() => {
+    if (!this.displayRateAvailable()) {
+      return [];
+    }
+
     const category = this.selectedCategory();
     const sourceSlices = !category ? this.topLevelSlices() : this.breakdowns()[category];
-    return sourceSlices.map((slice) => ({
-      ...slice,
-      value: this.convertDisplayAmount(slice.value),
-    }));
+    return sourceSlices.flatMap((slice) => {
+      const value = this.convertDisplayAmount(slice.value);
+      return value === null ? [] : [{ ...slice, value }];
+    });
   });
 
   unavailablePriceHoldings = computed<UnavailablePriceHolding[]>(() => {
@@ -194,17 +264,38 @@ export class AllocationByAssetWidgetComponent {
     }
 
     const estimatedUnits = matchingHoldings.reduce((sum, entry) => sum + entry.quantity, 0);
-    const valueInUsd = matchingHoldings.reduce(
-      (sum, entry) => sum + entry.quantity * (entry.indicativePrice ?? 0),
-      0,
-    );
     const displayCurrency = this.displayCurrency();
+    const rates = this.cashRates();
+    let value = 0;
+
+    for (const holding of matchingHoldings) {
+      const holdingValue = convertAmountBetweenCurrencies(
+        holding.quantity * (holding.indicativePrice ?? 0),
+        holding.currency ?? REPORTING_CURRENCY,
+        displayCurrency,
+        rates,
+      );
+      if (holdingValue === null) {
+        return;
+      }
+      value += holdingValue;
+    }
+
+    const displayPrice = convertAmountBetweenCurrencies(
+      price,
+      representativeHolding?.currency ?? REPORTING_CURRENCY,
+      displayCurrency,
+      rates,
+    );
+    if (displayPrice === null) {
+      return;
+    }
 
     this.assetSelected.emit({
       symbol: slice.label,
-      price: convertAmountBetweenCurrencies(price, REPORTING_CURRENCY, displayCurrency),
+      price: displayPrice,
       estimatedUnits,
-      value: convertAmountBetweenCurrencies(valueInUsd, REPORTING_CURRENCY, displayCurrency),
+      value,
       currency: displayCurrency,
     });
   }

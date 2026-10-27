@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { QuoteResponse } from '@core/models/api.models';
-import { invertRate, toFxSymbol, toPositiveRate, toReceiveAmount } from './fx-preview.util';
+import {
+  convertAmountBetweenCurrencies,
+  invertRate,
+  toFxSymbol,
+  toPositiveRate,
+  toReceiveAmount,
+} from './cash-fx';
 
 const quote = (overrides: Partial<QuoteResponse>): QuoteResponse => ({
   symbol: 'FX:EURUSD',
@@ -44,6 +50,19 @@ describe('invertRate', () => {
 
   it.each([null, 0, -2])('returns null for %s', (rate) => {
     expect(invertRate(rate)).toBeNull();
+  });
+});
+
+describe('convertAmountBetweenCurrencies', () => {
+  const rates = { USD: 1, EUR: 0.8, GBP: 0.5 };
+
+  it('pivots through USD', () => {
+    expect(convertAmountBetweenCurrencies(100, 'EUR', 'GBP', rates)).toBeCloseTo(62.5);
+    expect(convertAmountBetweenCurrencies(100, 'USD', 'EUR', rates)).toBeCloseTo(80);
+  });
+
+  it('returns null when a required rate is unavailable', () => {
+    expect(convertAmountBetweenCurrencies(100, 'EUR', 'INR', rates)).toBeNull();
   });
 });
 

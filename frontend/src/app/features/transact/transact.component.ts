@@ -51,7 +51,6 @@ export class TransactComponent implements OnInit, OnDestroy {
       this.transactions().find((transaction) => transaction.id === this.activeTransactionId()) ??
       null,
   );
-  readonly backendDataMode = this.transactFacade.backendDataMode;
   readonly loadState = computed(() => this.transactFacade.loadState?.() ?? 'ready');
   readonly submittingAction = signal(false);
   readonly cashBalances = computed(() => this.transactFacade.cashBalances?.() ?? {});
@@ -60,7 +59,7 @@ export class TransactComponent implements OnInit, OnDestroy {
   constructor() {
     effect(() => {
       const transactionId = this.requestedTransactionId();
-      if (!transactionId || (this.backendDataMode && this.loadState() !== 'ready')) {
+      if (!transactionId || this.loadState() !== 'ready') {
         return;
       }
 

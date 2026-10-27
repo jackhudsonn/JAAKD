@@ -189,9 +189,9 @@ Cognito's username is a fresh UUID, so `UsernameExistsException` is no longer a
 meaningful duplicate-email signal. The adapter checks the local link table
 before calling `SignUp`:
 
-| State                            | Response                                                |
-| -------------------------------- | ------------------------------------------------------- |
-| Row exists, `status = CONFIRMED` | `409` already registered; offer sign-in                 |
+| State                            | Response                                                 |
+| -------------------------------- | -------------------------------------------------------- |
+| Row exists, `status = CONFIRMED` | `409` already registered; offer sign-in                  |
 | No confirmed row                 | Allow the new registration; a pending row does not block |
 
 The new registration gets a new `userID` and Cognito username. On confirmation,

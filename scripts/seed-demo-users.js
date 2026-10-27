@@ -28,13 +28,20 @@ const AUDITOR_ACCOUNT = {
 };
 
 // Instrument creation is admin-only, so instruments are created under this account.
-const ADMIN_ACCOUNT = JSON.parse(fs.readFileSync(path.resolve(__dirname, "ADMIN_ACCOUNT.json"), "utf-8"));
+const ADMIN_ACCOUNT = JSON.parse(
+  fs.readFileSync(path.resolve(__dirname, "ADMIN_ACCOUNT.json"), "utf-8"),
+);
 console.log(`Using backend URL: ${BACKEND_URL}`);
 
-const USERS = JSON.parse(fs.readFileSync(path.resolve(__dirname, "USERS.json"), "utf-8"));
+const USERS = JSON.parse(
+  fs.readFileSync(path.resolve(__dirname, "USERS.json"), "utf-8"),
+);
 
 function readInstrumentCatalog() {
-  const contents = fs.readFileSync(path.resolve(__dirname, "instruments.csv"), "utf8");
+  const contents = fs.readFileSync(
+    path.resolve(__dirname, "instruments.csv"),
+    "utf8",
+  );
   const rows = [];
   let row = [];
   let field = "";
@@ -123,9 +130,12 @@ function readInstrumentCatalog() {
       name: record.name,
       instrumentClass: record.instrumentClass,
       tradingCurrency: record.tradingCurrency,
-      logoUrl: record.logoUrl === "NULL" || !record.logoUrl ? null : record.logoUrl,
+      logoUrl:
+        record.logoUrl === "NULL" || !record.logoUrl ? null : record.logoUrl,
       description:
-        record.description === "NULL" || !record.description ? null : record.description,
+        record.description === "NULL" || !record.description
+          ? null
+          : record.description,
     };
   });
 
@@ -133,13 +143,17 @@ function readInstrumentCatalog() {
   for (const instrument of instruments) {
     const ticker = instrument.ticker.toUpperCase();
     if (tickers.has(ticker)) {
-      throw new Error(`Duplicate instrument ticker in scripts/instruments.csv: ${ticker}.`);
+      throw new Error(
+        `Duplicate instrument ticker in scripts/instruments.csv: ${ticker}.`,
+      );
     }
     tickers.add(ticker);
   }
 
   if (instruments.length === 0) {
-    throw new Error("scripts/instruments.csv does not contain any instruments.");
+    throw new Error(
+      "scripts/instruments.csv does not contain any instruments.",
+    );
   }
 
   return instruments;
@@ -188,13 +202,18 @@ async function requestJson({
         break;
       }
 
-      await new Promise((resolve) => setTimeout(resolve, NETWORK_RETRY_DELAY_MS));
+      await new Promise((resolve) =>
+        setTimeout(resolve, NETWORK_RETRY_DELAY_MS),
+      );
     }
   }
 
   if (!response) {
     const cause =
-      lastError?.cause?.code || lastError?.cause?.message || lastError?.message || "unknown";
+      lastError?.cause?.code ||
+      lastError?.cause?.message ||
+      lastError?.message ||
+      "unknown";
     throw new Error(
       `Unable to reach the backend at ${BACKEND_URL} while requesting ${method} ${path}: ${cause}. ` +
         "Start the backend with `docker compose up -d --build` or set BACKEND_URL to a reachable backend.",
@@ -274,7 +293,8 @@ function readEnvFile() {
 }
 
 function assertDevelopmentProvider() {
-  const configured = process.env.IDENTITY_PROVIDER ?? readEnvFile().IDENTITY_PROVIDER;
+  const configured =
+    process.env.IDENTITY_PROVIDER ?? readEnvFile().IDENTITY_PROVIDER;
   if (configured === "development") {
     return;
   }
@@ -349,12 +369,18 @@ SET
   execFileSync(
     "docker",
     [
-      "exec", "-i", AUDITOR_CONTAINER,
+      "exec",
+      "-i",
+      AUDITOR_CONTAINER,
       "psql",
-      "-U", "postgres",
-      "-d", "jaakd",
-      "-v", "ON_ERROR_STOP=1",
-      "-c", sql,
+      "-U",
+      "postgres",
+      "-d",
+      "jaakd",
+      "-v",
+      "ON_ERROR_STOP=1",
+      "-c",
+      sql,
     ],
     { stdio: "pipe", encoding: "utf8" },
   );
@@ -448,9 +474,15 @@ async function ensurePaymentMethods(cookie, scenario) {
 
   const existingSignatures = new Set(
     (Array.isArray(list.data) ? list.data : []).map((method) => {
-      const nickname = String(method.nickname || "").trim().toLowerCase();
-      const bankName = String(method.bankName || "").trim().toLowerCase();
-      const accountType = String(method.accountType || "").trim().toLowerCase();
+      const nickname = String(method.nickname || "")
+        .trim()
+        .toLowerCase();
+      const bankName = String(method.bankName || "")
+        .trim()
+        .toLowerCase();
+      const accountType = String(method.accountType || "")
+        .trim()
+        .toLowerCase();
       const accountLast4 = String(method.accountNumberLast4 || "").trim();
       const routingLast4 = String(method.routingNumber || "")
         .trim()
@@ -590,7 +622,12 @@ async function ensureInstruments(cookie) {
   return instrumentsByTicker;
 }
 
-async function ensureWatchlist(cookie, portfolioId, scenario, instrumentsByTicker) {
+async function ensureWatchlist(
+  cookie,
+  portfolioId,
+  scenario,
+  instrumentsByTicker,
+) {
   const current = await requestJson({
     method: "GET",
     path: `/api/portfolios/${portfolioId}/watchlists`,
@@ -600,7 +637,10 @@ async function ensureWatchlist(cookie, portfolioId, scenario, instrumentsByTicke
 
   const existingWatchlists = Array.isArray(current.data) ? current.data : [];
   const watchlistByName = new Map(
-    existingWatchlists.map((watchlist) => [String(watchlist.watchlistName), watchlist]),
+    existingWatchlists.map((watchlist) => [
+      String(watchlist.watchlistName),
+      watchlist,
+    ]),
   );
 
   let createdCount = 0;
@@ -632,7 +672,9 @@ async function ensureWatchlist(cookie, portfolioId, scenario, instrumentsByTicke
     for (const ticker of definition.symbols || []) {
       const instrument = instrumentsByTicker.get(ticker.toUpperCase());
       if (!instrument) {
-        throw new Error(`Missing instrument ${ticker} while seeding watchlist.`);
+        throw new Error(
+          `Missing instrument ${ticker} while seeding watchlist.`,
+        );
       }
 
       if (existingInstrumentIds.has(String(instrument.instrumentId))) {
@@ -760,7 +802,12 @@ async function seedScenario(scenario, adminCookie, instrumentsByTicker) {
   await ensureProfile(cookie, scenario.profile);
   const paymentMethods = await ensurePaymentMethods(cookie, scenario);
   const portfolio = await ensurePortfolio(cookie, scenario.portfolioName);
-  const watchlist = await ensureWatchlist(cookie, portfolio.portfolioId, scenario, instrumentsByTicker);
+  const watchlist = await ensureWatchlist(
+    cookie,
+    portfolio.portfolioId,
+    scenario,
+    instrumentsByTicker,
+  );
   const orders = await seedOrders(
     cookie,
     adminCookie,
@@ -788,25 +835,23 @@ async function seedScenario(scenario, adminCookie, instrumentsByTicker) {
 
 function printCredentials() {
   console.log("Demo user credentials:");
-  console.table(
-    [
-      ...USERS.map((user) => ({
-        level: user.level,
-        email: user.email,
-        password: user.password,
-      })),
-      {
-        level: "auditor",
-        email: AUDITOR_ACCOUNT.email,
-        password: AUDITOR_ACCOUNT.password,
-      },
-      {
-        level: "admin",
-        email: ADMIN_ACCOUNT.email,
-        password: ADMIN_ACCOUNT.password,
-      },
-    ],
-  );
+  console.table([
+    ...USERS.map((user) => ({
+      level: user.level,
+      email: user.email,
+      password: user.password,
+    })),
+    {
+      level: "auditor",
+      email: AUDITOR_ACCOUNT.email,
+      password: AUDITOR_ACCOUNT.password,
+    },
+    {
+      level: "admin",
+      email: ADMIN_ACCOUNT.email,
+      password: ADMIN_ACCOUNT.password,
+    },
+  ]);
 }
 
 async function main() {
@@ -825,7 +870,11 @@ async function main() {
 
   for (const scenario of USERS) {
     console.log(`Seeding level: ${scenario.level}`);
-    const summary = await seedScenario(scenario, adminCookie, instrumentsByTicker);
+    const summary = await seedScenario(
+      scenario,
+      adminCookie,
+      instrumentsByTicker,
+    );
     summaries.push(summary);
     console.log(`Finished level: ${scenario.level}`);
   }
