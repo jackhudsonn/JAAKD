@@ -26,8 +26,19 @@ with holdings as (
         on instruments.instrument_id = holdings.instrument_id
 ),
 
+order_log_order_ids as (
+    select
+        "logOrderID" as log_order_id,
+        "orderID" as order_id
+    from {{ source('raw', 'orderLogs') }}
+),
+
 execution_dates as (
-    select log_order_id, cast(executed_at at time zone 'UTC' as date) as executed_date
+    select
+        log_order_id,
+        order_id,
+        side,
+        cast(executed_at at time zone 'UTC' as date) as executed_date
     from {{ ref('stg_order_logs') }}
 ),
 
@@ -39,8 +50,11 @@ lot_opened as (
         lots.original_quantity * lots.unit_cost as cost_change,
         0 as realized_pnl_change
     from {{ ref('stg_position_lots') }} as lots
+    join order_log_order_ids as source_buy
+        on source_buy.log_order_id = lots.source_buy_log_order_id
     join execution_dates as buys
-        on buys.log_order_id = lots.source_buy_log_order_id
+        on buys.order_id = source_buy.order_id
+        and buys.side = 'BUY'
 ),
 
 lot_matched as (
@@ -53,8 +67,11 @@ lot_matched as (
     from {{ ref('stg_lot_matches') }} as matches
     join {{ ref('stg_position_lots') }} as lots
         on lots.position_lot_id = matches.position_lot_id
+    join order_log_order_ids as source_sell
+        on source_sell.log_order_id = matches.sell_log_order_id
     join execution_dates as sells
-        on sells.log_order_id = matches.sell_log_order_id
+        on sells.order_id = source_sell.order_id
+        and sells.side = 'SELL'
 ),
 
 cash_moved as (
