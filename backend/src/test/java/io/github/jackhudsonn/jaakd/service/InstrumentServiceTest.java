@@ -11,6 +11,8 @@ import io.github.jackhudsonn.jaakd.model.CashCurrency;
 import io.github.jackhudsonn.jaakd.model.Instrument;
 import io.github.jackhudsonn.jaakd.model.InstrumentClass;
 import io.github.jackhudsonn.jaakd.model.InstrumentPrice;
+import io.github.jackhudsonn.jaakd.model.fauxnance.FauxnanceCandle;
+import io.github.jackhudsonn.jaakd.model.fauxnance.FauxnanceCandleResponse;
 import io.github.jackhudsonn.jaakd.repository.InstrumentRepository;
 import io.github.jackhudsonn.jaakd.repository.InstrumentPriceRepository;
 import io.github.jackhudsonn.jaakd.model.fauxnance.FauxnanceSymbolResponse;
@@ -32,6 +34,7 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -54,6 +57,9 @@ class InstrumentServiceTest {
 
     @Mock
     private FauxnanceService fauxnanceService;
+
+    @Mock
+    private PriceHistoryTxService priceHistoryTxService;
 
     @Mock
     private Clock clock;
@@ -201,6 +207,73 @@ class InstrumentServiceTest {
     }
 
     @Test
+    void getCandles_emptyCacheFetchesFauxnanceAndCachesCandles() {
+        UUID instrumentId = UUID.randomUUID();
+        LocalDate from = LocalDate.of(2025, 1, 1);
+        LocalDate to = LocalDate.of(2025, 12, 31);
+        Instrument instrument = new Instrument("AAPL", "NASDAQ", "Apple", InstrumentClass.EQUITY, CashCurrency.USD);
+        FauxnanceCandle fauxnanceCandle = fauxnanceCandle("2025-06-02", 101.0, 105.0, 99.0, 103.0);
+        when(instrumentRepository.findById(instrumentId)).thenReturn(Optional.of(instrument));
+        when(instrumentPriceRepository.findByInstrumentIdAndPriceDateBetweenOrderByPriceDateAsc(
+            instrumentId, from, to
+        )).thenReturn(List.of());
+        when(fauxnanceService.getCandles("AAPL", from, to)).thenReturn(
+            new FauxnanceCandleResponse("AAPL", "USD", List.of(fauxnanceCandle))
+        );
+        when(clock.instant()).thenReturn(Instant.parse("2025-06-03T00:00:00Z"));
+        when(clock.getZone()).thenReturn(ZoneOffset.UTC);
+
+        List<InstrumentCandleResponse> candles = instrumentService.getCandles(instrumentId, from, to);
+
+        assertEquals(1, candles.size());
+        assertEquals(LocalDate.of(2025, 6, 2), candles.get(0).date());
+        assertEquals(new BigDecimal("103.0"), candles.get(0).close());
+        verify(fauxnanceService).getCandles("AAPL", from, to);
+        verify(priceHistoryTxService).writeCandles(
+            instrumentId,
+            "USD",
+            List.of(fauxnanceCandle),
+            from,
+            to,
+            LocalDateTime.of(2025, 6, 3, 0, 0)
+        );
+    }
+
+    @Test
+    void getCandles_partialCacheFetchesAndMergesMissingFauxnanceCandles() {
+        UUID instrumentId = UUID.randomUUID();
+        LocalDate from = LocalDate.of(2025, 1, 1);
+        LocalDate to = LocalDate.of(2025, 1, 20);
+        Instrument instrument = new Instrument("AAPL", "NASDAQ", "Apple", InstrumentClass.EQUITY, CashCurrency.USD);
+        InstrumentPrice cached = candle(instrumentId, LocalDate.of(2025, 1, 1), false);
+        FauxnanceCandle fetched = fauxnanceCandle("2025-01-15", 110.0, 115.0, 108.0, 112.0);
+        when(instrumentRepository.findById(instrumentId)).thenReturn(Optional.of(instrument));
+        when(instrumentPriceRepository.findByInstrumentIdAndPriceDateBetweenOrderByPriceDateAsc(
+            instrumentId, from, to
+        )).thenReturn(List.of(cached));
+        when(fauxnanceService.getCandles("AAPL", from, to)).thenReturn(
+            new FauxnanceCandleResponse("AAPL", "USD", List.of(fetched))
+        );
+        when(clock.instant()).thenReturn(Instant.parse("2025-01-16T00:00:00Z"));
+        when(clock.getZone()).thenReturn(ZoneOffset.UTC);
+
+        List<InstrumentCandleResponse> candles = instrumentService.getCandles(instrumentId, from, to);
+
+        assertEquals(2, candles.size());
+        assertEquals(LocalDate.of(2025, 1, 1), candles.get(0).date());
+        assertEquals(LocalDate.of(2025, 1, 15), candles.get(1).date());
+        verify(fauxnanceService).getCandles("AAPL", from, to);
+        verify(priceHistoryTxService).writeCandles(
+            instrumentId,
+            "USD",
+            List.of(fetched),
+            from,
+            to,
+            LocalDateTime.of(2025, 1, 16, 0, 0)
+        );
+    }
+
+    @Test
     void getCandles_rejectsReversedRange() {
         UUID instrumentId = UUID.randomUUID();
         when(instrumentRepository.findById(instrumentId)).thenReturn(Optional.of(
@@ -244,6 +317,10 @@ class InstrumentServiceTest {
             date.atStartOfDay()
         );
         return candle;
+    }
+
+    private FauxnanceCandle fauxnanceCandle(String date, double open, double high, double low, double close) {
+        return new FauxnanceCandle(date, open, high, low, close, close, 1200.0, false);
     }
 
     @Test

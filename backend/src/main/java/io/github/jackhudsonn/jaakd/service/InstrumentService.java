@@ -6,6 +6,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.dao.DataAccessException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.github.jackhudsonn.jaakd.dto.CreateInstrumentRequest;
 import io.github.jackhudsonn.jaakd.dto.InstrumentCandleResponse;
@@ -17,11 +20,13 @@ import io.github.jackhudsonn.jaakd.exception.ValidationException;
 import io.github.jackhudsonn.jaakd.model.CashCurrency;
 import io.github.jackhudsonn.jaakd.model.Instrument;
 import io.github.jackhudsonn.jaakd.model.InstrumentClass;
+import io.github.jackhudsonn.jaakd.model.InstrumentPrice;
 import io.github.jackhudsonn.jaakd.model.UserType;
 import io.github.jackhudsonn.jaakd.repository.InstrumentRepository;
 import io.github.jackhudsonn.jaakd.repository.InstrumentPriceRepository;
 import io.github.jackhudsonn.jaakd.security.RequiresUserType;
 import io.github.jackhudsonn.jaakd.model.fauxnance.FauxnanceCandleResponse;
+import io.github.jackhudsonn.jaakd.model.fauxnance.FauxnanceCandle;
 import io.github.jackhudsonn.jaakd.model.fauxnance.FauxnanceQuoteResponse;
 import io.github.jackhudsonn.jaakd.model.fauxnance.FauxnanceSymbolResponse;
 
@@ -30,6 +35,11 @@ import java.util.List;
 import java.util.UUID;
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
+import java.math.BigDecimal;
+import java.util.Map;
+import java.util.TreeMap;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -39,27 +49,33 @@ import jakarta.validation.constraints.Size;
 @Validated
 public class InstrumentService {
 
+    private static final Logger log = LoggerFactory.getLogger(InstrumentService.class);
+
     private static final int DEFAULT_PAGE = 0;
     private static final int DEFAULT_SIZE = 25;
     private static final int MAX_SIZE = 100;
     private static final int MAX_QUOTES_BATCH_SIZE = 25;
     private static final int DEFAULT_CANDLE_SERIES_YEARS = 1;
     private static final int MAX_CANDLE_SERIES_YEARS = 5;
+    private static final int MAX_CACHED_CANDLE_GAP_DAYS = 7;
 
     private final InstrumentRepository instrumentRepository;
     private final InstrumentPriceRepository instrumentPriceRepository;
     private final FauxnanceService fauxnanceService;
+    private final PriceHistoryTxService priceHistoryTxService;
     private final Clock clock;
 
     public InstrumentService(
         InstrumentRepository instrumentRepository,
         InstrumentPriceRepository instrumentPriceRepository,
         FauxnanceService fauxnanceService,
+        PriceHistoryTxService priceHistoryTxService,
         Clock clock
     ) {
         this.instrumentRepository = instrumentRepository;
         this.instrumentPriceRepository = instrumentPriceRepository;
         this.fauxnanceService = fauxnanceService;
+        this.priceHistoryTxService = priceHistoryTxService;
         this.clock = clock;
     }
 
@@ -68,7 +84,7 @@ public class InstrumentService {
         LocalDate from,
         LocalDate to
     ) {
-        getInstrumentById(instrumentId);
+        Instrument instrument = getInstrumentById(instrumentId);
 
         LocalDate resolvedTo = to == null ? LocalDate.now(clock) : to;
         LocalDate resolvedFrom = from == null ? resolvedTo.minusYears(DEFAULT_CANDLE_SERIES_YEARS) : from;
@@ -79,10 +95,95 @@ public class InstrumentService {
             throw new InvalidInstrumentException("Candle series range must not exceed five years");
         }
 
-        return instrumentPriceRepository
+        List<InstrumentPrice> cachedPrices = instrumentPriceRepository
             .findByInstrumentIdAndPriceDateBetweenOrderByPriceDateAsc(instrumentId, resolvedFrom, resolvedTo)
             .stream()
             .filter(price -> !price.isSynthetic())
+            .toList();
+
+        if (instrument.getInstrumentClass() == InstrumentClass.CASH || hasCompleteCandleCoverage(
+            cachedPrices,
+            resolvedFrom,
+            resolvedTo
+        )) {
+            return toCandleResponses(cachedPrices);
+        }
+
+        Map<LocalDate, InstrumentCandleResponse> candlesByDate = new TreeMap<>();
+        toCandleResponses(cachedPrices).forEach(candle -> candlesByDate.put(candle.date(), candle));
+
+        FauxnanceCandleResponse externalResponse;
+        try {
+            externalResponse = fauxnanceService.getCandles(
+                FauxnanceSymbols.forInstrument(instrument),
+                resolvedFrom,
+                resolvedTo
+            );
+        } catch (RuntimeException exception) {
+            log.warn("Fauxnance candle fallback failed for {}: {}", instrument.getTicker(), exception.getMessage());
+            return List.copyOf(candlesByDate.values());
+        }
+
+        List<FauxnanceCandle> externalCandles = externalResponse == null || externalResponse.candles() == null
+            ? List.of()
+            : externalResponse.candles();
+        String currency = externalResponse == null || externalResponse.currency() == null
+                || externalResponse.currency().isBlank()
+            ? instrument.getTradingCurrency().name()
+            : externalResponse.currency().trim().toUpperCase();
+
+        if (!externalCandles.isEmpty()) {
+            try {
+                priceHistoryTxService.writeCandles(
+                    instrumentId,
+                    currency,
+                    externalCandles,
+                    resolvedFrom,
+                    resolvedTo,
+                    LocalDateTime.now(clock)
+                );
+            } catch (DataAccessException exception) {
+                log.warn("Could not cache Fauxnance candles for {}: {}", instrument.getTicker(), exception.getMessage());
+            }
+        }
+
+        for (FauxnanceCandle candle : externalCandles) {
+            InstrumentCandleResponse response = toCandleResponse(candle, currency, resolvedFrom, resolvedTo);
+            if (response != null) {
+                candlesByDate.putIfAbsent(response.date(), response);
+            }
+        }
+
+        return List.copyOf(candlesByDate.values());
+    }
+
+    private static boolean hasCompleteCandleCoverage(
+        List<InstrumentPrice> prices,
+        LocalDate from,
+        LocalDate to
+    ) {
+        if (prices.isEmpty()) {
+            return false;
+        }
+
+        if (prices.get(0).getPriceDate().isAfter(from.plusDays(MAX_CACHED_CANDLE_GAP_DAYS))
+            || prices.get(prices.size() - 1).getPriceDate().isBefore(to.minusDays(MAX_CACHED_CANDLE_GAP_DAYS))) {
+            return false;
+        }
+
+        for (int index = 1; index < prices.size(); index++) {
+            if (prices.get(index).getPriceDate().isAfter(
+                prices.get(index - 1).getPriceDate().plusDays(MAX_CACHED_CANDLE_GAP_DAYS)
+            )) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static List<InstrumentCandleResponse> toCandleResponses(List<InstrumentPrice> prices) {
+        return prices.stream()
             .map(price -> new InstrumentCandleResponse(
                 price.getPriceDate(),
                 price.getOpen(),
@@ -93,6 +194,37 @@ public class InstrumentService {
                 price.getCurrency()
             ))
             .toList();
+    }
+
+    private static InstrumentCandleResponse toCandleResponse(
+        FauxnanceCandle candle,
+        String currency,
+        LocalDate from,
+        LocalDate to
+    ) {
+        if (candle == null || Boolean.TRUE.equals(candle.synthetic())
+            || candle.date() == null || candle.open() == null || candle.high() == null
+            || candle.low() == null || candle.close() == null) {
+            return null;
+        }
+
+        try {
+            LocalDate date = LocalDate.parse(candle.date());
+            if (date.isBefore(from) || date.isAfter(to)) {
+                return null;
+            }
+            return new InstrumentCandleResponse(
+                date,
+                BigDecimal.valueOf(candle.open()),
+                BigDecimal.valueOf(candle.high()),
+                BigDecimal.valueOf(candle.low()),
+                BigDecimal.valueOf(candle.close()),
+                candle.volume() == null ? null : candle.volume().longValue(),
+                currency
+            );
+        } catch (DateTimeParseException exception) {
+            return null;
+        }
     }
 
     public List<Instrument> getAllInstruments() {
