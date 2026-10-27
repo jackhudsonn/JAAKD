@@ -1,5 +1,10 @@
 import { CashCurrency, QuoteResponse } from '@core/models/api.models';
 
+/** Currency rates expressed as units of each currency per one USD. */
+export type CashRatesByUsd = Readonly<Partial<Record<CashCurrency, number>>>;
+
+export const USD_RATES_BY_USD: CashRatesByUsd = { USD: 1 };
+
 export function toFxSymbol(base: CashCurrency, quote: CashCurrency): string {
   return `FX:${base}${quote}`;
 }
@@ -29,4 +34,20 @@ export function toReceiveAmount(amount: number | null, rate: number | null): num
   }
 
   return amount * rate;
+}
+
+export function convertAmountBetweenCurrencies(
+  amount: number,
+  fromCurrency: CashCurrency,
+  toCurrency: CashCurrency,
+  rates: CashRatesByUsd,
+): number | null {
+  const fromRate = rates[fromCurrency];
+  const toRate = rates[toCurrency];
+
+  if (fromRate === undefined || fromRate <= 0 || toRate === undefined || toRate <= 0) {
+    return null;
+  }
+
+  return (amount / fromRate) * toRate;
 }

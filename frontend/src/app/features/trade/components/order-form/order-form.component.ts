@@ -31,7 +31,6 @@ export class OrderFormComponent {
   currency = input<CashCurrency>(REPORTING_CURRENCY);
   ownedQuantity = input(0);
   accountCash = input(0);
-  backendDataMode = input(false);
   showBackButton = input(false);
   backLabel = input('Back');
 
@@ -44,9 +43,7 @@ export class OrderFormComponent {
   quantity = signal<number | null>(1);
 
   canSell = computed(() => this.ownedQuantity() > 0);
-  readonly showPriceUnavailableHint = computed(
-    () => this.backendDataMode() && this.currentPrice() <= 0,
-  );
+  readonly showPriceUnavailableHint = computed(() => this.currentPrice() <= 0);
   readonly preview = computed(() =>
     toOrderPreview({
       type: this.type(),
@@ -73,11 +70,10 @@ export class OrderFormComponent {
       return `You only own ${this.ownedQuantity()} share(s).`;
     }
 
-    const backendPriceUnavailableForBuy =
-      this.backendDataMode() && this.type() === 'buy' && this.currentPrice() <= 0;
+    const priceUnavailableForBuy = this.type() === 'buy' && this.currentPrice() <= 0;
 
     if (
-      !backendPriceUnavailableForBuy &&
+      !priceUnavailableForBuy &&
       this.currency() === REPORTING_CURRENCY &&
       this.type() === 'buy' &&
       quantity > this.maxBuyQuantity()

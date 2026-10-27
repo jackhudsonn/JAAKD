@@ -6,6 +6,7 @@ import type { CashCurrency } from '@core/models/api.models';
 import { REPORTING_CURRENCY } from '@core/models/api.models';
 import { formatCurrency } from '@shared/utils/display-format';
 import { isFlatChange } from '@shared/utils/format-percentage-change';
+import { USD_RATES_BY_USD } from '@core/utils/cash-fx';
 import {
   formatSignedPct,
   formatSignedUsd,
@@ -51,17 +52,29 @@ export class PortfolioValueWidgetComponent {
     return this.state.holdings().length > 0 || this.state.transactions().length > 0;
   }
 
-  get allTimeReturn(): ReturnView | null {
-    const transactions = this.state.transactions();
-    const cash = toCashInUsd(this.state.accountCash(), this.state.cashBalances?.());
-    const amount = toAllTimeReturn(cash, this.state.holdings(), transactions);
-    return amount === null ? null : toReturnView(amount, toNetDepositsInUsd(transactions));
+  private get cashRates() {
+    return this.state.cashRatesByUsd?.() ?? USD_RATES_BY_USD;
   }
 
-  get todayReturn(): ReturnView {
+  get allTimeReturn(): ReturnView | null {
+    const transactions = this.state.transactions();
+    const rates = this.cashRates;
+    const cash = toCashInUsd(this.state.accountCash(), this.state.cashBalances?.(), rates);
+    const amount = toAllTimeReturn(cash, this.state.holdings(), transactions, rates);
+    return amount === null
+      ? null
+      : toReturnView(amount, toNetDepositsInUsd(transactions, rates));
+  }
+
+  get todayReturn(): ReturnView | null {
     const holdings = this.state.holdings();
-    const amount = toTodayReturn(holdings, this.state.liveQuotes?.() ?? new Map());
-    const holdingsValue = toHoldingsValueInUsd(holdings);
+    const rates = this.cashRates;
+    const amount = toTodayReturn(holdings, this.state.liveQuotes?.() ?? new Map(), rates);
+    if (amount === null) {
+      return null;
+    }
+
+    const holdingsValue = toHoldingsValueInUsd(holdings, rates);
     return toReturnView(amount, holdingsValue === null ? null : holdingsValue - amount);
   }
 

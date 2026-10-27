@@ -69,7 +69,6 @@ export class TradeComponent implements OnInit, OnDestroy {
   });
   readonly maxWatchlistHoldings = this.tradeFacade.maxWatchlistHoldings;
 
-  readonly backendDataMode = this.tradeFacade.backendDataMode;
   readonly loadState = computed(() => this.tradeFacade.loadState?.() ?? 'ready');
 
   // Only one popup is ever open at a time.
@@ -93,7 +92,7 @@ export class TradeComponent implements OnInit, OnDestroy {
   constructor() {
     effect(() => {
       const orderId = this.requestedOrderId();
-      if (!orderId || (this.backendDataMode && this.loadState() !== 'ready')) {
+      if (!orderId || this.loadState() !== 'ready') {
         return;
       }
 
@@ -115,7 +114,7 @@ export class TradeComponent implements OnInit, OnDestroy {
       const currentLoadState = this.loadState();
 
       if (!this.seededOrderStatusTracking) {
-        if (this.backendDataMode && currentLoadState !== 'ready') {
+        if (currentLoadState !== 'ready') {
           return;
         }
 
@@ -127,7 +126,7 @@ export class TradeComponent implements OnInit, OnDestroy {
         return;
       }
 
-      if (this.backendDataMode && currentLoadState !== 'ready') {
+      if (currentLoadState !== 'ready') {
         return;
       }
 

@@ -182,12 +182,45 @@ describe('BackendDashboardStateService', () => {
 
     await service.load();
 
-    expect(instrumentApiService.getQuotes).toHaveBeenCalledTimes(1);
+    expect(instrumentApiService.getQuotes).toHaveBeenCalledTimes(3);
     expect(service.liveQuotes().get('AAPL')).toEqual({
       price: 190,
       changePct: -0.75,
       currency: 'USD',
     });
+  });
+
+  it('loads cash rates from direct FX quotes and inverse pairs', async () => {
+    instrumentApiService.getQuotes
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        {
+          symbol: 'FX:USDEUR',
+          price: 0.8,
+          bid: null,
+          ask: null,
+          currency: 'EUR',
+          asOf: null,
+          marketState: null,
+          changePercent: null,
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          symbol: 'FX:INRUSD',
+          price: 0.0125,
+          bid: null,
+          ask: null,
+          currency: 'USD',
+          asOf: null,
+          marketState: null,
+          changePercent: null,
+        },
+      ]);
+
+    await service.load();
+
+    expect(service.cashRatesByUsd()).toEqual({ USD: 1, EUR: 0.8, INR: 80 });
   });
 
   it('loads backend dashboard cash, holdings, orders, transactions, and watchlist', async () => {
