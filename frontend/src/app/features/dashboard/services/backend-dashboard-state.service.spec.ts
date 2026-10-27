@@ -107,6 +107,7 @@ describe('BackendDashboardStateService', () => {
 
   const portfolioApiService = {
     ensureDefault: vi.fn(async () => portfolio),
+    getPerformance: vi.fn(async () => [{ date: '2026-10-20', value: 1000 }]),
   };
 
   const holdingApiService = {
@@ -144,6 +145,9 @@ describe('BackendDashboardStateService', () => {
     sessionStorage.clear();
 
     portfolioApiService.ensureDefault.mockImplementation(async () => portfolio);
+    portfolioApiService.getPerformance.mockImplementation(async () => [
+      { date: '2026-10-20', value: 1000 },
+    ]);
     holdingApiService.listByPortfolio.mockImplementation(async () => holdings);
     instrumentApiService.list.mockImplementation(async () => instruments);
     orderLogApiService.listByPortfolio.mockImplementation(async () => orderLogs);
@@ -280,6 +284,15 @@ describe('BackendDashboardStateService', () => {
     expect(service.activeWatchlistId()).toBe('');
     expect(service.dashboardWidgets()).toBeNull();
     expect(service.backendWatchlistInstrumentOptions()).toEqual([]);
+  });
+
+  it('loads the performance series once for the cards to share', async () => {
+    await service.load();
+    await vi.waitFor(() => expect(service.performanceLoadState()).toBe('idle'));
+
+    expect(portfolioApiService.getPerformance).toHaveBeenCalledTimes(1);
+    expect(portfolioApiService.getPerformance).toHaveBeenCalledWith(portfolio.portfolioId);
+    expect(service.performance()).toEqual([{ date: '2026-10-20', value: 1000 }]);
   });
 
   it('adds and removes backend watchlist membership through watchlist API and reloads state', async () => {

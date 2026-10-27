@@ -274,6 +274,14 @@ Delete guard conditions:
 DELETE FROM portfolios WHERE "portfolioID" = :portfolioId AND "userID" = :userId;
 ```
 
+**getPortfolioDailyValues** (`GET /api/portfolios/{portfolioId}/performance`): daily value in USD, after the getPortfolioById ownership check.
+
+```sql
+SELECT * FROM "orderLogs" WHERE "portfolioID" = :portfolioId AND status = 'EXECUTED' ORDER BY timestamp;
+SELECT * FROM "instrumentPrices" WHERE "instrumentID" IN (:instrumentIds) AND "priceDate" BETWEEN :from AND :to;
+SELECT * FROM holdings WHERE "portfolioID" = :portfolioId;
+```
+
 ## Orders _(planned)_
 
 **placeOrder** (`POST /api/portfolios/{portfolioId}/orders`): records an order log and later marks it executed.

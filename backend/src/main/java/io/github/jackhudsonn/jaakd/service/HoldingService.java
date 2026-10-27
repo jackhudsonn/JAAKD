@@ -221,7 +221,7 @@ public class HoldingService {
             .orElseThrow(() -> new InvalidTradeException("Cash instrument is not configured for currency: " + currency));
     }
 
-    private BigDecimal resolveFxRate(CashCurrency sourceCurrency, CashCurrency targetCurrency) {
+    BigDecimal resolveFxRate(CashCurrency sourceCurrency, CashCurrency targetCurrency) {
         String directSymbol = toFxSymbol(sourceCurrency, targetCurrency);
         String inverseSymbol = toFxSymbol(targetCurrency, sourceCurrency);
 
