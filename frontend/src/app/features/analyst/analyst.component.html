@@ -1,6 +1,4 @@
 <main class="page-content analyst-page">
-  
-
   @if (state() !== 'ready') {
     <app-load-state-message [state]="state()" subject="analytics" (retry)="load()" />
   } @else if (!meta()?.sourceSnapshotAt) {
