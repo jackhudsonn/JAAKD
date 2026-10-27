@@ -1,0 +1,112 @@
+<section aria-label="Portfolios">
+  <div class="filters">
+    <app-segment-filters
+      idPrefix="portfolios"
+      [value]="segment()"
+      (valueChange)="changeSegment($event)"
+    />
+  </div>
+
+  @if (!keepsContent(state(), page() !== null)) {
+    <app-load-state-message [state]="state()" subject="portfolios" (retry)="loadPage()" />
+  } @else {
+    <div class="table-wrap" [class.refreshing]="state() === 'loading'">
+      <table>
+        <thead>
+          <tr>
+            @for (column of columns; track column.label) {
+              <th
+                [class.numeric]="column.numeric"
+                [attr.aria-sort]="
+                  column.sort && sort() === column.sort
+                    ? direction() === 'asc'
+                      ? 'ascending'
+                      : 'descending'
+                    : null
+                "
+              >
+                @if (column.sort) {
+                  <button
+                    type="button"
+                    class="sort-button"
+                    [class.active]="sort() === column.sort"
+                    (click)="sortBy(column)"
+                  >
+                    {{ column.label }}{{ sortIndicator(column) }}
+                  </button>
+                } @else {
+                  {{ column.label }}
+                }
+              </th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @for (portfolio of page()!.content; track portfolio.portfolioId) {
+            <tr class="clickable" (click)="open(portfolio)">
+              <td>
+                <a
+                  [routerLink]="['/analyst/portfolios', portfolio.portfolioId]"
+                  [title]="portfolio.portfolioId"
+                  (click)="$event.stopPropagation()"
+                  >{{ shortId(portfolio.portfolioId) }}</a
+                >
+              </td>
+              <td>{{ portfolio.country }}</td>
+              <td>{{ portfolio.ageBand }}</td>
+              <td class="numeric">{{ formatUsd(portfolio.marketValueUsd) }}</td>
+              <td class="numeric" [class]="signClass(portfolio.return1w)">
+                {{ formatPercent(portfolio.return1w) }}
+              </td>
+              <td class="numeric" [class]="signClass(portfolio.return1m)">
+                {{ formatPercent(portfolio.return1m) }}
+              </td>
+              <td class="numeric" [class]="signClass(portfolio.return3m)">
+                {{ formatPercent(portfolio.return3m) }}
+              </td>
+              <td class="numeric" [class]="signClass(portfolio.returnYtd)">
+                {{ formatPercent(portfolio.returnYtd) }}
+              </td>
+              <td class="numeric">{{ formatPercent(portfolio.volatilityAnn) }}</td>
+              <td class="numeric">{{ formatPercent(portfolio.maxDrawdown) }}</td>
+              <td class="numeric" [class]="signClass(portfolio.realizedPnlUsd)">
+                {{ formatUsd(portfolio.realizedPnlUsd) }}
+              </td>
+              <td class="numeric" [class]="signClass(portfolio.unrealizedPnlUsd)">
+                {{ formatUsd(portfolio.unrealizedPnlUsd) }}
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td class="empty-row" [attr.colspan]="columns.length">
+                No portfolios match these filters.
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    @if (page()!.totalPages > 1) {
+      <div class="pager">
+        <button
+          type="button"
+          class="btn btn-secondary"
+          [disabled]="pageIndex() === 0"
+          (click)="goToPage(pageIndex() - 1)"
+        >
+          Previous
+        </button>
+        <span>Page {{ pageIndex() + 1 }} of {{ page()!.totalPages }}</span>
+        <button
+          type="button"
+          class="btn btn-secondary"
+          [disabled]="!page()!.hasNext"
+          (click)="goToPage(pageIndex() + 1)"
+        >
+          Next
+        </button>
+      </div>
+    }
+  }
+</section>

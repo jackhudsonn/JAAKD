@@ -2,3 +2,7 @@
 .env.*
 !.env.*.example
 node_modules/
+
+# Python virtual environments and bytecode, anywhere in the repo (see also analytics/.gitignore).
+.venv/
+__pycache__/

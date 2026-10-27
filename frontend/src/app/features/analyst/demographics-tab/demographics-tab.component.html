@@ -1,0 +1,180 @@
+<div class="demographics-controls">
+  <div class="form-field">
+    <span class="field-label">Group by</span>
+    <div class="range-tabs" role="group" aria-label="Group portfolios by">
+      <button
+        type="button"
+        class="range-tab"
+        [class.active]="dimension() === 'ageBand'"
+        [attr.aria-pressed]="dimension() === 'ageBand'"
+        (click)="changeDimension('ageBand')"
+      >
+        Age band
+      </button>
+      <button
+        type="button"
+        class="range-tab"
+        [class.active]="dimension() === 'country'"
+        [attr.aria-pressed]="dimension() === 'country'"
+        (click)="changeDimension('country')"
+      >
+        Country
+      </button>
+    </div>
+  </div>
+
+  <div class="form-field focus-field">
+    <label for="demographics-focus">Focus</label>
+    <select id="demographics-focus" [ngModel]="focusKey()" (ngModelChange)="changeFocus($event)">
+      <option value="">All investments (class mix)</option>
+      <optgroup label="Class">
+        @for (instrumentClass of focusClasses; track instrumentClass) {
+          <option [value]="'class:' + instrumentClass">{{ classLabels[instrumentClass] }}</option>
+        }
+      </optgroup>
+      <optgroup label="Instrument">
+        @for (instrument of instruments(); track instrument.instrumentId) {
+          <option [value]="'instrument:' + instrument.instrumentId">
+            {{ instrument.ticker }} · {{ instrument.name }}
+          </option>
+        }
+      </optgroup>
+    </select>
+  </div>
+</div>
+
+@if (!keepsContent(state(), segments().length > 0)) {
+  <app-load-state-message [state]="state()" subject="groups" (retry)="load()" />
+} @else if (segments().length === 0) {
+  <p class="muted">No retail portfolios yet.</p>
+} @else {
+  <div [class.refreshing]="state() === 'loading'">
+    <div class="demographics-grid">
+      <app-widget-card
+        [title]="focus() ? 'Share in ' + focus()!.label : 'Class mix'"
+        [subtitle]="
+          (focus()
+            ? 'Part of each ' +
+              dimensionLabel().toLowerCase() +
+              '’s investments in ' +
+              focus()!.label
+            : 'How each ' + dimensionLabel().toLowerCase() + ' splits its investments') +
+          ' · click a bar for its top holdings'
+        "
+      >
+        <!-- One chart for every view, so bars animate between them. -->
+        <app-segment-bar-chart
+          [labels]="chartLabels()"
+          [datasets]="chartDatasets()"
+          [stacked]="!focus()"
+          (segmentClick)="selectSegment($event)"
+        />
+      </app-widget-card>
+
+      <app-widget-card
+        class="holdings-card"
+        [title]="selectedSegment() ? 'Top holdings · ' + selectedSegment() : 'Top holdings'"
+        [subtitle]="
+          focus()?.query?.instrumentClass
+            ? focus()!.label + ' only, by exposure'
+            : 'By exposure, share of the group’s investments'
+        "
+      >
+        @if (!selectedSegment()) {
+          <p class="muted">Choose a group in the chart or the table.</p>
+        } @else if (!keepsContent(topState(), topInstruments().length > 0)) {
+          <app-load-state-message [state]="topState()" subject="holdings" />
+        } @else if (topInstruments().length === 0) {
+          <p class="muted">Nothing held by this group.</p>
+        } @else {
+          <ol class="top-list" [class.refreshing]="topState() === 'loading'">
+            @for (
+              instrument of topInstruments();
+              track instrument.instrumentId;
+              let rank = $index
+            ) {
+              <li>
+                <button type="button" class="top-item" (click)="openInstrument(instrument)">
+                  <span class="top-rank">{{ rank + 1 }}</span>
+                  <span class="top-names">
+                    <span class="top-ticker">{{ instrument.ticker }}</span>
+                    <span class="top-name">{{ instrument.name }}</span>
+                  </span>
+                  <span class="top-figures">
+                    <span class="top-value">{{ formatUsd(instrument.exposureUsd) }}</span>
+                    <span class="top-name">{{ instrument.holderCount }} holders</span>
+                  </span>
+                  <span class="top-bar" aria-hidden="true">
+                    <span
+                      class="top-bar-fill"
+                      [style.width.%]="shareOfGroup(instrument) * 100"
+                    ></span>
+                  </span>
+                </button>
+              </li>
+            }
+          </ol>
+        }
+      </app-widget-card>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            @for (column of columns(); track column.key) {
+              <th
+                [class.numeric]="column.numeric"
+                [attr.aria-sort]="
+                  sortKey() === column.key
+                    ? direction() === 'asc'
+                      ? 'ascending'
+                      : 'descending'
+                    : null
+                "
+              >
+                <button
+                  type="button"
+                  class="sort-button"
+                  [class.active]="sortKey() === column.key"
+                  (click)="sortBy(column)"
+                >
+                  {{ column.label }}{{ sortIndicator(column) }}
+                </button>
+              </th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of sortedRows(); track row.segment) {
+            <tr
+              class="clickable"
+              [class.selected]="selectedSegment() === row.segment"
+              (click)="selectSegment(row.segment)"
+            >
+              <td>{{ row.segment }}</td>
+              @if (focus()) {
+                <td class="numeric">{{ row.focusHolders }}</td>
+                <td class="numeric">{{ formatUsd(row.focusExposureUsd) }}</td>
+                <td class="numeric">{{ formatShare(row.focusShare) }}</td>
+                <td class="numeric">{{ formatUsd(row.investedUsd) }}</td>
+              } @else {
+                <td class="numeric">{{ row.portfolioCount }}</td>
+                <td class="numeric">{{ formatUsd(row.marketValueUsd) }}</td>
+                <td class="numeric" [class]="signClass(row.averageReturnYtd)">
+                  {{ formatPercent(row.averageReturnYtd) }}
+                </td>
+                <td class="numeric">
+                  {{ row.topClass ?? '—' }}
+                  @if (row.topClassShare !== null) {
+                    <span class="muted">({{ formatShare(row.topClassShare) }})</span>
+                  }
+                </td>
+              }
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+}

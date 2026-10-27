@@ -39,6 +39,13 @@ tags:
     description: The signed-in user's profile
   - name: Orders
     description: Order placement - PLANNED, not implemented yet (BR-04, BR-05, BR-08, BR-09)
+  - name: Analytics
+    description: |
+      Analyst view - performance of instruments, portfolios and holdings over time, read from the
+      separate analytics database that is rebuilt nightly from a copy of production. Restricted to
+      ADMIN or ANALYST user types. Portfolios are pseudonymous (no names, emails or DOB). Returns and
+      drawdowns are fractions (0.05 = 5%); money is in USD. Answers 503 while analytics is disabled,
+      unreachable or not built yet.
 
 paths:
   # ------------------------------------------------------------------- Auth
@@ -689,7 +696,8 @@ paths:
       tags: [Instruments]
       summary: Find an instrument's price at a point in time (PLANNED)
       description: >
-        PLANNED - not implemented yet, and needs a new `instrumentPrices` table.
+        PLANNED - not implemented yet. The `instrumentPrices` table it reads now exists and is
+        filled nightly from Fauxnance candles (see `POST /api/instruments/prices/refresh`).
         Backs the `findInstrumentByNameAndTime` query. Returns the most recent
         quote at or before `at`. Supports BR-08 (price at execution) and BR-13
         (indicative price before submitting).
@@ -1912,6 +1920,495 @@ paths:
         "500":
           $ref: "#/components/responses/ServerError"
 
+  /api/instruments/prices/refresh:
+    post:
+      tags: [Instruments]
+      summary: Refresh daily price history from Fauxnance
+      description: |
+        Restricted to ADMIN. Starts a background refetch of daily candles for every non-cash
+        instrument into `instrumentPrices` (the same job runs nightly at 22:00 UTC) and returns
+        straight away.
+      operationId: refreshPriceHistory
+      responses:
+        "202":
+          description: Refresh started
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  # -------------------------------------------------------------- Analytics
+  /api/analytics/meta:
+    get:
+      tags: [Analytics]
+      summary: When the analytics data was built
+      description: Both timestamps are null before the first nightly build.
+      operationId: getAnalyticsMeta
+      responses:
+        "200":
+          description: Build times
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalyticsMetaResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+
+  /api/analytics/summary:
+    get:
+      tags: [Analytics]
+      summary: Exposure and returns by instrument class
+      description: Retail portfolios only. With country or ageBand, positions and exposure count only that segment.
+      operationId: getAnalyticsSummary
+      parameters:
+        - $ref: "#/components/parameters/SegmentCountry"
+        - $ref: "#/components/parameters/SegmentAgeBand"
+      responses:
+        "200":
+          description: One row per instrument class, largest exposure first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ClassSummaryResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+
+  /api/analytics/countries:
+    get:
+      tags: [Analytics]
+      summary: Countries with at least one retail portfolio
+      description: For filter dropdowns. A missing country is "Unknown", listed last.
+      operationId: listAnalyticsCountries
+      responses:
+        "200":
+          description: Alphabetical, "Unknown" last
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+
+  /api/analytics/segments:
+    get:
+      tags: [Analytics]
+      summary: Retail portfolios grouped by age band or country, with each group's class mix
+      operationId: listAnalyticsSegments
+      parameters:
+        - name: by
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [ageBand, country]
+            default: ageBand
+      responses:
+        "200":
+          description: Age bands youngest first; countries alphabetically with "Unknown" last
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SegmentSummaryResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+
+  /api/analytics/segments/exposure:
+    get:
+      tags: [Analytics]
+      summary: Each age band's or country's exposure to one class or instrument
+      description: >-
+        Retail portfolios only, cash excluded. segmentTotalUsd is everything the segment has invested, so
+        exposureUsd / segmentTotalUsd compares segments of different sizes. Neither filter: all investments.
+      operationId: getAnalyticsSegmentExposure
+      parameters:
+        - name: by
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [ageBand, country]
+            default: ageBand
+        - name: instrumentClass
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [EQUITY, ETF, FX, CRYPTO]
+        - name: instrumentId
+          in: query
+          required: false
+          description: Not together with instrumentClass
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Same order as /api/analytics/segments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SegmentExposureResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+
+  /api/analytics/instruments:
+    get:
+      tags: [Analytics]
+      summary: Instrument performance leaderboard
+      description: >-
+        Holdings columns (holderCount, exposureUsd, netFlow30dUsd) count retail portfolios, narrowed to a segment
+        by country and ageBand. Returns and risk belong to the instrument and don't change with the segment.
+      operationId: listInstrumentPerformance
+      parameters:
+        - name: instrumentClass
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [EQUITY, ETF, FX, CRYPTO, CASH]
+        - name: search
+          in: query
+          required: false
+          description: Case-insensitive match anywhere in the ticker or name
+          schema:
+            type: string
+        - $ref: "#/components/parameters/SegmentCountry"
+        - $ref: "#/components/parameters/SegmentAgeBand"
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [ticker, name, instrumentClass, lastClose, return1w, return1m, return3m, returnYtd, volatility, maxDrawdown, holders, exposure, netFlow30d]
+            default: exposure
+        - name: direction
+          in: query
+          required: false
+          description: Missing values always sort last
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+      responses:
+        "200":
+          description: Instruments
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstrumentPerformancePageResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+
+  /api/analytics/instruments/{instrumentId}:
+    get:
+      tags: [Analytics]
+      summary: One instrument's performance
+      operationId: getInstrumentPerformance
+      parameters:
+        - $ref: "#/components/parameters/InstrumentId"
+      responses:
+        "200":
+          description: Instrument performance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstrumentPerformanceResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+
+  /api/analytics/instruments/{instrumentId}/series:
+    get:
+      tags: [Analytics]
+      summary: Daily prices and returns for an instrument
+      description: Defaults to the year ending today; at most five years per request.
+      operationId: getInstrumentSeries
+      parameters:
+        - $ref: "#/components/parameters/InstrumentId"
+        - $ref: "#/components/parameters/SeriesFrom"
+        - $ref: "#/components/parameters/SeriesTo"
+      responses:
+        "200":
+          description: Oldest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/InstrumentPricePoint"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+
+  /api/analytics/portfolios:
+    get:
+      tags: [Analytics]
+      summary: Retail portfolio performance
+      operationId: listPortfolioPerformance
+      parameters:
+        - $ref: "#/components/parameters/SegmentCountry"
+        - $ref: "#/components/parameters/SegmentAgeBand"
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [country, ageBand, marketValue, return1w, return1m, return3m, returnYtd, volatility, maxDrawdown, realizedPnl, unrealizedPnl]
+            default: marketValue
+        - name: direction
+          in: query
+          required: false
+          description: Missing values always sort last
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+      responses:
+        "200":
+          description: Portfolios
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PortfolioPerformancePageResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+
+  /api/analytics/portfolios/{portfolioId}:
+    get:
+      tags: [Analytics]
+      summary: One portfolio's performance
+      operationId: getPortfolioPerformance
+      parameters:
+        - $ref: "#/components/parameters/PortfolioId"
+      responses:
+        "200":
+          description: Portfolio performance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PortfolioPerformanceResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+
+  /api/analytics/portfolios/{portfolioId}/series:
+    get:
+      tags: [Analytics]
+      summary: Daily value and time-weighted return for a portfolio
+      description: Defaults to the year ending today; at most five years per request.
+      operationId: getPortfolioSeries
+      parameters:
+        - $ref: "#/components/parameters/PortfolioId"
+        - $ref: "#/components/parameters/SeriesFrom"
+        - $ref: "#/components/parameters/SeriesTo"
+      responses:
+        "200":
+          description: Oldest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PortfolioValuePoint"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+
+  /api/analytics/portfolios/{portfolioId}/class-series:
+    get:
+      tags: [Analytics]
+      summary: Daily value and P&L of a portfolio's holdings in one instrument class
+      description: Defaults to the year ending today; at most five years per request.
+      operationId: getPortfolioClassSeries
+      parameters:
+        - $ref: "#/components/parameters/PortfolioId"
+        - name: instrumentClass
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [EQUITY, ETF, FX, CRYPTO, CASH]
+        - $ref: "#/components/parameters/SeriesFrom"
+        - $ref: "#/components/parameters/SeriesTo"
+      responses:
+        "200":
+          description: Oldest first; empty when the portfolio held nothing in the class
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ClassValuePoint"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+
+  /api/analytics/portfolios/{portfolioId}/holdings:
+    get:
+      tags: [Analytics]
+      summary: A portfolio's open positions on its latest built day
+      operationId: getPortfolioHoldingSnapshot
+      parameters:
+        - $ref: "#/components/parameters/PortfolioId"
+      responses:
+        "200":
+          description: Largest market value first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/HoldingSnapshotResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+
+  /api/analytics/holdings/{holdingId}/series:
+    get:
+      tags: [Analytics]
+      summary: Daily value and P&L for a holding
+      description: Defaults to the year ending today; at most five years per request.
+      operationId: getHoldingSeries
+      parameters:
+        - $ref: "#/components/parameters/HoldingId"
+        - $ref: "#/components/parameters/SeriesFrom"
+        - $ref: "#/components/parameters/SeriesTo"
+      responses:
+        "200":
+          description: Oldest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/HoldingValuePoint"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+
 components:
   securitySchemes:
     sessionCookie:
@@ -1985,6 +2482,38 @@ components:
         type: string
         maxLength: 20
       example: AAPL
+    SegmentCountry:
+      name: country
+      in: query
+      required: false
+      description: Owner's country, case-insensitive exact match ("Unknown" for none); see /api/analytics/countries
+      schema:
+        type: string
+    SegmentAgeBand:
+      name: ageBand
+      in: query
+      required: false
+      schema:
+        type: string
+        enum: ["<25", "25-34", "35-44", "45-54", "55-64", "65+", unknown]
+    SeriesFrom:
+      name: from
+      in: query
+      required: false
+      description: Inclusive start date; defaults to one year before `to`
+      schema:
+        type: string
+        format: date
+      example: "2026-01-01"
+    SeriesTo:
+      name: to
+      in: query
+      required: false
+      description: Inclusive end date; defaults to today (UTC)
+      schema:
+        type: string
+        format: date
+      example: "2026-10-16"
 
   responses:
     BadRequest:
@@ -2074,6 +2603,16 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/ErrorResponse"
+    ServiceUnavailable:
+      description: The analytics database is disabled, unreachable, or not built yet
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            timestamp: "2026-10-20T09:00:00Z"
+            message: Analytics data is temporarily unavailable
+            details: null
 
   schemas:
     ErrorResponse:
@@ -2514,6 +3053,287 @@ components:
           type: integer
         hasNext:
           type: boolean
+
+    AnalyticsMetaResponse:
+      type: object
+      properties:
+        sourceSnapshotAt:
+          type: [string, "null"]
+          format: date-time
+          description: When production was read for the latest build
+        builtAt:
+          type: [string, "null"]
+          format: date-time
+          description: When the latest build finished
+
+    ClassSummaryResponse:
+      type: object
+      properties:
+        instrumentClass:
+          type: string
+        instrumentCount:
+          type: integer
+          format: int64
+        positionCount:
+          type: integer
+          format: int64
+          description: Open portfolio positions across instruments of this class
+        exposureUsd:
+          type: number
+        averageReturn1m:
+          type: [number, "null"]
+
+    InstrumentPerformanceResponse:
+      type: object
+      properties:
+        instrumentId:
+          type: string
+          format: uuid
+        ticker:
+          type: string
+        name:
+          type: string
+        market:
+          type: string
+        instrumentClass:
+          type: string
+        tradingCurrency:
+          type: string
+        lastCloseUsd:
+          type: [number, "null"]
+        return1w:
+          type: [number, "null"]
+        return1m:
+          type: [number, "null"]
+        return3m:
+          type: [number, "null"]
+        returnYtd:
+          type: [number, "null"]
+        volatilityAnn:
+          type: [number, "null"]
+          description: Annualised standard deviation of daily returns over the last year
+        maxDrawdown:
+          type: [number, "null"]
+          description: Largest peak-to-trough fall over the last year, as a negative fraction
+        holderCount:
+          type: integer
+          format: int64
+        exposureUsd:
+          type: number
+        netFlow30dUsd:
+          type: number
+          description: Buys minus sells over the last 30 days
+
+    InstrumentPerformancePageResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/InstrumentPerformanceResponse"
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+        hasNext:
+          type: boolean
+
+    InstrumentPricePoint:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        close:
+          type: number
+          description: Raw close in the instrument's trading currency
+        closeUsd:
+          type: number
+        dailyReturn:
+          type: [number, "null"]
+          description: From split- and dividend-adjusted closes
+        cumulativeReturn:
+          type: [number, "null"]
+
+    PortfolioPerformanceResponse:
+      type: object
+      properties:
+        portfolioId:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        country:
+          type: string
+          description: '"Unknown" when the owner has no country'
+        ageBand:
+          type: string
+          enum: ["<25", "25-34", "35-44", "45-54", "55-64", "65+", unknown]
+        marketValueUsd:
+          type: number
+        return1w:
+          type: [number, "null"]
+        return1m:
+          type: [number, "null"]
+        return3m:
+          type: [number, "null"]
+        returnYtd:
+          type: [number, "null"]
+        volatilityAnn:
+          type: [number, "null"]
+        maxDrawdown:
+          type: [number, "null"]
+        realizedPnlUsd:
+          type: number
+        unrealizedPnlUsd:
+          type: number
+
+    PortfolioPerformancePageResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/PortfolioPerformanceResponse"
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+        hasNext:
+          type: boolean
+
+    PortfolioValuePoint:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        marketValueUsd:
+          type: number
+        cashUsd:
+          type: number
+        netExternalFlowUsd:
+          type: number
+          description: Deposits minus withdrawals that day
+        dailyReturn:
+          type: [number, "null"]
+        cumulativeTwr:
+          type: [number, "null"]
+          description: Time-weighted return since the portfolio's first day, so cash moved in or out isn't counted as performance
+
+    HoldingSnapshotResponse:
+      type: object
+      properties:
+        holdingId:
+          type: string
+          format: uuid
+        instrumentId:
+          type: string
+          format: uuid
+        ticker:
+          type: string
+        name:
+          type: string
+        instrumentClass:
+          type: string
+        asOfDate:
+          type: string
+          format: date
+        quantity:
+          type: number
+        costBasisUsd:
+          type: number
+        marketValueUsd:
+          type: [number, "null"]
+        realizedPnlToDateUsd:
+          type: number
+        unrealizedPnlUsd:
+          type: [number, "null"]
+
+    HoldingValuePoint:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        quantity:
+          type: number
+        costBasisUsd:
+          type: number
+        marketValueUsd:
+          type: [number, "null"]
+        realizedPnlToDateUsd:
+          type: number
+        unrealizedPnlUsd:
+          type: [number, "null"]
+
+    ClassValuePoint:
+      type: object
+      description: One day of a portfolio's holdings in one class, added up (no quantity or time-weighted return)
+      properties:
+        date:
+          type: string
+          format: date
+        costBasisUsd:
+          type: number
+        marketValueUsd:
+          type: [number, "null"]
+        realizedPnlToDateUsd:
+          type: number
+        unrealizedPnlUsd:
+          type: [number, "null"]
+
+    SegmentSummaryResponse:
+      type: object
+      properties:
+        segment:
+          type: string
+          description: The age band or country
+        portfolioCount:
+          type: integer
+        marketValueUsd:
+          type: number
+        averageReturnYtd:
+          type: [number, "null"]
+        classes:
+          type: array
+          description: Largest exposure first; cash excluded
+          items:
+            $ref: "#/components/schemas/SegmentClassExposure"
+
+    SegmentExposureResponse:
+      type: object
+      properties:
+        segment:
+          type: string
+        exposureUsd:
+          type: number
+        holderCount:
+          type: integer
+        segmentTotalUsd:
+          type: number
+
+    SegmentClassExposure:
+      type: object
+      properties:
+        instrumentClass:
+          type: string
+          enum: [EQUITY, ETF, FX, CRYPTO]
+        exposureUsd:
+          type: number
+        holderCount:
+          type: integer
 
     AuditHoldingPageResponse:
       type: object

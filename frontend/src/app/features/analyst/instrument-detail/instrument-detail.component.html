@@ -1,0 +1,105 @@
+<a class="back-link" routerLink="/analyst/instruments">← All instruments</a>
+
+@if (state() !== 'ready') {
+  <app-load-state-message [state]="state()" subject="instrument" (retry)="loadInstrument()" />
+} @else {
+  @let i = instrument()!;
+
+  <div class="page-heading">
+    <h2>{{ i.ticker }}</h2>
+    <span class="muted">{{ i.name }} · {{ classLabels[i.instrumentClass] }} · {{ i.market }}</span>
+    @if (i.tradingCurrency !== 'USD') {
+      <span class="muted">Trades in {{ i.tradingCurrency }}; values below are in USD.</span>
+    }
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat">
+      <span class="stat-label">Last close</span>
+      <span class="stat-value">{{ formatUsd(i.lastCloseUsd) }}</span>
+      @if (lastPriceDate()) {
+        <span class="muted">on {{ lastPriceDate() | date: 'mediumDate' }}</span>
+      }
+    </div>
+    <div class="stat">
+      <span class="stat-label">1W / 1M</span>
+      <span class="stat-value">
+        <span [class]="signClass(i.return1w)">{{ formatPercent(i.return1w) }}</span>
+        /
+        <span [class]="signClass(i.return1m)">{{ formatPercent(i.return1m) }}</span>
+      </span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">3M / YTD</span>
+      <span class="stat-value">
+        <span [class]="signClass(i.return3m)">{{ formatPercent(i.return3m) }}</span>
+        /
+        <span [class]="signClass(i.returnYtd)">{{ formatPercent(i.returnYtd) }}</span>
+      </span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">Volatility (annual)</span>
+      <span class="stat-value">{{ formatPercent(i.volatilityAnn) }}</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">Max drawdown (1Y)</span>
+      <span class="stat-value negative">{{ formatPercent(i.maxDrawdown) }}</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">Exposure</span>
+      <span class="stat-value">{{ formatUsd(i.exposureUsd) }}</span>
+      <span class="muted">{{ i.holderCount }} portfolios hold it</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">Net flow (30 days)</span>
+      <span class="stat-value" [class]="signClass(i.netFlow30dUsd)">
+        {{ formatUsd(i.netFlow30dUsd) }}
+      </span>
+    </div>
+  </div>
+
+  <div class="range-tabs" role="group" aria-label="Chart range">
+    @for (option of rangeOptions; track option) {
+      <button
+        type="button"
+        class="range-tab"
+        [class.active]="range() === option"
+        [attr.aria-pressed]="range() === option"
+        (click)="range.set(option)"
+      >
+        {{ option }}
+      </button>
+    }
+  </div>
+
+  @if (!keepsContent(seriesState(), series().length > 0)) {
+    <app-load-state-message
+      [state]="seriesState()"
+      subject="price history"
+      (retry)="loadSeries()"
+    />
+  } @else if (series().length === 0) {
+    <p class="muted">No prices in this range.</p>
+  } @else {
+    <div class="chart-grid" [class.refreshing]="seriesState() === 'loading'">
+      <app-widget-card title="Price (USD)" [subtitle]="range() + ' daily close'">
+        <app-line-chart
+          [points]="pricePoints()"
+          [positive]="(rangeReturn() ?? 0) >= 0"
+          seriesLabel="Close"
+        />
+      </app-widget-card>
+      <app-widget-card
+        title="Return"
+        [subtitle]="'Over ' + range() + ': ' + formatPercent(rangeReturn())"
+      >
+        <app-line-chart
+          [points]="returnPoints()"
+          [positive]="(rangeReturn() ?? 0) >= 0"
+          valueFormat="percent"
+          seriesLabel="Return"
+        />
+      </app-widget-card>
+    </div>
+  }
+}

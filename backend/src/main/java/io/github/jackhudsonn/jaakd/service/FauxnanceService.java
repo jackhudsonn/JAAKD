@@ -1,5 +1,6 @@
 package io.github.jackhudsonn.jaakd.service;
 
+import java.time.LocalDate;
 import java.util.concurrent.CompletableFuture;
 import java.util.List;
 import io.github.jackhudsonn.jaakd.model.fauxnance.FauxnanceCandleResponse;
@@ -25,6 +26,11 @@ public interface FauxnanceService {
     FauxnanceCandleResponse getCandles(String symbol);
 
     CompletableFuture<FauxnanceCandleResponse> getCandlesAsync(String symbol);
+
+    // from/to are inclusive and optional; Fauxnance defaults to the year before to, and allows at most ten years.
+    FauxnanceCandleResponse getCandles(String symbol, LocalDate from, LocalDate to);
+
+    CompletableFuture<FauxnanceCandleResponse> getCandlesAsync(String symbol, LocalDate from, LocalDate to);
 
     List<FauxnanceQuoteResponse> getQuotes(List<String> symbols);
 

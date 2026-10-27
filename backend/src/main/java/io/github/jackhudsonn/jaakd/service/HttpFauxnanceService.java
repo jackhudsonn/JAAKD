@@ -2,6 +2,7 @@ package io.github.jackhudsonn.jaakd.service;
 
 import java.net.URI;
 import java.time.Clock;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -47,7 +48,7 @@ public class HttpFauxnanceService implements FauxnanceService {
     private final FauxnanceProperties fauxnanceProperties;
     private final ResponseCache<QuoteKey, List<FauxnanceQuoteResponse>> quoteCache;
     private final ResponseCache<SymbolKey, FauxnanceSymbolResponse> symbolCache;
-    private final ResponseCache<SymbolKey, FauxnanceCandleResponse> candleCache;
+    private final ResponseCache<CandleKey, FauxnanceCandleResponse> candleCache;
     private final ExecutorService fauxnanceRequestExecutor;
     private final ScheduledExecutorService fauxnanceRetryScheduler;
 
@@ -114,20 +115,38 @@ public class HttpFauxnanceService implements FauxnanceService {
 
     @Override
     public FauxnanceCandleResponse getCandles(String symbol) {
-        return await(getCandlesAsync(symbol));
+        return getCandles(symbol, null, null);
     }
 
     @Override
     public CompletableFuture<FauxnanceCandleResponse> getCandlesAsync(String symbol) {
+        return getCandlesAsync(symbol, null, null);
+    }
+
+    @Override
+    public FauxnanceCandleResponse getCandles(String symbol, LocalDate from, LocalDate to) {
+        return await(getCandlesAsync(symbol, from, to));
+    }
+
+    @Override
+    public CompletableFuture<FauxnanceCandleResponse> getCandlesAsync(String symbol, LocalDate from, LocalDate to) {
         String normalizedSymbol = normalizeSymbol(symbol);
+        Map<String, String> queryParams = new LinkedHashMap<>();
+        if (from != null) {
+            queryParams.put("from", from.toString());
+        }
+        if (to != null) {
+            queryParams.put("to", to.toString());
+        }
+
         FauxnanceProperties.Cache cache = fauxnanceProperties.getCache();
 
         return candleCache.get(
-            new SymbolKey(normalizedSymbol),
+            new CandleKey(normalizedSymbol, from, to),
             cache.getCandleTtl(),
             cache.getStaleTtl(),
-            () -> getJsonWithRetryAsync("/candles/{symbol}", Map.of("symbol", normalizedSymbol))
-                .thenApply(json -> toValue(json, FauxnanceCandleResponse.class, "/candles/{symbol}"))
+            () -> getJsonWithRetryAsync("/candles/{symbol}", Map.of("symbol", normalizedSymbol), queryParams)
+                .thenApply(this::parseCandlesResponse)
         );
     }
 
@@ -458,6 +477,17 @@ public class HttpFauxnanceService implements FauxnanceService {
         return toValue(symbolNode, FauxnanceSymbolResponse.class, "/symbols/{symbol}");
     }
 
+    // Candles arrive as { "data": { symbol, currency, candles }, "meta": ... }.
+    private FauxnanceCandleResponse parseCandlesResponse(JsonNode root) {
+        JsonNode candlesNode = root;
+        JsonNode data = root.get("data");
+        if (data != null && data.isObject()) {
+            candlesNode = data;
+        }
+
+        return toValue(candlesNode, FauxnanceCandleResponse.class, "/candles/{symbol}");
+    }
+
     private String normalizeSymbol(String symbol) {
         if (symbol == null || symbol.isBlank()) {
             throw new FauxnanceClientException("Symbol is required");
@@ -470,5 +500,9 @@ public class HttpFauxnanceService implements FauxnanceService {
     }
 
     private record SymbolKey(String symbol) {
+    }
+
+    // The date range is part of the key, so different ranges for one symbol are cached separately.
+    private record CandleKey(String symbol, LocalDate from, LocalDate to) {
     }
 }

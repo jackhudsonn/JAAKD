@@ -1,0 +1,88 @@
+@if (portfolioId()) {
+  <a class="back-link" [routerLink]="['/analyst/portfolios', portfolioId()]">
+    ← Portfolio {{ shortId(portfolioId()!) }}
+  </a>
+} @else {
+  <a class="back-link" routerLink="/analyst/portfolios">← All portfolios</a>
+}
+
+<div class="page-heading">
+  @if (holding(); as h) {
+    <h2>{{ h.ticker }}</h2>
+    <span class="muted">{{ h.name }} · {{ classLabels[h.instrumentClass] }}</span>
+  } @else {
+    <h2 [title]="holdingId()">Holding {{ shortId(holdingId()) }}</h2>
+  }
+</div>
+
+<div class="range-tabs" role="group" aria-label="Chart range">
+  @for (option of rangeOptions; track option) {
+    <button
+      type="button"
+      class="range-tab"
+      [class.active]="range() === option"
+      [attr.aria-pressed]="range() === option"
+      (click)="range.set(option)"
+    >
+      {{ option }}
+    </button>
+  }
+</div>
+
+@if (!keepsContent(state(), series().length > 0)) {
+  <app-load-state-message [state]="state()" subject="holding" (retry)="loadSeries()" />
+} @else if (series().length === 0) {
+  <p class="muted">No history in this range.</p>
+} @else {
+  @let last = latest()!;
+
+  <div class="stat-grid" [class.refreshing]="state() === 'loading'">
+    <div class="stat">
+      <span class="stat-label">Quantity</span>
+      <span class="stat-value">{{ formatQuantity(last.quantity) }}</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">Cost basis</span>
+      <span class="stat-value">{{ formatUsd(last.costBasisUsd) }}</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">Market value</span>
+      <span class="stat-value">{{ formatUsd(last.marketValueUsd) }}</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">Realized P&amp;L</span>
+      <span class="stat-value" [class]="signClass(last.realizedPnlToDateUsd)">
+        {{ formatUsd(last.realizedPnlToDateUsd) }}
+      </span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">Unrealized P&amp;L</span>
+      <span class="stat-value" [class]="signClass(last.unrealizedPnlUsd)">
+        {{ formatUsd(last.unrealizedPnlUsd) }}
+      </span>
+    </div>
+  </div>
+
+  <div class="chart-grid" [class.refreshing]="state() === 'loading'">
+    <app-widget-card title="Market value vs cost basis" subtitle="USD, end of each day">
+      <app-line-chart
+        [points]="valuePoints()"
+        [comparePoints]="costPoints()"
+        [positive]="(last.unrealizedPnlUsd ?? 0) >= 0"
+        seriesLabel="Market value"
+        compareLabel="Cost basis"
+      />
+      <p class="chart-legend">
+        <span><span class="legend-swatch"></span>Market value</span>
+        <span><span class="legend-swatch compare"></span>Cost basis</span>
+      </p>
+    </app-widget-card>
+    <app-widget-card title="Total P&L" subtitle="Realized + unrealized, USD">
+      <app-line-chart
+        [points]="pnlPoints()"
+        [positive]="(totalPnl() ?? 0) >= 0"
+        seriesLabel="P&L"
+      />
+    </app-widget-card>
+  </div>
+}

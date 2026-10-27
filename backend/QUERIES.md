@@ -215,6 +215,21 @@ ON CONFLICT (ticker) DO UPDATE
 SET name = EXCLUDED.name, "logoUrl" = EXCLUDED."logoUrl", description = EXCLUDED.description;
 ```
 
+**refreshPriceHistory** (`POST /api/instruments/prices/refresh`, admin only; also runs nightly at 22:00 UTC): refetches daily candles for every non-cash instrument. Per instrument, one read of the window, then inserts for new days and updates only for changed days (synthetic days replaced by real data, `adjClose` restated after a split or dividend).
+
+```sql
+SELECT * FROM "instrumentPrices"
+WHERE "instrumentID" = :instrumentId AND "priceDate" BETWEEN :from AND :to;
+
+INSERT INTO "instrumentPrices" ("instrumentID", "priceDate", open, high, low, close, "adjClose", volume, currency, synthetic, "fetchedAt")
+VALUES (:instrumentId, :priceDate, :open, :high, :low, :close, :adjClose, :volume, :currency, :synthetic, :fetchedAt);
+
+UPDATE "instrumentPrices"
+SET open = :open, high = :high, low = :low, close = :close, "adjClose" = :adjClose,
+    volume = :volume, currency = :currency, synthetic = :synthetic, "fetchedAt" = :fetchedAt
+WHERE "instrumentID" = :instrumentId AND "priceDate" = :priceDate;
+```
+
 **getQuotesByTickers** (`GET /api/instruments/quotes?symbols=`): live quotes for up to 25 tickers, including `changePercent`. No SQL: the backend calls Fauxnance `/quotes`.
 
 **getQuoteByTicker** (`GET /api/instruments/quotes/{ticker}`): live quote for one ticker. No SQL: the backend calls Fauxnance `/quotes`.
@@ -433,4 +448,162 @@ UPDATE profiles
 SET "firstName" = :firstName, "lastName" = :lastName, username = :username, city = :city,
     state = :state, country = :country, "zipCode" = :zipCode, dob = :dob, avatar = :avatar
 WHERE "userID" = :userId;
+```
+
+## Analytics
+
+Read-only queries against the separate analytics database (schema `analytics`), which `analytics/dbt` rebuilds nightly from a copy of production. Restricted to ADMIN or ANALYST user types (`@RequiresUserType` on `AnalyticsService`). Sort columns come from an allowlist; filters are bound parameters. Paged lists also run the same `WHERE` as `SELECT COUNT(*)`.
+
+**getAnalyticsMeta** (`GET /api/analytics/meta`): when the data was built.
+
+```sql
+SELECT source_snapshot_at, built_at FROM analytics.meta_build;
+```
+
+The marts count retail portfolios only. Instrument holdings figures (holders, exposure, net flow) come from `agg_instrument_segment`, summed over the segments that match the optional `country` and `ageBand` filters:
+
+```sql
+WITH s AS (
+  SELECT instrument_id, SUM(holder_count) AS holder_count, SUM(exposure_usd) AS exposure_usd,
+         SUM(net_flow_30d_usd) AS net_flow_30d_usd
+  FROM analytics.agg_instrument_segment
+  WHERE (:country IS NULL OR UPPER(country) = UPPER(:country))
+    AND (:ageBand IS NULL OR age_band = :ageBand)
+  GROUP BY instrument_id
+)
+```
+
+**getAnalyticsSummary** (`GET /api/analytics/summary`): exposure and returns by instrument class, optionally for one segment.
+
+```sql
+WITH s AS (...)
+SELECT a.instrument_class, COUNT(*) AS instrument_count, COALESCE(SUM(s.holder_count), 0) AS position_count,
+       COALESCE(SUM(s.exposure_usd), 0) AS exposure_usd, AVG(a.return_1m) AS average_return1m
+FROM analytics.agg_instrument_performance a
+LEFT JOIN s ON s.instrument_id = a.instrument_id
+GROUP BY a.instrument_class
+ORDER BY exposure_usd DESC, a.instrument_class;
+```
+
+**listAnalyticsCountries** (`GET /api/analytics/countries`): countries for the filter dropdowns, sorted in Java with "Unknown" last.
+
+```sql
+SELECT DISTINCT COALESCE(p.country, 'Unknown') AS country FROM analytics.agg_portfolio_performance p;
+```
+
+**listAnalyticsSegments** (`GET /api/analytics/segments?by=ageBand|country`): retail portfolios per age band or country, then each segment's class mix, combined in Java.
+
+```sql
+SELECT <age_band | COALESCE(country, 'Unknown')> AS segment, COUNT(*) AS portfolio_count,
+       COALESCE(SUM(market_value_usd), 0) AS market_value_usd, AVG(return_ytd) AS average_return_ytd
+FROM analytics.agg_portfolio_performance p
+GROUP BY segment;
+
+SELECT s.<age_band | country> AS segment, d.instrument_class,
+       SUM(s.exposure_usd) AS exposure_usd, SUM(s.holder_count) AS holder_count
+FROM analytics.agg_instrument_segment s
+JOIN analytics.dim_instrument d ON d.instrument_id = s.instrument_id
+GROUP BY segment, d.instrument_class
+ORDER BY exposure_usd DESC, d.instrument_class;
+```
+
+**getAnalyticsSegmentExposure** (`GET /api/analytics/segments/exposure?by=&instrumentClass=|instrumentId=`): each segment's exposure to one class or instrument, next to its total investments; sorted in Java like `/segments`.
+
+```sql
+WITH totals AS (
+  SELECT s.<age_band | country> AS segment, SUM(s.exposure_usd) AS segment_total_usd
+  FROM analytics.agg_instrument_segment s GROUP BY segment
+),
+focus AS (
+  SELECT s.<age_band | country> AS segment, SUM(s.exposure_usd) AS exposure_usd, SUM(s.holder_count) AS holder_count
+  FROM analytics.agg_instrument_segment s
+  JOIN analytics.dim_instrument d ON d.instrument_id = s.instrument_id
+  WHERE (:instrumentClass IS NULL OR d.instrument_class = :instrumentClass)
+    AND (:instrumentId IS NULL OR s.instrument_id = :instrumentId)
+  GROUP BY segment
+)
+SELECT t.segment, COALESCE(f.exposure_usd, 0), COALESCE(f.holder_count, 0), t.segment_total_usd
+FROM totals t LEFT JOIN focus f ON f.segment = t.segment;
+```
+
+**listInstrumentPerformance** (`GET /api/analytics/instruments`): leaderboard, optionally by class, search and segment. Every instrument is listed; outside the segment its holdings figures are 0.
+
+```sql
+WITH s AS (...)
+SELECT a.<returns and risk>, d.market, d.trading_currency,
+       COALESCE(s.holder_count, 0), COALESCE(s.exposure_usd, 0), COALESCE(s.net_flow_30d_usd, 0)
+FROM analytics.agg_instrument_performance a
+JOIN analytics.dim_instrument d ON d.instrument_id = a.instrument_id
+LEFT JOIN s ON s.instrument_id = a.instrument_id
+WHERE (:instrumentClass IS NULL OR a.instrument_class = :instrumentClass)
+  AND (:search IS NULL OR a.ticker ILIKE :search OR a.name ILIKE :search)  -- '%' || escaped search || '%'
+ORDER BY <allowlisted column> <ASC|DESC> NULLS LAST, a.instrument_id
+LIMIT :size OFFSET :page * :size;
+```
+
+**getInstrumentPerformance** (`GET /api/analytics/instruments/{instrumentId}`): the same row for one instrument, all segments (`WHERE a.instrument_id = :instrumentId`).
+
+**getInstrumentSeries** (`GET /api/analytics/instruments/{instrumentId}/series`): daily prices, one year by default, at most five.
+
+```sql
+SELECT price_date, close, close_usd, daily_return, cumulative_return
+FROM analytics.fct_instrument_price_daily
+WHERE instrument_id = :instrumentId AND price_date BETWEEN :from AND :to
+ORDER BY price_date;
+```
+
+**listPortfolioPerformance** (`GET /api/analytics/portfolios`): pseudonymous retail portfolios, filterable by country and age band.
+
+```sql
+SELECT p.<columns>, COALESCE(p.country, 'Unknown') AS country
+FROM analytics.agg_portfolio_performance p
+WHERE (:country IS NULL OR UPPER(COALESCE(p.country, 'Unknown')) = UPPER(:country))
+  AND (:ageBand IS NULL OR p.age_band = :ageBand)
+ORDER BY <allowlisted column> <ASC|DESC> NULLS LAST, p.portfolio_id
+LIMIT :size OFFSET :page * :size;
+```
+
+**getPortfolioPerformance** (`GET /api/analytics/portfolios/{portfolioId}`): the same row for one portfolio.
+
+**getPortfolioSeries** (`GET /api/analytics/portfolios/{portfolioId}/series`): daily value and time-weighted return.
+
+```sql
+SELECT as_of_date, market_value_usd, cash_usd, net_external_flow_usd, daily_return, cumulative_twr
+FROM analytics.fct_portfolio_daily
+WHERE portfolio_id = :portfolioId AND as_of_date BETWEEN :from AND :to
+ORDER BY as_of_date;
+```
+
+**getPortfolioClassSeries** (`GET /api/analytics/portfolios/{portfolioId}/class-series?instrumentClass=`): one class's holdings added up per day.
+
+```sql
+SELECT h.as_of_date, SUM(h.cost_basis_usd), SUM(h.market_value_usd),
+       SUM(h.realized_pnl_to_date_usd), SUM(h.unrealized_pnl_usd)
+FROM analytics.fct_holding_daily h
+JOIN analytics.dim_instrument i ON i.instrument_id = h.instrument_id
+WHERE h.portfolio_id = :portfolioId AND i.instrument_class = :instrumentClass
+  AND h.as_of_date BETWEEN :from AND :to
+GROUP BY h.as_of_date
+ORDER BY h.as_of_date;
+```
+
+**getPortfolioHoldingSnapshot** (`GET /api/analytics/portfolios/{portfolioId}/holdings`): open positions on the portfolio's latest built day.
+
+```sql
+SELECT h.*, i.ticker, i.name, i.instrument_class
+FROM analytics.fct_holding_daily h
+JOIN analytics.dim_instrument i ON i.instrument_id = h.instrument_id
+WHERE h.portfolio_id = :portfolioId
+  AND h.quantity <> 0
+  AND h.as_of_date = (SELECT MAX(as_of_date) FROM analytics.fct_holding_daily WHERE portfolio_id = :portfolioId)
+ORDER BY h.market_value_usd DESC NULLS LAST, i.ticker;
+```
+
+**getHoldingSeries** (`GET /api/analytics/holdings/{holdingId}/series`): daily value and P&L for one holding.
+
+```sql
+SELECT as_of_date, quantity, cost_basis_usd, market_value_usd, realized_pnl_to_date_usd, unrealized_pnl_usd
+FROM analytics.fct_holding_daily
+WHERE holding_id = :holdingId AND as_of_date BETWEEN :from AND :to
+ORDER BY as_of_date;
 ```

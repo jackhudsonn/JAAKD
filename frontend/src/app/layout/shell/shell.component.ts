@@ -6,7 +6,7 @@ import { NavbarComponent } from '@shared/components/navbar/navbar.component';
 import { MarketTickerItem, MarketTickerService } from '@core/services/market-ticker.service';
 import { DecimalPipe, NgTemplateOutlet } from '@angular/common';
 import { formatPercentageChange } from '@shared/utils/format-percentage-change';
-import { isAdminOrAuditor } from '@core/models/profile.model';
+import { USER_TYPE, isAdminOrAuditor, isAnalystOrAdmin } from '@core/models/profile.model';
 
 const TICKER_SECONDS_PER_ITEM = 3.5;
 
@@ -21,6 +21,9 @@ export class ShellComponent implements OnInit {
   userEmail = signal<string | null>(null);
   displayName = signal<string | null>(null);
   canAccessAuditor = signal(false);
+  canAccessAnalyst = signal(false);
+  // Analysts only use the analyst view, so their navbar shows nothing else.
+  analystOnly = signal(false);
   tickerLoopItems = signal<MarketTickerItem[]>([]);
   tickerLoaded = signal(false);
   readonly tickerDuration = computed(
@@ -44,9 +47,13 @@ export class ShellComponent implements OnInit {
       const profileName = [profile.firstName, profile.lastName].filter(Boolean).join(' ').trim();
       this.displayName.set(profileName || null);
       this.canAccessAuditor.set(isAdminOrAuditor(profile.userType));
+      this.canAccessAnalyst.set(isAnalystOrAdmin(profile.userType));
+      this.analystOnly.set(profile.userType === USER_TYPE.ANALYST);
     } catch {
       this.displayName.set(null);
       this.canAccessAuditor.set(false);
+      this.canAccessAnalyst.set(false);
+      this.analystOnly.set(false);
     }
   }
 

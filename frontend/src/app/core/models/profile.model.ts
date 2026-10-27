@@ -3,10 +3,16 @@ export const USER_TYPE = {
   RETAIL_CLIENT: 0,
   ADMIN: 1,
   AUDITOR: 2,
+  ANALYST: 3,
 } as const;
 
 export function isAdminOrAuditor(userType: number | null | undefined): boolean {
   return userType === USER_TYPE.ADMIN || userType === USER_TYPE.AUDITOR;
+}
+
+// Matches the backend's @RequiresUserType({ ADMIN, ANALYST }) on AnalyticsService.
+export function isAnalystOrAdmin(userType: number | null | undefined): boolean {
+  return userType === USER_TYPE.ANALYST || userType === USER_TYPE.ADMIN;
 }
 
 export interface Profile {

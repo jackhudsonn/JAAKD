@@ -1,0 +1,39 @@
+# dbt project for the analyst view: turns the raw.* copy of prod into the analytics.* marts
+# the backend reads (contract in the plan, Section 0). Run from analytics/:
+#   dbt build --project-dir dbt --profiles-dir dbt
+
+name: jaakd_analytics
+version: "1.0.0"
+
+# Which connection in profiles.yml to use.
+profile: jaakd_analytics
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+test-paths: ["tests"]
+
+# Removed by `dbt clean`.
+clean-targets: ["target", "dbt_packages"]
+
+flags:
+  # Don't send usage statistics to dbt Labs from a production job.
+  send_anonymous_usage_stats: false
+
+# Defaults per folder under models/. The schema names are used exactly as written
+# (macros/generate_schema_name.sql) and match analytics/db/setup.sql.
+models:
+  jaakd_analytics:
+    # One view per raw table: renames, types, filters. Cheap to rebuild, always current.
+    staging:
+      +schema: analytics_staging
+      +materialized: view
+    # Building blocks shared by several marts (date spine, filled prices, FX rates, cash movements).
+    intermediate:
+      +schema: analytics_staging
+      +materialized: view
+    # The tables the backend reads. Real tables (fast to query) with enforced column names and types.
+    marts:
+      +schema: analytics
+      +materialized: table
+      +contract:
+        enforced: true

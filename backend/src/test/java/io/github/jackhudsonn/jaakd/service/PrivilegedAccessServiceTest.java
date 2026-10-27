@@ -132,6 +132,46 @@ class PrivilegedAccessServiceTest {
         assertThrows(ForbiddenException.class, () -> privilegedAccessService.ensureUserType(UserType.ADMIN));
     }
 
+    @Test
+    void ensureAdminOrAnalyst_allowsAnalyst() throws Exception {
+        UUID userId = UUID.randomUUID();
+        Profile profile = new Profile(UserType.ANALYST.getCode());
+        setField(profile, "userId", userId);
+
+        when(currentUserService.getUserId()).thenReturn(userId);
+        when(profileRepository.findById(userId)).thenReturn(Optional.of(profile));
+
+        assertDoesNotThrow(() -> privilegedAccessService.ensureUserType(UserType.ADMIN, UserType.ANALYST));
+    }
+
+    @Test
+    void ensureAdminOrAnalyst_blocksAuditor() throws Exception {
+        UUID userId = UUID.randomUUID();
+        Profile profile = new Profile(UserType.AUDITOR.getCode());
+        setField(profile, "userId", userId);
+
+        when(currentUserService.getUserId()).thenReturn(userId);
+        when(profileRepository.findById(userId)).thenReturn(Optional.of(profile));
+
+        ForbiddenException ex = assertThrows(
+            ForbiddenException.class,
+            () -> privilegedAccessService.ensureUserType(UserType.ADMIN, UserType.ANALYST)
+        );
+        assertEquals("Admin or analyst user type is required", ex.getMessage());
+    }
+
+    @Test
+    void ensureAdminOrAuditor_blocksAnalyst() throws Exception {
+        UUID userId = UUID.randomUUID();
+        Profile profile = new Profile(UserType.ANALYST.getCode());
+        setField(profile, "userId", userId);
+
+        when(currentUserService.getUserId()).thenReturn(userId);
+        when(profileRepository.findById(userId)).thenReturn(Optional.of(profile));
+
+        assertThrows(ForbiddenException.class, () -> privilegedAccessService.ensureUserType(UserType.ADMIN, UserType.AUDITOR));
+    }
+
     private void setField(Object target, String fieldName, Object value) throws Exception {
         Field field = target.getClass().getDeclaredField(fieldName);
         field.setAccessible(true);

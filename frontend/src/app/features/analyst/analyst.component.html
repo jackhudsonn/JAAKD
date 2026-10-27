@@ -1,0 +1,25 @@
+<main class="page-content analyst-page">
+  
+
+  @if (state() !== 'ready') {
+    <app-load-state-message [state]="state()" subject="analytics" (retry)="load()" />
+  } @else if (!meta()?.sourceSnapshotAt) {
+    <p class="empty-build" role="status">
+      No analytics build has run yet. Data appears here after the nightly copy and dbt build.
+    </p>
+  } @else {
+    <p class="as-of">
+      Data as of {{ meta()!.sourceSnapshotAt | date: 'medium' }}
+      <span class="muted">(built {{ meta()!.builtAt | date: 'shortTime' }})</span>
+    </p>
+
+    <nav class="analyst-tabs" aria-label="Analytics sections">
+      <!-- Detail pages live under the same paths, so the tab stays highlighted on them too. -->
+      <a class="analyst-tab" routerLink="instruments" routerLinkActive="active">Instruments</a>
+      <a class="analyst-tab" routerLink="portfolios" routerLinkActive="active">Portfolios</a>
+      <a class="analyst-tab" routerLink="demographics" routerLinkActive="active">Demographics</a>
+    </nav>
+
+    <router-outlet />
+  }
+</main>
