@@ -4,7 +4,6 @@ import { Router } from '@angular/router';
 import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
 import { PieChartComponent, PieChartSlice } from '@shared/components/pie-chart/pie-chart.component';
 import { DisplaySymbolPipe } from '@shared/pipes/display-symbol.pipe';
-import { formatCurrency, toDisplaySymbol } from '@shared/utils/display-format';
 import { DASHBOARD_STATE_PORT } from '@features/dashboard/services/dashboard-state.port';
 import { CashCurrency, CASH_CURRENCIES, REPORTING_CURRENCY } from '@core/models/api.models';
 import {
@@ -86,6 +85,8 @@ export class AllocationByAssetWidgetComponent {
     const category = this.selectedCategory();
     return category ? CATEGORY_LABELS[category] : 'Allocation by Asset';
   });
+  readonly tooltipValuePrefix = computed(() => CURRENCY_SYMBOLS[this.displayCurrency()]);
+
   private readonly breakdowns = computed<Record<AllocationCategory, PieChartSlice[]>>(() => {
     const byCategory: Record<AllocationCategory, PieChartSlice[]> = {
       cash: [],
@@ -151,7 +152,6 @@ export class AllocationByAssetWidgetComponent {
     for (const [symbol, entry] of bySymbol.entries()) {
       byCategory[entry.category].push({
         label: symbol,
-        displayLabel: toDisplaySymbol(symbol),
         value: entry.value,
         color: deterministicColorFromBase(CATEGORY_COLORS[entry.category], symbol),
       });
