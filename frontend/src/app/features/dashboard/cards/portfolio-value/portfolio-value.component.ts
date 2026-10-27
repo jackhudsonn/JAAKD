@@ -2,24 +2,17 @@ import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
 import { startCycleTimer } from '@shared/utils/cycle-timer';
-import { DASHBOARD_MARKET_DATA_PORT } from '@features/dashboard/services/dashboard-market-data.port';
 import { DASHBOARD_STATE_PORT } from '@features/dashboard/services/dashboard-state.port';
 import type { CashCurrency } from '@core/models/api.models';
 import { REPORTING_CURRENCY } from '@core/models/api.models';
 import { formatCurrency } from '@shared/utils/display-format';
 
 type ValueMode = 'cash' | 'assets' | 'total';
-type ReturnsMode = 'allTime' | 'daily';
 
 const VALUE_MODES: { mode: ValueMode; label: string }[] = [
   { mode: 'total', label: 'Total Value' },
   { mode: 'cash', label: 'Cash' },
   { mode: 'assets', label: 'Assets' },
-];
-
-const RETURNS_MODES: { mode: ReturnsMode; label: string }[] = [
-  { mode: 'allTime', label: 'All-Time Return' },
-  { mode: 'daily', label: "Today's Return" },
 ];
 
 @Component({
@@ -30,26 +23,14 @@ const RETURNS_MODES: { mode: ReturnsMode; label: string }[] = [
   styleUrl: './portfolio-value.component.css',
 })
 export class PortfolioValueWidgetComponent implements OnInit, OnDestroy {
-  private readonly marketData = inject(DASHBOARD_MARKET_DATA_PORT);
   private readonly state = inject(DASHBOARD_STATE_PORT);
 
   private stopValueCycle?: () => void;
-  private stopReturnsCycle?: () => void;
-  private stopPriceCycle?: () => void;
-
-  // TODO: replace with a live performance/analytics endpoint (all-time + daily P&L).
-  private readonly returns = this.state.returns;
-  private readonly backendDataMode = this.state.backendDataMode ?? false;
   readonly formatCurrency = formatCurrency;
   readonly reportingCurrency = REPORTING_CURRENCY;
 
   valueIndex = signal(0);
   valueFading = signal(false);
-
-  private priceTick = signal(0);
-
-  returnsIndex = signal(0);
-  returnsFading = signal(false);
 
   get activeValueLabel() {
     return VALUE_MODES[this.valueIndex()].label;
@@ -58,15 +39,9 @@ export class PortfolioValueWidgetComponent implements OnInit, OnDestroy {
   get activeValueAmount() {
     const mode = VALUE_MODES[this.valueIndex()].mode;
     const cash = this.state.accountCash();
-    this.priceTick();
     const assets = this.state
       .holdings()
-      .reduce(
-        (total, holding) =>
-          total +
-          holding.quantity * (holding.indicativePrice ?? this.marketData.getPrice(holding.symbol)),
-        0,
-      );
+      .reduce((total, holding) => total + holding.quantity * (holding.indicativePrice ?? 0), 0);
 
     if (mode === 'cash') {
       return cash;
@@ -87,8 +62,7 @@ export class PortfolioValueWidgetComponent implements OnInit, OnDestroy {
 
     const currencies = new Set(
       this.state.holdings().map((holding) => {
-        const asset = this.marketData.getAsset(holding.symbol);
-        return holding.currency ?? asset?.currency ?? REPORTING_CURRENCY;
+        return holding.currency ?? REPORTING_CURRENCY;
       }),
     );
     if (currencies.size > 1) {
@@ -103,20 +77,11 @@ export class PortfolioValueWidgetComponent implements OnInit, OnDestroy {
     return assetCurrency && assetCurrency !== REPORTING_CURRENCY ? null : REPORTING_CURRENCY;
   }
 
-  get activeReturnsLabel() {
-    return RETURNS_MODES[this.returnsIndex()].label;
-  }
-
-  get activeReturnsAmount() {
-    return this.returns[RETURNS_MODES[this.returnsIndex()].mode];
-  }
-
-  get returnsPositive() {
-    return this.activeReturnsAmount >= 0;
-  }
-
-  get shouldShowReturnsUnavailableMessage() {
-    return this.backendDataMode;
+  get shouldShowValueUnavailableMessage() {
+    const mode = VALUE_MODES[this.valueIndex()].mode;
+    return (
+      mode !== 'cash' && this.state.holdings().some((holding) => holding.indicativePrice == null)
+    );
   }
 
   ngOnInit() {
@@ -127,21 +92,9 @@ export class PortfolioValueWidgetComponent implements OnInit, OnDestroy {
         this.valueFading.set(false);
       }, 250);
     });
-
-    this.stopReturnsCycle = startCycleTimer(RETURNS_MODES.length, 4000, (index) => {
-      this.returnsFading.set(true);
-      setTimeout(() => {
-        this.returnsIndex.set(index);
-        this.returnsFading.set(false);
-      }, 250);
-    });
-
-    this.stopPriceCycle = startCycleTimer(1, 1000, () => this.priceTick.update((tick) => tick + 1));
   }
 
   ngOnDestroy() {
     this.stopValueCycle?.();
-    this.stopReturnsCycle?.();
-    this.stopPriceCycle?.();
   }
 }

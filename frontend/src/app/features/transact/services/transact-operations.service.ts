@@ -1,6 +1,4 @@
 import { Injectable, inject } from '@angular/core';
-import { addMockExchangeTransaction, addMockTransaction } from '@core/mocks/state.mock';
-import { PaymentMethod } from '@core/models';
 import { CashConversionResponse, CashCurrency } from '@core/models/api.models';
 import { TRANSACT_STATE_PORT } from './transact-state.port';
 
@@ -10,43 +8,31 @@ import { TRANSACT_STATE_PORT } from './transact-state.port';
 export class TransactOperationsService {
   private readonly state = inject(TRANSACT_STATE_PORT);
 
-  async deposit(
-    amount: number,
-    method: PaymentMethod,
-    currency: CashCurrency = 'USD',
-  ): Promise<void> {
-    if (this.state.backendDataMode && this.state.submitCashMovement) {
-      await this.state.submitCashMovement('DEPOSIT', amount, currency);
-      return;
+  async deposit(amount: number, currency: CashCurrency = 'USD'): Promise<void> {
+    if (!this.state.submitCashMovement) {
+      throw new Error('Deposits are unavailable.');
     }
 
-    addMockTransaction('deposit', amount, method);
+    await this.state.submitCashMovement('DEPOSIT', amount, currency);
   }
 
-  async withdraw(
-    amount: number,
-    method: PaymentMethod,
-    currency: CashCurrency = 'USD',
-  ): Promise<void> {
-    if (this.state.backendDataMode && this.state.submitCashMovement) {
-      await this.state.submitCashMovement('WITHDRAW', amount, currency);
-      return;
+  async withdraw(amount: number, currency: CashCurrency = 'USD'): Promise<void> {
+    if (!this.state.submitCashMovement) {
+      throw new Error('Withdrawals are unavailable.');
     }
 
-    addMockTransaction('withdrawal', amount, method);
+    await this.state.submitCashMovement('WITHDRAW', amount, currency);
   }
 
   async exchange(
     amount: number,
     fromCurrency: CashCurrency,
     toCurrency: CashCurrency,
-    method: PaymentMethod,
   ): Promise<CashConversionResponse | null> {
-    if (this.state.backendDataMode && this.state.convertCash) {
-      return this.state.convertCash(fromCurrency, toCurrency, amount);
+    if (!this.state.convertCash) {
+      throw new Error('Currency conversion is unavailable.');
     }
 
-    addMockExchangeTransaction(amount, `${fromCurrency} → ${toCurrency}`, method);
-    return null;
+    return this.state.convertCash(fromCurrency, toCurrency, amount);
   }
 }

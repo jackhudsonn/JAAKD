@@ -1,20 +1,10 @@
-import {
-  Component,
-  OnDestroy,
-  OnInit,
-  computed,
-  inject,
-  input,
-  output,
-  signal,
-} from '@angular/core';
+import { Component, computed, inject, input, output, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
 import { ScrollableListComponent } from '@shared/components/scrollable-list/scrollable-list.component';
 import { DisplaySymbolPipe } from '@shared/pipes/display-symbol.pipe';
-import { startCycleTimer } from '@shared/utils/cycle-timer';
 import { Holding, InstrumentType } from '@core/models';
 import { CASH_CURRENCIES } from '@core/models/api.models';
 import type { CashCurrency } from '@core/models/api.models';
@@ -27,9 +17,9 @@ type HoldingsRow =
   | {
       kind: 'holding';
       holding: Holding;
-      price: number;
-      marketValue: number;
-      changePct: number;
+      price: number | null;
+      marketValue: number | null;
+      changePct: number | null;
       flat: boolean;
       name: string;
       currency: CashCurrency;
@@ -63,7 +53,7 @@ const HOLDINGS_FILTER_OPTIONS: { id: HoldingsFilter; label: string }[] = [
   templateUrl: './holdings-card.component.html',
   styleUrl: './holdings-card.component.css',
 })
-export class HoldingsCardComponent implements OnInit, OnDestroy {
+export class HoldingsCardComponent {
   private readonly marketData = inject(TRADE_MARKET_DATA_PORT);
   private readonly cashDisplayOrder: readonly string[] = CASH_CURRENCIES;
 
@@ -82,13 +72,9 @@ export class HoldingsCardComponent implements OnInit, OnDestroy {
   instrument = signal<HoldingsFilter>('all');
   readonly formatCurrency = formatCurrency;
 
-  private priceTick = signal(0);
-  private stopTicking?: () => void;
-
   constructor(private router: Router) {}
 
   rows = computed<HoldingsRow[]>(() => {
-    this.priceTick();
     const selectedFilter = this.instrument();
     const rows: HoldingsRow[] = [];
 
@@ -109,14 +95,18 @@ export class HoldingsCardComponent implements OnInit, OnDestroy {
       const price = this.marketData.getPrice(holding.symbol);
       const asset = this.marketData.getAsset(holding.symbol);
       const basePrice = asset?.basePrice ?? price;
-      const changePct = ((price - basePrice) / basePrice) * 100;
+      const currentPrice = holding.indicativePrice ?? price;
+      const changePct =
+        currentPrice !== null && basePrice !== null && basePrice > 0
+          ? ((currentPrice - basePrice) / basePrice) * 100
+          : null;
       rows.push({
         kind: 'holding',
         holding,
-        price,
-        marketValue: price * holding.quantity,
+        price: currentPrice,
+        marketValue: currentPrice === null ? null : currentPrice * holding.quantity,
         changePct,
-        flat: isFlatChange(changePct),
+        flat: changePct === null || isFlatChange(changePct),
         name: asset?.name ?? holding.symbol,
         currency: asset?.currency ?? holding.currency ?? 'USD',
       });
@@ -170,13 +160,5 @@ export class HoldingsCardComponent implements OnInit, OnDestroy {
 
   goToTransact() {
     this.router.navigate(['/transact']);
-  }
-
-  ngOnInit() {
-    this.stopTicking = startCycleTimer(1, 1000, () => this.priceTick.update((tick) => tick + 1));
-  }
-
-  ngOnDestroy() {
-    this.stopTicking?.();
   }
 }

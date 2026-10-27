@@ -2,8 +2,6 @@ import {
   Component,
   ElementRef,
   HostListener,
-  OnDestroy,
-  OnInit,
   computed,
   effect,
   inject,
@@ -16,18 +14,10 @@ import { ModalComponent } from '@shared/components/modal/modal.component';
 import { DisplaySymbolPipe } from '@shared/pipes/display-symbol.pipe';
 import { ToastService } from '@shared/components/toast/toast.service';
 import {
-  LineChartComponent,
-  LineChartPoint,
-} from '@shared/components/line-chart/line-chart.component';
-import {
   OrderFormComponent,
   OrderFormSubmit,
 } from '@features/trade/components/order-form/order-form.component';
-import {
-  TRADE_MARKET_DATA_PORT,
-  TradeAssetPerformanceInterval,
-} from '@features/trade/services/trade-market-data.port';
-import { startCycleTimer } from '@shared/utils/cycle-timer';
+import { TRADE_MARKET_DATA_PORT } from '@features/trade/services/trade-market-data.port';
 import { isFlatChange } from '@shared/utils/format-percentage-change';
 import { formatCurrency } from '@shared/utils/display-format';
 import { REPORTING_CURRENCY } from '@core/models/api.models';
@@ -50,31 +40,21 @@ export interface AssetSetWatchlistMembershipRequest {
 }
 
 /**
- * Asset Details popup (opened from the Trade card / ticker search) and
- * Chart popup (opened from the Watchlist card, via showChart) — the same
- * component so the buy/sell experience stays identical between the two.
+ * Asset details popup opened from the Trade card or ticker search.
  */
 @Component({
   selector: 'app-asset-popup',
   standalone: true,
-  imports: [
-    ModalComponent,
-    LineChartComponent,
-    OrderFormComponent,
-    DecimalPipe,
-    TitleCasePipe,
-    DisplaySymbolPipe,
-  ],
+  imports: [ModalComponent, OrderFormComponent, DecimalPipe, TitleCasePipe, DisplaySymbolPipe],
   templateUrl: './asset-popup.component.html',
   styleUrl: './asset-popup.component.css',
 })
-export class AssetPopupComponent implements OnInit, OnDestroy {
+export class AssetPopupComponent {
   private readonly elementRef = inject(ElementRef<HTMLElement>);
   private readonly marketData = inject(TRADE_MARKET_DATA_PORT);
   private readonly toastService = inject(ToastService);
 
   symbol = input.required<string>();
-  showChart = input(false);
   ownedQuantity = input(0);
   accountCash = input(0);
   backendDataMode = input(false);
@@ -87,49 +67,28 @@ export class AssetPopupComponent implements OnInit, OnDestroy {
 
   watchlistDropdownOpen = signal(false);
   activeView = signal<'analysis' | 'trade'>('analysis');
-  intervals = this.marketData.performanceIntervals;
   readonly formatCurrency = formatCurrency;
   readonly fallbackCurrency = REPORTING_CURRENCY;
-  selectedInterval = signal<TradeAssetPerformanceInterval>('1D');
 
-  private priceTick = signal(0);
-  private stopTicking?: () => void;
+  private readonly reportedUnavailableData = new Set<string>();
 
   asset = computed(() => this.marketData.getAsset(this.symbol()));
-  currentPrice = computed(() => {
-    this.priceTick();
-    return this.marketData.getPrice(this.symbol());
-  });
-  // TODO: replace market data adapter with an API-backed call like
-  // GET /assets/{symbol}/performance?interval={interval}.
-  performanceSeries = computed<LineChartPoint[]>(() => [
-    ...this.marketData.getPerformanceSeries(this.symbol(), this.selectedInterval()),
-  ]);
+  currentPrice = computed(() => this.marketData.getPrice(this.symbol()));
   watchlistMembershipCount = computed(
     () => this.watchlists().filter((watchlist) => watchlist.containsSymbol).length,
   );
-  startValue = computed(() => this.performanceSeries()[0]?.value ?? 0);
-  endValue = computed(() => this.performanceSeries().at(-1)?.value ?? 0);
-  highValue = computed(() => {
-    const values = this.performanceSeries().map((point) => point.value);
-    return values.length > 0 ? Math.max(...values) : 0;
+  hasPriceChange = computed(() => {
+    const basePrice = this.asset()?.basePrice;
+    return this.currentPrice() !== null && basePrice != null && basePrice > 0;
   });
-  lowValue = computed(() => {
-    const values = this.performanceSeries().map((point) => point.value);
-    return values.length > 0 ? Math.min(...values) : 0;
+  changeAmount = computed(() => {
+    const price = this.currentPrice();
+    const basePrice = this.asset()?.basePrice;
+    return price !== null && basePrice != null ? price - basePrice : 0;
   });
-  // With no series (backend mode), the change is measured from the asset's
-  // basePrice (previous close) so the header matches the Trade cards.
-  private changeBase = computed(() =>
-    this.performanceSeries().length > 0 ? this.startValue() : (this.asset()?.basePrice ?? 0),
-  );
-  private changeEnd = computed(() =>
-    this.performanceSeries().length > 0 ? this.endValue() : this.currentPrice(),
-  );
-  changeAmount = computed(() => this.changeEnd() - this.changeBase());
   changePct = computed(() => {
-    const start = this.changeBase();
-    return start === 0 ? 0 : (this.changeAmount() / start) * 100;
+    const basePrice = this.asset()?.basePrice;
+    return this.hasPriceChange() && basePrice != null ? (this.changeAmount() / basePrice) * 100 : 0;
   });
   isPositive = computed(() => this.changeAmount() >= 0);
   // Flat only when both shown values round to 0.00; a cheap asset can move
@@ -138,10 +97,18 @@ export class AssetPopupComponent implements OnInit, OnDestroy {
 
   constructor() {
     effect(() => {
+      const symbol = this.symbol();
+      const price = this.currentPrice();
+
+      if (price === null) {
+        this.notifyUnavailableDataOnce(`price:${symbol}`, `${symbol} price is unavailable.`);
+      }
+    });
+
+    effect(() => {
       this.symbol();
       this.watchlistDropdownOpen.set(false);
       this.activeView.set('analysis');
-      this.selectedInterval.set('1D');
     });
   }
 
@@ -157,22 +124,9 @@ export class AssetPopupComponent implements OnInit, OnDestroy {
     }
   }
 
-  ngOnInit() {
-    // Keeps the displayed mock price (and chart, if shown) live while the popup is open.
-    this.stopTicking = startCycleTimer(1, 1000, () => this.priceTick.update((tick) => tick + 1));
-  }
-
-  ngOnDestroy() {
-    this.stopTicking?.();
-  }
-
   onOrderPlaced(request: OrderFormSubmit) {
     const placed: AssetOrderPlaced = { symbol: this.symbol(), ...request };
     this.orderPlaced.emit(placed);
-    this.toastService.success(
-      `${placed.type === 'buy' ? 'Buy' : 'Sell'} order placed for ${placed.quantity} ${placed.symbol}` +
-        (placed.kind === 'market' ? ' at market.' : ` at limit ${placed.limitPrice?.toFixed(2)}.`),
-    );
     this.closed.emit();
   }
 
@@ -185,8 +139,13 @@ export class AssetPopupComponent implements OnInit, OnDestroy {
     this.activeView.set('analysis');
   }
 
-  selectInterval(interval: TradeAssetPerformanceInterval) {
-    this.selectedInterval.set(interval);
+  private notifyUnavailableDataOnce(key: string, message: string) {
+    if (this.reportedUnavailableData.has(key)) {
+      return;
+    }
+
+    this.reportedUnavailableData.add(key);
+    this.toastService.error(message);
   }
 
   toggleWatchlistDropdown() {

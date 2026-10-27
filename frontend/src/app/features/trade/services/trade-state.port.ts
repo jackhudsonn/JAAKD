@@ -1,7 +1,6 @@
 import { InjectionToken, Signal, WritableSignal } from '@angular/core';
 import { Holding, Order } from '@core/models';
-import { MOCK_STATE } from '@core/mocks/state.mock';
-import { WATCHLIST_CONSTRAINTS } from '@core/mocks/watchlist.mock';
+import { WATCHLIST_CONSTRAINTS } from '@core/constants/watchlist.constants';
 import type { TradePlaceOrderRequest } from './trade-order-engine.service';
 
 export interface TradeWatchlist {
@@ -30,11 +29,7 @@ export interface TradeStatePort {
 
 export const TRADE_STATE_PORT = new InjectionToken<TradeStatePort>('TRADE_STATE_PORT', {
   providedIn: 'root',
-  factory: () => ({
-    accountCash: MOCK_STATE.accountCash,
-    holdings: MOCK_STATE.holdings,
-    orders: MOCK_STATE.orders,
-    watchlists: MOCK_STATE.watchlists,
-    maxWatchlistHoldings: WATCHLIST_CONSTRAINTS.maxHoldingsPerWatchlist,
-  }),
+  factory: () => {
+    throw new Error('TRADE_STATE_PORT requires a backend provider.');
+  },
 });

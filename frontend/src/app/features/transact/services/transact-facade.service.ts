@@ -29,20 +29,15 @@ export class TransactFacadeService {
   }
 
   async submitDeposit(deposit: Deposit): Promise<void> {
-    await this.operations.deposit(deposit.amount, deposit.method, deposit.currency);
+    await this.operations.deposit(deposit.amount, deposit.currency);
   }
 
   async submitWithdrawal(withdrawal: Withdrawal): Promise<void> {
-    await this.operations.withdraw(withdrawal.amount, withdrawal.method, withdrawal.currency);
+    await this.operations.withdraw(withdrawal.amount, withdrawal.currency);
   }
 
   submitExchange(request: ExchangeRequest): Promise<CashConversionResponse | null> {
-    return this.operations.exchange(
-      request.amount,
-      request.fromCurrency,
-      request.toCurrency,
-      'bank_transfer',
-    );
+    return this.operations.exchange(request.amount, request.fromCurrency, request.toCurrency);
   }
 
   async cancelTransaction(transactionId: string): Promise<void> {
@@ -55,15 +50,10 @@ export class TransactFacadeService {
       throw new Error('Only pending transactions can be cancelled.');
     }
 
-    if (this.state.cancelTransaction) {
-      await this.state.cancelTransaction(transactionId);
-      return;
+    if (!this.state.cancelTransaction) {
+      throw new Error('Transaction cancellation is unavailable.');
     }
 
-    this.state.transactions.update((current) =>
-      current.map((entry) =>
-        entry.id === transactionId ? { ...entry, status: ORDER_STATUS.CANCELLED } : entry,
-      ),
-    );
+    await this.state.cancelTransaction(transactionId);
   }
 }

@@ -216,7 +216,6 @@ describe('BackendDashboardStateService', () => {
       { id: 'watchlist-1', name: 'My Watchlist', symbols: ['AAPL'] },
     ]);
     expect(service.activeWatchlistId()).toBe('watchlist-1');
-    expect(service.dashboardOpenOrders()).toEqual([]);
     expect(service.dashboardWidgets()).toEqual(preferences.dashboardWidgets);
     expect(service.backendWatchlistInstrumentOptions()).toEqual([
       {
@@ -246,7 +245,6 @@ describe('BackendDashboardStateService', () => {
     expect(service.transactions()).toEqual([]);
     expect(service.watchlists()).toEqual([]);
     expect(service.activeWatchlistId()).toBe('');
-    expect(service.dashboardOpenOrders()).toEqual([]);
     expect(service.dashboardWidgets()).toBeNull();
     expect(service.backendWatchlistInstrumentOptions()).toEqual([]);
   });

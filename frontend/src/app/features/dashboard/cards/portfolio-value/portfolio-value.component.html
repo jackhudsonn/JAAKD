@@ -3,7 +3,9 @@
     <div class="value-display" [class.fading]="valueFading()">
       <p class="value-label">{{ activeValueLabel }}</p>
       <p class="value-amount">
-        @if (activeValueCurrency; as currency) {
+        @if (shouldShowValueUnavailableMessage) {
+          <span class="unavailable">Market prices unavailable</span>
+        } @else if (activeValueCurrency; as currency) {
           {{ formatCurrency(activeValueAmount, currency) }}
         } @else {
           {{ activeValueAmount | number: '1.2-2' }}
@@ -11,20 +13,9 @@
       </p>
     </div>
 
-    <div class="value-display" [class.fading]="returnsFading()">
-      <p class="value-label">{{ activeReturnsLabel }}</p>
-      @if (shouldShowReturnsUnavailableMessage) {
-        <p class="value-amount returns-amount unavailable">Not available yet</p>
-      } @else {
-        <p
-          class="value-amount returns-amount"
-          [class.positive]="returnsPositive"
-          [class.negative]="!returnsPositive"
-        >
-          {{ returnsPositive ? '+' : ''
-          }}{{ formatCurrency(activeReturnsAmount, reportingCurrency) }}
-        </p>
-      }
+    <div class="value-display">
+      <p class="value-label">Returns</p>
+      <p class="value-amount returns-amount unavailable">Not available yet</p>
     </div>
   </div>
 

@@ -52,44 +52,10 @@ export class TradeWatchlistService {
   }
 
   async setWatchlistMembership(request: TradeSetWatchlistMembershipRequest) {
-    if (this.state.backendDataMode && this.state.setWatchlistMembership) {
-      await this.state.setWatchlistMembership(
-        request.symbol,
-        request.watchlistId,
-        request.included,
-      );
-      return;
+    if (!this.state.setWatchlistMembership) {
+      throw new Error('Watchlist updates are unavailable.');
     }
 
-    const target = this.watchlistsState().find((watchlist) => watchlist.id === request.watchlistId);
-    if (!target) {
-      return;
-    }
-
-    const alreadyIncluded = target.symbols.includes(request.symbol);
-    if (request.included === alreadyIncluded) {
-      return;
-    }
-
-    if (
-      request.included &&
-      this.maxWatchlistHoldings !== null &&
-      target.symbols.length >= this.maxWatchlistHoldings
-    ) {
-      return;
-    }
-
-    this.watchlistsState.update((current) =>
-      current.map((watchlist) =>
-        watchlist.id === request.watchlistId
-          ? {
-              ...watchlist,
-              symbols: request.included
-                ? [...watchlist.symbols, request.symbol]
-                : watchlist.symbols.filter((symbol) => symbol !== request.symbol),
-            }
-          : watchlist,
-      ),
-    );
+    await this.state.setWatchlistMembership(request.symbol, request.watchlistId, request.included);
   }
 }

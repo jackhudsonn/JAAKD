@@ -1,13 +1,10 @@
-import { Component, OnDestroy, OnInit, computed, inject, output, signal } from '@angular/core';
+import { Component, computed, inject, output } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import type { CashCurrency } from '@core/models/api.models';
-import { REPORTING_CURRENCY } from '@core/models/api.models';
 import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
 import { ScrollableListComponent } from '@shared/components/scrollable-list/scrollable-list.component';
 import { DisplaySymbolPipe } from '@shared/pipes/display-symbol.pipe';
-import { startCycleTimer } from '@shared/utils/cycle-timer';
 import { formatCurrency } from '@shared/utils/display-format';
-import { DASHBOARD_MARKET_DATA_PORT } from '@features/dashboard/services/dashboard-market-data.port';
 import { DASHBOARD_STATE_PORT } from '@features/dashboard/services/dashboard-state.port';
 
 interface WatchlistRow {
@@ -25,8 +22,7 @@ interface WatchlistRow {
   templateUrl: './watchlist.component.html',
   styleUrl: './watchlist.component.css',
 })
-export class WatchlistWidgetComponent implements OnInit, OnDestroy {
-  private readonly marketData = inject(DASHBOARD_MARKET_DATA_PORT);
+export class WatchlistWidgetComponent {
   private readonly state = inject(DASHBOARD_STATE_PORT);
 
   readonly watchlistListMinHeight = '255px';
@@ -34,7 +30,6 @@ export class WatchlistWidgetComponent implements OnInit, OnDestroy {
 
   watchlists = this.state.watchlists;
   activeWatchlistId = this.state.activeWatchlistId;
-  readonly backendDataMode = this.state.backendDataMode ?? false;
   private readonly liveQuotes = this.state.liveQuotes;
 
   createWatchlistRequested = output<void>();
@@ -44,9 +39,6 @@ export class WatchlistWidgetComponent implements OnInit, OnDestroy {
 
   readonly maxWatchlistHoldings = this.state.watchlistConstraints.maxHoldingsPerWatchlist;
   readonly formatCurrency = formatCurrency;
-
-  private priceTick = signal(0);
-  private stopTicking?: () => void;
 
   watchlistOptions = computed(() =>
     this.watchlists().map((watchlist) => ({ id: watchlist.id, name: watchlist.name })),
@@ -65,43 +57,26 @@ export class WatchlistWidgetComponent implements OnInit, OnDestroy {
   );
 
   rows = computed<WatchlistRow[]>(() => {
-    this.priceTick();
-
     const active = this.activeWatchlist();
     const symbols = active?.symbols ?? [];
 
     return symbols
       .map((symbol): WatchlistRow | null => {
-        const asset = this.backendDataMode ? undefined : this.marketData.getAsset(symbol);
-
-        if (!asset && this.backendDataMode) {
-          const quote = this.liveQuotes?.().get(symbol.toUpperCase());
-          const currency = this.state
-            .backendWatchlistInstrumentOptions?.()
-            .find(
-              (instrument) => instrument.symbol.toUpperCase() === symbol.toUpperCase(),
-            )?.currency;
-          return {
-            symbol,
-            name: symbol,
-            currency: currency ?? quote?.currency ?? REPORTING_CURRENCY,
-            price: quote?.price ?? null,
-            changePct: quote?.changePct ?? null,
-          };
-        }
-
-        if (!asset) {
+        const instrument = this.state
+          .backendWatchlistInstrumentOptions?.()
+          .find((entry) => entry.symbol.toUpperCase() === symbol.toUpperCase());
+        const quote = this.liveQuotes?.().get(symbol.toUpperCase());
+        const currency = instrument?.currency ?? quote?.currency;
+        if (!instrument || !currency) {
           return null;
         }
 
-        const price = this.marketData.getPrice(symbol);
-        const hasBasePrice = asset.basePrice > 0;
         return {
           symbol,
-          name: asset.name,
-          currency: asset.currency,
-          price,
-          changePct: hasBasePrice ? ((price - asset.basePrice) / asset.basePrice) * 100 : null,
+          name: instrument.name,
+          currency,
+          price: quote?.price ?? null,
+          changePct: quote?.changePct ?? null,
         };
       })
       .filter((row): row is WatchlistRow => row !== null);
@@ -135,13 +110,5 @@ export class WatchlistWidgetComponent implements OnInit, OnDestroy {
     }
 
     this.addAssetRequested.emit();
-  }
-
-  ngOnInit() {
-    this.stopTicking = startCycleTimer(1, 1000, () => this.priceTick.update((tick) => tick + 1));
-  }
-
-  ngOnDestroy() {
-    this.stopTicking?.();
   }
 }

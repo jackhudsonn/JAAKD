@@ -1,8 +1,7 @@
 import { InjectionToken, Signal, WritableSignal } from '@angular/core';
 import { CashCurrency } from '@core/models/api.models';
-import { MOCK_RETURNS, MOCK_STATE, MockOrder } from '@core/mocks/state.mock';
-import { SharedWatchlist, WATCHLIST_CONSTRAINTS } from '@core/mocks/watchlist.mock';
-import { Holding, InstrumentType, Order, Transaction } from '@core/models';
+import { WATCHLIST_CONSTRAINTS } from '@core/constants/watchlist.constants';
+import { Holding, InstrumentType, Order, SharedWatchlist, Transaction } from '@core/models';
 import { LiveQuote } from './dashboard-backend.mappers';
 
 export interface DashboardWatchlistInstrumentOption {
@@ -21,10 +20,7 @@ export interface DashboardStatePort {
   readonly transactions: WritableSignal<Transaction[]>;
   readonly watchlists: WritableSignal<SharedWatchlist[]>;
   readonly activeWatchlistId: WritableSignal<string>;
-  readonly dashboardOpenOrders: WritableSignal<MockOrder[]>;
-  readonly returns: Readonly<typeof MOCK_RETURNS>;
   readonly watchlistConstraints: typeof WATCHLIST_CONSTRAINTS;
-  readonly backendDataMode?: boolean;
   readonly backendWatchlistInstrumentOptions?: Signal<DashboardWatchlistInstrumentOption[]>;
   readonly dashboardWidgets?: Signal<readonly string[] | null>;
   readonly liveQuotes?: Signal<ReadonlyMap<string, LiveQuote>>;
@@ -38,17 +34,7 @@ export interface DashboardStatePort {
 
 export const DASHBOARD_STATE_PORT = new InjectionToken<DashboardStatePort>('DASHBOARD_STATE_PORT', {
   providedIn: 'root',
-  factory: () => ({
-    accountCash: MOCK_STATE.accountCash,
-    cashBalances: MOCK_STATE.cashBalances,
-    holdings: MOCK_STATE.holdings,
-    orders: MOCK_STATE.orders,
-    transactions: MOCK_STATE.transactions,
-    watchlists: MOCK_STATE.watchlists,
-    activeWatchlistId: MOCK_STATE.activeWatchlistId,
-    dashboardOpenOrders: MOCK_STATE.dashboardOpenOrders,
-    returns: MOCK_RETURNS,
-    watchlistConstraints: WATCHLIST_CONSTRAINTS,
-    backendDataMode: false,
-  }),
+  factory: () => {
+    throw new Error('DASHBOARD_STATE_PORT requires a backend provider.');
+  },
 });

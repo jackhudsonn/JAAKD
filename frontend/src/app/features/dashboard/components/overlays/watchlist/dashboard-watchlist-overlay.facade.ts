@@ -2,10 +2,9 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { InstrumentType } from '@core/models';
 import type { CashCurrency } from '@core/models/api.models';
 import {
-  DASHBOARD_MARKET_DATA_PORT,
-  DashboardMarketAsset,
-} from '@features/dashboard/services/dashboard-market-data.port';
-import { DASHBOARD_STATE_PORT } from '@features/dashboard/services/dashboard-state.port';
+  DASHBOARD_STATE_PORT,
+  DashboardWatchlistInstrumentOption,
+} from '@features/dashboard/services/dashboard-state.port';
 import { ToastService } from '@shared/components/toast/toast.service';
 
 export interface DashboardWatchlistAssetSummary {
@@ -17,7 +16,7 @@ export interface DashboardWatchlistAssetSummary {
 }
 
 export interface DashboardWatchlistSearchRow {
-  asset: DashboardMarketAsset;
+  asset: DashboardWatchlistInstrumentOption;
   price: number | null;
   changePct: number | null;
 }
@@ -42,13 +41,11 @@ const WATCHLIST_NAME_PATTERN = /^[A-Za-z0-9' -]+$/;
   providedIn: 'root',
 })
 export class DashboardWatchlistOverlayFacade {
-  private readonly marketData = inject(DASHBOARD_MARKET_DATA_PORT);
   private readonly state = inject(DASHBOARD_STATE_PORT);
   private readonly toastService = inject(ToastService);
 
   private readonly watchlists = this.state.watchlists;
   private readonly activeWatchlistId = this.state.activeWatchlistId;
-  private readonly backendDataMode = this.state.backendDataMode ?? false;
 
   readonly watchlistDialogMode = signal<'create' | 'edit' | null>(null);
   readonly watchlistNameDraft = signal('');
@@ -88,15 +85,7 @@ export class DashboardWatchlistOverlayFacade {
     const query = this.watchlistSearch().trim().toLowerCase();
     const activeSymbols = new Set(active.symbols);
 
-    const sourceAssets: ReadonlyArray<DashboardMarketAsset> = this.backendDataMode
-      ? (this.state.backendWatchlistInstrumentOptions?.() ?? []).map((instrument) => ({
-          symbol: instrument.symbol,
-          name: instrument.name,
-          currency: instrument.currency,
-          instrumentType: instrument.instrumentType,
-          basePrice: 0,
-        }))
-      : this.marketData.listAssets();
+    const sourceAssets = this.state.backendWatchlistInstrumentOptions?.() ?? [];
 
     return sourceAssets
       .filter(
@@ -110,26 +99,11 @@ export class DashboardWatchlistOverlayFacade {
           asset.name.toLowerCase().includes(query),
       )
       .map((asset) => {
-        if (this.backendDataMode) {
-          const quote = this.state.liveQuotes?.().get(asset.symbol.toUpperCase());
-          return {
-            asset,
-            price: quote?.price ?? null,
-            changePct: quote?.changePct ?? null,
-          };
-        }
-
-        const knownAsset = this.marketData.getAsset(asset.symbol);
-        const numericPrice = knownAsset ? this.marketData.getPrice(asset.symbol) : null;
-        const changePct =
-          knownAsset && numericPrice !== null && knownAsset.basePrice > 0
-            ? ((numericPrice - knownAsset.basePrice) / knownAsset.basePrice) * 100
-            : null;
-
+        const quote = this.state.liveQuotes?.().get(asset.symbol.toUpperCase());
         return {
           asset,
-          price: numericPrice,
-          changePct,
+          price: quote?.price ?? null,
+          changePct: quote?.changePct ?? null,
         };
       });
   });
@@ -152,35 +126,20 @@ export class DashboardWatchlistOverlayFacade {
       return null;
     }
 
-    const asset = this.backendDataMode ? undefined : this.marketData.getAsset(symbol);
-    if (!asset && this.backendDataMode) {
-      const quote = this.state.liveQuotes?.().get(symbol.toUpperCase());
-      return {
-        symbol,
-        name: symbol,
-        currency:
-          this.state
-            .backendWatchlistInstrumentOptions?.()
-            .find((instrument) => instrument.symbol.toUpperCase() === symbol.toUpperCase())
-            ?.currency ?? 'USD',
-        price: quote?.price ?? null,
-        changePct: quote?.changePct ?? null,
-      };
-    }
-
+    const asset = this.state
+      .backendWatchlistInstrumentOptions?.()
+      .find((instrument) => instrument.symbol.toUpperCase() === symbol.toUpperCase());
     if (!asset) {
       return null;
     }
 
-    const price = this.marketData.getPrice(symbol);
-    const changePct =
-      asset.basePrice > 0 ? ((price - asset.basePrice) / asset.basePrice) * 100 : null;
+    const quote = this.state.liveQuotes?.().get(symbol.toUpperCase());
     return {
       symbol,
       name: asset.name,
       currency: asset.currency,
-      price,
-      changePct,
+      price: quote?.price ?? null,
+      changePct: quote?.changePct ?? null,
     };
   });
 
@@ -267,32 +226,21 @@ export class DashboardWatchlistOverlayFacade {
       return;
     }
 
-    if (this.backendDataMode && this.state.createWatchlist) {
-      try {
-        await this.state.createWatchlist(trimmedName);
-        const newestWatchlist = this.watchlists().at(-1);
-        if (newestWatchlist) {
-          this.activeWatchlistId.set(newestWatchlist.id);
-        }
-        this.toastService.success(`Created watchlist "${trimmedName}".`);
-        this.closeWatchlistDialog();
-      } catch (error) {
-        this.toastService.error(this.toErrorMessage(error, 'Failed to create watchlist.'));
+    try {
+      if (!this.state.createWatchlist) {
+        throw new Error('Watchlist creation is unavailable.');
       }
-      return;
+
+      await this.state.createWatchlist(trimmedName);
+      const newestWatchlist = this.watchlists().at(-1);
+      if (newestWatchlist) {
+        this.activeWatchlistId.set(newestWatchlist.id);
+      }
+      this.toastService.success(`Created watchlist "${trimmedName}".`);
+      this.closeWatchlistDialog();
+    } catch (error) {
+      this.toastService.error(this.toErrorMessage(error, 'Failed to create watchlist.'));
     }
-
-    const baseId = trimmedName
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
-    const idSeed = baseId || 'watchlist';
-    const id = `${idSeed}-${Date.now()}`;
-
-    this.watchlists.update((current) => [...current, { id, name: trimmedName, symbols: [] }]);
-    this.activeWatchlistId.set(id);
-    this.toastService.success(`Created watchlist "${trimmedName}".`);
-    this.closeWatchlistDialog();
   }
 
   async confirmDeleteWatchlist() {
@@ -308,29 +256,18 @@ export class DashboardWatchlistOverlayFacade {
       return;
     }
 
-    if (this.backendDataMode && this.state.deleteWatchlist) {
-      try {
-        await this.state.deleteWatchlist(activeId);
-        const refreshed = this.watchlists();
-        const nextActive = refreshed[0];
-        this.activeWatchlistId.set(nextActive?.id ?? '');
-        this.toastService.success(`Deleted watchlist "${activeWatchlistName}".`);
-        this.closeWatchlistDialog();
-      } catch (error) {
-        this.toastService.error(this.toErrorMessage(error, 'Failed to delete watchlist.'));
+    try {
+      if (!this.state.deleteWatchlist) {
+        throw new Error('Watchlist deletion is unavailable.');
       }
-      return;
+
+      await this.state.deleteWatchlist(activeId);
+      this.activeWatchlistId.set(this.watchlists()[0]?.id ?? '');
+      this.toastService.success(`Deleted watchlist "${activeWatchlistName}".`);
+      this.closeWatchlistDialog();
+    } catch (error) {
+      this.toastService.error(this.toErrorMessage(error, 'Failed to delete watchlist.'));
     }
-
-    const nextActive =
-      currentWatchlists[activeIndex + 1] ??
-      currentWatchlists[activeIndex - 1] ??
-      currentWatchlists[0];
-
-    this.watchlists.set(currentWatchlists.filter((watchlist) => watchlist.id !== activeId));
-    this.activeWatchlistId.set(nextActive.id);
-    this.toastService.success(`Deleted watchlist "${activeWatchlistName}".`);
-    this.closeWatchlistDialog();
   }
 
   async addSymbolToActiveWatchlist(symbol: string): Promise<void> {
@@ -340,43 +277,19 @@ export class DashboardWatchlistOverlayFacade {
       return;
     }
 
-    if (this.backendDataMode && this.state.setWatchlistMembership) {
-      this.closeWatchlistSearchPopup();
-      try {
-        await this.state.setWatchlistMembership(symbol, active.id, true);
-        this.toastService.success(`Added ${symbol} to "${active.name}".`);
-      } catch (error) {
-        this.toastService.error(
-          this.toErrorMessage(error, `Failed to add ${symbol} to "${active.name}".`),
-        );
-      }
-      return;
-    }
-
-    if (active.symbols.includes(symbol)) {
-      this.toastService.error(`${symbol} is already in this watchlist.`);
-      return;
-    }
-
-    if (
-      this.maxHoldingsPerWatchlist !== null &&
-      active.symbols.length >= this.maxHoldingsPerWatchlist
-    ) {
-      this.toastService.error(
-        `Each watchlist is limited to ${this.maxHoldingsPerWatchlist} items.`,
-      );
-      return;
-    }
-
-    this.watchlists.update((current) =>
-      current.map((watchlist) =>
-        watchlist.id === active.id
-          ? { ...watchlist, symbols: [...watchlist.symbols, symbol] }
-          : watchlist,
-      ),
-    );
-    this.toastService.success(`Added ${symbol} to "${active.name}".`);
     this.closeWatchlistSearchPopup();
+    try {
+      if (!this.state.setWatchlistMembership) {
+        throw new Error('Watchlist updates are unavailable.');
+      }
+
+      await this.state.setWatchlistMembership(symbol, active.id, true);
+      this.toastService.success(`Added ${symbol} to "${active.name}".`);
+    } catch (error) {
+      this.toastService.error(
+        this.toErrorMessage(error, `Failed to add ${symbol} to "${active.name}".`),
+      );
+    }
   }
 
   async removeSelectedWatchlistAsset(): Promise<void> {
@@ -386,32 +299,19 @@ export class DashboardWatchlistOverlayFacade {
       return;
     }
 
-    if (this.backendDataMode && this.state.setWatchlistMembership) {
-      this.closeWatchlistAssetPopup();
-      try {
-        await this.state.setWatchlistMembership(selected.symbol, active.id, false);
-        this.toastService.success(`Removed ${selected.symbol} from "${active.name}".`);
-      } catch (error) {
-        this.toastService.error(
-          this.toErrorMessage(error, `Failed to remove ${selected.symbol} from "${active.name}".`),
-        );
-      }
-      return;
-    }
-
-    this.watchlists.update((current) =>
-      current.map((watchlist) =>
-        watchlist.id === active.id
-          ? {
-              ...watchlist,
-              symbols: watchlist.symbols.filter((symbol) => symbol !== selected.symbol),
-            }
-          : watchlist,
-      ),
-    );
-
-    this.toastService.success(`Removed ${selected.symbol} from "${active.name}".`);
     this.closeWatchlistAssetPopup();
+    try {
+      if (!this.state.setWatchlistMembership) {
+        throw new Error('Watchlist updates are unavailable.');
+      }
+
+      await this.state.setWatchlistMembership(selected.symbol, active.id, false);
+      this.toastService.success(`Removed ${selected.symbol} from "${active.name}".`);
+    } catch (error) {
+      this.toastService.error(
+        this.toErrorMessage(error, `Failed to remove ${selected.symbol} from "${active.name}".`),
+      );
+    }
   }
 
   closeWatchlistAssetPopup() {
@@ -444,25 +344,17 @@ export class DashboardWatchlistOverlayFacade {
       return;
     }
 
-    if (this.backendDataMode && this.state.renameWatchlist) {
-      try {
-        await this.state.renameWatchlist(active.id, trimmedName);
-        this.toastService.success(`Renamed watchlist to "${trimmedName}".`);
-        this.closeWatchlistDialog();
-      } catch (error) {
-        this.toastService.error(this.toErrorMessage(error, 'Failed to rename watchlist.'));
+    try {
+      if (!this.state.renameWatchlist) {
+        throw new Error('Watchlist updates are unavailable.');
       }
-      return;
+
+      await this.state.renameWatchlist(active.id, trimmedName);
+      this.toastService.success(`Renamed watchlist to "${trimmedName}".`);
+      this.closeWatchlistDialog();
+    } catch (error) {
+      this.toastService.error(this.toErrorMessage(error, 'Failed to rename watchlist.'));
     }
-
-    this.watchlists.update((current) =>
-      current.map((watchlist) =>
-        watchlist.id === active.id ? { ...watchlist, name: trimmedName } : watchlist,
-      ),
-    );
-
-    this.toastService.success(`Renamed watchlist to "${trimmedName}".`);
-    this.closeWatchlistDialog();
   }
 
   private validateWatchlistName(rawName: string): string | null {

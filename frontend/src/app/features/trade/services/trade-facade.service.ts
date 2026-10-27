@@ -63,8 +63,4 @@ export class TradeFacadeService {
   cancelOrder(orderId: string) {
     return this.orderEngine.cancelOrder(orderId);
   }
-
-  processOrders() {
-    this.orderEngine.processOrders();
-  }
 }

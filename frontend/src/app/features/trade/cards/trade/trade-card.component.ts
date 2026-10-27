@@ -1,10 +1,9 @@
-import { Component, OnDestroy, OnInit, computed, inject, output, signal } from '@angular/core';
+import { Component, computed, inject, output, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
 import { ScrollableListComponent } from '@shared/components/scrollable-list/scrollable-list.component';
 import { DisplaySymbolPipe } from '@shared/pipes/display-symbol.pipe';
-import { startCycleTimer } from '@shared/utils/cycle-timer';
 import { isFlatChange } from '@shared/utils/format-percentage-change';
 import { formatCurrency } from '@shared/utils/display-format';
 import { InstrumentType } from '@core/models';
@@ -15,8 +14,8 @@ import {
 
 interface TickerRow {
   asset: TradeMarketAsset;
-  price: number;
-  changePct: number;
+  price: number | null;
+  changePct: number | null;
   flat: boolean;
 }
 
@@ -42,7 +41,7 @@ const INSTRUMENT_OPTIONS: { id: InstrumentFilter; label: string }[] = [
   templateUrl: './trade-card.component.html',
   styleUrl: './trade-card.component.css',
 })
-export class TradeCardComponent implements OnInit, OnDestroy {
+export class TradeCardComponent {
   private readonly marketData = inject(TRADE_MARKET_DATA_PORT);
   readonly marketListMinHeight = '325px';
   readonly marketListMaxHeight = '325px';
@@ -54,11 +53,7 @@ export class TradeCardComponent implements OnInit, OnDestroy {
   instrument = signal<InstrumentFilter>('all');
   search = signal('');
 
-  private priceTick = signal(0);
-  private stopTicking?: () => void;
-
   filteredTickers = computed<TickerRow[]>(() => {
-    this.priceTick();
     const query = this.search().trim().toLowerCase();
 
     return this.marketData
@@ -72,20 +67,15 @@ export class TradeCardComponent implements OnInit, OnDestroy {
       )
       .map((asset) => {
         const price = this.marketData.getPrice(asset.symbol);
-        const changePct = ((price - asset.basePrice) / asset.basePrice) * 100;
-        return { asset, price, changePct, flat: isFlatChange(changePct) };
+        const changePct =
+          price !== null && asset.basePrice !== null && asset.basePrice > 0
+            ? ((price - asset.basePrice) / asset.basePrice) * 100
+            : null;
+        return { asset, price, changePct, flat: changePct === null || isFlatChange(changePct) };
       });
   });
 
   trackByTicker = (row: TickerRow) => row.asset.symbol;
-
-  ngOnInit() {
-    this.stopTicking = startCycleTimer(1, 1000, () => this.priceTick.update((tick) => tick + 1));
-  }
-
-  ngOnDestroy() {
-    this.stopTicking?.();
-  }
 
   setInstrument(type: InstrumentFilter) {
     this.instrument.set(type);

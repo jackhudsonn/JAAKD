@@ -12,7 +12,6 @@ import {
   AssetSetWatchlistMembershipRequest,
 } from './components/asset-popup/asset-popup.component';
 import { OrderDetailsPopupComponent } from './components/order-details-popup/order-details-popup.component';
-import { startCycleTimer } from '@shared/utils/cycle-timer';
 import { TradeFacadeService } from '@features/trade/services/trade-facade.service';
 import { TradeDeepLinkService } from '@features/trade/services/trade-deep-link.service';
 import { TRADE_MARKET_DATA_PORT } from './services/trade-market-data.port';
@@ -74,7 +73,6 @@ export class TradeComponent implements OnInit, OnDestroy {
 
   // Only one popup is ever open at a time.
   activeAssetSymbol = signal<string | null>(null);
-  activeAssetShowChart = signal(false);
   activeOrderId = signal<string | null>(null);
   private readonly requestedOrderId = signal<string | null>(null);
 
@@ -86,7 +84,6 @@ export class TradeComponent implements OnInit, OnDestroy {
     this.tradeFacade.getWatchlistOptionsForSymbol(this.activeAssetSymbol()),
   );
 
-  private stopTicking?: () => void;
   private routeQuerySubscription?: Subscription;
   private orderQuerySubscription?: Subscription;
   private readonly previousOrderStatuses = new Map<string, OrderStatus>();
@@ -165,10 +162,9 @@ export class TradeComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     void this.tradeFacade.load();
-    this.stopTicking = startCycleTimer(1, 1000, () => this.tradeFacade.processOrders());
     this.routeQuerySubscription = this.tradeDeepLinkService.subscribeToSymbolQueryParam(
       this.route,
-      (symbol) => this.openAsset(symbol, false),
+      (symbol) => this.openAsset(symbol),
     );
     this.orderQuerySubscription = this.route.queryParamMap.subscribe((queryParams) => {
       this.requestedOrderId.set(queryParams.get('orderId'));
@@ -176,14 +172,12 @@ export class TradeComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    this.stopTicking?.();
     this.routeQuerySubscription?.unsubscribe();
     this.orderQuerySubscription?.unsubscribe();
   }
 
-  openAsset(symbol: string, showChart = false) {
+  openAsset(symbol: string) {
     this.activeAssetSymbol.set(symbol);
-    this.activeAssetShowChart.set(showChart);
   }
 
   closeAssetPopup() {
@@ -198,20 +192,46 @@ export class TradeComponent implements OnInit, OnDestroy {
     this.activeOrderId.set(null);
   }
 
-  placeOrder(request: AssetOrderPlaced) {
-    void this.tradeFacade.placeOrder(request);
+  async placeOrder(request: AssetOrderPlaced) {
+    try {
+      await this.tradeFacade.placeOrder(request);
+      this.toastService.success(
+        `${request.type === 'buy' ? 'Buy' : 'Sell'} order placed for ${request.quantity} ${request.symbol}` +
+          (request.kind === 'market'
+            ? ' at market.'
+            : ` at limit ${request.limitPrice?.toFixed(2)}.`),
+      );
+    } catch (error) {
+      this.toastService.error(this.toActionErrorMessage(error, 'The order could not be placed.'));
+    }
   }
 
-  setWatchlistMembership(request: AssetSetWatchlistMembershipRequest) {
-    void this.tradeFacade.setWatchlistMembership(request);
+  async setWatchlistMembership(request: AssetSetWatchlistMembershipRequest) {
+    try {
+      await this.tradeFacade.setWatchlistMembership(request);
+    } catch (error) {
+      this.toastService.error(
+        this.toActionErrorMessage(error, 'The watchlist could not be updated.'),
+      );
+    }
   }
 
-  cancelOrder(orderId: string) {
-    void this.tradeFacade.cancelOrder(orderId);
-    this.closeOrderPopup();
+  async cancelOrder(orderId: string) {
+    try {
+      await this.tradeFacade.cancelOrder(orderId);
+      this.closeOrderPopup();
+    } catch (error) {
+      this.toastService.error(
+        this.toActionErrorMessage(error, 'The order could not be cancelled.'),
+      );
+    }
   }
 
   retryLoad() {
     void this.tradeFacade.load();
+  }
+
+  private toActionErrorMessage(error: unknown, fallback: string): string {
+    return error instanceof Error && error.message.trim() ? error.message : fallback;
   }
 }

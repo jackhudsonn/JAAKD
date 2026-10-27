@@ -9,8 +9,14 @@ import {
   WatchlistResponse,
 } from '@core/models/api.models';
 import { ORDER_STATUS, isActiveOrderStatus } from '@core/constants/order-status.constants';
-import { Holding, HoldingInstrumentClass, InstrumentType, Order, Transaction } from '@core/models';
-import { SharedWatchlist } from '@core/mocks/watchlist.mock';
+import {
+  Holding,
+  HoldingInstrumentClass,
+  InstrumentType,
+  Order,
+  SharedWatchlist,
+  Transaction,
+} from '@core/models';
 import { toDisplaySymbol } from '@shared/utils/display-format';
 import { roundChangePct } from '@shared/utils/format-percentage-change';
 
@@ -55,7 +61,7 @@ const buildLatestExecutedPriceByInstrumentId = (
 
 export interface HoldingPriceResolver {
   isKnownSymbol(symbol: string): boolean;
-  getPrice(symbol: string): number;
+  getPrice(symbol: string): number | null;
 }
 
 const extractStatusReason = (metadata: string | null): string => {
@@ -176,7 +182,7 @@ export const toHoldings = (
 
     const indicativePrice = holdingPriceResolver.isKnownSymbol(instrument.ticker)
       ? holdingPriceResolver.getPrice(instrument.ticker)
-      : (latestExecutedPriceByInstrumentId.get(holding.instrumentID) ?? 0);
+      : (latestExecutedPriceByInstrumentId.get(holding.instrumentID) ?? null);
 
     mapped.push({
       symbol: instrument.ticker,
@@ -185,7 +191,8 @@ export const toHoldings = (
       instrumentClass,
       quantity: holding.currentQuantity,
       indicativePrice,
-      priceStatus: indicativePrice > 0 ? 'available' : 'price unavailable',
+      priceStatus:
+        indicativePrice !== null && indicativePrice > 0 ? 'available' : 'price unavailable',
     });
   }
 
@@ -531,5 +538,5 @@ export const toLiveQuoteBySymbol = (quotes: QuoteResponse[]): Map<string, LiveQu
 
 export const toPriceResolver = (prices: Map<string, number>): HoldingPriceResolver => ({
   isKnownSymbol: (symbol) => prices.has(symbol.toUpperCase()),
-  getPrice: (symbol) => prices.get(symbol.toUpperCase()) ?? 0,
+  getPrice: (symbol) => prices.get(symbol.toUpperCase()) ?? null,
 });

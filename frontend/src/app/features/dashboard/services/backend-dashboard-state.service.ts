@@ -1,13 +1,13 @@
 import { Injectable, signal } from '@angular/core';
-import { MOCK_RETURNS, MockOrder } from '@core/mocks/state.mock';
-import { SharedWatchlist, WATCHLIST_CONSTRAINTS } from '@core/mocks/watchlist.mock';
-import { Holding, Order, Transaction } from '@core/models';
+import { WATCHLIST_CONSTRAINTS } from '@core/constants/watchlist.constants';
+import { Holding, Order, SharedWatchlist, Transaction } from '@core/models';
 import { QuoteResponse } from '@core/models/api.models';
 import { HoldingApiService } from '@core/services/holding-api.service';
 import { InstrumentApiService } from '@core/services/instrument-api.service';
 import { OrderLogApiService } from '@core/services/order-log-api.service';
 import { PortfolioApiService } from '@core/services/portfolio-api.service';
 import { WatchlistApiService } from '@core/services/watchlist-api.service';
+import { ToastService } from '@shared/components/toast/toast.service';
 import { DashboardPreferencesSyncService } from './dashboard-preferences-sync.service';
 import { DashboardStatePort, DashboardWatchlistInstrumentOption } from './dashboard-state.port';
 import {
@@ -39,13 +39,10 @@ export class BackendDashboardStateService implements DashboardStatePort {
   readonly transactions = signal<Transaction[]>([]);
   readonly watchlists = signal<SharedWatchlist[]>([]);
   readonly activeWatchlistId = signal('watchlist');
-  readonly dashboardOpenOrders = signal<MockOrder[]>([]);
   readonly backendWatchlistInstrumentOptions = signal<DashboardWatchlistInstrumentOption[]>([]);
   readonly dashboardWidgets = signal<readonly string[] | null>(null);
   readonly liveQuotes = signal<ReadonlyMap<string, LiveQuote>>(new Map());
-  readonly returns = { ...MOCK_RETURNS, allTime: 0, daily: 0 };
   readonly watchlistConstraints = WATCHLIST_CONSTRAINTS;
-  readonly backendDataMode = true;
 
   readonly loadState = signal<DashboardLoadState>('loading');
   private readonly portfolioId = signal<string | null>(null);
@@ -57,6 +54,7 @@ export class BackendDashboardStateService implements DashboardStatePort {
     private orderLogApiService: OrderLogApiService,
     private watchlistApiService: WatchlistApiService,
     private dashboardPreferencesSyncService: DashboardPreferencesSyncService,
+    private toastService: ToastService,
   ) {}
 
   async load(): Promise<void> {
@@ -68,7 +66,6 @@ export class BackendDashboardStateService implements DashboardStatePort {
     this.transactions.set([]);
     this.watchlists.set([]);
     this.activeWatchlistId.set('');
-    this.dashboardOpenOrders.set([]);
     this.backendWatchlistInstrumentOptions.set([]);
     this.dashboardWidgets.set(null);
     this.liveQuotes.set(new Map());
@@ -92,12 +89,19 @@ export class BackendDashboardStateService implements DashboardStatePort {
       ]);
 
       let quotes: QuoteResponse[] = [];
+      const quoteSymbols = toQuoteSymbols(instruments);
+      let quoteLoadFailed = false;
       try {
-        quotes = await this.instrumentApiService.getQuotes(toQuoteSymbols(instruments));
+        quotes = await this.instrumentApiService.getQuotes(quoteSymbols);
       } catch (error) {
+        quoteLoadFailed = true;
         console.error('BackendDashboardStateService quotes failed', error);
+        this.toastService.error('Market prices are currently unavailable.');
       }
       const quotePrices = toQuotePriceBySymbol(quotes);
+      if (!quoteLoadFailed && quoteSymbols.length > 0 && quotePrices.size === 0) {
+        this.toastService.error('Market prices are currently unavailable.');
+      }
       this.liveQuotes.set(toLiveQuoteBySymbol(quotes));
 
       this.accountCash.set(toCash(holdings, instruments));
@@ -108,7 +112,6 @@ export class BackendDashboardStateService implements DashboardStatePort {
       const mappedWatchlists = toWatchlists(watchlists, instruments);
       this.watchlists.set(mappedWatchlists);
       this.activeWatchlistId.set(mappedWatchlists[0]?.id ?? '');
-      this.dashboardOpenOrders.set([]);
       this.backendWatchlistInstrumentOptions.set(
         instruments
           .map((instrument) => {
@@ -142,7 +145,6 @@ export class BackendDashboardStateService implements DashboardStatePort {
       this.transactions.set([]);
       this.watchlists.set([]);
       this.activeWatchlistId.set('');
-      this.dashboardOpenOrders.set([]);
       this.backendWatchlistInstrumentOptions.set([]);
       this.dashboardWidgets.set(null);
       this.liveQuotes.set(new Map());

@@ -44,15 +44,19 @@
           </div>
 
           <div class="price-stack">
-            <span class="price">{{ formatCurrency(row.marketValue, row.currency) }}</span>
-            <span
-              class="change"
-              [class.positive]="!row.flat && row.changePct > 0"
-              [class.negative]="!row.flat && row.changePct < 0"
-            >
-              {{ !row.flat && row.changePct > 0 ? '+' : ''
-              }}{{ (row.flat ? 0 : row.changePct) | number: '1.2-2' }}%
-            </span>
+            @if (row.marketValue === null) {
+              <span class="price">Price unavailable</span>
+            } @else {
+              <span class="price">{{ formatCurrency(row.marketValue, row.currency) }}</span>
+              <span
+                class="change"
+                [class.positive]="!row.flat && row.changePct! > 0"
+                [class.negative]="!row.flat && row.changePct! < 0"
+              >
+                {{ !row.flat && row.changePct! > 0 ? '+' : ''
+                }}{{ (row.flat ? 0 : row.changePct) | number: '1.2-2' }}%
+              </span>
+            }
           </div>
         </button>
       }

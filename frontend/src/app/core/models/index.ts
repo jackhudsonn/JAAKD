@@ -7,13 +7,20 @@ export type HoldingInstrumentClass = Extract<InstrumentClass, 'EQUITY' | 'ETF' |
 export type OrderKind = 'market' | 'limit';
 export type OrderType = 'buy' | 'sell';
 export type { OrderStatus };
+
+export interface SharedWatchlist {
+  id: string;
+  name: string;
+  symbols: string[];
+}
+
 export interface Holding {
   symbol: string;
   currency?: CashCurrency;
   instrumentType: InstrumentType;
   instrumentClass?: HoldingInstrumentClass;
   quantity: number;
-  indicativePrice?: number;
+  indicativePrice?: number | null;
   priceStatus?: 'available' | 'price unavailable';
 }
 

@@ -8,12 +8,13 @@ import {
   WatchlistResponse,
 } from '@core/models/api.models';
 import { Holding, Order } from '@core/models';
-import { WATCHLIST_CONSTRAINTS } from '@core/mocks/watchlist.mock';
+import { WATCHLIST_CONSTRAINTS } from '@core/constants/watchlist.constants';
 import { HoldingApiService } from '@core/services/holding-api.service';
 import { InstrumentApiService } from '@core/services/instrument-api.service';
 import { OrderLogApiService } from '@core/services/order-log-api.service';
 import { PortfolioApiService } from '@core/services/portfolio-api.service';
 import { WatchlistApiService } from '@core/services/watchlist-api.service';
+import { ToastService } from '@shared/components/toast/toast.service';
 import {
   LiveQuote,
   toCash,
@@ -61,6 +62,7 @@ export class BackendTradeStateService implements TradeStatePort {
     private instrumentApiService: InstrumentApiService,
     private orderLogApiService: OrderLogApiService,
     private watchlistApiService: WatchlistApiService,
+    private toastService: ToastService,
   ) {}
 
   async load(): Promise<void> {
@@ -200,11 +202,17 @@ export class BackendTradeStateService implements TradeStatePort {
   }
   private async loadQuotes(instruments: InstrumentResponse[]): Promise<void> {
     try {
-      const quotes = await this.instrumentApiService.getQuotes(toQuoteSymbols(instruments));
-      this.quotePriceBySymbol.set(toQuotePriceBySymbol(quotes));
+      const quoteSymbols = toQuoteSymbols(instruments);
+      const quotes = await this.instrumentApiService.getQuotes(quoteSymbols);
+      const prices = toQuotePriceBySymbol(quotes);
+      if (quoteSymbols.length > 0 && prices.size === 0) {
+        this.toastService.error('Market prices are currently unavailable.');
+      }
+      this.quotePriceBySymbol.set(prices);
       this.liveQuoteBySymbolData.set(toLiveQuoteBySymbol(quotes));
     } catch (error) {
       console.error('BackendTradeStateService.loadQuotes failed', error);
+      this.toastService.error('Market prices are currently unavailable.');
       this.quotePriceBySymbol.set(new Map());
       this.liveQuoteBySymbolData.set(new Map());
     }
