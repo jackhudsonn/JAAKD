@@ -7,12 +7,12 @@
 3. Enable **This project is parameterised**.
 4. Under **Pipeline**, select **Pipeline script from SCM**.
 5. Set:
-	- **SCM**: `Git`
-	- **Repository URL**: `<repo-url>`
-	- **Branch Specifier**: `main`
+   - **SCM**: `Git`
+   - **Repository URL**: `<repo-url>`
+   - **Branch Specifier**: `main`
 6. Save the job.
 7. Click **Build Now** once so Jenkins detects parameters.
-	- The first run may fail; this is expected.
+   - The first run may fail; this is expected.
 
 ### 2. Start SonarQube (Dev)
 
@@ -39,23 +39,23 @@ Then open SonarQube, sign in, and generate a token:
 Add the following credentials in Jenkins:
 
 1. Sonar token
-	- **Type**: Secret Text
-	- **ID**: `sonar_secret`
+   - **Type**: Secret Text
+   - **ID**: `sonar_secret`
 2. Development env file
-	- **Type**: Secret File
-	- **ID**: `.env.development`
+   - **Type**: Secret File
+   - **ID**: `.env.development`
 
 ### 4. Install Jenkins Tools/Plugins
 
 1. Install plugin:
-	- `SonarQube Scanner for Jenkins`
+   - `SonarQube Scanner for Jenkins`
 2. In **Manage Jenkins -> Tools** configure:
-	- **SonarQube Scanner**
-	  - Name: `SonarQube Scanner`
-	  - Install automatically with the latest version
-	- **NodeJS**
-	  - Name: `NodeJS`
-	  - Version: `22.22.3`
+   - **SonarQube Scanner**
+     - Name: `SonarQube Scanner`
+     - Install automatically with the latest version
+   - **NodeJS**
+     - Name: `NodeJS`
+     - Version: `22.22.3`
 
 ### 5. Configure SonarQube Server in Jenkins
 
@@ -116,16 +116,16 @@ Current manual production release inputs:
 1. Backend artifact: runnable Spring Boot JAR from `backend/target` (not `.jar.original`).
 2. Frontend artifact: Angular production output from `frontend/dist/my-app/browser`.
 3. Runtime configuration in Beanstalk environment properties:
-	- `SPRING_DATASOURCE_URL`
-	- `SPRING_DATASOURCE_USERNAME`
-	- `SPRING_DATASOURCE_PASSWORD`
-	- `SPRING_KAFKA_BOOTSTRAP_SERVERS`
-	- `APP_CORS_ALLOWED_ORIGINS`
-	- `IDENTITY_PROVIDER`
-	- `AUTH_COOKIE_SECURE`
-	- `SPRING_PROFILES_ACTIVE`
-	- `FAUXNANCE_BASE_URL`
-	- `FAUXNANCE_API_KEY`
+   - `SPRING_DATASOURCE_URL`
+   - `SPRING_DATASOURCE_USERNAME`
+   - `SPRING_DATASOURCE_PASSWORD`
+   - `SPRING_KAFKA_BOOTSTRAP_SERVERS`
+   - `APP_CORS_ALLOWED_ORIGINS`
+   - `IDENTITY_PROVIDER`
+   - `AUTH_COOKIE_SECURE`
+   - `SPRING_PROFILES_ACTIVE`
+   - `FAUXNANCE_BASE_URL`
+   - `FAUXNANCE_API_KEY`
 
 Production prerequisites before first deploy:
 

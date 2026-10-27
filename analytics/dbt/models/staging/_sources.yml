@@ -12,7 +12,7 @@ sources:
     description: Nightly copy of prod (copy/copy_raw.py). Replaced in full on every run.
     schema: raw
     quoting:
-      identifier: true  # table names like "orderLogs" are case-sensitive
+      identifier: true # table names like "orderLogs" are case-sensitive
     tables:
       - name: instruments
         columns:

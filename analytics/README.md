@@ -15,22 +15,22 @@ This README covers running the pipeline locally. The nightly Jenkins job and the
 
 ## Layout
 
-| Path | What it is |
-|---|---|
-| `db/setup.sql` | Roles, schemas and `raw.*` tables in the analytics database. Safe to rerun. |
-| `db/init/00-setup.sh` | Runs `setup.sql` with the passwords from `.env`, on the container's first start. |
-| `copy/copy_raw.py` | The copy job. |
-| `copy/tables.py` | Which tables and columns are copied. |
-| `dbt/` | The dbt project. `models/staging` → `models/intermediate` → `models/marts`, plus tests in `tests/`. |
-| `requirements.txt` | Pinned Python packages (psycopg, dbt). |
+| Path                  | What it is                                                                                          |
+| --------------------- | --------------------------------------------------------------------------------------------------- |
+| `db/setup.sql`        | Roles, schemas and `raw.*` tables in the analytics database. Safe to rerun.                         |
+| `db/init/00-setup.sh` | Runs `setup.sql` with the passwords from `.env`, on the container's first start.                    |
+| `copy/copy_raw.py`    | The copy job.                                                                                       |
+| `copy/tables.py`      | Which tables and columns are copied.                                                                |
+| `dbt/`                | The dbt project. `models/staging` → `models/intermediate` → `models/marts`, plus tests in `tests/`. |
+| `requirements.txt`    | Pinned Python packages (psycopg, dbt).                                                              |
 
 ## Database roles
 
-| Role | Database | Can do | Used by |
-|---|---|---|---|
-| `jaakd_analytics_reader` | `jaakd` | Read-only, and only the tables and columns analytics needs | the copy job (source side) |
-| `analytics_pipeline` | `jaakd_analytics` | Owns everything | the copy job (destination side), dbt |
-| `analytics_app_reader` | `jaakd_analytics` | Read-only, schema `analytics` only | the backend |
+| Role                     | Database          | Can do                                                     | Used by                              |
+| ------------------------ | ----------------- | ---------------------------------------------------------- | ------------------------------------ |
+| `jaakd_analytics_reader` | `jaakd`           | Read-only, and only the tables and columns analytics needs | the copy job (source side)           |
+| `analytics_pipeline`     | `jaakd_analytics` | Owns everything                                            | the copy job (destination side), dbt |
+| `analytics_app_reader`   | `jaakd_analytics` | Read-only, schema `analytics` only                         | the backend                          |
 
 Passwords come from `.env`: `JAAKD_ANALYTICS_DB_PASSWORD`, `ANALYTICS_PIPELINE_DB_PASSWORD` and `ANALYTICS_DB_PASSWORD`, in that order.
 
@@ -87,6 +87,7 @@ python copy/copy_raw.py
 In PowerShell, use `$env:SOURCE_DSN = "..."`. Use `127.0.0.1`, not `localhost`: on Windows, `localhost` can hang.
 
 How the copy works:
+
 - All tables come from one consistent snapshot of the source. An order placed mid-copy shows up in every table or in none.
 - Everything on the analytics side happens in one transaction, so a failure leaves the previous copy untouched.
 - The job logs a row count per table and exits `1` on any failure.

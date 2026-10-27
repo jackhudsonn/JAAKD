@@ -6,8 +6,6 @@ import { StatusBadgeComponent } from '@shared/components/status-badge/status-bad
 import { DisplaySymbolPipe } from '@shared/pipes/display-symbol.pipe';
 import { formatLabel } from '@shared/utils/format-label';
 import { Order } from '@core/models';
-import { formatCurrency } from '@shared/utils/display-format';
-import { REPORTING_CURRENCY } from '@core/models/api.models';
 
 @Component({
   selector: 'app-order-details-popup',
@@ -23,8 +21,6 @@ export class OrderDetailsPopupComponent {
   cancel = output<string>();
 
   formatLabel = formatLabel;
-  readonly formatCurrency = formatCurrency;
-  readonly fallbackCurrency = REPORTING_CURRENCY;
 
   canCancelOrder() {
     const status = this.order().status;

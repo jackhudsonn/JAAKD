@@ -197,10 +197,7 @@ export class TradeComponent implements OnInit, OnDestroy {
     try {
       await this.tradeFacade.placeOrder(request);
       this.toastService.success(
-        `${request.type === 'buy' ? 'Buy' : 'Sell'} order placed for ${request.quantity} ${request.symbol}` +
-          (request.kind === 'market'
-            ? ' at market.'
-            : ` at limit ${request.limitPrice?.toFixed(2)}.`),
+        `${request.type === 'buy' ? 'Buy' : 'Sell'} order placed for ${request.quantity} ${request.symbol} at market.`,
       );
     } catch (error) {
       this.toastService.error(this.toActionErrorMessage(error, 'The order could not be placed.'));

@@ -21,28 +21,6 @@
         Sell
       </button>
     </div>
-
-    <div class="kind-tabs">
-      <button
-        type="button"
-        class="kind-tab"
-        [class.active]="kind() === 'market'"
-        (click)="setKind('market')"
-      >
-        Market
-      </button>
-
-      @if (!backendDataMode()) {
-        <button
-          type="button"
-          class="kind-tab"
-          [class.active]="kind() === 'limit'"
-          (click)="setKind('limit')"
-        >
-          Limit
-        </button>
-      }
-    </div>
   </div>
 
   <div class="form-field">
@@ -57,21 +35,6 @@
       (ngModelChange)="quantity.set($event)"
     />
   </div>
-
-  @if (kind() === 'limit') {
-    <div class="form-field">
-      <label for="order-limit-price">Limit Price ({{ currency() }})</label>
-      <input
-        id="order-limit-price"
-        type="number"
-        min="0"
-        step="0.01"
-        placeholder="0.00"
-        [ngModel]="limitPrice()"
-        (ngModelChange)="limitPrice.set($event)"
-      />
-    </div>
-  }
 
   @if (showPriceUnavailableHint()) {
     <p class="order-hint">Indicative price unavailable. The order fills at the current quote.</p>

@@ -32,7 +32,6 @@ Trades represent position changes in a security. They are created when an order 
 - Buy
 - Sell
 - Market order fills
-- Limit order fills
 - Partial fills
 
 Use trades to track changes to holdings, cost basis, and realized/unrealized P&L.
@@ -183,7 +182,8 @@ Every environment file sets `apiUrl` to empty, so the frontend calls its own ori
 API docs: `http://localhost:8081/swagger-ui.html`.
 
 ### Demo user creation
-To avoid manually setting up a user account (signing in, adding bank accounts, adding funds, buying/selling instruments, etc) when spinning up a fresh db, run the command below in root. Copy any of the three credentials from your terminal directly. There is a newbie, intermediate, and pro user; the newbie user has a couple of trades and pro has more of a history (many trades, multiple watchlists, etc). 
+
+To avoid manually setting up a user account (signing in, adding bank accounts, adding funds, buying/selling instruments, etc) when spinning up a fresh db, run the command below in root. Copy any of the three credentials from your terminal directly. There is a newbie, intermediate, and pro user; the newbie user has a couple of trades and pro has more of a history (many trades, multiple watchlists, etc).
 
 ```bash
 node scripts/seed-demo-users.js
@@ -211,16 +211,16 @@ java -jar target\backend-0.0.1-SNAPSHOT.jar
 
 - Sequence source: `backend/OrderSequenceDiagram.mmd`.
 - Submit intake for BUY/SELL now requires a valid quote at submission time:
-	- Calls `QuoteService.getExecutionPrice(instrumentId, side)`.
-	- Retries up to 3 times when quote is null/non-positive or provider errors.
-	- If retries are exhausted, submission fails with `InvalidTradeException` and no order row is saved/published.
+  - Calls `QuoteService.getExecutionPrice(instrumentId, side)`.
+  - Retries up to 3 times when quote is null/non-positive or provider errors.
+  - If retries are exhausted, submission fails with `InvalidTradeException` and no order row is saved/published.
 - DEPOSIT/WITHDRAW still submit without quote lookup.
 - Kafka topology is unchanged:
-	- `order-submitted` -> validation -> `order-accepted` or `order-rejected`.
-	- `order-accepted` -> execution -> append `EXECUTED` or `FAILED`.
+  - `order-submitted` -> validation -> `order-accepted` or `order-rejected`.
+  - `order-accepted` -> execution -> append `EXECUTED` or `FAILED`.
 - Runtime faults are handled deterministically in lifecycle services:
-	- Validation runtime errors map to `REJECTED` append/publish path.
-	- Execution runtime errors append `FAILED`.
+  - Validation runtime errors map to `REJECTED` append/publish path.
+  - Execution runtime errors append `FAILED`.
 
 ### Security error responses
 
