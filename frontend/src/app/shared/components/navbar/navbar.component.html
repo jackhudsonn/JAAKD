@@ -11,13 +11,15 @@
     <div class="app-brand">JAAKD<span>+</span></div>
 
     <nav class="app-nav" aria-label="Main navigation">
-      @if (!analystOnly) {
+      @if (canAccessTrading) {
         <a routerLink="/dashboard" routerLinkActive="active" (click)="closeMenus()"> Dashboard </a>
 
         <a routerLink="/transact" routerLinkActive="active" (click)="closeMenus()"> Transact </a>
 
         <a routerLink="/trade" routerLinkActive="active" (click)="closeMenus()"> Trade </a>
+      }
 
+      @if (canAccessAdminTesting) {
         <a routerLink="/testing/order-lifecycle" routerLinkActive="active" (click)="closeMenus()">
           Dev Testing
         </a>
@@ -84,7 +86,7 @@
                 Account
               </a>
 
-              @if (!analystOnly) {
+              @if (canAccessTrading) {
                 <a
                   routerLink="/payment-methods"
                   class="account-menu-link"
@@ -110,7 +112,7 @@
 
     @if (mobileMenuOpen()) {
       <div class="mobile-nav-dropdown" role="menu" aria-label="Mobile navigation links">
-        @if (!analystOnly) {
+        @if (canAccessTrading) {
           <a
             routerLink="/dashboard"
             routerLinkActive="active"
@@ -132,7 +134,9 @@
           <a routerLink="/trade" routerLinkActive="active" role="menuitem" (click)="closeMenus()">
             Trade
           </a>
+        }
 
+        @if (canAccessAdminTesting) {
           <a
             routerLink="/testing/order-lifecycle"
             routerLinkActive="active"

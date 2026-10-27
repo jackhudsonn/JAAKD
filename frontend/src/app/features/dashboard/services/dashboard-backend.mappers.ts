@@ -473,7 +473,7 @@ export const toOpenOrders = (
 };
 
 // Fauxnance prices crypto only as X:<ticker>-USD; a plain "BTC" is quoted as a stock there.
-const toFauxnanceSymbol = (instrument: InstrumentResponse): string => {
+export const toQuoteSymbol = (instrument: InstrumentResponse): string => {
   const ticker = instrument.ticker.toUpperCase();
   return instrument.instrumentClass === 'CRYPTO' && !ticker.startsWith('X:')
     ? `X:${ticker}-USD`
@@ -490,7 +490,7 @@ const setQuoteKeys = <T>(map: Map<string, T>, symbol: string, value: T): void =>
 export const toQuoteSymbols = (instruments: InstrumentResponse[]): string[] =>
   instruments
     .filter((instrument) => toInstrumentType(instrument.instrumentClass) !== null)
-    .map(toFauxnanceSymbol);
+    .map(toQuoteSymbol);
 
 export const toQuotePriceBySymbol = (quotes: QuoteResponse[]): Map<string, number> => {
   const prices = new Map<string, number>();

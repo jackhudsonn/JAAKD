@@ -15,6 +15,10 @@ export function isAnalystOrAdmin(userType: number | null | undefined): boolean {
   return userType === USER_TYPE.ANALYST || userType === USER_TYPE.ADMIN;
 }
 
+export function canAccessTrading(userType: number | null | undefined): boolean {
+  return userType === USER_TYPE.RETAIL_CLIENT || userType === USER_TYPE.ADMIN;
+}
+
 export interface Profile {
   userId: string;
   userType: number;

@@ -62,42 +62,22 @@
 }
 
 @if (selectedWatchlistAsset(); as asset) {
-  <app-modal [title]="asset.name" (closed)="closeWatchlistAssetPopup.emit()">
-    <div class="watchlist-details">
-      <div class="watchlist-details-header">
-        <span class="symbol">{{ asset.symbol | displaySymbol }}</span>
-        @if (asset.changePct !== null) {
-          <span
-            class="change"
-            [class.positive]="asset.changePct >= 0"
-            [class.negative]="asset.changePct < 0"
-          >
-            {{ asset.changePct >= 0 ? '+' : '' }}{{ asset.changePct | number: '1.2-2' }}%
-          </span>
-        }
-      </div>
-
-      <p class="watchlist-details-price">
-        Current Price:
-        @if (asset.price === null) {
-          Price unavailable
-        } @else {
-          {{ formatCurrency(asset.price, asset.currency) }}
-        }
-      </p>
-
-      <div class="watchlist-details-actions">
-        <button
-          type="button"
-          class="btn btn-secondary watchlist-delete-btn"
-          (click)="removeSelectedWatchlistAsset.emit()"
-        >
-          Remove
-        </button>
-        <button type="button" class="btn btn-primary" (click)="tradeSelectedWatchlistAsset.emit()">
-          Trade
-        </button>
-      </div>
+  <app-asset-summary-overlay
+    [asset]="asset"
+    [title]="asset.name"
+    (closed)="closeWatchlistAssetPopup.emit()"
+  >
+    <div class="watchlist-details-actions">
+      <button
+        type="button"
+        class="btn btn-secondary watchlist-delete-btn"
+        (click)="removeSelectedWatchlistAsset.emit()"
+      >
+        Remove
+      </button>
+      <button type="button" class="btn btn-primary" (click)="tradeSelectedWatchlistAsset.emit()">
+        Trade
+      </button>
     </div>
-  </app-modal>
+  </app-asset-summary-overlay>
 }

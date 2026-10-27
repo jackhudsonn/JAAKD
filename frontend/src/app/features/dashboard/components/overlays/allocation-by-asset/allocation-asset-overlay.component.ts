@@ -1,14 +1,13 @@
 import { DecimalPipe } from '@angular/common';
 import { Component, input, output } from '@angular/core';
-import { ModalComponent } from '@shared/components/modal/modal.component';
-import { DisplaySymbolPipe } from '@shared/pipes/display-symbol.pipe';
+import { AssetSummaryOverlayComponent } from '@shared/components/asset-summary-overlay/asset-summary-overlay.component';
 import { AllocationAssetSelection } from '@features/dashboard/cards/allocation-by-asset/allocation-by-asset.component';
 import { formatCurrency } from '@shared/utils/display-format';
 
 @Component({
   selector: 'app-allocation-asset-overlay',
   standalone: true,
-  imports: [ModalComponent, DecimalPipe, DisplaySymbolPipe],
+  imports: [AssetSummaryOverlayComponent, DecimalPipe],
   templateUrl: './allocation-asset-overlay.component.html',
   styleUrl: './allocation-asset-overlay.component.css',
 })

@@ -8,9 +8,9 @@ import {
 } from '@angular/router';
 import { USER_TYPE } from '@core/models/profile.model';
 import { ProfileService } from '@features/profile/services/profile.service';
-import { analystHomeGuard } from './analyst-home.guard';
+import { adminOnlyGuard } from './admin-only.guard';
 
-describe('analystHomeGuard', () => {
+describe('adminOnlyGuard', () => {
   const profileService = {
     getCurrentProfile: vi.fn<() => Promise<{ userType: number }>>(),
   };
@@ -24,32 +24,34 @@ describe('analystHomeGuard', () => {
 
   function runGuard() {
     return TestBed.runInInjectionContext(() =>
-      analystHomeGuard({} as ActivatedRouteSnapshot, {} as RouterStateSnapshot),
+      adminOnlyGuard({} as ActivatedRouteSnapshot, {} as RouterStateSnapshot),
     );
   }
 
-  it('sends an analyst to the analyst view', async () => {
-    profileService.getCurrentProfile.mockResolvedValue({ userType: USER_TYPE.ANALYST });
-
-    const result = await runGuard();
-
+  function expectDashboardRedirect(result: unknown) {
     expect(result).toBeInstanceOf(UrlTree);
-    expect(TestBed.inject(Router).serializeUrl(result as UrlTree)).toBe('/analyst');
+    expect(TestBed.inject(Router).serializeUrl(result as UrlTree)).toBe('/dashboard');
+  }
+
+  it('allows an admin', async () => {
+    profileService.getCurrentProfile.mockResolvedValue({ userType: USER_TYPE.ADMIN });
+
+    expect(await runGuard()).toBe(true);
   });
 
   it.each([
     ['retail client', USER_TYPE.RETAIL_CLIENT],
-    ['admin', USER_TYPE.ADMIN],
     ['auditor', USER_TYPE.AUDITOR],
-  ])('lets a %s open the dashboard', async (_label, userType) => {
+    ['analyst', USER_TYPE.ANALYST],
+  ])('redirects a %s to the dashboard', async (_label, userType) => {
     profileService.getCurrentProfile.mockResolvedValue({ userType });
 
-    expect(await runGuard()).toBe(true);
+    expectDashboardRedirect(await runGuard());
   });
 
-  it('lets the dashboard handle a profile that cannot be loaded', async () => {
+  it('redirects to the dashboard when the profile cannot be loaded', async () => {
     profileService.getCurrentProfile.mockRejectedValue(new Error('network'));
 
-    expect(await runGuard()).toBe(true);
+    expectDashboardRedirect(await runGuard());
   });
 });

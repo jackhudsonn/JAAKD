@@ -29,9 +29,9 @@ describe('NavbarComponent', () => {
     fixture.detectChanges();
   }
 
-  it('shows an analyst only the Analytics link, with no payment methods', () => {
+  it('hides trading navigation from an analyst', () => {
     fixture.componentRef.setInput('canAccessAnalyst', true);
-    fixture.componentRef.setInput('analystOnly', true);
+    fixture.componentRef.setInput('canAccessTrading', false);
     fixture.detectChanges();
 
     expect(linkTexts('.app-nav')).toEqual(['Analytics']);
@@ -45,9 +45,22 @@ describe('NavbarComponent', () => {
     expect(linkTexts('.avatar-dropdown')).toEqual(['Account']);
   });
 
+  it('hides trading navigation from an auditor', () => {
+    fixture.componentRef.setInput('canAccessAuditor', true);
+    fixture.componentRef.setInput('canAccessTrading', false);
+    fixture.detectChanges();
+
+    expect(linkTexts('.app-nav')).toEqual(['Auditor Portal']);
+
+    fixture.componentInstance.toggleAvatarMenu();
+    fixture.detectChanges();
+    expect(linkTexts('.avatar-dropdown')).toEqual(['Account']);
+  });
+
   it('shows an admin the full navigation, Analytics included', () => {
     fixture.componentRef.setInput('canAccessAnalyst', true);
     fixture.componentRef.setInput('canAccessAuditor', true);
+    fixture.componentRef.setInput('canAccessAdminTesting', true);
     fixture.detectChanges();
 
     expect(linkTexts('.app-nav')).toEqual([
@@ -64,11 +77,13 @@ describe('NavbarComponent', () => {
     expect(linkTexts('.avatar-dropdown')).toEqual(['Account', 'Payment Methods']);
   });
 
-  it('hides Analytics from retail users', () => {
+  it('hides Analytics and admin testing from retail users', () => {
     fixture.detectChanges();
     openMenus();
 
     expect(linkTexts('.app-nav')).not.toContain('Analytics');
+    expect(linkTexts('.app-nav')).not.toContain('Dev Testing');
     expect(linkTexts('.mobile-nav-dropdown')).not.toContain('Analytics');
+    expect(linkTexts('.mobile-nav-dropdown')).not.toContain('Dev Testing');
   });
 });
