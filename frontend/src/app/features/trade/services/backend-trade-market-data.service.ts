@@ -26,6 +26,7 @@ export class BackendTradeMarketDataService implements TradeMarketDataPort {
         const changePct = liveQuotes.get(instrument.ticker.toUpperCase())?.changePct ?? null;
 
         return {
+          instrumentId: instrument.instrumentId,
           symbol: instrument.ticker,
           name: instrument.name,
           currency: instrument.tradingCurrency,

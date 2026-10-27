@@ -13,6 +13,22 @@
   gap: var(--space-md);
 }
 
+.price-history h3 {
+  margin: 0 0 var(--space-sm);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.history-message {
+  min-height: 280px;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  text-align: center;
+}
+
 .asset-header {
   display: flex;
   align-items: center;

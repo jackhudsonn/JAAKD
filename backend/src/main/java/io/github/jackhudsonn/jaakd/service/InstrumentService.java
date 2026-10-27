@@ -8,6 +8,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.validation.annotation.Validated;
 
 import io.github.jackhudsonn.jaakd.dto.CreateInstrumentRequest;
+import io.github.jackhudsonn.jaakd.dto.InstrumentCandleResponse;
 import io.github.jackhudsonn.jaakd.dto.UpdateInstrumentRequest;
 import io.github.jackhudsonn.jaakd.exception.InstrumentConflictException;
 import io.github.jackhudsonn.jaakd.exception.InstrumentNotFoundException;
@@ -18,6 +19,7 @@ import io.github.jackhudsonn.jaakd.model.Instrument;
 import io.github.jackhudsonn.jaakd.model.InstrumentClass;
 import io.github.jackhudsonn.jaakd.model.UserType;
 import io.github.jackhudsonn.jaakd.repository.InstrumentRepository;
+import io.github.jackhudsonn.jaakd.repository.InstrumentPriceRepository;
 import io.github.jackhudsonn.jaakd.security.RequiresUserType;
 import io.github.jackhudsonn.jaakd.model.fauxnance.FauxnanceCandleResponse;
 import io.github.jackhudsonn.jaakd.model.fauxnance.FauxnanceQuoteResponse;
@@ -26,6 +28,8 @@ import io.github.jackhudsonn.jaakd.model.fauxnance.FauxnanceSymbolResponse;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.time.Clock;
+import java.time.LocalDate;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -39,16 +43,56 @@ public class InstrumentService {
     private static final int DEFAULT_SIZE = 25;
     private static final int MAX_SIZE = 100;
     private static final int MAX_QUOTES_BATCH_SIZE = 25;
+    private static final int DEFAULT_CANDLE_SERIES_YEARS = 1;
+    private static final int MAX_CANDLE_SERIES_YEARS = 5;
 
     private final InstrumentRepository instrumentRepository;
+    private final InstrumentPriceRepository instrumentPriceRepository;
     private final FauxnanceService fauxnanceService;
+    private final Clock clock;
 
     public InstrumentService(
         InstrumentRepository instrumentRepository,
-        FauxnanceService fauxnanceService
+        InstrumentPriceRepository instrumentPriceRepository,
+        FauxnanceService fauxnanceService,
+        Clock clock
     ) {
         this.instrumentRepository = instrumentRepository;
+        this.instrumentPriceRepository = instrumentPriceRepository;
         this.fauxnanceService = fauxnanceService;
+        this.clock = clock;
+    }
+
+    public List<InstrumentCandleResponse> getCandles(
+        @NotNull UUID instrumentId,
+        LocalDate from,
+        LocalDate to
+    ) {
+        getInstrumentById(instrumentId);
+
+        LocalDate resolvedTo = to == null ? LocalDate.now(clock) : to;
+        LocalDate resolvedFrom = from == null ? resolvedTo.minusYears(DEFAULT_CANDLE_SERIES_YEARS) : from;
+        if (resolvedFrom.isAfter(resolvedTo)) {
+            throw new InvalidInstrumentException("from must not be after to");
+        }
+        if (resolvedFrom.isBefore(resolvedTo.minusYears(MAX_CANDLE_SERIES_YEARS))) {
+            throw new InvalidInstrumentException("Candle series range must not exceed five years");
+        }
+
+        return instrumentPriceRepository
+            .findByInstrumentIdAndPriceDateBetweenOrderByPriceDateAsc(instrumentId, resolvedFrom, resolvedTo)
+            .stream()
+            .filter(price -> !price.isSynthetic())
+            .map(price -> new InstrumentCandleResponse(
+                price.getPriceDate(),
+                price.getOpen(),
+                price.getHigh(),
+                price.getLow(),
+                price.getClose(),
+                price.getVolume(),
+                price.getCurrency()
+            ))
+            .toList();
     }
 
     public List<Instrument> getAllInstruments() {

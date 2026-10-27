@@ -10,7 +10,10 @@ import {
   signal,
 } from '@angular/core';
 import { DecimalPipe, TitleCasePipe } from '@angular/common';
+import { InstrumentCandleResponse } from '@core/models/api.models';
+import { InstrumentApiService } from '@core/services/instrument-api.service';
 import { ModalComponent } from '@shared/components/modal/modal.component';
+import { CandleChartComponent } from '@shared/components/candle-chart/candle-chart.component';
 import { DisplaySymbolPipe } from '@shared/pipes/display-symbol.pipe';
 import { ToastService } from '@shared/components/toast/toast.service';
 import {
@@ -45,13 +48,21 @@ export interface AssetSetWatchlistMembershipRequest {
 @Component({
   selector: 'app-asset-popup',
   standalone: true,
-  imports: [ModalComponent, OrderFormComponent, DecimalPipe, TitleCasePipe, DisplaySymbolPipe],
+  imports: [
+    ModalComponent,
+    OrderFormComponent,
+    CandleChartComponent,
+    DecimalPipe,
+    TitleCasePipe,
+    DisplaySymbolPipe,
+  ],
   templateUrl: './asset-popup.component.html',
   styleUrl: './asset-popup.component.css',
 })
 export class AssetPopupComponent {
   private readonly elementRef = inject(ElementRef<HTMLElement>);
   private readonly marketData = inject(TRADE_MARKET_DATA_PORT);
+  private readonly instrumentApi = inject(InstrumentApiService);
   private readonly toastService = inject(ToastService);
 
   symbol = input.required<string>();
@@ -66,10 +77,13 @@ export class AssetPopupComponent {
 
   watchlistDropdownOpen = signal(false);
   activeView = signal<'analysis' | 'trade'>('analysis');
+  candles = signal<InstrumentCandleResponse[]>([]);
+  candleState = signal<'loading' | 'ready' | 'error'>('loading');
   readonly formatCurrency = formatCurrency;
   readonly fallbackCurrency = REPORTING_CURRENCY;
 
   private readonly reportedUnavailableData = new Set<string>();
+  private candleRequestId = 0;
 
   asset = computed(() => this.marketData.getAsset(this.symbol()));
   currentPrice = computed(() => this.marketData.getPrice(this.symbol()));
@@ -96,6 +110,20 @@ export class AssetPopupComponent {
 
   constructor() {
     effect(() => {
+      const instrumentId = this.asset()?.instrumentId;
+      const requestId = ++this.candleRequestId;
+      this.candles.set([]);
+
+      if (!instrumentId) {
+        this.candleState.set('ready');
+        return;
+      }
+
+      this.candleState.set('loading');
+      void this.loadCandles(instrumentId, requestId);
+    });
+
+    effect(() => {
       const symbol = this.symbol();
       const price = this.currentPrice();
 
@@ -109,6 +137,22 @@ export class AssetPopupComponent {
       this.watchlistDropdownOpen.set(false);
       this.activeView.set('analysis');
     });
+  }
+
+  private async loadCandles(instrumentId: string, requestId: number) {
+    try {
+      const candles = await this.instrumentApi.getCandles(instrumentId);
+      if (requestId !== this.candleRequestId) {
+        return;
+      }
+
+      this.candles.set(candles);
+      this.candleState.set('ready');
+    } catch {
+      if (requestId === this.candleRequestId) {
+        this.candleState.set('error');
+      }
+    }
   }
 
   @HostListener('document:click', ['$event'])

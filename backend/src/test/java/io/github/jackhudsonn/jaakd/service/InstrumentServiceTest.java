@@ -1,6 +1,7 @@
 package io.github.jackhudsonn.jaakd.service;
 
 import io.github.jackhudsonn.jaakd.dto.CreateInstrumentRequest;
+import io.github.jackhudsonn.jaakd.dto.InstrumentCandleResponse;
 import io.github.jackhudsonn.jaakd.dto.UpdateInstrumentRequest;
 import io.github.jackhudsonn.jaakd.exception.InstrumentConflictException;
 import io.github.jackhudsonn.jaakd.exception.InstrumentNotFoundException;
@@ -9,7 +10,9 @@ import io.github.jackhudsonn.jaakd.exception.ValidationException;
 import io.github.jackhudsonn.jaakd.model.CashCurrency;
 import io.github.jackhudsonn.jaakd.model.Instrument;
 import io.github.jackhudsonn.jaakd.model.InstrumentClass;
+import io.github.jackhudsonn.jaakd.model.InstrumentPrice;
 import io.github.jackhudsonn.jaakd.repository.InstrumentRepository;
+import io.github.jackhudsonn.jaakd.repository.InstrumentPriceRepository;
 import io.github.jackhudsonn.jaakd.model.fauxnance.FauxnanceSymbolResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -25,6 +28,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -33,6 +41,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.eq;
 
 @ExtendWith(MockitoExtension.class)
 class InstrumentServiceTest {
@@ -41,7 +50,13 @@ class InstrumentServiceTest {
     private InstrumentRepository instrumentRepository;
 
     @Mock
+    private InstrumentPriceRepository instrumentPriceRepository;
+
+    @Mock
     private FauxnanceService fauxnanceService;
+
+    @Mock
+    private Clock clock;
 
     @InjectMocks
     private InstrumentService instrumentService;
@@ -157,6 +172,78 @@ class InstrumentServiceTest {
         when(instrumentRepository.findByTickerIgnoreCase("AAPL")).thenReturn(Optional.of(instrument));
 
         instrumentService.getInstrumentByTicker("AAPL");
+    }
+
+    @Test
+    void getCandles_defaultsToLatestYearAndFiltersSyntheticRows() {
+        UUID instrumentId = UUID.randomUUID();
+        LocalDate today = LocalDate.of(2024, 6, 15);
+        Instrument instrument = new Instrument("AAPL", "NASDAQ", "Apple", InstrumentClass.EQUITY, CashCurrency.USD);
+        InstrumentPrice realCandle = candle(instrumentId, today.minusDays(1), false);
+        InstrumentPrice syntheticCandle = candle(instrumentId, today, true);
+        when(instrumentRepository.findById(instrumentId)).thenReturn(Optional.of(instrument));
+        when(clock.instant()).thenReturn(Instant.parse("2024-06-15T00:00:00Z"));
+        when(clock.getZone()).thenReturn(ZoneOffset.UTC);
+        when(instrumentPriceRepository.findByInstrumentIdAndPriceDateBetweenOrderByPriceDateAsc(
+            instrumentId, today.minusYears(1), today
+        )).thenReturn(List.of(realCandle, syntheticCandle));
+
+        List<InstrumentCandleResponse> candles = instrumentService.getCandles(instrumentId, null, null);
+
+        assertEquals(1, candles.size());
+        assertEquals(today.minusDays(1), candles.get(0).date());
+        assertEquals(new BigDecimal("101.25"), candles.get(0).open());
+        assertEquals(new BigDecimal("104.50"), candles.get(0).high());
+        assertEquals(new BigDecimal("99.75"), candles.get(0).low());
+        assertEquals(new BigDecimal("103.00"), candles.get(0).close());
+        assertEquals(1200L, candles.get(0).volume());
+        assertEquals("USD", candles.get(0).currency());
+    }
+
+    @Test
+    void getCandles_rejectsReversedRange() {
+        UUID instrumentId = UUID.randomUUID();
+        when(instrumentRepository.findById(instrumentId)).thenReturn(Optional.of(
+            new Instrument("AAPL", "NASDAQ", "Apple", InstrumentClass.EQUITY, CashCurrency.USD)
+        ));
+
+        assertThrows(InvalidInstrumentException.class, () -> instrumentService.getCandles(
+            instrumentId,
+            LocalDate.of(2024, 6, 16),
+            LocalDate.of(2024, 6, 15)
+        ));
+        verify(instrumentPriceRepository, never())
+            .findByInstrumentIdAndPriceDateBetweenOrderByPriceDateAsc(eq(instrumentId), any(), any());
+    }
+
+    @Test
+    void getCandles_rejectsRangesOverFiveYears() {
+        UUID instrumentId = UUID.randomUUID();
+        when(instrumentRepository.findById(instrumentId)).thenReturn(Optional.of(
+            new Instrument("AAPL", "NASDAQ", "Apple", InstrumentClass.EQUITY, CashCurrency.USD)
+        ));
+
+        assertThrows(InvalidInstrumentException.class, () -> instrumentService.getCandles(
+            instrumentId,
+            LocalDate.of(2018, 6, 14),
+            LocalDate.of(2024, 6, 15)
+        ));
+    }
+
+    private InstrumentPrice candle(UUID instrumentId, LocalDate date, boolean synthetic) {
+        InstrumentPrice candle = new InstrumentPrice(instrumentId, date);
+        candle.apply(
+            new BigDecimal("101.25"),
+            new BigDecimal("104.50"),
+            new BigDecimal("99.75"),
+            new BigDecimal("103.00"),
+            new BigDecimal("103.00"),
+            1200L,
+            "USD",
+            synthetic,
+            date.atStartOfDay()
+        );
+        return candle;
     }
 
     @Test
