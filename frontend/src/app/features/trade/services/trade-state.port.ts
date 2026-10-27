@@ -1,5 +1,6 @@
 import { InjectionToken, Signal, WritableSignal } from '@angular/core';
 import { Holding, Order } from '@core/models';
+import { OrderLogResponse } from '@core/models/api.models';
 import { WATCHLIST_CONSTRAINTS } from '@core/constants/watchlist.constants';
 import type { TradePlaceOrderRequest } from './trade-order-engine.service';
 
@@ -18,6 +19,7 @@ export interface TradeStatePort {
   readonly backendDataMode?: boolean;
   readonly loadState?: Signal<'loading' | 'ready' | 'error'>;
   readonly cashBalances?: Signal<Record<string, number>>;
+  getOrderHistory?(orderId: string): OrderLogResponse[];
   load?(): Promise<void>;
   submitOrder?(request: TradePlaceOrderRequest): Promise<void>;
   cancelOrder?(orderId: string): Promise<void>;

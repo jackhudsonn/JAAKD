@@ -68,6 +68,7 @@
   @if (activeOrder(); as order) {
     <app-order-details-popup
       [order]="order"
+      [history]="activeOrderHistory()"
       (closed)="closeOrderPopup()"
       (cancel)="cancelOrder($event)"
     />

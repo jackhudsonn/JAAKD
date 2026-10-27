@@ -78,6 +78,7 @@ export class TradeComponent implements OnInit, OnDestroy {
   private readonly requestedOrderId = signal<string | null>(null);
 
   activeOrder = computed(() => this.tradeFacade.getOrderById(this.activeOrderId()));
+  activeOrderHistory = computed(() => this.tradeFacade.getOrderHistory(this.activeOrderId()));
   activeAssetOwnedQuantity = computed(() =>
     this.tradeFacade.getOwnedQuantity(this.activeAssetSymbol()),
   );

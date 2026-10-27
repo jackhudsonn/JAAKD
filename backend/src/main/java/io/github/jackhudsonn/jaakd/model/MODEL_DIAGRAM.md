@@ -115,7 +115,7 @@ erDiagram
     datetime timestamp
     string metadata
     enum status
-    double executionPrice
+    double executionPrice "nullable"
     double quotedPrice "nullable"
   }
 

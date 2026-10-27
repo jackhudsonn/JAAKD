@@ -731,23 +731,39 @@ async function seedOrders(
     expectedStatuses: [200],
   });
 
-  const existingMetadata = new Set(
-    (Array.isArray(list.data) ? list.data : [])
-      .map((item) => item.metadata)
-      .filter((value) => typeof value === "string" && value.length > 0),
+  const existingLogs = Array.isArray(list.data) ? list.data : [];
+  const existingLogsByMetadata = new Map(
+    existingLogs
+      .filter((item) => typeof item.metadata === "string" && item.metadata.length > 0)
+      .map((item) => [item.metadata.split(" | ")[0], item]),
   );
+
+  for (const event of scenario.orders) {
+    if (event.quotedPrice === undefined) {
+      continue;
+    }
+
+    const baseMetadata = `seed:${scenario.level}:${event.key}`;
+    const existingRows = existingLogs.filter(
+      (item) =>
+        typeof item.metadata === "string" &&
+        item.metadata.split(" | ")[0] === baseMetadata,
+    );
+    if (
+      existingRows.some(
+        (item) => (item.quotedPrice ?? null) !== event.quotedPrice,
+      )
+    ) {
+      throw new Error(
+        `Seeded order ${event.key} has a stale quotedPrice. Order logs cannot be updated in place; recreate the local demo data before rerunning the seed.`,
+      );
+    }
+  }
 
   let submitted = 0;
   let skipped = 0;
 
   for (const [index, event] of scenario.orders.entries()) {
-    const metadata = `seed:${scenario.level}:${event.key}`;
-
-    if (existingMetadata.has(metadata)) {
-      skipped += 1;
-      continue;
-    }
-
     const instrument = instrumentsByTicker.get(event.ticker.toUpperCase());
 
     if (!instrument) {
@@ -756,32 +772,75 @@ async function seedOrders(
       );
     }
 
-    const payload = {
-      orderId: randomUUID(),
-      portfolioId,
-      instrumentId: instrument.instrumentId,
-      side: event.side,
-      quantity: event.quantity,
-      metadata,
-      status: event.status || "EXECUTED",
-      timestamp:
-        event.timestamp ||
-        `2025-${String(Math.min(index + 1, 12)).padStart(2, "0")}-15T12:00:00`,
-    };
+    const baseMetadata = `seed:${scenario.level}:${event.key}`;
+    const finalStatus = event.status || "EXECUTED";
+    const history = event.history || [];
+    const statuses = [...history, finalStatus];
+    const finalTimestamp =
+      event.timestamp ||
+      `2025-${String(Math.min(index + 1, 12)).padStart(2, "0")}-15T12:00:00`;
+    const eventMetadata = statuses.map((_, eventIndex) =>
+      eventIndex === statuses.length - 1
+        ? baseMetadata
+        : `${baseMetadata}:history:${eventIndex}`,
+    );
+    const existingRows = eventMetadata
+      .map((metadata) => existingLogsByMetadata.get(metadata))
+      .filter(Boolean);
+    const orderId = existingRows[0]?.orderId || randomUUID();
 
-    if (event.executionPrice !== undefined) {
-      payload.executionPrice = event.executionPrice;
+    for (const [eventIndex, status] of statuses.entries()) {
+      const metadata = eventMetadata[eventIndex];
+      if (existingLogsByMetadata.has(metadata)) {
+        skipped += 1;
+        continue;
+      }
+
+      const isFinal = eventIndex === statuses.length - 1;
+      const reasonMetadata =
+        isFinal && event.reason
+          ? ` | ${status === "REJECTED" ? "rejectionReason" : "failureReason"}=${event.reason}`
+          : "";
+      const minutesBeforeFinal = statuses.length - 1 - eventIndex;
+      const timestamp =
+        minutesBeforeFinal === 0
+          ? finalTimestamp
+          : new Date(
+              new Date(`${finalTimestamp}Z`).getTime() -
+                minutesBeforeFinal * 60_000,
+            )
+              .toISOString()
+              .slice(0, 19);
+      const payload = {
+        orderId,
+        portfolioId,
+        instrumentId: instrument.instrumentId,
+        side: event.side,
+        quantity: event.quantity,
+        metadata: `${metadata}${reasonMetadata}`,
+        status,
+        timestamp,
+      };
+
+      if (event.quotedPrice !== undefined) {
+        payload.quotedPrice = event.quotedPrice;
+      }
+
+      if (status === "EXECUTED" && event.executionPrice !== undefined) {
+        payload.executionPrice = event.executionPrice;
+      }
+
+      await requestJson({
+        method: "POST",
+        path: "/api/order-logs/demo",
+        cookie: adminCookie,
+        body: payload,
+        expectedStatuses: [201],
+      });
+
+      existingLogsByMetadata.set(metadata, { orderId });
+      submitted += 1;
     }
-
-    await requestJson({
-      method: "POST",
-      path: "/api/order-logs/demo",
-      cookie: adminCookie,
-      body: payload,
-      expectedStatuses: [201],
-    });
-
-    submitted += 1;
   }
 
   return { submitted, skipped };

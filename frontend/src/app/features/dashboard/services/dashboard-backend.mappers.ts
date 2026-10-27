@@ -64,7 +64,7 @@ export interface HoldingPriceResolver {
   getPrice(symbol: string): number | null;
 }
 
-const extractStatusReason = (metadata: string | null): string => {
+export const extractStatusReason = (metadata: string | null): string => {
   if (!metadata) {
     return 'The order could not be completed.';
   }

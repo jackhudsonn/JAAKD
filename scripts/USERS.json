@@ -77,19 +77,23 @@
         "key": "usd-deposit-01",
         "ticker": "USD",
         "side": "DEPOSIT",
-        "quantity": 50000
+        "quantity": 50000,
+        "history": ["SUBMITTED", "PENDING"]
       },
       {
         "key": "eur-deposit-01",
         "ticker": "EUR",
         "side": "DEPOSIT",
-        "quantity": 7000
+        "quantity": 7000,
+        "history": ["SUBMITTED", "PENDING"]
       },
       {
         "key": "buy-voo-01",
         "ticker": "VOO",
         "side": "BUY",
         "quantity": 35,
+        "history": ["SUBMITTED", "PENDING"],
+        "quotedPrice": 530.5,
         "executionPrice": 530.8
       },
       {
@@ -97,6 +101,8 @@
         "ticker": "NVDA",
         "side": "BUY",
         "quantity": 20,
+        "history": ["SUBMITTED", "PENDING"],
+        "quotedPrice": 121.1,
         "executionPrice": 121.25
       },
       {
@@ -104,6 +110,8 @@
         "ticker": "AMZN",
         "side": "BUY",
         "quantity": 15,
+        "history": ["SUBMITTED", "PENDING"],
+        "quotedPrice": 189.2,
         "executionPrice": 189.4
       },
       {
@@ -111,6 +119,8 @@
         "ticker": "GOOGL",
         "side": "BUY",
         "quantity": 18,
+        "history": ["SUBMITTED", "PENDING"],
+        "quotedPrice": 176.8,
         "executionPrice": 176.9
       },
       {
@@ -118,6 +128,8 @@
         "ticker": "NVDA",
         "side": "SELL",
         "quantity": 5,
+        "history": ["SUBMITTED", "PENDING"],
+        "quotedPrice": 128.2,
         "executionPrice": 128.1
       },
       {
@@ -125,37 +137,45 @@
         "ticker": "VOO",
         "side": "SELL",
         "quantity": 4,
+        "history": ["SUBMITTED", "PENDING"],
+        "quotedPrice": 541.5,
         "executionPrice": 541.3
       },
       {
         "key": "withdraw-usd-01",
         "ticker": "USD",
         "side": "WITHDRAW",
-        "quantity": 2500
+        "quantity": 2500,
+        "history": ["SUBMITTED", "PENDING"]
       },
       {
         "key": "pending-voo-01",
         "ticker": "VOO",
         "side": "BUY",
         "quantity": 3,
+        "history": ["SUBMITTED"],
         "status": "PENDING",
-        "executionPrice": 535.2
+        "quotedPrice": 534.9
       },
       {
         "key": "rejected-amzn-01",
         "ticker": "AMZN",
         "side": "BUY",
         "quantity": 2,
+        "history": ["SUBMITTED", "PENDING"],
         "status": "REJECTED",
-        "executionPrice": 190.1
+        "quotedPrice": 190.0,
+        "reason": "Insufficient available funds for this order."
       },
       {
         "key": "failed-googl-01",
         "ticker": "GOOGL",
         "side": "BUY",
         "quantity": 2,
+        "history": ["SUBMITTED", "PENDING", "ACCEPTED"],
         "status": "FAILED",
-        "executionPrice": 178.4
+        "quotedPrice": 178.3,
+        "reason": "Execution venue did not return a fill."
       }
     ]
   },
@@ -234,31 +254,37 @@
         "key": "usd-deposit-01",
         "ticker": "USD",
         "side": "DEPOSIT",
-        "quantity": 150000
+        "quantity": 150000,
+        "history": ["SUBMITTED", "PENDING"]
       },
       {
         "key": "usd-deposit-02",
         "ticker": "USD",
         "side": "DEPOSIT",
-        "quantity": 250000
+        "quantity": 250000,
+        "history": ["SUBMITTED", "PENDING"]
       },
       {
         "key": "eur-deposit-01",
         "ticker": "EUR",
         "side": "DEPOSIT",
-        "quantity": 30000
+        "quantity": 30000,
+        "history": ["SUBMITTED", "PENDING"]
       },
       {
         "key": "inr-deposit-01",
         "ticker": "INR",
         "side": "DEPOSIT",
-        "quantity": 4000000
+        "quantity": 4000000,
+        "history": ["SUBMITTED", "PENDING"]
       },
       {
         "key": "buy-voo-01",
         "ticker": "VOO",
         "side": "BUY",
         "quantity": 70,
+        "history": ["SUBMITTED", "PENDING"],
+        "quotedPrice": 529.2,
         "executionPrice": 529.4
       },
       {
@@ -266,6 +292,8 @@
         "ticker": "AAPL",
         "side": "BUY",
         "quantity": 50,
+        "history": ["SUBMITTED", "PENDING"],
+        "quotedPrice": 193.2,
         "executionPrice": 193.25
       },
       {
@@ -273,6 +301,8 @@
         "ticker": "MSFT",
         "side": "BUY",
         "quantity": 40,
+        "history": ["SUBMITTED", "PENDING"],
+        "quotedPrice": 412.5,
         "executionPrice": 412.6
       },
       {
@@ -280,6 +310,8 @@
         "ticker": "NVDA",
         "side": "BUY",
         "quantity": 60,
+        "history": ["SUBMITTED", "PENDING"],
+        "quotedPrice": 122.3,
         "executionPrice": 122.4
       },
       {
@@ -287,6 +319,8 @@
         "ticker": "AMZN",
         "side": "BUY",
         "quantity": 45,
+        "history": ["SUBMITTED", "PENDING"],
+        "quotedPrice": 188.5,
         "executionPrice": 188.7
       },
       {
@@ -294,6 +328,8 @@
         "ticker": "GOOGL",
         "side": "BUY",
         "quantity": 55,
+        "history": ["SUBMITTED", "PENDING"],
+        "quotedPrice": 175.8,
         "executionPrice": 175.9
       },
       {
@@ -301,6 +337,8 @@
         "ticker": "META",
         "side": "BUY",
         "quantity": 30,
+        "history": ["SUBMITTED", "PENDING"],
+        "quotedPrice": 506.0,
         "executionPrice": 506.2
       },
       {
@@ -308,6 +346,8 @@
         "ticker": "JPM",
         "side": "BUY",
         "quantity": 35,
+        "history": ["SUBMITTED", "PENDING"],
+        "quotedPrice": 209.0,
         "executionPrice": 209.15
       },
       {
@@ -315,6 +355,8 @@
         "ticker": "XOM",
         "side": "BUY",
         "quantity": 70,
+        "history": ["SUBMITTED", "PENDING"],
+        "quotedPrice": 118.2,
         "executionPrice": 118.3
       },
       {
@@ -322,6 +364,8 @@
         "ticker": "FBND",
         "side": "BUY",
         "quantity": 85,
+        "history": ["SUBMITTED", "PENDING"],
+        "quotedPrice": 91.6,
         "executionPrice": 91.7
       },
       {
@@ -329,6 +373,8 @@
         "ticker": "X:BTC-USD",
         "side": "BUY",
         "quantity": 2.4,
+        "history": ["SUBMITTED", "PENDING"],
+        "quotedPrice": 62400,
         "executionPrice": 62450
       },
       {
@@ -336,6 +382,8 @@
         "ticker": "X:ETH-USD",
         "side": "BUY",
         "quantity": 18,
+        "history": ["SUBMITTED", "PENDING"],
+        "quotedPrice": 3220,
         "executionPrice": 3225
       },
       {
@@ -343,6 +391,8 @@
         "ticker": "VOO",
         "side": "SELL",
         "quantity": 8,
+        "history": ["SUBMITTED", "PENDING"],
+        "quotedPrice": 545.6,
         "executionPrice": 545.4
       },
       {
@@ -350,6 +400,8 @@
         "ticker": "NVDA",
         "side": "SELL",
         "quantity": 12,
+        "history": ["SUBMITTED", "PENDING"],
+        "quotedPrice": 129.7,
         "executionPrice": 129.6
       },
       {
@@ -357,51 +409,61 @@
         "ticker": "X:BTC-USD",
         "side": "SELL",
         "quantity": 0.7,
+        "history": ["SUBMITTED", "PENDING"],
+        "quotedPrice": 66850,
         "executionPrice": 66880
       },
       {
         "key": "withdraw-eur-01",
         "ticker": "EUR",
         "side": "WITHDRAW",
-        "quantity": 2500
+        "quantity": 2500,
+        "history": ["SUBMITTED", "PENDING"]
       },
       {
         "key": "withdraw-inr-01",
         "ticker": "INR",
         "side": "WITHDRAW",
-        "quantity": 250000
+        "quantity": 250000,
+        "history": ["SUBMITTED", "PENDING"]
       },
       {
         "key": "pending-tlt-01",
         "ticker": "FBND",
         "side": "BUY",
         "quantity": 5,
+        "history": ["SUBMITTED"],
         "status": "PENDING",
-        "executionPrice": 92.3
+        "quotedPrice": 92.2
       },
       {
         "key": "rejected-eth-01",
         "ticker": "X:ETH-USD",
         "side": "BUY",
         "quantity": 1,
+        "history": ["SUBMITTED", "PENDING"],
         "status": "REJECTED",
-        "executionPrice": 3300
+        "quotedPrice": 3298,
+        "reason": "Order size exceeds the configured crypto risk limit."
       },
       {
         "key": "failed-xom-01",
         "ticker": "XOM",
         "side": "BUY",
         "quantity": 4,
+        "history": ["SUBMITTED", "PENDING", "ACCEPTED"],
         "status": "FAILED",
-        "executionPrice": 120.2
+        "quotedPrice": 120.0,
+        "reason": "Execution venue did not return a fill."
       },
       {
         "key": "cancelled-aapl-01",
         "ticker": "AAPL",
         "side": "BUY",
         "quantity": 3,
+        "history": ["SUBMITTED", "PENDING", "ACCEPTED"],
         "status": "CANCELLED",
-        "executionPrice": 198.6
+        "quotedPrice": 198.4
       }
     ]
   }

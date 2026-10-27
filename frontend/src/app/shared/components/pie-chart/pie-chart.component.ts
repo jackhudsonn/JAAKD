@@ -13,6 +13,7 @@ import { Chart, ChartData } from 'chart.js/auto';
 
 export interface PieChartSlice {
   label: string;
+  displayLabel?: string;
   value: number;
   color: string;
 }
@@ -30,6 +31,7 @@ export interface PieChartSlice {
 export class PieChartComponent implements AfterViewInit, OnChanges, OnDestroy {
   slices = input.required<PieChartSlice[]>();
   tooltipValuePrefix = input('');
+  tooltipValueFormatter = input<((value: number) => string) | null>(null);
 
   // Emits the clicked slice (if any) so parent widgets can drill down.
   sliceClick = output<PieChartSlice>();
@@ -54,10 +56,14 @@ export class PieChartComponent implements AfterViewInit, OnChanges, OnDestroy {
                 const total = values.reduce((sum, point) => sum + point, 0);
                 const percent = total > 0 ? (value / total) * 100 : 0;
 
-                return `${this.tooltipValuePrefix()}${value.toLocaleString(undefined, {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })} (${percent.toFixed(1)}%)`;
+                const formattedValue =
+                  this.tooltipValueFormatter()?.(value) ??
+                  `${this.tooltipValuePrefix()}${value.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}`;
+
+                return `${formattedValue} (${percent.toFixed(1)}%)`;
               },
             },
           },
@@ -107,7 +113,7 @@ export class PieChartComponent implements AfterViewInit, OnChanges, OnDestroy {
   private toChartData(): ChartData<'doughnut'> {
     const slices = this.slices();
     return {
-      labels: slices.map((slice) => slice.label),
+      labels: slices.map((slice) => slice.displayLabel ?? slice.label),
       datasets: [
         {
           data: slices.map((slice) => slice.value),

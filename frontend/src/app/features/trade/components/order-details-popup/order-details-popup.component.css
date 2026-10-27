@@ -5,6 +5,49 @@
   gap: var(--space-sm);
 }
 
+.status-navigation {
+  display: grid;
+  grid-template-columns: 2.5rem 1fr 2.5rem;
+  align-items: center;
+
+  margin-bottom: var(--space-xs);
+}
+
+.status-navigation-current {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+}
+
+.status-navigation-arrow {
+  display: grid;
+  place-items: center;
+
+  width: 2.25rem;
+  height: 2.25rem;
+
+  color: var(--secondary-light);
+  background: var(--tertiary-bg);
+  border: 1px solid var(--quaternary-bg-border);
+  border-radius: var(--radius-sm);
+
+  font-size: var(--font-size-xl);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.status-navigation-arrow:disabled {
+  color: var(--text-muted);
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.status-navigation-arrow:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
 .detail-row {
   display: flex;
   align-items: center;

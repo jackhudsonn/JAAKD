@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
 import { PieChartComponent, PieChartSlice } from '@shared/components/pie-chart/pie-chart.component';
 import { DisplaySymbolPipe } from '@shared/pipes/display-symbol.pipe';
+import { formatCurrency, toDisplaySymbol } from '@shared/utils/display-format';
 import { DASHBOARD_STATE_PORT } from '@features/dashboard/services/dashboard-state.port';
 import { CashCurrency, CASH_CURRENCIES, REPORTING_CURRENCY } from '@core/models/api.models';
 import { convertAmountBetweenCurrencies } from '@core/constants/cash-exchange-rates.constants';
@@ -24,12 +25,6 @@ const CATEGORY_COLORS: Record<AllocationCategory, string> = {
   equity: '#3498DB',
   etf: '#9B59B6',
   crypto: '#E67E22',
-};
-const CURRENCY_SYMBOLS: Record<CashCurrency, string> = {
-  USD: '$',
-  EUR: '€',
-  GBP: '£',
-  INR: '₹',
 };
 
 export interface AllocationAssetSelection {
@@ -62,6 +57,8 @@ export class AllocationByAssetWidgetComponent {
   assetSelected = output<AllocationAssetSelection>();
   readonly displayCurrencies = CASH_CURRENCIES;
   readonly displayCurrency = signal<CashCurrency>(REPORTING_CURRENCY);
+  readonly formatTooltipCurrency = (value: number) =>
+    formatCurrency(value, this.displayCurrency());
 
   // null == showing the top-level "by type" view.
   selectedCategory = signal<AllocationCategory | null>(null);
@@ -72,8 +69,6 @@ export class AllocationByAssetWidgetComponent {
     const category = this.selectedCategory();
     return category ? CATEGORY_LABELS[category] : 'Allocation by Asset';
   });
-  readonly tooltipValuePrefix = computed(() => CURRENCY_SYMBOLS[this.displayCurrency()]);
-
   private readonly breakdowns = computed<Record<AllocationCategory, PieChartSlice[]>>(() => {
     const byCategory: Record<AllocationCategory, PieChartSlice[]> = {
       cash: [],
@@ -119,6 +114,7 @@ export class AllocationByAssetWidgetComponent {
     for (const [symbol, entry] of bySymbol.entries()) {
       byCategory[entry.category].push({
         label: symbol,
+        displayLabel: toDisplaySymbol(symbol),
         value: entry.value,
         color: deterministicColorFromBase(CATEGORY_COLORS[entry.category], symbol),
       });
