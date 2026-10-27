@@ -12,47 +12,57 @@
   font-weight: 700;
 }
 
-.amount::before {
-  content: '$';
-
-  color: var(--text-muted);
-  font-size: var(--font-size-sm);
-
-  margin-right: var(--space-xxs);
-}
-
 .change {
   font-size: var(--font-size-xs);
   font-weight: 600;
 }
 
-.change.positive {
+.change.up {
   color: var(--success);
 }
 
-.change.negative {
+.change.down {
   color: var(--fail);
 }
 
-.interval-tabs {
-  display: flex;
-  flex-wrap: wrap;
-
-  gap: var(--space-xxs);
-
-  margin-top: var(--space-md);
+.change.flat {
+  color: var(--text-muted);
 }
 
-.interval-tab {
-  min-height: 28px;
+/* Fills the card body so the chart takes the spare height and the note stays inside the card. */
+.performance-body {
+  display: flex;
+  flex-direction: column;
 
-  padding: var(--space-xxs) var(--space-sm);
+  gap: var(--space-xs);
+
+  height: 100%;
+  min-height: 0;
+}
+
+.interval-tabs {
+  display: inline-flex;
+  align-self: flex-start;
+
+  gap: 2px;
+
+  padding: 2px;
 
   background: var(--tertiary-bg);
   border: 1px solid var(--quaternary-bg-border);
+  border-radius: var(--radius-md);
+}
+
+.interval-tab {
+  min-height: 24px;
+
+  padding: 0 var(--space-xs);
+
+  background: transparent;
+  border: 0;
   border-radius: var(--radius-sm);
 
-  color: var(--text-secondary);
+  color: var(--text-muted);
   font-size: var(--font-size-xs);
   font-weight: 600;
 
@@ -60,23 +70,40 @@
 
   transition:
     background-color 120ms ease,
-    color 120ms ease,
-    border-color 120ms ease;
+    color 120ms ease;
 }
 
 .interval-tab:hover {
-  border-color: var(--primary);
   color: var(--secondary-light);
+}
+
+.interval-tab:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
 }
 
 .interval-tab.active {
   background: var(--primary);
-  border-color: var(--primary-dark);
-  color: #1f1f1f;
+  color: var(--primary-ink);
+}
+
+/* Overrides the chart's fixed 220px so it shrinks or grows with the card. */
+.performance-body app-line-chart {
+  flex: 1 1 auto;
+
+  height: auto;
+  min-height: 140px;
+}
+
+.performance-summary {
+  margin: 0;
+
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
 }
 
 .indicative-note {
-  margin: var(--space-sm) 0 0;
+  margin: 0;
 
   color: var(--text-muted);
   font-size: var(--font-size-xs);
@@ -87,57 +114,4 @@
 
   color: var(--text-muted);
   font-size: var(--font-size-sm);
-}
-
-.performance-stats {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-
-  gap: var(--space-sm);
-
-  margin-top: var(--space-md);
-}
-
-.performance-stat {
-  display: flex;
-  flex-direction: column;
-
-  gap: var(--space-xxs);
-
-  padding: var(--space-sm);
-
-  background: var(--tertiary-bg);
-  border: 1px solid var(--quaternary-bg-border);
-  border-radius: var(--radius-sm);
-}
-
-.stat-label {
-  color: var(--text-muted);
-
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.stat-value {
-  color: var(--secondary-light);
-
-  font-size: var(--font-size-sm);
-  font-weight: 700;
-}
-
-.stat-value.positive {
-  color: var(--success);
-}
-
-.stat-value.negative {
-  color: var(--fail);
-}
-
-@media (max-width: 600px) {
-  .performance-stats {
-    grid-template-columns: 1fr;
-  }
 }

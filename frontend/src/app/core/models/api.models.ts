@@ -9,6 +9,11 @@ export interface PortfolioResponse {
   portfolioName: string;
 }
 
+export interface PortfolioPerformancePoint {
+  date: string;
+  value: number;
+}
+
 export interface HoldingResponse {
   holdingID: string;
   portfolioID: string;

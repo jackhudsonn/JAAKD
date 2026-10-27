@@ -874,6 +874,41 @@ paths:
         "500":
           $ref: "#/components/responses/ServerError"
 
+  /api/portfolios/{portfolioId}/performance:
+    get:
+      tags: [Portfolios]
+      summary: Daily value of one of the user's portfolios
+      description: >
+        One point per day, oldest first, from the date of the portfolio's first EXECUTED order log to today.
+        Each point is USD cash plus each USD-traded holding at that day's stored close
+        ("instrumentPrices", with Fauxnance candles as a fallback), carried forward over weekends and gaps.
+        The last point uses live quotes when they are available.
+        Non-USD cash, non-USD instruments and FX conversions are not counted.
+        Returns an empty list when the portfolio has no EXECUTED order logs.
+      operationId: getPortfolioDailyValues
+      parameters:
+        - $ref: "#/components/parameters/PortfolioId"
+      responses:
+        "200":
+          description: Daily portfolio values, oldest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PortfolioPerformancePoint"
+              example:
+                - date: "2026-10-23"
+                  value: 1000.00
+                - date: "2026-10-24"
+                  value: 1012.50
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
   # ------------------------------------------------------------------ Orders
   /api/portfolios/{portfolioId}/orders:
     post:
@@ -3417,6 +3452,17 @@ components:
           format: uuid
         portfolioName:
           type: string
+    PortfolioPerformancePoint:
+      type: object
+      required: [date, value]
+      properties:
+        date:
+          type: string
+          format: date
+          description: Calendar day (UTC), yyyy-MM-dd
+        value:
+          type: number
+          description: Portfolio value in USD at the end of that day
 
     # ---- orders (planned)
     OrderRequest:

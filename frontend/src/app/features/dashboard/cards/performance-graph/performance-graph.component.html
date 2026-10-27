@@ -1,3 +1,52 @@
-<app-widget-card title="Performance">
-  <p class="unavailable-note">Performance history isn't available yet.</p>
+<app-widget-card title="Performance" [status]="status()" (retry)="load()">
+  @if (status() === 'idle' && summary(); as summary) {
+    <div widget-actions class="value-summary">
+      <span class="amount">{{ formatCurrency(summary.current, reportingCurrency) }}</span>
+      <span class="change" [class]="trend()">
+        {{ formatSignedUsd(summary.change) }}
+        @if (summary.changePct !== null) {
+          ({{ formatSignedPct(summary.changePct) }})
+        }
+      </span>
+    </div>
+  }
+
+  @if (summary(); as summary) {
+    <div class="performance-body">
+      <div class="interval-tabs" role="group" aria-label="Time range">
+        @for (interval of intervals; track interval) {
+          <button
+            type="button"
+            class="interval-tab"
+            [class.active]="selectedInterval() === interval"
+            [attr.aria-pressed]="selectedInterval() === interval"
+            (click)="selectInterval(interval)"
+          >
+            {{ interval }}
+          </button>
+        }
+      </div>
+
+      <app-line-chart
+        [points]="chartPoints()"
+        [positive]="trend() === 'up'"
+        [flat]="trend() === 'flat'"
+        [compact]="true"
+        seriesLabel="Value"
+      />
+
+      <p class="performance-summary">
+        High {{ formatCurrency(summary.high, reportingCurrency) }} · Low
+        {{ formatCurrency(summary.low, reportingCurrency) }} · Change
+        <span class="change" [class]="trend()">{{
+          summary.changePct === null
+            ? formatSignedUsd(summary.change)
+            : formatSignedPct(summary.changePct)
+        }}</span>
+      </p>
+      <p class="indicative-note">USD only, daily closes.</p>
+    </div>
+  } @else {
+    <p class="unavailable-note">No history yet.</p>
+  }
 </app-widget-card>

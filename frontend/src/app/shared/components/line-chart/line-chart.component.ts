@@ -8,7 +8,7 @@ import {
   ViewChild,
   input,
 } from '@angular/core';
-import { Chart, ChartData } from 'chart.js/auto';
+import { Chart, ChartData, ScriptableContext } from 'chart.js/auto';
 
 export interface LineChartPoint {
   label: string;
@@ -19,6 +19,13 @@ export interface LineChartPoint {
 export type LineChartValueFormat = 'currency' | 'percent' | 'number';
 
 const COMPARE_COLOR = '#aeb2b0';
+const UP_COLOR = '#4fc46a';
+const DOWN_COLOR = '#e45b65';
+const FLAT_COLOR = '#aeb2b0';
+const GRID_COLOR = 'rgba(255,255,255,0.06)';
+const FAINT_GRID_COLOR = 'rgba(255,255,255,0.03)';
+const COMPACT_X_TICKS = 6;
+const COMPACT_Y_TICKS = 4;
 
 // compact: short form for y-axis ticks ("$1.2K", "5%"); otherwise the full value for tooltips.
 export function formatChartValue(
@@ -46,6 +53,21 @@ export function formatChartValue(
   }
 }
 
+// Fill that fades from a light tint at the top of the plot to transparent at the bottom.
+function fadingFill(color: string) {
+  return (context: ScriptableContext<'line'>) => {
+    const { ctx, chartArea } = context.chart;
+    if (!chartArea) {
+      return `${color}14`;
+    }
+
+    const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+    gradient.addColorStop(0, `${color}2e`);
+    gradient.addColorStop(1, `${color}00`);
+    return gradient;
+  };
+}
+
 /**
  * Thin Chart.js line-chart wrapper. Owns chart creation/teardown so widgets
  * only need to pass in labelled data points.
@@ -59,6 +81,10 @@ export function formatChartValue(
 export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
   points = input.required<LineChartPoint[]>();
   positive = input<boolean>(true);
+  // Grey line for a period with no change; wins over positive.
+  flat = input<boolean>(false);
+  // Small dashboard cards: fewer axis labels, fainter grid, fading fill. Read once when the chart is created.
+  compact = input<boolean>(false);
   valueFormat = input<LineChartValueFormat>('currency');
   // Optional second line drawn dashed for comparison (e.g. cost basis under market value), on the same labels.
   comparePoints = input<LineChartPoint[] | null>(null);
@@ -69,6 +95,9 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
   private chart?: Chart;
 
   ngAfterViewInit() {
+    const compact = this.compact();
+    const gridColor = compact ? FAINT_GRID_COLOR : GRID_COLOR;
+
     this.chart = new Chart(this.canvasRef.nativeElement, {
       type: 'line',
       data: this.toChartData(),
@@ -78,15 +107,22 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
         interaction: { intersect: false, mode: 'index' },
         scales: {
           x: {
-            ticks: { color: '#aeb2b0', maxRotation: 0, autoSkip: true },
+            ticks: {
+              color: '#aeb2b0',
+              maxRotation: 0,
+              autoSkip: true,
+              ...(compact ? { maxTicksLimit: COMPACT_X_TICKS } : {}),
+            },
             grid: { display: false },
           },
           y: {
             ticks: {
               color: '#aeb2b0',
               callback: (value) => this.formatValue(Number(value), true),
+              ...(compact ? { maxTicksLimit: COMPACT_Y_TICKS } : {}),
             },
-            grid: { color: 'rgba(255,255,255,0.06)' },
+            grid: { color: gridColor },
+            border: { display: !compact },
           },
         },
         plugins: {
@@ -106,7 +142,10 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    if ((changes['points'] || changes['positive'] || changes['comparePoints']) && this.chart) {
+    if (
+      (changes['points'] || changes['positive'] || changes['flat'] || changes['comparePoints']) &&
+      this.chart
+    ) {
       this.chart.data = this.toChartData();
       this.chart.update();
     }
@@ -120,9 +159,17 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
     return formatChartValue(value, this.valueFormat(), compact);
   }
 
+  private lineColor(): string {
+    if (this.flat()) {
+      return FLAT_COLOR;
+    }
+
+    return this.positive() ? UP_COLOR : DOWN_COLOR;
+  }
+
   private toChartData(): ChartData<'line'> {
     const points = this.points();
-    const color = this.positive() ? '#4fc46a' : '#e45b65';
+    const color = this.lineColor();
     const comparePoints = this.comparePoints();
 
     const datasets: ChartData<'line'>['datasets'] = [
@@ -130,7 +177,7 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
         label: this.seriesLabel(),
         data: points.map((point) => point.value),
         borderColor: color,
-        backgroundColor: `${color}22`,
+        backgroundColor: this.compact() ? fadingFill(color) : `${color}22`,
         pointRadius: (context) => (context.dataIndex === context.dataset.data.length - 1 ? 4 : 0),
         pointHoverRadius: 6,
         borderWidth: 2,

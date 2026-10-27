@@ -46,6 +46,14 @@ describe('PortfolioApiService', () => {
     await expect(promise).resolves.toEqual({ portfolioId: 'p1', portfolioName: 'Main' });
   });
 
+  it('getPerformance sends GET /api/portfolios/{portfolioId}/performance', async () => {
+    const promise = service.getPerformance('p1');
+    httpTestingController
+      .expectOne(`${environment.apiUrl}/api/portfolios/p1/performance`)
+      .flush([]);
+    await expect(promise).resolves.toEqual([]);
+  });
+
   it('ensureDefault returns first portfolio when list is non-empty and does not POST', async () => {
     const promise = service.ensureDefault();
 

@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-import { PortfolioResponse } from '@core/models/api.models';
+import { PortfolioPerformancePoint, PortfolioResponse } from '@core/models/api.models';
 import { environment } from '@environments/environment.local';
 
 @Injectable({
@@ -23,6 +23,14 @@ export class PortfolioApiService {
       this.httpClient.post<PortfolioResponse>(`${environment.apiUrl}/api/portfolios`, {
         portfolioName,
       }),
+    );
+  }
+
+  getPerformance(portfolioId: string): Promise<PortfolioPerformancePoint[]> {
+    return firstValueFrom(
+      this.httpClient.get<PortfolioPerformancePoint[]>(
+        `${environment.apiUrl}/api/portfolios/${portfolioId}/performance`,
+      ),
     );
   }
 
