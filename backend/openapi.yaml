@@ -884,7 +884,8 @@ paths:
         Each point is USD cash plus each USD-traded holding at that day's stored close
         ("instrumentPrices", with Fauxnance candles as a fallback), carried forward over weekends and gaps.
         The last point uses live quotes when they are available.
-        Non-USD cash, non-USD instruments and FX conversions are not counted.
+        Cash is tracked per currency, including FX conversions, and non-USD cash is converted to USD at
+        today's rate for every day (a currency with no rate is left out). Non-USD instruments are not counted.
         Returns an empty list when the portfolio has no EXECUTED order logs.
       operationId: getPortfolioDailyValues
       parameters:

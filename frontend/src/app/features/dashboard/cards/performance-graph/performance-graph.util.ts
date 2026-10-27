@@ -4,14 +4,6 @@ export type PerformanceInterval = '1W' | '1M' | 'YTD' | '1Y' | 'ALL';
 
 export const PERFORMANCE_INTERVALS: PerformanceInterval[] = ['1W', '1M', 'YTD', '1Y', 'ALL'];
 
-export interface PerformanceSummary {
-  current: number;
-  change: number;
-  changePct: number | null;
-  high: number;
-  low: number;
-}
-
 // yyyy-MM-dd of the first day in the interval, counted back from the newest point (dates are UTC days).
 function intervalStart(interval: PerformanceInterval, newest: string): string | null {
   const [year, month, day] = newest.split('-').map(Number);
@@ -50,16 +42,14 @@ export function filterByInterval(
   return start === null ? points : points.filter((point) => point.date >= start);
 }
 
-export function summarize(points: PortfolioPerformancePoint[]): PerformanceSummary | null {
+export function summarize(points: PortfolioPerformancePoint[]) {
   if (points.length === 0) {
     return null;
   }
 
   const values = points.map((point) => point.value);
-  const first = values[0];
-  const current = values[values.length - 1];
+  const [first, current] = [values[0], values[values.length - 1]];
   const change = current - first;
-
   return {
     current,
     change,

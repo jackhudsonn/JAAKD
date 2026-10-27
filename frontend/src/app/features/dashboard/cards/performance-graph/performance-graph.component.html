@@ -20,7 +20,7 @@
             class="interval-tab"
             [class.active]="selectedInterval() === interval"
             [attr.aria-pressed]="selectedInterval() === interval"
-            (click)="selectInterval(interval)"
+            (click)="selectedInterval.set(interval)"
           >
             {{ interval }}
           </button>
@@ -44,7 +44,6 @@
             : formatSignedPct(summary.changePct)
         }}</span>
       </p>
-      <p class="indicative-note">USD only, daily closes.</p>
     </div>
   } @else {
     <p class="unavailable-note">No history yet.</p>

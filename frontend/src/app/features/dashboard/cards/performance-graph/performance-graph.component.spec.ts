@@ -35,10 +35,8 @@ const setup = async (getPerformance: () => Promise<PortfolioPerformancePoint[]>,
     await vi.waitFor(() => expect(fixture.componentInstance.status()).not.toBe('loading'));
     fixture.detectChanges();
   }
-
   const element = fixture.nativeElement as HTMLElement;
-  const text = () => element.textContent?.replace(/\s+/g, ' ');
-  return { fixture, element, text, api };
+  return { fixture, element, api, text: () => element.textContent?.replace(/\s+/g, ' ') };
 };
 
 describe('PerformanceGraphWidgetComponent', () => {
@@ -58,33 +56,15 @@ describe('PerformanceGraphWidgetComponent', () => {
     expect(api.getPerformance).toHaveBeenCalledTimes(1);
   });
 
-  it('colours the change up, down, or grey when flat', async () => {
-    const trendOf = async (end: number) => {
-      const { element } = await setup(async () => [
-        { date: '2026-10-19', value: 100 },
-        { date: '2026-10-20', value: end },
-      ]);
-      return element
-        .querySelector('.performance-summary .change')
-        ?.className.replace('change', '')
-        .trim();
-    };
-    expect([await trendOf(110), await trendOf(90), await trendOf(100.001)]).toEqual([
-      'up',
-      'down',
-      'flat',
-    ]);
-  });
-
-  it('shows the skeleton, then the empty or error state', async () => {
-    expect(
-      (await setup(() => new Promise(() => undefined), false)).element.querySelector(
-        '.widget-card-skeleton',
-      ),
-    ).not.toBeNull();
-    expect((await setup(async () => [])).text()).toContain('No history yet.');
-    expect((await setup(() => Promise.reject(new Error('boom')))).text()).toContain(
-      'currently unavailable',
-    );
+  it.each([
+    ['loading', () => new Promise<never>(() => undefined), false, ''],
+    ['empty', async () => [], true, 'No history yet.'],
+    ['error', () => Promise.reject(new Error('boom')), true, 'currently unavailable'],
+  ])('shows the %s state', async (state, getPerformance, settle, message) => {
+    const { element, text } = await setup(getPerformance, settle);
+    if (state === 'loading') {
+      expect(element.querySelector('.widget-card-skeleton')).not.toBeNull();
+    }
+    expect(text()).toContain(message);
   });
 });

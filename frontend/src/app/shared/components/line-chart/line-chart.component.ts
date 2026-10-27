@@ -19,11 +19,6 @@ export interface LineChartPoint {
 export type LineChartValueFormat = 'currency' | 'percent' | 'number';
 
 const COMPARE_COLOR = '#aeb2b0';
-const UP_COLOR = '#4fc46a';
-const DOWN_COLOR = '#e45b65';
-const FLAT_COLOR = '#aeb2b0';
-const GRID_COLOR = 'rgba(255,255,255,0.06)';
-const FAINT_GRID_COLOR = 'rgba(255,255,255,0.03)';
 const COMPACT_X_TICKS = 6;
 const COMPACT_Y_TICKS = 4;
 
@@ -81,7 +76,7 @@ function fadingFill(color: string) {
 export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
   points = input.required<LineChartPoint[]>();
   positive = input<boolean>(true);
-  // Grey line for a period with no change; wins over positive.
+  // Grey line, wins over positive.
   flat = input<boolean>(false);
   // Small dashboard cards: fewer axis labels, fainter grid, fading fill. Read once when the chart is created.
   compact = input<boolean>(false);
@@ -96,7 +91,6 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
 
   ngAfterViewInit() {
     const compact = this.compact();
-    const gridColor = compact ? FAINT_GRID_COLOR : GRID_COLOR;
 
     this.chart = new Chart(this.canvasRef.nativeElement, {
       type: 'line',
@@ -121,7 +115,7 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
               callback: (value) => this.formatValue(Number(value), true),
               ...(compact ? { maxTicksLimit: COMPACT_Y_TICKS } : {}),
             },
-            grid: { color: gridColor },
+            grid: { color: compact ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.06)' },
             border: { display: !compact },
           },
         },
@@ -161,10 +155,9 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
 
   private lineColor(): string {
     if (this.flat()) {
-      return FLAT_COLOR;
+      return COMPARE_COLOR;
     }
-
-    return this.positive() ? UP_COLOR : DOWN_COLOR;
+    return this.positive() ? '#4fc46a' : '#e45b65';
   }
 
   private toChartData(): ChartData<'line'> {

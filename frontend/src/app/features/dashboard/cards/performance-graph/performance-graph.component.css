@@ -102,13 +102,6 @@
   font-size: var(--font-size-xs);
 }
 
-.indicative-note {
-  margin: 0;
-
-  color: var(--text-muted);
-  font-size: var(--font-size-xs);
-}
-
 .unavailable-note {
   margin: var(--space-md) 0;
 

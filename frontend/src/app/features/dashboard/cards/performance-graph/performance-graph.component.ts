@@ -47,7 +47,7 @@ export class PerformanceGraphWidgetComponent implements OnInit {
     this.visiblePoints().map((point) => ({ label: toChartLabel(point.date), value: point.value })),
   );
   readonly summary = computed(() => summarize(this.visiblePoints()));
-  // Grey when the change rounds to 0.00 (by %, or by amount when there is no %), as on the other cards.
+  // Grey when the change rounds to 0.00, as on the other cards.
   readonly trend = computed<'up' | 'down' | 'flat'>(() => {
     const summary = this.summary();
     if (!summary || isFlatChange(summary.changePct ?? summary.change)) {
@@ -71,9 +71,5 @@ export class PerformanceGraphWidgetComponent implements OnInit {
       console.error('Failed to load portfolio performance', error);
       this.status.set('error');
     }
-  }
-
-  selectInterval(interval: PerformanceInterval) {
-    this.selectedInterval.set(interval);
   }
 }

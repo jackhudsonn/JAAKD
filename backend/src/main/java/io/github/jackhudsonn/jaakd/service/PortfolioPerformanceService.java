@@ -1,6 +1,7 @@
 package io.github.jackhudsonn.jaakd.service;
 
 import io.github.jackhudsonn.jaakd.model.CashCurrency;
+import io.github.jackhudsonn.jaakd.model.Holding;
 import io.github.jackhudsonn.jaakd.model.Instrument;
 import io.github.jackhudsonn.jaakd.model.InstrumentClass;
 import io.github.jackhudsonn.jaakd.model.InstrumentPrice;
@@ -9,7 +10,9 @@ import io.github.jackhudsonn.jaakd.model.OrderSide;
 import io.github.jackhudsonn.jaakd.model.OrderStatus;
 import io.github.jackhudsonn.jaakd.model.fauxnance.FauxnanceCandle;
 import io.github.jackhudsonn.jaakd.model.fauxnance.FauxnanceCandleResponse;
+import io.github.jackhudsonn.jaakd.repository.HoldingRepository;
 import io.github.jackhudsonn.jaakd.repository.InstrumentPriceRepository;
+import io.github.jackhudsonn.jaakd.repository.InstrumentRepository;
 import io.github.jackhudsonn.jaakd.repository.OrderLogRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,11 +26,14 @@ import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -37,6 +43,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 // Rebuilds a portfolio's daily USD value from its EXECUTED order logs, priced with stored daily closes.
+// Non-USD cash is converted at today's rate for every day. Today's point uses the real cash and holdings.
 // The caller checks ownership first.
 @Service
 public class PortfolioPerformanceService {
@@ -48,12 +55,14 @@ public class PortfolioPerformanceService {
     private static final int MONEY_SCALE = 2;
     // Per symbol, so one slow Fauxnance answer cannot hold up the whole graph.
     private static final Duration CANDLE_TIMEOUT = Duration.ofSeconds(5);
-    private static final long NANOS_PER_MILLI = 1_000_000L;
 
     private final OrderLogRepository orderLogRepository;
     private final InstrumentPriceRepository instrumentPriceRepository;
+    private final HoldingRepository holdingRepository;
+    private final InstrumentRepository instrumentRepository;
     private final FauxnanceService fauxnanceService;
     private final QuoteService quoteService;
+    private final HoldingService holdingService;
     private final Clock clock;
 
     // Daily closes only change once a day (the nightly PriceHistoryService run), so they are kept until the date
@@ -64,14 +73,20 @@ public class PortfolioPerformanceService {
     public PortfolioPerformanceService(
         OrderLogRepository orderLogRepository,
         InstrumentPriceRepository instrumentPriceRepository,
+        HoldingRepository holdingRepository,
+        InstrumentRepository instrumentRepository,
         FauxnanceService fauxnanceService,
         QuoteService quoteService,
+        HoldingService holdingService,
         Clock clock
     ) {
         this.orderLogRepository = orderLogRepository;
         this.instrumentPriceRepository = instrumentPriceRepository;
+        this.holdingRepository = holdingRepository;
+        this.instrumentRepository = instrumentRepository;
         this.fauxnanceService = fauxnanceService;
         this.quoteService = quoteService;
+        this.holdingService = holdingService;
         this.clock = clock;
     }
 
@@ -79,40 +94,21 @@ public class PortfolioPerformanceService {
         long startedAt = System.nanoTime();
         RequestTimings timings = new RequestTimings();
 
-        List<OrderLog> logs = loadUsdLogs(portfolioId, timings);
-        List<DailyValue> values = logs.isEmpty() ? List.of() : replay(logs, timings);
+        List<OrderLog> executed = orderLogRepository
+            .findByPortfolioPortfolioIdAndStatusOrderByTimestampAsc(portfolioId, OrderStatus.EXECUTED);
+        timings.databaseNanos += System.nanoTime() - startedAt;
+        List<OrderLog> logs = executed.stream().filter(this::countsTowardsValue).toList();
+        List<DailyValue> values = logs.isEmpty() ? List.of() : replay(portfolioId, logs, timings);
 
         log.info(
             "Performance for portfolio {}: {} points in {} ms (database {} ms, Fauxnance {} ms, {} of {} instruments from cache)",
-            portfolioId,
-            values.size(),
-            toMillis(System.nanoTime() - startedAt),
-            toMillis(timings.databaseNanos),
-            toMillis(timings.fauxnanceNanos),
-            timings.cachedInstruments,
-            timings.pricedInstruments
+            portfolioId, values.size(), toMillis(System.nanoTime() - startedAt), toMillis(timings.databaseNanos),
+            toMillis(timings.fauxnanceNanos), timings.cachedInstruments, timings.pricedInstruments
         );
         return values;
     }
 
-    private List<OrderLog> loadUsdLogs(UUID portfolioId, RequestTimings timings) {
-        long startedAt = System.nanoTime();
-        List<OrderLog> executed = orderLogRepository.findByPortfolioPortfolioIdAndStatusOrderByTimestampAsc(
-            portfolioId,
-            OrderStatus.EXECUTED
-        );
-        timings.databaseNanos += System.nanoTime() - startedAt;
-
-        List<OrderLog> logs = new ArrayList<>();
-        for (OrderLog orderLog : executed) {
-            if (countsTowardsUsdValue(orderLog)) {
-                logs.add(orderLog);
-            }
-        }
-        return logs;
-    }
-
-    private List<DailyValue> replay(List<OrderLog> logs, RequestTimings timings) {
+    private List<DailyValue> replay(UUID portfolioId, List<OrderLog> logs, RequestTimings timings) {
         LocalDate today = LocalDate.now(clock);
         LocalDate firstDay = logs.get(0).getTimeStamp().toLocalDate();
         if (firstDay.isAfter(today)) {
@@ -120,62 +116,217 @@ public class PortfolioPerformanceService {
         }
 
         Map<UUID, NavigableMap<LocalDate, BigDecimal>> pricesByInstrument = loadPrices(logs, today, timings);
+        RealBalances real = loadRealBalances(portfolioId, timings);
+        Set<CashCurrency> currencies = cashCurrencies(logs);
+        if (real != null) {
+            currencies.addAll(real.cash().keySet());
+        }
+        Map<CashCurrency, BigDecimal> usdRates = loadUsdRates(currencies, timings);
 
-        BigDecimal cash = BigDecimal.ZERO;
+        Map<CashCurrency, BigDecimal> cashByCurrency = new EnumMap<>(CashCurrency.class);
         Map<UUID, BigDecimal> quantityByInstrument = new LinkedHashMap<>();
         List<DailyValue> values = new ArrayList<>();
         int next = 0;
 
         for (LocalDate day = firstDay; !day.isAfter(today); day = day.plusDays(1)) {
             while (next < logs.size() && !logs.get(next).getTimeStamp().toLocalDate().isAfter(day)) {
-                cash = apply(logs.get(next), cash, quantityByInstrument);
+                apply(logs.get(next), cashByCurrency, quantityByInstrument);
                 next++;
             }
 
             if (day.equals(today)) {
+                if (real != null) {
+                    logReplayCheck(portfolioId, cashByCurrency, real.cash());
+                    cashByCurrency = real.cash();
+                    quantityByInstrument = real.quantities();
+                }
                 applyLiveQuotes(quantityByInstrument, pricesByInstrument, today, timings);
             }
 
+            BigDecimal cash = cashInUsd(cashByCurrency, usdRates);
             values.add(new DailyValue(day, valueOn(day, cash, quantityByInstrument, pricesByInstrument)));
         }
 
         return values;
     }
 
-    // Only USD moves the USD cash line: USD deposits and withdrawals, and buys and sells of USD-traded instruments.
-    private boolean countsTowardsUsdValue(OrderLog orderLog) {
+    // Cash moves in every currency (deposits, withdrawals, FX swaps). Instrument trades count only when traded in USD,
+    // because holdings are priced with USD closes; a non-USD buy is left out, so its cash stays counted at cost.
+    private boolean countsTowardsValue(OrderLog orderLog) {
         Instrument instrument = orderLog.getInstrument();
-        if (instrument == null || orderLog.getTimeStamp() == null) {
-            return false;
-        }
-
+        boolean isCash = instrument.getInstrumentClass() == InstrumentClass.CASH;
         return switch (orderLog.getSide()) {
-            case DEPOSIT, WITHDRAW -> instrument.getInstrumentClass() == InstrumentClass.CASH
-                && CashCurrency.USD.name().equalsIgnoreCase(instrument.getTicker());
-            case BUY, SELL -> instrument.getInstrumentClass() != InstrumentClass.CASH
-                && instrument.getTradingCurrency() == CashCurrency.USD;
-            case FX -> false;
+            case DEPOSIT, WITHDRAW, FX -> isCash && currencyOf(instrument) != null;
+            case BUY, SELL -> !isCash && instrument.getTradingCurrency() == CashCurrency.USD;
         };
     }
 
-    private BigDecimal apply(OrderLog orderLog, BigDecimal cash, Map<UUID, BigDecimal> quantityByInstrument) {
+    private void apply(OrderLog orderLog, Map<CashCurrency, BigDecimal> cash, Map<UUID, BigDecimal> quantityByInstrument) {
         BigDecimal quantity = BigDecimal.valueOf(orderLog.getQuantity());
         BigDecimal notional = quantity.multiply(BigDecimal.valueOf(orderLog.getExecutionPrice()));
         UUID instrumentId = orderLog.getInstrument().getInstrumentId();
 
-        return switch (orderLog.getSide()) {
-            case DEPOSIT -> cash.add(quantity);
-            case WITHDRAW -> cash.subtract(quantity);
+        switch (orderLog.getSide()) {
+            case DEPOSIT -> cash.merge(currencyOf(orderLog.getInstrument()), quantity, BigDecimal::add);
+            case WITHDRAW -> cash.merge(currencyOf(orderLog.getInstrument()), quantity.negate(), BigDecimal::add);
             case BUY -> {
                 quantityByInstrument.merge(instrumentId, quantity, BigDecimal::add);
-                yield cash.subtract(notional);
+                cash.merge(CashCurrency.USD, notional.negate(), BigDecimal::add);
             }
             case SELL -> {
                 quantityByInstrument.merge(instrumentId, quantity.negate(), BigDecimal::add);
-                yield cash.add(notional);
+                cash.merge(CashCurrency.USD, notional, BigDecimal::add);
             }
-            case FX -> cash;
-        };
+            case FX -> applySwap(orderLog, quantity, notional, cash);
+        }
+    }
+
+    // An FX row is logged on the source cash instrument (quantity = source amount, executionPrice = rate);
+    // the target side is only in the metadata HoldingService writes. Skipped whole if the target is unreadable.
+    private void applySwap(OrderLog orderLog, BigDecimal sourceAmount, BigDecimal converted, Map<CashCurrency, BigDecimal> cash) {
+        CashCurrency target = swapTarget(orderLog);
+        if (target == null) {
+            log.warn("Skipping FX log {} without a readable target currency", orderLog.getLogOrderID());
+            return;
+        }
+
+        BigDecimal targetAmount = converted;
+        String recordedAmount = metadataValue(orderLog.getMetadata(), "targetAmount");
+        if (recordedAmount != null) {
+            try {
+                targetAmount = new BigDecimal(recordedAmount);
+            } catch (NumberFormatException ex) {
+                log.warn("FX log {} has an unreadable targetAmount, using quantity times rate", orderLog.getLogOrderID());
+            }
+        }
+
+        cash.merge(currencyOf(orderLog.getInstrument()), sourceAmount.negate(), BigDecimal::add);
+        cash.merge(target, targetAmount, BigDecimal::add);
+    }
+
+    private static CashCurrency swapTarget(OrderLog orderLog) {
+        return CashCurrency.fromCodeOrNull(metadataValue(orderLog.getMetadata(), "targetCurrency"));
+    }
+
+    // First match wins: HoldingService writes its own fields before any user note.
+    private static String metadataValue(String metadata, String key) {
+        if (metadata == null) {
+            return null;
+        }
+
+        for (String part : metadata.split(";")) {
+            if (part.startsWith(key + "=")) {
+                return part.substring(key.length() + 1).trim();
+            }
+        }
+        return null;
+    }
+
+    private static CashCurrency currencyOf(Instrument cashInstrument) {
+        return CashCurrency.fromCodeOrNull(cashInstrument.getTicker());
+    }
+
+    private static Set<CashCurrency> cashCurrencies(List<OrderLog> logs) {
+        Set<CashCurrency> currencies = EnumSet.noneOf(CashCurrency.class);
+        for (OrderLog orderLog : logs) {
+            if (orderLog.getInstrument().getInstrumentClass() == InstrumentClass.CASH) {
+                currencies.add(currencyOf(orderLog.getInstrument()));
+            }
+            if (orderLog.getSide() == OrderSide.FX && swapTarget(orderLog) != null) {
+                currencies.add(swapTarget(orderLog));
+            }
+        }
+        return currencies;
+    }
+
+    // The portfolio's current cash per currency and USD-traded quantities. Null when there are no holdings rows
+    // or they cannot be read, so today's point keeps the replay: a portfolio with executed logs always has cash rows.
+    private RealBalances loadRealBalances(UUID portfolioId, RequestTimings timings) {
+        long startedAt = System.nanoTime();
+        try {
+            List<Holding> holdings = holdingRepository.findByPortfolioID(portfolioId);
+            if (holdings.isEmpty()) {
+                return null;
+            }
+
+            Map<UUID, Instrument> instruments = new HashMap<>();
+            for (Instrument instrument : instrumentRepository.findAllById(holdings.stream().map(Holding::getInstrumentID).toList())) {
+                instruments.put(instrument.getInstrumentId(), instrument);
+            }
+
+            Map<CashCurrency, BigDecimal> cash = new EnumMap<>(CashCurrency.class);
+            Map<UUID, BigDecimal> quantities = new LinkedHashMap<>();
+            for (Holding holding : holdings) {
+                Instrument instrument = instruments.get(holding.getInstrumentID());
+                BigDecimal quantity = holding.getCurrentQuantity();
+                if (instrument == null || quantity == null || quantity.signum() == 0) {
+                    continue;
+                }
+
+                if (instrument.getInstrumentClass() == InstrumentClass.CASH) {
+                    CashCurrency currency = currencyOf(instrument);
+                    if (currency != null) {
+                        cash.put(currency, quantity);
+                    }
+                } else if (instrument.getTradingCurrency() == CashCurrency.USD) {
+                    quantities.put(instrument.getInstrumentId(), quantity);
+                }
+            }
+            return new RealBalances(cash, quantities);
+        } catch (RuntimeException ex) {
+            log.warn("Current holdings unavailable for the performance graph, today uses the replay: {}", ex.getMessage());
+            return null;
+        } finally {
+            timings.databaseNanos += System.nanoTime() - startedAt;
+        }
+    }
+
+    // A mismatch means an order log is missing or extra; today's point still shows the real balances.
+    private static void logReplayCheck(UUID portfolioId, Map<CashCurrency, BigDecimal> replayed, Map<CashCurrency, BigDecimal> real) {
+        Set<CashCurrency> currencies = EnumSet.noneOf(CashCurrency.class);
+        currencies.addAll(replayed.keySet());
+        currencies.addAll(real.keySet());
+        // To the cent: holdings are stored at 6 decimals, the replay multiplies exact quantities and prices.
+        boolean matches = currencies.stream().allMatch(currency -> replayed.getOrDefault(currency, BigDecimal.ZERO)
+            .setScale(MONEY_SCALE, RoundingMode.HALF_UP)
+            .compareTo(real.getOrDefault(currency, BigDecimal.ZERO).setScale(MONEY_SCALE, RoundingMode.HALF_UP)) == 0);
+
+        if (matches) {
+            log.info("Performance replay for portfolio {} matches the real cash: {}", portfolioId, real);
+        } else {
+            log.warn("Performance replay for portfolio {} does not match the real cash: replayed {}, real {}", portfolioId, replayed, real);
+        }
+    }
+
+    // One lookup per currency per request; a currency whose rate cannot be found is left out of every day.
+    private Map<CashCurrency, BigDecimal> loadUsdRates(Set<CashCurrency> currencies, RequestTimings timings) {
+        long startedAt = System.nanoTime();
+        Map<CashCurrency, BigDecimal> rates = new EnumMap<>(CashCurrency.class);
+        rates.put(CashCurrency.USD, BigDecimal.ONE);
+        for (CashCurrency currency : currencies) {
+            if (currency == CashCurrency.USD) {
+                continue;
+            }
+
+            try {
+                rates.put(currency, holdingService.resolveFxRate(currency, CashCurrency.USD));
+            } catch (RuntimeException ex) {
+                log.warn("No {} to USD rate for the performance graph, leaving {} cash out: {}", currency, currency, ex.getMessage());
+            }
+        }
+        timings.fauxnanceNanos += System.nanoTime() - startedAt;
+        return rates;
+    }
+
+    private static BigDecimal cashInUsd(Map<CashCurrency, BigDecimal> cashByCurrency, Map<CashCurrency, BigDecimal> usdRates) {
+        BigDecimal total = BigDecimal.ZERO;
+        for (Map.Entry<CashCurrency, BigDecimal> entry : cashByCurrency.entrySet()) {
+            BigDecimal rate = usdRates.get(entry.getKey());
+            if (rate != null) {
+                total = total.add(entry.getValue().multiply(rate));
+            }
+        }
+        return total;
     }
 
     // The days each instrument was actually held: from its first buy until it was last sold out, or today.
@@ -200,25 +351,16 @@ public class PortfolioPerformanceService {
         }
 
         Map<UUID, PriceWindow> windows = new LinkedHashMap<>();
-        for (Map.Entry<UUID, LocalDate> entry : firstHeld.entrySet()) {
-            LocalDate from = entry.getValue().minusDays(PRICE_LOOKBACK_DAYS);
-            LocalDate to = lastHeld.get(entry.getKey());
-            windows.put(entry.getKey(), new PriceWindow(from, to.isBefore(from) ? from : to));
-        }
+        firstHeld.forEach((id, first) -> windows.put(id, new PriceWindow(first.minusDays(PRICE_LOOKBACK_DAYS), lastHeld.get(id))));
         return windows;
     }
 
-    private Map<UUID, NavigableMap<LocalDate, BigDecimal>> loadPrices(
-        List<OrderLog> logs,
-        LocalDate today,
-        RequestTimings timings
-    ) {
+    private Map<UUID, NavigableMap<LocalDate, BigDecimal>> loadPrices(List<OrderLog> logs, LocalDate today, RequestTimings timings) {
         Map<UUID, PriceWindow> windows = heldWindows(logs, today);
         Map<UUID, Instrument> instruments = new LinkedHashMap<>();
         for (OrderLog orderLog : logs) {
-            Instrument instrument = orderLog.getInstrument();
-            if (windows.containsKey(instrument.getInstrumentId())) {
-                instruments.putIfAbsent(instrument.getInstrumentId(), instrument);
+            if (windows.containsKey(orderLog.getInstrument().getInstrumentId())) {
+                instruments.putIfAbsent(orderLog.getInstrument().getInstrumentId(), orderLog.getInstrument());
             }
         }
         timings.pricedInstruments = instruments.size();
@@ -227,26 +369,20 @@ public class PortfolioPerformanceService {
         Map<UUID, NavigableMap<LocalDate, BigDecimal>> pricesByInstrument = new HashMap<>();
         List<Instrument> notCached = new ArrayList<>();
         for (Instrument instrument : instruments.values()) {
-            UUID instrumentId = instrument.getInstrumentId();
-            NavigableMap<LocalDate, BigDecimal> cached = closesCache.get(cacheKey(instrumentId, windows));
+            NavigableMap<LocalDate, BigDecimal> cached = closesCache.get(cacheKey(instrument.getInstrumentId(), windows));
+            pricesByInstrument.put(instrument.getInstrumentId(), cached == null ? new TreeMap<>() : new TreeMap<>(cached));
             if (cached == null) {
-                pricesByInstrument.put(instrumentId, new TreeMap<>());
                 notCached.add(instrument);
             } else {
-                pricesByInstrument.put(instrumentId, new TreeMap<>(cached));
                 timings.cachedInstruments++;
             }
         }
 
         if (!notCached.isEmpty()) {
             addStoredCloses(notCached, windows, pricesByInstrument, timings);
-
-            List<Instrument> withoutStoredCloses = new ArrayList<>();
-            for (Instrument instrument : notCached) {
-                if (pricesByInstrument.get(instrument.getInstrumentId()).isEmpty()) {
-                    withoutStoredCloses.add(instrument);
-                }
-            }
+            List<Instrument> withoutStoredCloses = notCached.stream()
+                .filter(instrument -> pricesByInstrument.get(instrument.getInstrumentId()).isEmpty())
+                .toList();
             addCandleCloses(withoutStoredCloses, windows, pricesByInstrument, timings);
             cacheCloses(notCached, windows, pricesByInstrument);
         }
@@ -264,10 +400,7 @@ public class PortfolioPerformanceService {
         for (Instrument instrument : instruments) {
             NavigableMap<LocalDate, BigDecimal> closes = pricesByInstrument.get(instrument.getInstrumentId());
             if (!closes.isEmpty()) {
-                closesCache.put(
-                    cacheKey(instrument.getInstrumentId(), windows),
-                    Collections.unmodifiableNavigableMap(new TreeMap<>(closes))
-                );
+                closesCache.put(cacheKey(instrument.getInstrumentId(), windows), Collections.unmodifiableNavigableMap(new TreeMap<>(closes)));
             }
         }
     }
@@ -283,15 +416,13 @@ public class PortfolioPerformanceService {
     }
 
     private void clearCacheOnNewDay(LocalDate today) {
-        LocalDate previousDay = closesCacheDay.getAndSet(today);
-        if (!today.equals(previousDay)) {
+        if (!today.equals(closesCacheDay.getAndSet(today))) {
             closesCache.clear();
         }
     }
 
     private static CloseKey cacheKey(UUID instrumentId, Map<UUID, PriceWindow> windows) {
-        PriceWindow window = windows.get(instrumentId);
-        return new CloseKey(instrumentId, window.from(), window.to());
+        return new CloseKey(instrumentId, windows.get(instrumentId));
     }
 
     // One query for every instrument, over the widest window, then each instrument keeps only its own days.
@@ -301,15 +432,9 @@ public class PortfolioPerformanceService {
         Map<UUID, NavigableMap<LocalDate, BigDecimal>> pricesByInstrument,
         RequestTimings timings
     ) {
-        List<UUID> instrumentIds = new ArrayList<>();
-        LocalDate from = null;
-        LocalDate to = null;
-        for (Instrument instrument : instruments) {
-            PriceWindow window = windows.get(instrument.getInstrumentId());
-            instrumentIds.add(instrument.getInstrumentId());
-            from = from == null || window.from().isBefore(from) ? window.from() : from;
-            to = to == null || window.to().isAfter(to) ? window.to() : to;
-        }
+        List<UUID> instrumentIds = instruments.stream().map(Instrument::getInstrumentId).toList();
+        LocalDate from = instrumentIds.stream().map(id -> windows.get(id).from()).min(LocalDate::compareTo).orElseThrow();
+        LocalDate to = instrumentIds.stream().map(id -> windows.get(id).to()).max(LocalDate::compareTo).orElseThrow();
 
         long startedAt = System.nanoTime();
         List<InstrumentPrice> stored;
@@ -323,8 +448,7 @@ public class PortfolioPerformanceService {
         }
 
         for (InstrumentPrice price : stored) {
-            PriceWindow window = windows.get(price.getInstrumentId());
-            if (window != null && price.getClose() != null && window.contains(price.getPriceDate())) {
+            if (windows.get(price.getInstrumentId()).contains(price.getPriceDate())) {
                 pricesByInstrument.get(price.getInstrumentId()).put(price.getPriceDate(), price.getClose());
             }
         }
@@ -337,10 +461,6 @@ public class PortfolioPerformanceService {
         Map<UUID, NavigableMap<LocalDate, BigDecimal>> pricesByInstrument,
         RequestTimings timings
     ) {
-        if (instruments.isEmpty()) {
-            return;
-        }
-
         long startedAt = System.nanoTime();
         Map<Instrument, CompletableFuture<FauxnanceCandleResponse>> requests = new LinkedHashMap<>();
         for (Instrument instrument : instruments) {
@@ -356,15 +476,14 @@ public class PortfolioPerformanceService {
             requests.put(instrument, request);
         }
 
-        for (Map.Entry<Instrument, CompletableFuture<FauxnanceCandleResponse>> entry : requests.entrySet()) {
-            Instrument instrument = entry.getKey();
+        requests.forEach((instrument, request) -> {
             try {
-                addCandleCloses(pricesByInstrument.get(instrument.getInstrumentId()), entry.getValue().join());
+                addCandleCloses(pricesByInstrument.get(instrument.getInstrumentId()), request.join());
             } catch (CompletionException ex) {
                 Throwable cause = ex.getCause() == null ? ex : ex.getCause();
                 log.warn("Performance candles unavailable for {}: {}", instrument.getTicker(), cause.toString());
             }
-        }
+        });
         timings.fauxnanceNanos += System.nanoTime() - startedAt;
     }
 
@@ -403,13 +522,10 @@ public class PortfolioPerformanceService {
         LocalDate today,
         RequestTimings timings
     ) {
-        List<UUID> heldInstrumentIds = new ArrayList<>();
-        for (Map.Entry<UUID, BigDecimal> entry : quantityByInstrument.entrySet()) {
-            if (entry.getValue().signum() != 0) {
-                heldInstrumentIds.add(entry.getKey());
-            }
-        }
-
+        List<UUID> heldInstrumentIds = quantityByInstrument.entrySet().stream()
+            .filter(entry -> entry.getValue().signum() != 0)
+            .map(Map.Entry::getKey)
+            .toList();
         if (heldInstrumentIds.isEmpty()) {
             return;
         }
@@ -454,7 +570,7 @@ public class PortfolioPerformanceService {
     }
 
     private static long toMillis(long nanos) {
-        return nanos / NANOS_PER_MILLI;
+        return TimeUnit.NANOSECONDS.toMillis(nanos);
     }
 
     public record DailyValue(LocalDate date, BigDecimal value) {
@@ -467,10 +583,12 @@ public class PortfolioPerformanceService {
         }
     }
 
-    private record CloseKey(UUID instrumentId, LocalDate from, LocalDate to) {
+    private record RealBalances(Map<CashCurrency, BigDecimal> cash, Map<UUID, BigDecimal> quantities) {
     }
 
-    // Per request only, so plain fields are enough.
+    private record CloseKey(UUID instrumentId, PriceWindow window) {
+    }
+
     private static final class RequestTimings {
         private long databaseNanos;
         private long fauxnanceNanos;

@@ -61,9 +61,7 @@ export class PortfolioValueWidgetComponent {
     const rates = this.cashRates;
     const cash = toCashInUsd(this.state.accountCash(), this.state.cashBalances?.(), rates);
     const amount = toAllTimeReturn(cash, this.state.holdings(), transactions, rates);
-    return amount === null
-      ? null
-      : toReturnView(amount, toNetDepositsInUsd(transactions, rates));
+    return amount === null ? null : toReturnView(amount, toNetDepositsInUsd(transactions, rates));
   }
 
   get todayReturn(): ReturnView | null {
@@ -78,8 +76,10 @@ export class PortfolioValueWidgetComponent {
     return toReturnView(amount, holdingsValue === null ? null : holdingsValue - amount);
   }
 
+  // Every cash currency in USD, as the Performance graph counts it; USD only while a rate is missing.
   get cashAmount() {
-    return this.state.accountCash();
+    const accountCash = this.state.accountCash();
+    return toCashInUsd(accountCash, this.state.cashBalances?.(), this.cashRates) ?? accountCash;
   }
 
   get holdingsAmount() {
