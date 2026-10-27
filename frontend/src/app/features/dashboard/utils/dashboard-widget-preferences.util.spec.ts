@@ -9,7 +9,6 @@ const ALLOWED: WidgetId[] = [
   'allocation-by-asset',
   'open-orders',
   'top-movers',
-  'to-be-deleted',
 ];
 
 const DEFAULTS: WidgetId[] = [
