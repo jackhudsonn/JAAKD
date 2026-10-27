@@ -1,65 +1,82 @@
-import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
-import { DecimalPipe } from '@angular/common';
+import { Component, inject } from '@angular/core';
+import { DecimalPipe, NgTemplateOutlet } from '@angular/common';
 import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
-import { startCycleTimer } from '@shared/utils/cycle-timer';
 import { DASHBOARD_STATE_PORT } from '@features/dashboard/services/dashboard-state.port';
 import type { CashCurrency } from '@core/models/api.models';
 import { REPORTING_CURRENCY } from '@core/models/api.models';
 import { formatCurrency } from '@shared/utils/display-format';
+import { isFlatChange } from '@shared/utils/format-percentage-change';
+import {
+  formatSignedPct,
+  formatSignedUsd,
+  toAllTimeReturn,
+  toCashInUsd,
+  toHoldingsValueInUsd,
+  toNetDepositsInUsd,
+  toReturnPct,
+  toTodayReturn,
+} from './portfolio-returns.util';
 
-type ValueMode = 'cash' | 'assets' | 'total';
+interface ReturnView {
+  amountText: string;
+  pctText: string | null;
+  amount: number;
+  flat: boolean;
+}
 
-const VALUE_MODES: { mode: ValueMode; label: string }[] = [
-  { mode: 'total', label: 'Total Value' },
-  { mode: 'cash', label: 'Cash' },
-  { mode: 'assets', label: 'Assets' },
-];
+const toReturnView = (amount: number, base: number | null): ReturnView => {
+  const pct = toReturnPct(amount, base);
+  return {
+    amountText: formatSignedUsd(amount),
+    pctText: pct === null ? null : formatSignedPct(pct),
+    amount,
+    flat: isFlatChange(amount),
+  };
+};
 
 @Component({
   selector: 'app-portfolio-value-widget',
   standalone: true,
-  imports: [WidgetCardComponent, DecimalPipe],
+  imports: [WidgetCardComponent, DecimalPipe, NgTemplateOutlet],
   templateUrl: './portfolio-value.component.html',
   styleUrl: './portfolio-value.component.css',
 })
-export class PortfolioValueWidgetComponent implements OnInit, OnDestroy {
+export class PortfolioValueWidgetComponent {
   private readonly state = inject(DASHBOARD_STATE_PORT);
 
-  private stopValueCycle?: () => void;
   readonly formatCurrency = formatCurrency;
   readonly reportingCurrency = REPORTING_CURRENCY;
 
-  valueIndex = signal(0);
-  valueFading = signal(false);
-
-  get activeValueLabel() {
-    return VALUE_MODES[this.valueIndex()].label;
+  get hasReturnsData() {
+    return this.state.holdings().length > 0 || this.state.transactions().length > 0;
   }
 
-  get activeValueAmount() {
-    const mode = VALUE_MODES[this.valueIndex()].mode;
-    const cash = this.state.accountCash();
-    const assets = this.state
+  get allTimeReturn(): ReturnView | null {
+    const transactions = this.state.transactions();
+    const cash = toCashInUsd(this.state.accountCash(), this.state.cashBalances?.());
+    const amount = toAllTimeReturn(cash, this.state.holdings(), transactions);
+    return amount === null ? null : toReturnView(amount, toNetDepositsInUsd(transactions));
+  }
+
+  get todayReturn(): ReturnView {
+    const holdings = this.state.holdings();
+    const amount = toTodayReturn(holdings, this.state.liveQuotes?.() ?? new Map());
+    const holdingsValue = toHoldingsValueInUsd(holdings);
+    return toReturnView(amount, holdingsValue === null ? null : holdingsValue - amount);
+  }
+
+  get cashAmount() {
+    return this.state.accountCash();
+  }
+
+  get holdingsAmount() {
+    return this.state
       .holdings()
       .reduce((total, holding) => total + holding.quantity * (holding.indicativePrice ?? 0), 0);
-
-    if (mode === 'cash') {
-      return cash;
-    }
-
-    if (mode === 'assets') {
-      return assets;
-    }
-
-    return cash + assets;
   }
 
-  get activeValueCurrency(): CashCurrency | null {
-    const mode = VALUE_MODES[this.valueIndex()].mode;
-    if (mode === 'cash') {
-      return REPORTING_CURRENCY;
-    }
-
+  // Null when holdings are in more than one currency, so the amount is shown without a symbol.
+  get holdingsCurrency(): CashCurrency | null {
     const currencies = new Set(
       this.state.holdings().map((holding) => {
         return holding.currency ?? REPORTING_CURRENCY;
@@ -70,31 +87,19 @@ export class PortfolioValueWidgetComponent implements OnInit, OnDestroy {
     }
 
     const [assetCurrency] = currencies;
-    if (mode === 'assets') {
-      return assetCurrency ?? REPORTING_CURRENCY;
-    }
-
-    return assetCurrency && assetCurrency !== REPORTING_CURRENCY ? null : REPORTING_CURRENCY;
+    return assetCurrency ?? REPORTING_CURRENCY;
   }
 
-  get shouldShowValueUnavailableMessage() {
-    const mode = VALUE_MODES[this.valueIndex()].mode;
-    return (
-      mode !== 'cash' && this.state.holdings().some((holding) => holding.indicativePrice == null)
-    );
+  get holdingsPriceMissing() {
+    return this.state.holdings().some((holding) => holding.indicativePrice == null);
   }
 
-  ngOnInit() {
-    this.stopValueCycle = startCycleTimer(VALUE_MODES.length, 4000, (index) => {
-      this.valueFading.set(true);
-      setTimeout(() => {
-        this.valueIndex.set(index);
-        this.valueFading.set(false);
-      }, 250);
-    });
+  get totalAmount() {
+    return this.cashAmount + this.holdingsAmount;
   }
 
-  ngOnDestroy() {
-    this.stopValueCycle?.();
+  // Cash is USD, so the total only gets a symbol when the holdings are USD too.
+  get totalCurrency(): CashCurrency | null {
+    return this.holdingsCurrency === REPORTING_CURRENCY ? REPORTING_CURRENCY : null;
   }
 }

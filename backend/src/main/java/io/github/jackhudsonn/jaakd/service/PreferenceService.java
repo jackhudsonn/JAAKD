@@ -25,8 +25,7 @@ public class PreferenceService {
         "portfolio-value",
         "allocation-by-asset",
         "open-orders",
-        "top-movers",
-        "to-be-deleted"
+        "top-movers"
     );
 
     private static final List<String> DEFAULT_WIDGET_IDS = List.of(
