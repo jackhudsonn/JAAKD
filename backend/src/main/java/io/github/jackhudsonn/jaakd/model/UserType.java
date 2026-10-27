@@ -3,12 +3,13 @@ package io.github.jackhudsonn.jaakd.model;
 import java.math.BigDecimal;
 
 // Enum-shaped values for profiles.userType, which is a numeric column in the current schema.
-// Only one case exists today; add more constants + codes here as new user types are introduced.
+// Add new user types here with the next unused code; the frontend mirrors these codes in profile.model.ts.
 public enum UserType {
 
-    RETAIL_CLIENT(BigDecimal.ZERO),
-    ADMIN(BigDecimal.ONE),
-    AUDITOR(new BigDecimal("2"));
+    RETAIL_CLIENT(BigDecimal.valueOf(0)),
+    ADMIN(BigDecimal.valueOf(1)),
+    AUDITOR(BigDecimal.valueOf(2)),
+    ANALYST(BigDecimal.valueOf(3));
 
     private final BigDecimal code;
 

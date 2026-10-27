@@ -21,6 +21,9 @@ export class NavbarComponent {
   @Input() userEmail: string | null = null;
   @Input() profileName: string | null = null;
   @Input() canAccessAuditor = false;
+  @Input() canAccessAnalyst = false;
+  // Only the Analytics link (and no payment methods): for analysts, who don't trade.
+  @Input() analystOnly = false;
   @Output() logoutClicked = new EventEmitter<void>();
 
   avatarOpen = signal(false);

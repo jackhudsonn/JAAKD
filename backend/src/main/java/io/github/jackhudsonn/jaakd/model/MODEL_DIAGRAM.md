@@ -17,6 +17,7 @@ erDiagram
   HOLDING }o--|| INSTRUMENT : "references instrumentID"
   ORDER_LOG }o--|| INSTRUMENT : "references"
   WATCHLIST_ITEM }o--|| INSTRUMENT : "references"
+  INSTRUMENT ||--o{ INSTRUMENT_PRICE : "daily candles"
 
   HOLDING ||--o{ POSITION_LOT : opens
   ORDER_LOG ||--o{ POSITION_LOT : "buy sourceBuyLogOrderID"
@@ -88,6 +89,20 @@ erDiagram
     enum instrumentClass
     string logoUrl
     string description
+  }
+
+  INSTRUMENT_PRICE {
+    uuid instrumentID PK "FK; composite key with priceDate"
+    date priceDate PK
+    decimal open
+    decimal high
+    decimal low
+    decimal close "raw traded close"
+    decimal adjClose "split/dividend adjusted; use for returns"
+    bigint volume "nullable"
+    string currency
+    boolean synthetic "Fauxnance-generated gap day"
+    datetime fetchedAt
   }
 
   ORDER_LOG {

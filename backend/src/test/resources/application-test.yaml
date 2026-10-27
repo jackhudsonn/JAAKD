@@ -22,3 +22,6 @@ auth:
   session:
     cookie:
       secure: false
+prices:
+  history:
+    enabled: false

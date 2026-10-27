@@ -1,0 +1,20 @@
+# Tests on staging models. Like _sources.yml, these only cover what prod doesn't already guarantee.
+
+models:
+  - name: stg_order_logs
+    columns:
+      - name: order_id
+        description: >
+          Unique because an order executes at most once. Prod has no constraint for this (orderLogs holds
+          every stage of an order), so a duplicate here means the backend executed an order twice, and
+          every cash and holding figure built from it would double-count.
+        data_tests:
+          - unique
+      - name: execution_price
+        description: >
+          The fill price for BUY and SELL, the conversion rate for FX. Not used for DEPOSIT and WITHDRAW, where
+          the amount is quantity (the backend ignores the price there too), so it's only tested on the others.
+        data_tests:
+          - not_null:
+              config:
+                where: "side in ('BUY', 'SELL', 'FX')"

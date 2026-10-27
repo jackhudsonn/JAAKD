@@ -1,0 +1,296 @@
+/* Shared by the analyst pages (listed in each component's styleUrls). */
+
+/* Content waiting for new data: dimmed, not removed (see keepsContent in analyst-load-state.ts). */
+.refreshing {
+  opacity: 0.55;
+
+  pointer-events: none;
+
+  transition: opacity 150ms ease;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+
+  gap: var(--space-sm);
+
+  margin-bottom: var(--space-lg);
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+
+  gap: var(--space-xxs);
+
+  padding: var(--space-md);
+
+  background: var(--secondary-bg);
+  border: 1px solid var(--secondary-bg-border);
+  border-radius: var(--radius-lg);
+}
+
+.stat-label {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+}
+
+.stat-value {
+  color: var(--secondary-light);
+  font-size: var(--font-size-md);
+  font-weight: 700;
+}
+
+.positive {
+  color: var(--success);
+}
+
+.negative {
+  color: var(--fail);
+}
+
+.page-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+
+  gap: var(--space-sm);
+
+  margin: 0 0 var(--space-md);
+}
+
+.page-heading h2 {
+  margin: 0;
+
+  color: var(--secondary-light);
+  font-size: var(--font-size-lg);
+}
+
+.page-heading .muted,
+.muted {
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.section-title {
+  margin: 0 0 var(--space-sm);
+
+  color: var(--secondary-light);
+  font-size: var(--font-size-md);
+}
+
+/* Compact button for card headers ("← All classes"). */
+.btn-small {
+  min-height: 30px;
+
+  padding: var(--space-xxs) var(--space-sm);
+
+  font-size: var(--font-size-xs);
+}
+
+.back-link {
+  display: inline-block;
+
+  margin-bottom: var(--space-sm);
+
+  color: var(--primary);
+  font-size: var(--font-size-sm);
+  text-decoration: none;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
+/* Filters above a table */
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+
+  gap: var(--space-md);
+
+  margin-bottom: var(--space-md);
+}
+
+.filters .form-field {
+  min-width: 160px;
+
+  margin-bottom: 0;
+}
+
+/* Tables (same look as the Auditor Lab) */
+
+.table-wrap {
+  overflow: auto;
+
+  border: 1px solid var(--tertiary-bg-border);
+  border-radius: var(--radius-md);
+}
+
+table {
+  width: 100%;
+  min-width: 720px;
+
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 0.45rem 0.55rem;
+
+  border-bottom: 1px solid var(--tertiary-bg-border);
+
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  text-align: left;
+  white-space: nowrap;
+}
+
+th {
+  background: rgba(255, 255, 255, 0.08);
+  font-weight: 700;
+}
+
+th.numeric,
+td.numeric {
+  text-align: right;
+}
+
+/* Sortable headers are buttons so they work from the keyboard. */
+.sort-button {
+  padding: 0;
+
+  background: none;
+  border: none;
+
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.sort-button:hover,
+.sort-button.active {
+  color: var(--primary);
+}
+
+tbody tr.clickable {
+  cursor: pointer;
+}
+
+tbody tr.clickable:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+td a {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+
+  gap: var(--space-sm);
+
+  margin-top: var(--space-sm);
+
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.empty-row {
+  padding: var(--space-lg);
+
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* Range picker and charts */
+
+.range-tabs {
+  display: flex;
+  flex-wrap: wrap;
+
+  gap: var(--space-xxs);
+
+  margin-bottom: var(--space-md);
+}
+
+.range-tab {
+  min-height: 28px;
+
+  padding: var(--space-xxs) var(--space-sm);
+
+  background: var(--tertiary-bg);
+  border: 1px solid var(--quaternary-bg-border);
+  border-radius: var(--radius-sm);
+
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+.range-tab:hover {
+  border-color: var(--primary);
+  color: var(--secondary-light);
+}
+
+.range-tab.active {
+  background: var(--primary);
+  border-color: var(--primary-dark);
+  color: #1f1f1f;
+}
+
+.chart-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+
+  gap: var(--space-lg);
+
+  margin-bottom: var(--space-lg);
+}
+
+@media (min-width: 901px) {
+  .chart-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.chart-grid app-widget-card {
+  --page-card-height: 320px;
+}
+
+.chart-legend {
+  display: flex;
+  gap: var(--space-md);
+
+  margin: var(--space-xs) 0 0;
+
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.legend-swatch {
+  display: inline-block;
+
+  width: 14px;
+  height: 0;
+
+  margin-right: var(--space-xxs);
+
+  border-top: 2px solid var(--success);
+  vertical-align: middle;
+}
+
+.legend-swatch.compare {
+  border-top: 2px dashed var(--text-muted);
+}

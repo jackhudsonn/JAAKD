@@ -1,0 +1,47 @@
+# The raw.* tables loaded each night by copy/copy_raw.py. Models read them with
+# {{ source('raw', '<table>') }}, never by writing raw.<table> directly.
+#
+# Tests here only cover what prod doesn't already guarantee. Prod enforces primary keys, foreign keys
+# and CHECKs on side, status and tradingCurrency (backend/db/init/01-schema.sql), raw has the same
+# primary keys, and every table comes from one snapshot, so those rules hold in raw too.
+#
+# quote: true is needed on camelCase columns so tests write "instrumentClass", not instrumentclass.
+
+sources:
+  - name: raw
+    description: Nightly copy of prod (copy/copy_raw.py). Replaced in full on every run.
+    schema: raw
+    quoting:
+      identifier: true  # table names like "orderLogs" are case-sensitive
+    tables:
+      - name: instruments
+        columns:
+          - name: instrumentClass
+            quote: true
+            description: Mirrors model/InstrumentClass.java; prod has no CHECK on it.
+            data_tests:
+              - accepted_values:
+                  arguments:
+                    values: ["EQUITY", "ETF", "FX", "CRYPTO", "CASH"]
+
+      - name: portfolios
+
+      - name: profiles
+        columns:
+          - name: userType
+            quote: true
+            description: Mirrors model/UserType.java (0 retail, 1 admin, 2 auditor, 3 analyst); prod has no CHECK on it.
+            data_tests:
+              - accepted_values:
+                  arguments:
+                    values: [0, 1, 2, 3]
+                    quote: false
+
+      - name: holdings
+      - name: orderLogs
+      - name: position_lots
+      - name: lot_matches
+      - name: instrumentPrices
+
+      - name: _load_log
+        description: One row per table per copy run; source_snapshot_at feeds "data as of" in the UI.

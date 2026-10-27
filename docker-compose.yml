@@ -10,6 +10,8 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
       JAAKD_APP_DB_PASSWORD: *jaakd-app-db-password
+      # Optional: read-only role for the analytics copy job; skipped when empty.
+      JAAKD_ANALYTICS_DB_PASSWORD: ${JAAKD_ANALYTICS_DB_PASSWORD:-}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d jaakd"]
       interval: 5s
@@ -20,6 +22,34 @@ services:
     volumes:
       - jaakd-postgres-data:/var/lib/postgresql
       - ./backend/db/init:/docker-entrypoint-initdb.d:ro
+
+  # Analyst view: separate analytics database (raw copy of prod + dbt marts, see analytics/).
+  # Opt-in: start it with `docker compose --profile analytics up -d jaakd-analytics-postgres`,
+  # or set COMPOSE_PROFILES=analytics in .env to include it in every `docker compose up`.
+  jaakd-analytics-postgres:
+    image: postgres:18
+    container_name: jaakd-analytics-postgres
+    profiles: ["analytics"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: jaakd_analytics
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      # Passed to analytics/db/init/ to create the pipeline (copy job + dbt) and backend reader roles.
+      ANALYTICS_PIPELINE_DB_PASSWORD: ${ANALYTICS_PIPELINE_DB_PASSWORD:-}
+      ANALYTICS_APP_READER_DB_PASSWORD: ${ANALYTICS_DB_PASSWORD:-}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d jaakd_analytics"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "127.0.0.1:5434:5432"
+    volumes:
+      - jaakd-analytics-postgres-data:/var/lib/postgresql
+      # Runs once, on first start with an empty volume; applies analytics/db/setup.sql.
+      - ./analytics/db/init:/docker-entrypoint-initdb.d:ro
+      - ./analytics/db:/opt/jaakd-analytics:ro
 
   jaakd-backend:
     build:
@@ -49,6 +79,11 @@ services:
       COGNITO_RETRY_ATTEMPTS: ${COGNITO_RETRY_ATTEMPTS:-2}
       FAUXNANCE_BASE_URL: ${FAUXNANCE_BASE_URL:?FAUXNANCE_BASE_URL is required}
       FAUXNANCE_API_KEY: ${FAUXNANCE_API_KEY:?FAUXNANCE_API_KEY is required}
+      # Analyst view: read-only connection to the analytics database (see analytics/). Off unless enabled in .env.
+      ANALYTICS_DB_ENABLED: ${ANALYTICS_DB_ENABLED:-false}
+      ANALYTICS_DB_URL: ${ANALYTICS_DB_URL:-jdbc:postgresql://jaakd-analytics-postgres:5432/jaakd_analytics}
+      ANALYTICS_DB_USERNAME: ${ANALYTICS_DB_USERNAME:-analytics_app_reader}
+      ANALYTICS_DB_PASSWORD: ${ANALYTICS_DB_PASSWORD:-}
     ports:
       # Bound to all interfaces on purpose: the backend is reached directly by
       # IP from other machines (a remote frontend, pgAdmin, a peer's browser),
@@ -111,5 +146,7 @@ services:
 volumes:
   jaakd-postgres-data:
     name: jaakd-postgres-data
+  jaakd-analytics-postgres-data:
+    name: jaakd-analytics-postgres-data
   jaakd-frontend-node-modules:
     name: jaakd-frontend-node-modules

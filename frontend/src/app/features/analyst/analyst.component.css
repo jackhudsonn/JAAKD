@@ -1,0 +1,58 @@
+/* Page layout styles live in styles/layout.css */
+
+.as-of {
+  margin: 0 0 var(--space-md);
+
+  color: var(--secondary-dark);
+  font-size: var(--font-size-sm);
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+.empty-build {
+  padding: var(--space-xl) var(--space-lg);
+
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.analyst-tabs {
+  display: flex;
+  flex-wrap: wrap;
+
+  gap: var(--space-xxs);
+
+  margin-bottom: var(--space-lg);
+}
+
+/* Same look as the dashboard's interval tabs. */
+.analyst-tab {
+  padding: var(--space-xxs) var(--space-md);
+
+  background: var(--tertiary-bg);
+  border: 1px solid var(--quaternary-bg-border);
+  border-radius: var(--radius-sm);
+
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  text-decoration: none;
+
+  transition:
+    background-color 120ms ease,
+    color 120ms ease,
+    border-color 120ms ease;
+}
+
+.analyst-tab:hover {
+  border-color: var(--primary);
+  color: var(--secondary-light);
+}
+
+.analyst-tab.active {
+  background: var(--primary);
+  border-color: var(--primary-dark);
+  color: #1f1f1f;
+}

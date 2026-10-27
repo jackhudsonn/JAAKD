@@ -1,0 +1,8 @@
+# Local Python environment (python -m venv .venv)
+.venv/
+__pycache__/
+
+# dbt build output and installed packages
+dbt/target/
+dbt/dbt_packages/
+dbt/logs/

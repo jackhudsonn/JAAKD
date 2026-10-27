@@ -1,0 +1,31 @@
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+
+  gap: var(--space-sm);
+}
+
+/* The class breakdown pie, then the two charts: three cards in a row on wide screens. */
+.detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+
+  gap: var(--space-lg);
+
+  margin-bottom: var(--space-lg);
+}
+
+@media (min-width: 1101px) {
+  .detail-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.detail-grid app-widget-card {
+  --page-card-height: 340px;
+}
+
+.detail-grid app-pie-chart {
+  height: 240px;
+}

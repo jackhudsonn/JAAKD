@@ -1,0 +1,199 @@
+<section class="summary-row" aria-label="Summary by instrument class">
+  @if (!keepsContent(summaryState(), summary().length > 0)) {
+    <app-load-state-message [state]="summaryState()" subject="summary" (retry)="loadSummary()" />
+  } @else {
+    <div class="class-cards" [class.refreshing]="summaryState() === 'loading'">
+      @for (row of summary(); track row.instrumentClass) {
+        <button
+          type="button"
+          class="stat class-card"
+          [class.selected]="instrumentClass() === row.instrumentClass"
+          [class.dimmed]="instrumentClass() && instrumentClass() !== row.instrumentClass"
+          [attr.aria-pressed]="instrumentClass() === row.instrumentClass"
+          (click)="selectClass(row.instrumentClass)"
+        >
+          <span class="stat-label">{{ classLabels[row.instrumentClass] }}</span>
+          <span class="stat-value">{{ formatUsd(row.exposureUsd) }}</span>
+          <span class="muted">{{ row.instrumentCount }} instruments</span>
+          <span class="muted">{{ row.positionCount }} positions</span>
+          <span class="muted">
+            Avg 1M
+            <span [class]="signClass(row.averageReturn1m)">{{
+              formatPercent(row.averageReturn1m)
+            }}</span>
+          </span>
+        </button>
+      }
+    </div>
+
+    <app-widget-card
+      [title]="pieClass() ? classLabels[pieClass()!] + ' holdings' : 'Exposure by class'"
+      [subtitle]="
+        (pieClass() ? 'Click a slice to open the instrument' : 'Click a slice to filter by class') +
+        ' · ' +
+        segmentLabel()
+      "
+    >
+      @if (pieClass()) {
+        <button
+          widget-actions
+          type="button"
+          class="btn btn-secondary btn-small"
+          (click)="selectClass(null)"
+        >
+          ← All classes
+        </button>
+      }
+
+      @if (!keepsContent(pieState(), pieSlices().length > 0)) {
+        <app-load-state-message [state]="pieState()" subject="holdings" (retry)="loadPie()" />
+      } @else {
+        <div class="pie-wrap" [class.refreshing]="pieState() === 'loading'">
+          <!-- Always the same chart, so new slices animate in rather than the chart being rebuilt. -->
+          <app-pie-chart
+            [slices]="pieSlices()"
+            tooltipValuePrefix="$"
+            (sliceClick)="onSliceClick($event)"
+          />
+          @if (pieSlices().length === 0) {
+            <p class="muted empty-pie">Nothing held by {{ segmentLabel() }}.</p>
+          }
+        </div>
+      }
+    </app-widget-card>
+  }
+</section>
+
+<div class="filters">
+  <div class="form-field search-field">
+    <label for="instrument-search">Search</label>
+    <input
+      id="instrument-search"
+      type="search"
+      placeholder="Ticker or name"
+      [ngModel]="search()"
+      (ngModelChange)="changeSearch($event)"
+    />
+  </div>
+
+  <div class="form-field">
+    <label for="instrument-class">Class</label>
+    <select
+      id="instrument-class"
+      [ngModel]="instrumentClass() ?? ''"
+      (ngModelChange)="selectClass($event || null)"
+    >
+      <option value="">All classes</option>
+      @for (instrumentClass of classes; track instrumentClass) {
+        <option [value]="instrumentClass">{{ classLabels[instrumentClass] }}</option>
+      }
+    </select>
+  </div>
+
+  <app-segment-filters
+    idPrefix="instruments"
+    [value]="segment()"
+    (valueChange)="changeSegment($event)"
+  />
+</div>
+
+<section aria-label="Instruments">
+  @if (!keepsContent(tableState(), page() !== null)) {
+    <app-load-state-message [state]="tableState()" subject="instruments" (retry)="loadPage()" />
+  } @else {
+    <div [class.refreshing]="tableState() === 'loading'">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              @for (column of columns; track column.sort) {
+                <th
+                  [class.numeric]="column.numeric"
+                  [attr.aria-sort]="
+                    sort() === column.sort
+                      ? direction() === 'asc'
+                        ? 'ascending'
+                        : 'descending'
+                      : null
+                  "
+                >
+                  <button
+                    type="button"
+                    class="sort-button"
+                    [class.active]="sort() === column.sort"
+                    (click)="sortBy(column)"
+                  >
+                    {{ column.label }}{{ sortIndicator(column) }}
+                  </button>
+                </th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (instrument of page()!.content; track instrument.instrumentId) {
+              <tr class="clickable" (click)="open(instrument)">
+                <td>
+                  <a
+                    [routerLink]="['/analyst/instruments', instrument.instrumentId]"
+                    (click)="$event.stopPropagation()"
+                    >{{ instrument.ticker }}</a
+                  >
+                </td>
+                <td>{{ instrument.name }}</td>
+                <td>{{ classLabels[instrument.instrumentClass] }}</td>
+                <td class="numeric">{{ formatUsd(instrument.lastCloseUsd) }}</td>
+                <td class="numeric" [class]="signClass(instrument.return1w)">
+                  {{ formatPercent(instrument.return1w) }}
+                </td>
+                <td class="numeric" [class]="signClass(instrument.return1m)">
+                  {{ formatPercent(instrument.return1m) }}
+                </td>
+                <td class="numeric" [class]="signClass(instrument.return3m)">
+                  {{ formatPercent(instrument.return3m) }}
+                </td>
+                <td class="numeric" [class]="signClass(instrument.returnYtd)">
+                  {{ formatPercent(instrument.returnYtd) }}
+                </td>
+                <td class="numeric">{{ formatPercent(instrument.volatilityAnn) }}</td>
+                <td class="numeric">{{ formatPercent(instrument.maxDrawdown) }}</td>
+                <td class="numeric">{{ instrument.holderCount }}</td>
+                <td class="numeric">{{ formatUsd(instrument.exposureUsd) }}</td>
+                <td class="numeric" [class]="signClass(instrument.netFlow30dUsd)">
+                  {{ formatUsd(instrument.netFlow30dUsd) }}
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td class="empty-row" [attr.colspan]="columns.length">
+                  No instruments match these filters.
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      @if (page()!.totalPages > 1) {
+        <div class="pager">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            [disabled]="pageIndex() === 0"
+            (click)="goToPage(pageIndex() - 1)"
+          >
+            Previous
+          </button>
+          <span>Page {{ pageIndex() + 1 }} of {{ page()!.totalPages }}</span>
+          <button
+            type="button"
+            class="btn btn-secondary"
+            [disabled]="!page()!.hasNext"
+            (click)="goToPage(pageIndex() + 1)"
+          >
+            Next
+          </button>
+        </div>
+      }
+    </div>
+  }
+</section>

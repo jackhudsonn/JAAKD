@@ -11,20 +11,26 @@
     <div class="app-brand">JAAKD<span>+</span></div>
 
     <nav class="app-nav" aria-label="Main navigation">
-      <a routerLink="/dashboard" routerLinkActive="active" (click)="closeMenus()"> Dashboard </a>
+      @if (!analystOnly) {
+        <a routerLink="/dashboard" routerLinkActive="active" (click)="closeMenus()"> Dashboard </a>
 
-      <a routerLink="/transact" routerLinkActive="active" (click)="closeMenus()"> Transact </a>
+        <a routerLink="/transact" routerLinkActive="active" (click)="closeMenus()"> Transact </a>
 
-      <a routerLink="/trade" routerLinkActive="active" (click)="closeMenus()"> Trade </a>
+        <a routerLink="/trade" routerLinkActive="active" (click)="closeMenus()"> Trade </a>
 
-      <a routerLink="/testing/order-lifecycle" routerLinkActive="active" (click)="closeMenus()">
-        Dev Testing
-      </a>
+        <a routerLink="/testing/order-lifecycle" routerLinkActive="active" (click)="closeMenus()">
+          Dev Testing
+        </a>
+      }
 
       @if (canAccessAuditor) {
         <a routerLink="/testing/auditor" routerLinkActive="active" (click)="closeMenus()">
           Auditor Portal
         </a>
+      }
+
+      @if (canAccessAnalyst) {
+        <a routerLink="/analyst" routerLinkActive="active" (click)="closeMenus()"> Analytics </a>
       }
     </nav>
 
@@ -78,14 +84,16 @@
                 Account
               </a>
 
-              <a
-                routerLink="/payment-methods"
-                class="account-menu-link"
-                role="menuitem"
-                (click)="closeAvatarMenu()"
-              >
-                Payment Methods
-              </a>
+              @if (!analystOnly) {
+                <a
+                  routerLink="/payment-methods"
+                  class="account-menu-link"
+                  role="menuitem"
+                  (click)="closeAvatarMenu()"
+                >
+                  Payment Methods
+                </a>
+              }
 
               <button
                 type="button"
@@ -102,26 +110,38 @@
 
     @if (mobileMenuOpen()) {
       <div class="mobile-nav-dropdown" role="menu" aria-label="Mobile navigation links">
-        <a routerLink="/dashboard" routerLinkActive="active" role="menuitem" (click)="closeMenus()">
-          Dashboard
-        </a>
+        @if (!analystOnly) {
+          <a
+            routerLink="/dashboard"
+            routerLinkActive="active"
+            role="menuitem"
+            (click)="closeMenus()"
+          >
+            Dashboard
+          </a>
 
-        <a routerLink="/transact" routerLinkActive="active" role="menuitem" (click)="closeMenus()">
-          Transact
-        </a>
+          <a
+            routerLink="/transact"
+            routerLinkActive="active"
+            role="menuitem"
+            (click)="closeMenus()"
+          >
+            Transact
+          </a>
 
-        <a routerLink="/trade" routerLinkActive="active" role="menuitem" (click)="closeMenus()">
-          Trade
-        </a>
+          <a routerLink="/trade" routerLinkActive="active" role="menuitem" (click)="closeMenus()">
+            Trade
+          </a>
 
-        <a
-          routerLink="/testing/order-lifecycle"
-          routerLinkActive="active"
-          role="menuitem"
-          (click)="closeMenus()"
-        >
-          Dev Testing
-        </a>
+          <a
+            routerLink="/testing/order-lifecycle"
+            routerLinkActive="active"
+            role="menuitem"
+            (click)="closeMenus()"
+          >
+            Dev Testing
+          </a>
+        }
 
         @if (canAccessAuditor) {
           <a
@@ -131,6 +151,12 @@
             (click)="closeMenus()"
           >
             Auditor Portal
+          </a>
+        }
+
+        @if (canAccessAnalyst) {
+          <a routerLink="/analyst" routerLinkActive="active" role="menuitem" (click)="closeMenus()">
+            Analytics
           </a>
         }
       </div>

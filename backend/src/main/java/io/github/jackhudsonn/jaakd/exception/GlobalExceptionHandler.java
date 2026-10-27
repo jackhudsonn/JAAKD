@@ -106,6 +106,12 @@ public class GlobalExceptionHandler {
         return new ErrorResponse(Instant.now(), ex.getMessage(), null);
     }
 
+    @ExceptionHandler(AnalyticsUnavailableException.class)
+    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+    public ErrorResponse handleAnalyticsUnavailable(AnalyticsUnavailableException ex) {
+        return new ErrorResponse(Instant.now(), ex.getMessage(), null);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorResponse handleMethodArgumentNotValid(MethodArgumentNotValidException ex) {

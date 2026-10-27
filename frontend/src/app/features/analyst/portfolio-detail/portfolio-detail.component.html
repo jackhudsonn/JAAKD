@@ -1,0 +1,266 @@
+<a class="back-link" routerLink="/analyst/portfolios">← All portfolios</a>
+
+@if (state() !== 'ready') {
+  <app-load-state-message [state]="state()" subject="portfolio" (retry)="loadPortfolio()" />
+} @else {
+  @let p = portfolio()!;
+
+  <div class="page-heading">
+    <h2 [title]="p.portfolioId">Portfolio {{ shortId(p.portfolioId) }}</h2>
+    <span class="muted">{{ p.country }} · age {{ p.ageBand }}</span>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat">
+      <span class="stat-label">Market value</span>
+      <span class="stat-value">{{ formatUsd(p.marketValueUsd) }}</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">Realized P&amp;L</span>
+      <span class="stat-value" [class]="signClass(p.realizedPnlUsd)">
+        {{ formatUsd(p.realizedPnlUsd) }}
+      </span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">Unrealized P&amp;L</span>
+      <span class="stat-value" [class]="signClass(p.unrealizedPnlUsd)">
+        {{ formatUsd(p.unrealizedPnlUsd) }}
+      </span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">1M / YTD</span>
+      <span class="stat-value">
+        <span [class]="signClass(p.return1m)">{{ formatPercent(p.return1m) }}</span>
+        /
+        <span [class]="signClass(p.returnYtd)">{{ formatPercent(p.returnYtd) }}</span>
+      </span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">Volatility (annual)</span>
+      <span class="stat-value">{{ formatPercent(p.volatilityAnn) }}</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">Max drawdown (1Y)</span>
+      <span class="stat-value negative">{{ formatPercent(p.maxDrawdown) }}</span>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="range-tabs" role="group" aria-label="Instrument class">
+      <button
+        type="button"
+        class="range-tab"
+        [class.active]="selectedClass() === null"
+        [attr.aria-pressed]="selectedClass() === null"
+        (click)="selectClass(null)"
+      >
+        All
+      </button>
+      @for (instrumentClass of heldClasses(); track instrumentClass) {
+        <button
+          type="button"
+          class="range-tab"
+          [class.active]="selectedClass() === instrumentClass"
+          [attr.aria-pressed]="selectedClass() === instrumentClass"
+          (click)="selectClass(instrumentClass)"
+        >
+          {{ classLabels[instrumentClass] }}
+        </button>
+      }
+    </div>
+
+    <div class="range-tabs" role="group" aria-label="Chart range">
+      @for (option of rangeOptions; track option) {
+        <button
+          type="button"
+          class="range-tab"
+          [class.active]="range() === option"
+          [attr.aria-pressed]="range() === option"
+          (click)="range.set(option)"
+        >
+          {{ option }}
+        </button>
+      }
+    </div>
+  </div>
+
+  <div class="detail-grid">
+    <app-widget-card
+      [title]="selectedClass() ? classLabels[selectedClass()!] + ' holdings' : 'Class breakdown'"
+      [subtitle]="
+        selectedClass()
+          ? 'Market value today · click a slice to open the holding'
+          : 'Market value today · click a slice to filter'
+      "
+    >
+      @if (selectedClass()) {
+        <button
+          widget-actions
+          type="button"
+          class="btn btn-secondary btn-small"
+          (click)="selectClass(null)"
+        >
+          ← All classes
+        </button>
+      }
+
+      @if (holdingsState() !== 'ready') {
+        <app-load-state-message
+          [state]="holdingsState()"
+          subject="holdings"
+          (retry)="loadHoldings()"
+        />
+      } @else if (holdings().length === 0) {
+        <p class="muted">Nothing held.</p>
+      } @else {
+        <!-- Always the same chart, so switching class animates the slices rather than rebuilding it. -->
+        <app-pie-chart
+          [slices]="pieSlices()"
+          tooltipValuePrefix="$"
+          (sliceClick)="onSliceClick($event)"
+        />
+      }
+    </app-widget-card>
+
+    @if (!keepsContent(seriesState(), chartsLoaded())) {
+      <app-load-state-message [state]="seriesState()" subject="history" (retry)="loadSeries()" />
+    } @else if (chartClass(); as cls) {
+      @if (classValuePoints().length === 0) {
+        <p class="muted" [class.refreshing]="seriesState() === 'loading'">
+          No {{ classLabels[cls] }} history in this range.
+        </p>
+      } @else {
+        <app-widget-card
+          [class.refreshing]="seriesState() === 'loading'"
+          [title]="classLabels[cls] + ': market value vs cost basis'"
+          subtitle="USD, end of each day"
+        >
+          <app-line-chart
+            [points]="classValuePoints()"
+            [comparePoints]="classCostPoints()"
+            [positive]="(classPnl() ?? 0) >= 0"
+            seriesLabel="Market value"
+            compareLabel="Cost basis"
+          />
+          <p class="chart-legend">
+            <span><span class="legend-swatch"></span>Market value</span>
+            <span><span class="legend-swatch compare"></span>Cost basis</span>
+          </p>
+        </app-widget-card>
+        <app-widget-card
+          [class.refreshing]="seriesState() === 'loading'"
+          [title]="classLabels[cls] + ': total P&L'"
+          [subtitle]="'Realized + unrealized, now ' + formatUsd(classPnl())"
+        >
+          <app-line-chart
+            [points]="classPnlPoints()"
+            [positive]="(classPnl() ?? 0) >= 0"
+            seriesLabel="P&L"
+          />
+        </app-widget-card>
+      }
+    } @else if (series().length === 0) {
+      <p class="muted" [class.refreshing]="seriesState() === 'loading'">
+        No history in this range.
+      </p>
+    } @else {
+      <app-widget-card
+        [class.refreshing]="seriesState() === 'loading'"
+        title="Value (USD)"
+        subtitle="Holdings and cash, end of each day"
+      >
+        <app-line-chart
+          [points]="valuePoints()"
+          [positive]="(rangeReturn() ?? 0) >= 0"
+          seriesLabel="Value"
+        />
+      </app-widget-card>
+      <app-widget-card
+        [class.refreshing]="seriesState() === 'loading'"
+        title="Time-weighted return"
+        [subtitle]="
+          'Over ' +
+          range() +
+          ': ' +
+          formatPercent(rangeReturn()) +
+          ' (excludes deposits and withdrawals)'
+        "
+      >
+        <app-line-chart
+          [points]="returnPoints()"
+          [positive]="(rangeReturn() ?? 0) >= 0"
+          valueFormat="percent"
+          seriesLabel="Return"
+        />
+      </app-widget-card>
+    }
+  </div>
+
+  <h3 class="section-title">
+    {{ selectedClass() ? classLabels[selectedClass()!] + ' holdings' : 'Current holdings' }}
+  </h3>
+  @if (holdingsState() !== 'ready') {
+    <app-load-state-message [state]="holdingsState()" subject="holdings" (retry)="loadHoldings()" />
+  } @else {
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            @for (column of holdingColumns; track column.key) {
+              <th
+                [class.numeric]="column.numeric"
+                [attr.aria-sort]="
+                  holdingSort() === column.key
+                    ? holdingDirection() === 'asc'
+                      ? 'ascending'
+                      : 'descending'
+                    : null
+                "
+              >
+                <button
+                  type="button"
+                  class="sort-button"
+                  [class.active]="holdingSort() === column.key"
+                  (click)="sortHoldings(column)"
+                >
+                  {{ column.label }}{{ holdingSortIndicator(column) }}
+                </button>
+              </th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @for (holding of visibleHoldings(); track holding.holdingId) {
+            <tr class="clickable" (click)="openHolding(holding)">
+              <td>
+                <a
+                  [routerLink]="['/analyst/holdings', holding.holdingId]"
+                  [queryParams]="{ portfolioId: p.portfolioId }"
+                  (click)="$event.stopPropagation()"
+                  >{{ holding.ticker }}</a
+                >
+              </td>
+              <td>{{ holding.name }}</td>
+              <td>{{ classLabels[holding.instrumentClass] }}</td>
+              <td class="numeric">{{ formatQuantity(holding.quantity) }}</td>
+              <td class="numeric">{{ formatUsd(holding.costBasisUsd) }}</td>
+              <td class="numeric">{{ formatUsd(holding.marketValueUsd) }}</td>
+              <td class="numeric" [class]="signClass(holding.realizedPnlToDateUsd)">
+                {{ formatUsd(holding.realizedPnlToDateUsd) }}
+              </td>
+              <td class="numeric" [class]="signClass(holding.unrealizedPnlUsd)">
+                {{ formatUsd(holding.unrealizedPnlUsd) }}
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td class="empty-row" [attr.colspan]="holdingColumns.length">
+                Nothing held{{ selectedClass() ? ' in this class' : '' }}.
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+}

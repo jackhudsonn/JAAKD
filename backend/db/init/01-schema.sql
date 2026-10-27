@@ -144,6 +144,23 @@ CREATE TABLE IF NOT EXISTS payment_methods (
   "updatedAt" TIMESTAMP NOT NULL DEFAULT now()
 );
 
+-- Daily candles from Fauxnance, one row per instrument per trading day, refreshed nightly by PriceHistoryService.
+-- close is already adjusted for splits; "adjClose" is also adjusted for dividends and is the one to use for returns.
+CREATE TABLE IF NOT EXISTS "instrumentPrices" (
+  "instrumentID" UUID NOT NULL,
+  "priceDate" DATE NOT NULL,
+  open NUMERIC(24,10) NOT NULL,
+  high NUMERIC(24,10) NOT NULL,
+  low NUMERIC(24,10) NOT NULL,
+  close NUMERIC(24,10) NOT NULL,
+  "adjClose" NUMERIC(24,10) NOT NULL,
+  volume BIGINT,
+  currency TEXT NOT NULL,
+  synthetic BOOLEAN NOT NULL DEFAULT false,
+  "fetchedAt" TIMESTAMP NOT NULL DEFAULT now(),
+  PRIMARY KEY ("instrumentID", "priceDate")
+);
+
 -- 2) Constraints
 ALTER TABLE users
   ADD CONSTRAINT chk_users_email_not_blank
@@ -304,6 +321,19 @@ ALTER TABLE payment_methods
   ADD CONSTRAINT chk_payment_methods_account_number
   CHECK ("accountNumber" ~ '^[0-9]{4,17}$');
 
+ALTER TABLE "instrumentPrices"
+  ADD CONSTRAINT fk_instrument_prices_instruments
+  FOREIGN KEY ("instrumentID") REFERENCES instruments("instrumentID")
+  ON DELETE CASCADE;
+
+ALTER TABLE "instrumentPrices"
+  ADD CONSTRAINT chk_instrument_prices_positive
+  CHECK (open > 0 AND high > 0 AND low > 0 AND close > 0 AND "adjClose" > 0);
+
+ALTER TABLE "instrumentPrices"
+  ADD CONSTRAINT chk_instrument_prices_currency_not_blank
+  CHECK (btrim(currency) <> '');
+
 -- 3) Indexes
 CREATE INDEX idx_portfolios_userid ON portfolios ("userID");
 
@@ -349,6 +379,30 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE
 TO jaakd_app;
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE users, sessions, development_credentials, cognito_users TO jaakd_app;
+
+GRANT SELECT, INSERT, UPDATE ON TABLE "instrumentPrices" TO jaakd_app;
+
+-- Analytics copy job (analytics/copy): read-only, only the columns analytics needs.
+-- No access to users, sessions, payment_methods, preferences, watchlists, watchlist_items,
+-- portfolio names or profile names/address. dob is read only to compute an age band here.
+-- The role exists only when JAAKD_ANALYTICS_DB_PASSWORD is set (00-create-roles.sh).
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'jaakd_analytics_reader') THEN
+    GRANT USAGE ON SCHEMA public TO jaakd_analytics_reader;
+    GRANT SELECT ON TABLE
+      instruments,
+      holdings,
+      "orderLogs",
+      position_lots,
+      lot_matches,
+      "instrumentPrices"
+    TO jaakd_analytics_reader;
+    GRANT SELECT ("portfolioID", "userID") ON TABLE portfolios TO jaakd_analytics_reader;
+    GRANT SELECT ("userID", "userType", state, country, dob) ON TABLE profiles TO jaakd_analytics_reader;
+  END IF;
+END
+$$;
 
 -- 5) Seed Cash Instruments
 -- 5) Seed Cash Instruments (single statement, idempotent)

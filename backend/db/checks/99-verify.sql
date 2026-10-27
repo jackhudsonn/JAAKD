@@ -4,7 +4,7 @@
 SELECT table_name
 FROM information_schema.tables
 WHERE table_schema = 'public'
-  AND table_name IN ('profiles', 'portfolios', 'instruments', 'holdings', 'orderLogs', 'position_lots', 'lot_matches', 'watchlists', 'watchlist_items', 'preferences', 'payment_methods', 'users', 'development_credentials', 'cognito_users')
+  AND table_name IN ('profiles', 'portfolios', 'instruments', 'holdings', 'orderLogs', 'position_lots', 'lot_matches', 'watchlists', 'watchlist_items', 'preferences', 'payment_methods', 'users', 'development_credentials', 'cognito_users', 'instrumentPrices')
 ORDER BY table_name;
 
 -- 1b) Ensure the canonical cash instrument exists
@@ -48,6 +48,24 @@ SELECT has_table_privilege('jaakd_app', 'public.users', 'SELECT') AS jaakd_app_c
 SELECT has_table_privilege('jaakd_app', 'public.sessions', 'INSERT') AS jaakd_app_can_insert_sessions;
 SELECT has_table_privilege('jaakd_app', 'public.development_credentials', 'SELECT') AS jaakd_app_can_select_development_credentials;
 SELECT has_table_privilege('jaakd_app', 'public.cognito_users', 'SELECT') AS jaakd_app_can_select_cognito_users;
+
+-- 2c) Analytics copy job role (only when jaakd_analytics_reader exists). Expected: every column true.
+SELECT
+  has_table_privilege('jaakd_analytics_reader', 'public."orderLogs"', 'SELECT') AS can_read_order_logs,
+  has_table_privilege('jaakd_analytics_reader', 'public."instrumentPrices"', 'SELECT') AS can_read_prices,
+  has_column_privilege('jaakd_analytics_reader', 'public.profiles', 'dob', 'SELECT') AS can_read_dob,
+  NOT has_table_privilege('jaakd_analytics_reader', 'public.users', 'SELECT') AS cannot_read_users,
+  NOT has_table_privilege('jaakd_analytics_reader', 'public.sessions', 'SELECT') AS cannot_read_sessions,
+  NOT has_table_privilege('jaakd_analytics_reader', 'public.payment_methods', 'SELECT') AS cannot_read_payment_methods,
+  NOT has_table_privilege('jaakd_analytics_reader', 'public.preferences', 'SELECT') AS cannot_read_preferences,
+  NOT has_table_privilege('jaakd_analytics_reader', 'public.watchlists', 'SELECT') AS cannot_read_watchlists,
+  NOT has_table_privilege('jaakd_analytics_reader', 'public.watchlist_items', 'SELECT') AS cannot_read_watchlist_items,
+  NOT has_table_privilege('jaakd_analytics_reader', 'public.development_credentials', 'SELECT') AS cannot_read_development_credentials,
+  NOT has_table_privilege('jaakd_analytics_reader', 'public.cognito_users', 'SELECT') AS cannot_read_cognito_users,
+  NOT has_column_privilege('jaakd_analytics_reader', 'public.profiles', 'firstName', 'SELECT') AS cannot_read_first_name,
+  NOT has_column_privilege('jaakd_analytics_reader', 'public.portfolios', 'portfolioName', 'SELECT') AS cannot_read_portfolio_name,
+  NOT has_table_privilege('jaakd_analytics_reader', 'public.holdings', 'INSERT, UPDATE, DELETE') AS cannot_write
+WHERE EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'jaakd_analytics_reader');
 
 -- 3) Deliberate bad insert to prove profiles must reference users
 -- Expected: this block fails on the profiles insert.
