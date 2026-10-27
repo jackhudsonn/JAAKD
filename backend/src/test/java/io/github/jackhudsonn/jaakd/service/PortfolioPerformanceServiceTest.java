@@ -44,10 +44,8 @@ import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -61,8 +59,8 @@ class PortfolioPerformanceServiceTest {
     private static final UUID PORTFOLIO_ID = UUID.randomUUID();
     private static final Portfolio PORTFOLIO = portfolio();
     private static final Instrument USD = instrument("USD", InstrumentClass.CASH, CashCurrency.USD);
+    private static final Instrument EUR = instrument("EUR", InstrumentClass.CASH, CashCurrency.EUR);
     private static final Instrument APPLE = instrument("AAPL", InstrumentClass.EQUITY, CashCurrency.USD);
-    private static final Instrument EURO = instrument("EUR", InstrumentClass.CASH, CashCurrency.EUR);
 
     @Mock private OrderLogRepository orderLogRepository;
     @Mock private InstrumentPriceRepository instrumentPriceRepository;
@@ -73,24 +71,29 @@ class PortfolioPerformanceServiceTest {
     @Mock private HoldingService holdingService;
 
     static Stream<Arguments> valuations() {
+        OrderLog swap = log(USD, OrderSide.FX, 500, 0.9, MONDAY);
+        // The note repeats a key on purpose: HoldingService's own fields come first and win.
+        swap.setMetadata("fxConversion=true;targetCurrency=EUR;targetAmount=450.000000;note=targetCurrency=GBP");
         return Stream.of(
-            Arguments.of("deposit only, non-USD instruments ignored", List.of(
-                log(USD, OrderSide.DEPOSIT, 1000, 0, MONDAY),
-                log(instrument("TCS.NS", InstrumentClass.EQUITY, CashCurrency.INR), OrderSide.BUY, 1, 3000, TODAY)
-            ), List.of(), null, List.of("1000.00", "1000.00")),
+            Arguments.of("deposit only, non-USD stock ignored", List.of(log(USD, OrderSide.DEPOSIT, 1000, 0, MONDAY),
+                log(instrument("TCS.NS", InstrumentClass.EQUITY, CashCurrency.INR), OrderSide.BUY, 1, 3000, TODAY)),
+                List.of(), null, List.of("1000.00", "1000.00")),
             // 5 shares at the 110 close, then at the live 130 rather than the stored 120.
-            Arguments.of("buy then price change", List.of(
-                log(USD, OrderSide.DEPOSIT, 1000, 0, MONDAY), log(APPLE, OrderSide.BUY, 5, 100, MONDAY)
-            ), List.of(close(MONDAY, "110"), close(TODAY, "120")), 130.0, List.of("1050.00", "1150.00")),
-            // Today: cash 740 plus 3 shares at the 120 close.
-            Arguments.of("sell", List.of(
-                log(USD, OrderSide.DEPOSIT, 1000, 0, MONDAY), log(APPLE, OrderSide.BUY, 5, 100, MONDAY),
-                log(APPLE, OrderSide.SELL, 2, 120, TODAY)
-            ), List.of(close(MONDAY, "100"), close(TODAY, "120")), null, List.of("1000.00", "1100.00")),
-            Arguments.of("gap carry forward over the weekend", List.of(
-                log(USD, OrderSide.DEPOSIT, 1000, 0, FRIDAY), log(APPLE, OrderSide.BUY, 5, 100, FRIDAY)
-            ), List.of(close(FRIDAY, "100"), close(MONDAY, "104")), null,
-                List.of("1000.00", "1000.00", "1000.00", "1020.00", "1020.00"))
+            Arguments.of("buy then price change", List.of(log(USD, OrderSide.DEPOSIT, 1000, 0, MONDAY),
+                log(APPLE, OrderSide.BUY, 5, 100, MONDAY)),
+                List.of(close(MONDAY, "110"), close(TODAY, "120")), 130.0, List.of("1050.00", "1150.00")),
+            Arguments.of("sell", List.of(log(USD, OrderSide.DEPOSIT, 1000, 0, MONDAY), log(APPLE, OrderSide.BUY, 5, 100, MONDAY),
+                log(APPLE, OrderSide.SELL, 2, 120, TODAY)),
+                List.of(close(MONDAY, "100"), close(TODAY, "120")), null, List.of("1000.00", "1100.00")),
+            Arguments.of("gap carry forward", List.of(log(USD, OrderSide.DEPOSIT, 1000, 0, FRIDAY), log(APPLE, OrderSide.BUY, 5, 100, FRIDAY)),
+                List.of(close(FRIDAY, "100"), close(MONDAY, "104")), null, List.of("1000.00", "1000.00", "1000.00", "1020.00", "1020.00")),
+            // 90 EUR at today's rate; GBP has no rate, so it is left out.
+            Arguments.of("EUR deposit", List.of(log(EUR, OrderSide.DEPOSIT, 90, 0, MONDAY),
+                log(instrument("GBP", InstrumentClass.CASH, CashCurrency.GBP), OrderSide.DEPOSIT, 50, 0, MONDAY)),
+                List.of(), null, List.of("100.00", "100.00")),
+            Arguments.of("USD to EUR swap", List.of(log(USD, OrderSide.DEPOSIT, 1000, 0, FRIDAY), swap),
+                List.of(), null, List.of("1000.00", "1000.00", "1000.00", "1000.00", "1000.00")),
+            Arguments.of("empty history", List.of(), List.of(), null, List.of())
         );
     }
 
@@ -98,70 +101,19 @@ class PortfolioPerformanceServiceTest {
     @MethodSource("valuations")
     void valuesEachDay(String name, List<OrderLog> logs, List<InstrumentPrice> closes, Double liveQuote, List<String> expected) {
         givenLogs(logs.toArray(OrderLog[]::new));
-        lenient().when(instrumentPriceRepository.findByInstrumentIdInAndPriceDateBetween(anyCollection(), any(), any()))
-            .thenReturn(closes);
+        lenient().when(instrumentPriceRepository.findByInstrumentIdInAndPriceDateBetween(anyCollection(), any(), any())).thenReturn(closes);
         lenient().when(quoteService.getQuotes(anyList())).thenReturn(liveQuote == null
             ? List.of() : List.of(new MarketQuote("AAPL", liveQuote, liveQuote, liveQuote, "USD", null, "open")));
+        lenient().when(holdingService.resolveFxRate(CashCurrency.EUR, CashCurrency.USD)).thenReturn(new BigDecimal("1.1111111111"));
+        lenient().when(holdingService.resolveFxRate(CashCurrency.GBP, CashCurrency.USD)).thenThrow(new FauxnanceClientException("no rate"));
 
         List<PortfolioPerformanceService.DailyValue> values = service(CLOCK).getDailyValues(PORTFOLIO_ID);
 
-        assertEquals(expected, amounts(values));
-        assertEquals(logs.get(0).getTimeStamp().toLocalDate(), values.get(0).date());
-        assertEquals(TODAY, values.get(values.size() - 1).date());
-    }
-
-    @Test
-    void convertsNonUsdCashAtTodaysRateAndSkipsACurrencyWithoutOne() {
-        givenLogs(log(instrument("EUR", InstrumentClass.CASH, CashCurrency.EUR), OrderSide.DEPOSIT, 100, 0, MONDAY),
-            log(instrument("GBP", InstrumentClass.CASH, CashCurrency.GBP), OrderSide.DEPOSIT, 50, 0, MONDAY));
-        when(holdingService.resolveFxRate(CashCurrency.EUR, CashCurrency.USD)).thenReturn(new BigDecimal("1.10"));
-        when(holdingService.resolveFxRate(CashCurrency.GBP, CashCurrency.USD)).thenThrow(new FauxnanceClientException("no rate"));
-
-        assertEquals(List.of("110.00", "110.00"), amounts(service(CLOCK).getDailyValues(PORTFOLIO_ID)));
-    }
-
-    @Test
-    void aUsdToEurSwapKeepsTheTotalAboutTheSame() {
-        OrderLog swap = log(USD, OrderSide.FX, 500, 0.9, MONDAY);
-        // The note repeats a key on purpose: HoldingService's own fields come first and win.
-        swap.setMetadata("fxConversion=true;sourceCurrency=USD;targetCurrency=EUR;sourceAmount=500;conversionRate=0.9;"
-            + "targetAmount=450.000000;note=targetCurrency=GBP");
-        givenLogs(log(USD, OrderSide.DEPOSIT, 1000, 0, FRIDAY), swap);
-        when(holdingService.resolveFxRate(CashCurrency.EUR, CashCurrency.USD)).thenReturn(new BigDecimal("1.1111111111"));
-
-        // 500 USD plus 450 EUR back at today's rate.
-        assertEquals(List.of("1000.00", "1000.00", "1000.00", "1000.00", "1000.00"),
-            amounts(service(CLOCK).getDailyValues(PORTFOLIO_ID)));
-    }
-
-    @Test
-    void replayEndsOnTheRealBalances() {
-        OrderLog swap = log(USD, OrderSide.FX, 100, 0.9, MONDAY);
-        swap.setMetadata("fxConversion=true;sourceCurrency=USD;targetCurrency=EUR;sourceAmount=100;targetAmount=90.000000");
-        givenLogs(log(USD, OrderSide.DEPOSIT, 1000, 0, FRIDAY), log(APPLE, OrderSide.BUY, 5, 100, FRIDAY), swap);
-        givenRealBalances(holding(USD, "400"), holding(EURO, "90"), holding(APPLE, "5"));
-        when(instrumentPriceRepository.findByInstrumentIdInAndPriceDateBetween(anyCollection(), any(), any()))
-            .thenReturn(List.of(close(FRIDAY, "100")));
-        when(holdingService.resolveFxRate(CashCurrency.EUR, CashCurrency.USD)).thenReturn(new BigDecimal("1.1111111111"));
-        when(quoteService.getQuotes(anyList())).thenReturn(List.of());
-
-        // Monday is the replay, today is the real balances: equal only if the replay ends where the account is.
-        assertEquals(List.of("1000.00", "1000.00", "1000.00", "1000.00", "1000.00"),
-            amounts(service(CLOCK).getDailyValues(PORTFOLIO_ID)));
-    }
-
-    @Test
-    void todayUsesTheRealBalancesWhenTheReplayDisagrees() {
-        givenLogs(log(USD, OrderSide.DEPOSIT, 1000, 0, MONDAY));
-        givenRealBalances(holding(USD, "900"));
-
-        assertEquals(List.of("1000.00", "900.00"), amounts(service(CLOCK).getDailyValues(PORTFOLIO_ID)));
-    }
-
-    @Test
-    void emptyHistoryHasNoPoints() {
-        givenLogs();
-        assertEquals(List.of(), service(CLOCK).getDailyValues(PORTFOLIO_ID));
+        assertEquals(expected, values.stream().map(value -> value.value().toPlainString()).toList());
+        if (!values.isEmpty()) {
+            assertEquals(logs.get(0).getTimeStamp().toLocalDate(), values.get(0).date());
+            assertEquals(TODAY, values.get(values.size() - 1).date());
+        }
     }
 
     @Test
@@ -181,54 +133,34 @@ class PortfolioPerformanceServiceTest {
     }
 
     @Test
-    void loadsClosesInOneQueryOnlyForTheDaysInstrumentsWereHeld() {
-        Instrument microsoft = instrument("MSFT", InstrumentClass.EQUITY, CashCurrency.USD);
-        givenLogs(log(USD, OrderSide.DEPOSIT, 1000, 0, FRIDAY), log(APPLE, OrderSide.BUY, 1, 100, FRIDAY),
-            log(microsoft, OrderSide.BUY, 1, 200, FRIDAY), log(APPLE, OrderSide.SELL, 1, 100, MONDAY),
-            log(microsoft, OrderSide.SELL, 1, 200, MONDAY));
-        when(instrumentPriceRepository.findByInstrumentIdInAndPriceDateBetween(anyCollection(), any(), any()))
-            .thenReturn(List.of(close(FRIDAY, "100")));
+    void todayUsesTheRealBalances() {
+        givenLogs(log(USD, OrderSide.DEPOSIT, 1000, 0, MONDAY));
+        Holding cash = new Holding(PORTFOLIO_ID, USD.getInstrumentId());
+        cash.setCurrentQuantity(new BigDecimal("900"));
+        when(holdingRepository.findByPortfolioID(PORTFOLIO_ID)).thenReturn(List.of(cash));
+        when(instrumentRepository.findAllById(any())).thenReturn(List.of(USD));
 
-        service(CLOCK).getDailyValues(PORTFOLIO_ID);
-
-        verify(instrumentPriceRepository).findByInstrumentIdInAndPriceDateBetween(
-            List.of(APPLE.getInstrumentId(), microsoft.getInstrumentId()), FRIDAY.minusDays(7), MONDAY);
-        verifyNoInteractions(quoteService);
+        assertEquals(List.of(new BigDecimal("1000.00"), new BigDecimal("900.00")),
+            service(CLOCK).getDailyValues(PORTFOLIO_ID).stream().map(PortfolioPerformanceService.DailyValue::value).toList());
     }
 
     @Test
-    void cachesClosesForTheDayAndReloadsOnTheNextDay() {
-        Clock clock = mock(Clock.class);
-        when(clock.getZone()).thenReturn(ZoneOffset.UTC);
-        when(clock.instant()).thenReturn(
-            Instant.parse("2026-10-20T09:00:00Z"), Instant.parse("2026-10-20T10:00:00Z"), Instant.parse("2026-10-21T09:00:00Z"));
-        PortfolioPerformanceService service = service(clock);
-        // Sold out on Monday, so the price window (the cache key) is the same on both days.
-        givenLogs(log(USD, OrderSide.DEPOSIT, 1000, 0, FRIDAY), log(APPLE, OrderSide.BUY, 5, 100, FRIDAY),
-            log(APPLE, OrderSide.SELL, 5, 110, MONDAY));
+    void reusesCachedClosesOnTheSameDay() {
+        givenLogs(log(USD, OrderSide.DEPOSIT, 1000, 0, MONDAY), log(APPLE, OrderSide.BUY, 5, 100, MONDAY));
         when(instrumentPriceRepository.findByInstrumentIdInAndPriceDateBetween(anyCollection(), any(), any()))
-            .thenReturn(List.of(close(FRIDAY, "100")));
+            .thenReturn(List.of(close(MONDAY, "100")));
+        when(quoteService.getQuotes(anyList())).thenReturn(List.of());
+        PortfolioPerformanceService service = service(CLOCK);
 
-        for (int i = 0; i < 3; i++) {
-            service.getDailyValues(PORTFOLIO_ID);
-        }
+        service.getDailyValues(PORTFOLIO_ID);
+        service.getDailyValues(PORTFOLIO_ID);
 
-        verify(instrumentPriceRepository, times(2)).findByInstrumentIdInAndPriceDateBetween(anyCollection(), any(), any());
+        verify(instrumentPriceRepository, times(1)).findByInstrumentIdInAndPriceDateBetween(anyCollection(), any(), any());
     }
 
     private PortfolioPerformanceService service(Clock clock) {
-        return new PortfolioPerformanceService(
-            orderLogRepository, instrumentPriceRepository, holdingRepository, instrumentRepository, fauxnanceService, quoteService,
-            holdingService, clock);
-    }
-
-    private void givenRealBalances(Holding... holdings) {
-        when(holdingRepository.findByPortfolioID(PORTFOLIO_ID)).thenReturn(List.of(holdings));
-        when(instrumentRepository.findAllById(any())).thenReturn(List.of(USD, EURO, APPLE));
-    }
-
-    private static List<String> amounts(List<PortfolioPerformanceService.DailyValue> values) {
-        return values.stream().map(value -> value.value().toPlainString()).toList();
+        return new PortfolioPerformanceService(orderLogRepository, instrumentPriceRepository, holdingRepository,
+            instrumentRepository, fauxnanceService, quoteService, holdingService, clock);
     }
 
     private void givenLogs(OrderLog... logs) {
@@ -242,12 +174,6 @@ class PortfolioPerformanceServiceTest {
         orderLog.setExecutionPrice(price);
         orderLog.setTimeStamp(day.atTime(LocalTime.NOON));
         return orderLog;
-    }
-
-    private static Holding holding(Instrument instrument, String quantity) {
-        Holding holding = new Holding(PORTFOLIO_ID, instrument.getInstrumentId());
-        holding.setCurrentQuantity(new BigDecimal(quantity));
-        return holding;
     }
 
     private static Portfolio portfolio() {

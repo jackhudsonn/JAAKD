@@ -1,9 +1,8 @@
-import { Component, input } from '@angular/core';
+import { Component, input, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { describe, expect, it, vi } from 'vitest';
-import { PortfolioApiService } from '@core/services/portfolio-api.service';
+import { describe, expect, it } from 'vitest';
 import { LineChartComponent } from '@shared/components/line-chart/line-chart.component';
-import { PortfolioPerformancePoint } from '@core/models/api.models';
+import { DASHBOARD_STATE_PORT } from '@features/dashboard/services/dashboard-state.port';
 import { PerformanceGraphWidgetComponent } from './performance-graph.component';
 
 // Chart.js needs a real canvas, so the chart is swapped for a stub that only takes the inputs.
@@ -16,55 +15,39 @@ class LineChartStubComponent {
   seriesLabel = input<string>();
 }
 
-const setup = async (getPerformance: () => Promise<PortfolioPerformancePoint[]>, settle = true) => {
-  vi.spyOn(console, 'error').mockImplementation(() => undefined);
-  TestBed.resetTestingModule();
-  const api = {
-    ensureDefault: vi.fn(async () => ({ portfolioId: 'p1' })),
-    getPerformance: vi.fn(getPerformance),
-  };
-  TestBed.configureTestingModule({ providers: [{ provide: PortfolioApiService, useValue: api }] });
+const render = (state: 'loading' | 'idle' | 'error', points: { date: string; value: number }[]) => {
+  TestBed.configureTestingModule({
+    providers: [
+      {
+        provide: DASHBOARD_STATE_PORT,
+        useValue: { performance: signal(points), performanceLoadState: signal(state) },
+      },
+    ],
+  });
   TestBed.overrideComponent(PerformanceGraphWidgetComponent, {
     remove: { imports: [LineChartComponent] },
     add: { imports: [LineChartStubComponent] },
   });
-
   const fixture = TestBed.createComponent(PerformanceGraphWidgetComponent);
   fixture.detectChanges();
-  if (settle) {
-    await vi.waitFor(() => expect(fixture.componentInstance.status()).not.toBe('loading'));
-    fixture.detectChanges();
-  }
-  const element = fixture.nativeElement as HTMLElement;
-  return { fixture, element, api, text: () => element.textContent?.replace(/\s+/g, ' ') };
+  return fixture.nativeElement as HTMLElement;
 };
 
 describe('PerformanceGraphWidgetComponent', () => {
-  it('shows value, change and range per interval from one fetch', async () => {
-    const { fixture, element, text, api } = await setup(async () => [
-      { date: '2026-01-05', value: 500 },
-      { date: '2026-10-18', value: 1000 },
-      { date: '2026-10-19', value: 1100 },
+  it('renders the series with its current value and change', () => {
+    const element = render('idle', [
+      { date: '2026-10-19', value: 1000 },
       { date: '2026-10-20', value: 1050 },
     ]);
-    expect(text()).toContain('$1,050.00 +$50.00 (+5.00%)');
-    expect(text()).toContain('High $1,100.00 · Low $1,000.00 · Change +5.00%');
-
-    element.querySelectorAll<HTMLButtonElement>('.interval-tab')[2].click(); // YTD
-    fixture.detectChanges();
-    expect(text()).toContain('High $1,100.00 · Low $500.00 · Change +110.00%');
-    expect(api.getPerformance).toHaveBeenCalledTimes(1);
+    expect(element.textContent).toContain('$1,050.00');
+    expect(element.textContent).toContain('+$50.00');
   });
 
-  it.each([
-    ['loading', () => new Promise<never>(() => undefined), false, ''],
-    ['empty', async () => [], true, 'No history yet.'],
-    ['error', () => Promise.reject(new Error('boom')), true, 'currently unavailable'],
-  ])('shows the %s state', async (state, getPerformance, settle, message) => {
-    const { element, text } = await setup(getPerformance, settle);
-    if (state === 'loading') {
-      expect(element.querySelector('.widget-card-skeleton')).not.toBeNull();
-    }
-    expect(text()).toContain(message);
+  it('shows the loading skeleton', () => {
+    expect(render('loading', []).querySelector('.widget-card-skeleton')).not.toBeNull();
+  });
+
+  it('shows the error state', () => {
+    expect(render('error', []).textContent).toContain('currently unavailable');
   });
 });

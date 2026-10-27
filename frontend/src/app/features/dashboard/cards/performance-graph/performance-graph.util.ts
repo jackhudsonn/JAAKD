@@ -4,7 +4,6 @@ export type PerformanceInterval = '1W' | '1M' | 'YTD' | '1Y' | 'ALL';
 
 export const PERFORMANCE_INTERVALS: PerformanceInterval[] = ['1W', '1M', 'YTD', '1Y', 'ALL'];
 
-// yyyy-MM-dd of the first day in the interval, counted back from the newest point (dates are UTC days).
 function intervalStart(interval: PerformanceInterval, newest: string): string | null {
   const [year, month, day] = newest.split('-').map(Number);
   const start = new Date(Date.UTC(year, month - 1, day));

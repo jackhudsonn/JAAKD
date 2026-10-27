@@ -880,13 +880,8 @@ paths:
       tags: [Portfolios]
       summary: Daily value of one of the user's portfolios
       description: >
-        One point per day, oldest first, from the date of the portfolio's first EXECUTED order log to today.
-        Each point is USD cash plus each USD-traded holding at that day's stored close
-        ("instrumentPrices", with Fauxnance candles as a fallback), carried forward over weekends and gaps.
-        The last point uses live quotes when they are available.
-        Cash is tracked per currency, including FX conversions, and non-USD cash is converted to USD at
-        today's rate for every day (a currency with no rate is left out). Non-USD instruments are not counted.
-        Returns an empty list when the portfolio has no EXECUTED order logs.
+        One USD point per day from the first EXECUTED order log to today (empty list if none): cash in every
+        currency at today's rate plus USD-traded holdings at each day's close. Today uses the real balances.
       operationId: getPortfolioDailyValues
       parameters:
         - $ref: "#/components/parameters/PortfolioId"
@@ -900,10 +895,7 @@ paths:
                 items:
                   $ref: "#/components/schemas/PortfolioPerformancePoint"
               example:
-                - date: "2026-10-23"
-                  value: 1000.00
-                - date: "2026-10-24"
-                  value: 1012.50
+                - { date: "2026-10-23", value: 1000.00 }
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
@@ -3486,13 +3478,8 @@ components:
       type: object
       required: [date, value]
       properties:
-        date:
-          type: string
-          format: date
-          description: Calendar day (UTC), yyyy-MM-dd
-        value:
-          type: number
-          description: Portfolio value in USD at the end of that day
+        date: { type: string, format: date }
+        value: { type: number, description: Portfolio value in USD }
 
     # ---- orders (planned)
     OrderRequest:

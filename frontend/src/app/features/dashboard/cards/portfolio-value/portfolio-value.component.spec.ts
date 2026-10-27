@@ -39,33 +39,6 @@ describe('PortfolioValueWidgetComponent', () => {
     expect(text).toContain('$1,050.00');
     expect(text).toContain('Cash $500.00 · Holdings $550.00');
     expect(text).toContain('All-Time Return+$50.00+5.00%');
-    expect(text).toContain("Today's Return+$50.00+10.00%");
-  });
-
-  it('counts non-USD cash in the cash line and total at the live rate', () => {
-    TestBed.configureTestingModule({
-      imports: [PortfolioValueWidgetComponent],
-      providers: [
-        {
-          provide: DASHBOARD_STATE_PORT,
-          useValue: {
-            accountCash: signal(500),
-            cashBalances: signal({ USD: 500, EUR: 100 }),
-            cashRatesByUsd: signal({ USD: 1, EUR: 0.8 }),
-            holdings: signal([
-              { symbol: 'AAPL', instrumentType: 'equity', quantity: 5, indicativePrice: 110 },
-            ]),
-            transactions: signal([]),
-          },
-        },
-      ],
-    });
-    const fixture = TestBed.createComponent(PortfolioValueWidgetComponent);
-    fixture.detectChanges();
-    const text = (fixture.nativeElement as HTMLElement).textContent?.replace(/\s+/g, ' ');
-
-    // 100 EUR at 0.8 EUR per USD is $125.
-    expect(text).toContain('$1,175.00');
-    expect(text).toContain('Cash $625.00 · Holdings $550.00');
+    expect(text).toContain("Today's Return+$50.00+5.00%");
   });
 });

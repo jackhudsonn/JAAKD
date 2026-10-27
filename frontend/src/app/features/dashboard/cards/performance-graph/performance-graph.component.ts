@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import {
   WidgetCardComponent,
   WidgetStatus,
@@ -7,8 +7,8 @@ import {
   LineChartComponent,
   LineChartPoint,
 } from '@shared/components/line-chart/line-chart.component';
-import { PortfolioApiService } from '@core/services/portfolio-api.service';
-import { PortfolioPerformancePoint, REPORTING_CURRENCY } from '@core/models/api.models';
+import { REPORTING_CURRENCY } from '@core/models/api.models';
+import { DASHBOARD_STATE_PORT } from '@features/dashboard/services/dashboard-state.port';
 import { formatCurrency } from '@shared/utils/display-format';
 import { isFlatChange } from '@shared/utils/format-percentage-change';
 import { formatSignedPct, formatSignedUsd } from '../portfolio-value/portfolio-returns.util';
@@ -27,8 +27,9 @@ import {
   templateUrl: './performance-graph.component.html',
   styleUrl: './performance-graph.component.css',
 })
-export class PerformanceGraphWidgetComponent implements OnInit {
-  private readonly portfolioApiService = inject(PortfolioApiService);
+export class PerformanceGraphWidgetComponent {
+  // The series is loaded once by the dashboard state and shared with the Portfolio Value total.
+  private readonly state = inject(DASHBOARD_STATE_PORT);
 
   readonly formatCurrency = formatCurrency;
   readonly formatSignedUsd = formatSignedUsd;
@@ -36,8 +37,8 @@ export class PerformanceGraphWidgetComponent implements OnInit {
   readonly reportingCurrency = REPORTING_CURRENCY;
   readonly intervals = PERFORMANCE_INTERVALS;
 
-  readonly status = signal<WidgetStatus>('loading');
-  readonly history = signal<PortfolioPerformancePoint[]>([]);
+  readonly status = computed<WidgetStatus>(() => this.state.performanceLoadState?.() ?? 'idle');
+  readonly history = computed(() => this.state.performance?.() ?? []);
   readonly selectedInterval = signal<PerformanceInterval>('1M');
 
   readonly visiblePoints = computed(() =>
@@ -57,19 +58,7 @@ export class PerformanceGraphWidgetComponent implements OnInit {
     return summary.change > 0 ? 'up' : 'down';
   });
 
-  ngOnInit() {
-    void this.load();
-  }
-
-  async load() {
-    this.status.set('loading');
-    try {
-      const portfolio = await this.portfolioApiService.ensureDefault();
-      this.history.set(await this.portfolioApiService.getPerformance(portfolio.portfolioId));
-      this.status.set('idle');
-    } catch (error) {
-      console.error('Failed to load portfolio performance', error);
-      this.status.set('error');
-    }
+  load() {
+    void this.state.loadPerformance?.();
   }
 }

@@ -48,7 +48,6 @@ export function formatChartValue(
   }
 }
 
-// Fill that fades from a light tint at the top of the plot to transparent at the bottom.
 function fadingFill(color: string) {
   return (context: ScriptableContext<'line'>) => {
     const { ctx, chartArea } = context.chart;

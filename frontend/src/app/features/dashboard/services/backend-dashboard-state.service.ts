@@ -1,7 +1,7 @@
 import { Injectable, signal } from '@angular/core';
 import { WATCHLIST_CONSTRAINTS } from '@core/constants/watchlist.constants';
 import { Holding, Order, SharedWatchlist, Transaction } from '@core/models';
-import { QuoteResponse } from '@core/models/api.models';
+import { PortfolioPerformancePoint, QuoteResponse } from '@core/models/api.models';
 import { HoldingApiService } from '@core/services/holding-api.service';
 import { CashFxService } from '@core/services/cash-fx.service';
 import { InstrumentApiService } from '@core/services/instrument-api.service';
@@ -45,6 +45,8 @@ export class BackendDashboardStateService implements DashboardStatePort {
   readonly dashboardWidgets = signal<readonly string[] | null>(null);
   readonly liveQuotes = signal<ReadonlyMap<string, LiveQuote>>(new Map());
   readonly cashRatesByUsd = signal<CashRatesByUsd>(USD_RATES_BY_USD);
+  readonly performance = signal<PortfolioPerformancePoint[]>([]);
+  readonly performanceLoadState = signal<'loading' | 'idle' | 'error'>('loading');
   readonly watchlistConstraints = WATCHLIST_CONSTRAINTS;
 
   readonly loadState = signal<DashboardLoadState>('loading');
@@ -74,10 +76,16 @@ export class BackendDashboardStateService implements DashboardStatePort {
     this.dashboardWidgets.set(null);
     this.liveQuotes.set(new Map());
     this.cashRatesByUsd.set(USD_RATES_BY_USD);
+    this.performance.set([]);
+    this.performanceLoadState.set('loading');
     this.portfolioId.set(null);
+    let performanceStarted = false;
 
     try {
       const portfolio = await this.portfolioApiService.ensureDefault();
+      // Not awaited: the series is the slowest call, and the rest of the dashboard should not wait for it.
+      void this.loadPerformance(portfolio.portfolioId);
+      performanceStarted = true;
 
       const initialWidgets = await this.dashboardPreferencesSyncService.getInitialWidgets(
         portfolio.portfolioId,
@@ -157,6 +165,25 @@ export class BackendDashboardStateService implements DashboardStatePort {
       this.cashRatesByUsd.set(USD_RATES_BY_USD);
       this.portfolioId.set(null);
       this.loadState.set('error');
+      if (!performanceStarted) {
+        this.performanceLoadState.set('error');
+      }
+    }
+  }
+
+  // Loaded once and shared, so the Performance graph and the Portfolio Value total use the same prices and rates.
+  async loadPerformance(portfolioId = this.portfolioId()): Promise<void> {
+    if (!portfolioId) {
+      return;
+    }
+
+    this.performanceLoadState.set('loading');
+    try {
+      this.performance.set(await this.portfolioApiService.getPerformance(portfolioId));
+      this.performanceLoadState.set('idle');
+    } catch (error) {
+      console.error('BackendDashboardStateService.loadPerformance failed', error);
+      this.performanceLoadState.set('error');
     }
   }
 
