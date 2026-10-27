@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { Holding, Transaction } from '@core/models';
 import { LiveQuote } from '@features/dashboard/services/dashboard-backend.mappers';
 import {
-  formatReturn,
   formatSignedPct,
   formatSignedUsd,
   toAllTimeReturn,
@@ -183,20 +182,5 @@ describe('formatSignedPct', () => {
   it('shows no sign when flat', () => {
     expect(formatSignedPct(0)).toBe('0.00%');
     expect(formatSignedPct(-0.001)).toBe('0.00%');
-  });
-});
-
-describe('formatReturn', () => {
-  it('puts the percent after the amount', () => {
-    expect(formatReturn(20592.08, 21.68)).toBe('+$20,592.08 (+21.68%)');
-    expect(formatReturn(-125.5, -2.5)).toBe('-$125.50 (-2.50%)');
-  });
-
-  it('shows only the amount when there is no percent', () => {
-    expect(formatReturn(100, null)).toBe('+$100.00');
-  });
-
-  it('shows a flat return with no signs', () => {
-    expect(formatReturn(0, 0)).toBe('$0.00 (0.00%)');
   });
 });

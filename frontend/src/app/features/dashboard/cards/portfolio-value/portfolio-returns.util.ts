@@ -105,9 +105,3 @@ export function formatSignedPct(pct: number): string {
   const rounded = roundChangePct(pct);
   return `${signOf(rounded)}${Math.abs(rounded).toFixed(2)}%`;
 }
-
-// "+$20,592.08 (+21.68%)", or just the amount when there is no base to measure against.
-export function formatReturn(amount: number, pct: number | null): string {
-  const formattedAmount = formatSignedUsd(amount);
-  return pct === null ? formattedAmount : `${formattedAmount} (${formatSignedPct(pct)})`;
-}
