@@ -183,7 +183,11 @@ describe('BackendDashboardStateService', () => {
     await service.load();
 
     expect(instrumentApiService.getQuotes).toHaveBeenCalledTimes(1);
-    expect(service.liveQuotes().get('AAPL')).toEqual({ price: 190, changePct: -0.75 });
+    expect(service.liveQuotes().get('AAPL')).toEqual({
+      price: 190,
+      changePct: -0.75,
+      currency: 'USD',
+    });
   });
 
   it('loads backend dashboard cash, holdings, orders, transactions, and watchlist', async () => {

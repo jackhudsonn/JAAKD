@@ -1,4 +1,5 @@
 import { InjectionToken, Signal, WritableSignal } from '@angular/core';
+import { CashCurrency } from '@core/models/api.models';
 import { MOCK_RETURNS, MOCK_STATE, MockOrder } from '@core/mocks/state.mock';
 import { SharedWatchlist, WATCHLIST_CONSTRAINTS } from '@core/mocks/watchlist.mock';
 import { Holding, InstrumentType, Order, Transaction } from '@core/models';
@@ -8,6 +9,7 @@ export interface DashboardWatchlistInstrumentOption {
   instrumentId: string;
   symbol: string;
   name: string;
+  currency: CashCurrency;
   instrumentType: InstrumentType;
 }
 

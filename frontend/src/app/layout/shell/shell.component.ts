@@ -4,7 +4,8 @@ import { AuthService } from '@core/services/auth.service';
 import { ProfileService } from '@features/profile/services/profile.service';
 import { NavbarComponent } from '@shared/components/navbar/navbar.component';
 import { MarketTickerItem, MarketTickerService } from '@core/services/market-ticker.service';
-import { DecimalPipe, NgTemplateOutlet } from '@angular/common';
+import { NgTemplateOutlet } from '@angular/common';
+import { formatCurrency } from '@shared/utils/display-format';
 import { formatPercentageChange } from '@shared/utils/format-percentage-change';
 import { isAdminOrAuditor } from '@core/models/profile.model';
 
@@ -13,7 +14,7 @@ const TICKER_SECONDS_PER_ITEM = 3.5;
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [RouterOutlet, NavbarComponent, NgTemplateOutlet, DecimalPipe],
+  imports: [RouterOutlet, NavbarComponent, NgTemplateOutlet],
   templateUrl: './shell.component.html',
   styleUrl: './shell.component.css',
 })
@@ -27,6 +28,7 @@ export class ShellComponent implements OnInit {
     () => `${this.tickerLoopItems().length * TICKER_SECONDS_PER_ITEM}s`,
   );
   readonly formatChange = formatPercentageChange;
+  readonly formatCurrency = formatCurrency;
 
   constructor(
     protected authService: AuthService,

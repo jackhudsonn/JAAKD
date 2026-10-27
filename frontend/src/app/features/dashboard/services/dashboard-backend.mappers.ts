@@ -11,7 +11,7 @@ import {
 import { ORDER_STATUS, isActiveOrderStatus } from '@core/constants/order-status.constants';
 import { Holding, HoldingInstrumentClass, InstrumentType, Order, Transaction } from '@core/models';
 import { SharedWatchlist } from '@core/mocks/watchlist.mock';
-import { toDisplaySymbol } from '@shared/utils/display-symbol';
+import { toDisplaySymbol } from '@shared/utils/display-format';
 import { roundChangePct } from '@shared/utils/format-percentage-change';
 
 const TRADE_SIDES = new Set(['BUY', 'SELL']);
@@ -180,6 +180,7 @@ export const toHoldings = (
 
     mapped.push({
       symbol: instrument.ticker,
+      currency: instrument.tradingCurrency,
       instrumentType,
       instrumentClass,
       quantity: holding.currentQuantity,
@@ -234,6 +235,7 @@ export const toOrders = (
     const baseOrder: Order = {
       id: newestRow.orderId,
       symbol: instrument.ticker,
+      currency: instrument.tradingCurrency,
       instrumentType,
       kind: 'market',
       type: newestRow.side === 'BUY' ? 'buy' : 'sell',
@@ -281,7 +283,8 @@ const readMetadataValue = (metadata: string | null, key: string): string | null 
 };
 
 const toCashCurrency = (value: string | null | undefined): CashCurrency | undefined => {
-  return CASH_CURRENCIES.find((currency) => currency === value);
+  const normalized = value?.toUpperCase();
+  return CASH_CURRENCIES.find((currency) => currency === normalized);
 };
 
 export const toTransactions = (
@@ -450,6 +453,7 @@ export const toOpenOrders = (
     mapped.push({
       id: newestRow.orderId,
       symbol: instrument.ticker,
+      currency: instrument.tradingCurrency,
       instrumentType,
       kind: 'market',
       type: newestRow.side === 'BUY' ? 'buy' : 'sell',
@@ -498,6 +502,7 @@ export const toQuotePriceBySymbol = (quotes: QuoteResponse[]): Map<string, numbe
 export interface LiveQuote {
   price: number;
   changePct: number | null;
+  currency: CashCurrency;
 }
 
 export const toLiveQuoteBySymbol = (quotes: QuoteResponse[]): Map<string, LiveQuote> => {
@@ -505,9 +510,18 @@ export const toLiveQuoteBySymbol = (quotes: QuoteResponse[]): Map<string, LiveQu
 
   for (const quote of quotes) {
     if (quote.price !== null && quote.price > 0) {
+      const currency = toCashCurrency(quote.currency);
+      if (!currency) {
+        console.warn(
+          `Skipping live quote ${quote.symbol}: unsupported or missing currency "${quote.currency}".`,
+        );
+        continue;
+      }
+
       setQuoteKeys(liveQuotes, quote.symbol, {
         price: quote.price,
         changePct: quote.changePercent === null ? null : roundChangePct(quote.changePercent),
+        currency,
       });
     }
   }

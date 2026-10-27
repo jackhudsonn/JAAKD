@@ -5,9 +5,9 @@
 } @else {
   <app-widget-card title="Performance">
     <div widget-actions class="value-summary">
-      <span class="amount">{{ endValue() | number: '1.2-2' }}</span>
+      <span class="amount">{{ formatCurrency(endValue(), reportingCurrency) }}</span>
       <span class="change" [class.positive]="isPositive()" [class.negative]="!isPositive()">
-        {{ isPositive() ? '+$' : '' }}{{ changeAmount() | number: '1.2-2' }}
+        {{ isPositive() ? '+' : '' }}{{ formatCurrency(changeAmount(), reportingCurrency) }}
       </span>
     </div>
 
@@ -15,12 +15,12 @@
     <div class="performance-stats">
       <div class="performance-stat">
         <span class="stat-label">Period High</span>
-        <span class="stat-value"> ${{ highValue() | number: '1.2-2' }} </span>
+        <span class="stat-value">{{ formatCurrency(highValue(), reportingCurrency) }}</span>
       </div>
 
       <div class="performance-stat">
         <span class="stat-label">Period Low</span>
-        <span class="stat-value"> ${{ lowValue() | number: '1.2-2' }} </span>
+        <span class="stat-value">{{ formatCurrency(lowValue(), reportingCurrency) }}</span>
       </div>
 
       <div class="performance-stat">

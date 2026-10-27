@@ -40,7 +40,7 @@
               <span class="name">{{ row.asset.name }}</span>
             </div>
             <div class="price-stack">
-              <span class="price">{{ row.price | number: '1.2-2' }}</span>
+              <span class="price">{{ formatCurrency(row.price, row.asset.currency) }}</span>
               <span
                 class="change"
                 [class.positive]="!row.flat && row.changePct > 0"

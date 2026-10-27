@@ -1,5 +1,6 @@
 import { InjectionToken } from '@angular/core';
 import { InstrumentType } from '@core/models';
+import type { CashCurrency } from '@core/models/api.models';
 import {
   ASSET_PERFORMANCE_INTERVALS,
   AssetPerformanceInterval,
@@ -14,6 +15,7 @@ import { LineChartPoint } from '@shared/components/line-chart/line-chart.compone
 export interface TradeMarketAsset {
   symbol: string;
   name: string;
+  currency: CashCurrency;
   instrumentType: InstrumentType;
   basePrice: number;
 }

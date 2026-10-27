@@ -51,7 +51,7 @@
           @if (row.price === null) {
             <span class="price">Price unavailable</span>
           } @else {
-            <span class="price">{{ row.price | number: '1.2-2' }}</span>
+            <span class="price">{{ formatCurrency(row.price, row.currency) }}</span>
           }
 
           @if (row.changePct !== null) {

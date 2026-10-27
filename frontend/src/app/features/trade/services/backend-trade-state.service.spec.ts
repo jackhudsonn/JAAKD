@@ -213,7 +213,11 @@ describe('BackendTradeStateService', () => {
 
     await service.load();
 
-    expect(service.liveQuoteBySymbolData().get('AAPL')).toEqual({ price: 110, changePct: 10 });
+    expect(service.liveQuoteBySymbolData().get('AAPL')).toEqual({
+      price: 110,
+      changePct: 10,
+      currency: 'USD',
+    });
     expect(service.liveQuoteBySymbolData().get('BTC')?.changePct).toBe(-2.5);
     expect(service.liveQuoteBySymbolData().get('X:BTC-USD')?.changePct).toBe(-2.5);
   });

@@ -121,6 +121,7 @@ export class BackendDashboardStateService implements DashboardStatePort {
               instrumentId: instrument.instrumentId,
               symbol: instrument.ticker,
               name: instrument.name,
+              currency: instrument.tradingCurrency,
               instrumentType,
             };
           })

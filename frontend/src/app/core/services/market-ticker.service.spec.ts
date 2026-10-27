@@ -12,6 +12,7 @@ const instrument = (
   market: 'NASDAQ',
   name: ticker,
   instrumentClass,
+  tradingCurrency: 'USD',
   logoUrl: null,
   description: null,
 });
@@ -20,12 +21,13 @@ const quote = (
   symbol: string,
   price: number | null,
   changePercent: number | null,
+  currency: string | null = 'USD',
 ): QuoteResponse => ({
   symbol,
   price,
   bid: null,
   ask: null,
-  currency: 'USD',
+  currency,
   asOf: null,
   marketState: null,
   changePercent,
@@ -62,9 +64,36 @@ describe('MarketTickerService', () => {
 
     expect(instrumentApi.getQuotes).toHaveBeenCalledWith(['NVDA', 'X:BTC-USD', 'AAPL']);
     expect(items).toEqual([
-      { symbol: 'NVDA', price: 118.6, changePct: 1.84 },
-      { symbol: 'BTC', price: 61200, changePct: null },
+      { symbol: 'NVDA', price: 118.6, currency: 'USD', changePct: 1.84 },
+      { symbol: 'BTC', price: 61200, currency: 'USD', changePct: null },
     ]);
+  });
+
+  it('keeps the quote currency for display formatting', async () => {
+    instrumentApi.list.mockResolvedValue([instrument('RELIANCE.NS', 'EQUITY')]);
+    instrumentApi.getQuotes.mockResolvedValue([quote('RELIANCE.NS', 1234.5, 0.3, 'INR')]);
+
+    const [item] = await service.getTickerItems();
+
+    expect(item).toEqual({
+      symbol: 'RELIANCE',
+      price: 1234.5,
+      currency: 'INR',
+      changePct: 0.3,
+    });
+  });
+
+  it('skips and warns for priced quotes with unsupported currencies', async () => {
+    instrumentApi.list.mockResolvedValue([instrument('NVDA', 'EQUITY')]);
+    instrumentApi.getQuotes.mockResolvedValue([quote('NVDA', 118.6, 1.84, 'JPY')]);
+    const warning = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    const items = await service.getTickerItems();
+
+    expect(items).toEqual([]);
+    expect(warning).toHaveBeenCalledWith(
+      'Skipping market ticker quote NVDA: unsupported or missing currency "JPY".',
+    );
   });
 
   it('rounds a tiny loss to a plain zero change', async () => {

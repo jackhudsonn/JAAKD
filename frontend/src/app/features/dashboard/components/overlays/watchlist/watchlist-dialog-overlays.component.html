@@ -82,7 +82,7 @@
         @if (asset.price === null) {
           Price unavailable
         } @else {
-          {{ asset.price | number: '1.2-2' }}
+          {{ formatCurrency(asset.price, asset.currency) }}
         }
       </p>
 

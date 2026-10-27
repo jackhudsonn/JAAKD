@@ -1,6 +1,7 @@
 import { Component, OnDestroy, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { ORDER_STATUS } from '@core/constants/order-status.constants';
 import { ActivatedRoute, Router } from '@angular/router';
+import { CASH_CURRENCIES } from '@core/models/api.models';
 import { Subscription } from 'rxjs';
 import { TradeCardComponent } from './cards/trade/trade-card.component';
 import { HoldingsCardComponent } from './cards/holdings/holdings-card.component';
@@ -61,7 +62,10 @@ export class TradeComponent implements OnInit, OnDestroy {
       return null;
     }
 
-    return Object.entries(balances).map(([currency, amount]) => ({ currency, amount }));
+    return Object.entries(balances).flatMap(([currency, amount]) => {
+      const supportedCurrency = CASH_CURRENCIES.find((entry) => entry === currency);
+      return supportedCurrency ? [{ currency: supportedCurrency, amount }] : [];
+    });
   });
   readonly maxWatchlistHoldings = this.tradeFacade.maxWatchlistHoldings;
 

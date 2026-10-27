@@ -17,11 +17,13 @@ import { DisplaySymbolPipe } from '@shared/pipes/display-symbol.pipe';
 import { startCycleTimer } from '@shared/utils/cycle-timer';
 import { Holding, InstrumentType } from '@core/models';
 import { CASH_CURRENCIES } from '@core/models/api.models';
+import type { CashCurrency } from '@core/models/api.models';
 import { TRADE_MARKET_DATA_PORT } from '@features/trade/services/trade-market-data.port';
 import { isFlatChange } from '@shared/utils/format-percentage-change';
+import { formatCurrency } from '@shared/utils/display-format';
 
 type HoldingsRow =
-  | { kind: 'cash'; currency: string; amount: number }
+  | { kind: 'cash'; currency: CashCurrency; amount: number }
   | {
       kind: 'holding';
       holding: Holding;
@@ -30,12 +32,13 @@ type HoldingsRow =
       changePct: number;
       flat: boolean;
       name: string;
+      currency: CashCurrency;
     };
 
 type HoldingsFilter = InstrumentType | 'all' | 'cash';
 
 interface CashBalance {
-  currency: string;
+  currency: CashCurrency;
   amount: number;
 }
 
@@ -77,6 +80,7 @@ export class HoldingsCardComponent implements OnInit, OnDestroy {
 
   filterOptions = HOLDINGS_FILTER_OPTIONS;
   instrument = signal<HoldingsFilter>('all');
+  readonly formatCurrency = formatCurrency;
 
   private priceTick = signal(0);
   private stopTicking?: () => void;
@@ -114,6 +118,7 @@ export class HoldingsCardComponent implements OnInit, OnDestroy {
         changePct,
         flat: isFlatChange(changePct),
         name: asset?.name ?? holding.symbol,
+        currency: asset?.currency ?? holding.currency ?? 'USD',
       });
     }
 
@@ -134,8 +139,11 @@ export class HoldingsCardComponent implements OnInit, OnDestroy {
           ];
 
     return balances
+      .flatMap(({ currency, amount }) => {
+        const supportedCurrency = CASH_CURRENCIES.find((entry) => entry === currency);
+        return supportedCurrency ? [{ currency: supportedCurrency, amount }] : [];
+      })
       .filter(({ amount }) => Math.abs(amount) > Number.EPSILON)
-      .slice()
       .sort((left, right) => this.compareCashBalances(left, right));
   }
 

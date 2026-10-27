@@ -1,15 +1,19 @@
 import { Component, OnDestroy, OnInit, computed, inject, output, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
+import type { CashCurrency } from '@core/models/api.models';
+import { REPORTING_CURRENCY } from '@core/models/api.models';
 import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
 import { ScrollableListComponent } from '@shared/components/scrollable-list/scrollable-list.component';
 import { DisplaySymbolPipe } from '@shared/pipes/display-symbol.pipe';
 import { startCycleTimer } from '@shared/utils/cycle-timer';
+import { formatCurrency } from '@shared/utils/display-format';
 import { DASHBOARD_MARKET_DATA_PORT } from '@features/dashboard/services/dashboard-market-data.port';
 import { DASHBOARD_STATE_PORT } from '@features/dashboard/services/dashboard-state.port';
 
 interface WatchlistRow {
   symbol: string;
   name: string;
+  currency: CashCurrency;
   price: number | null;
   changePct: number | null;
 }
@@ -39,6 +43,7 @@ export class WatchlistWidgetComponent implements OnInit, OnDestroy {
   addAssetRequested = output<void>();
 
   readonly maxWatchlistHoldings = this.state.watchlistConstraints.maxHoldingsPerWatchlist;
+  readonly formatCurrency = formatCurrency;
 
   private priceTick = signal(0);
   private stopTicking?: () => void;
@@ -71,9 +76,15 @@ export class WatchlistWidgetComponent implements OnInit, OnDestroy {
 
         if (!asset && this.backendDataMode) {
           const quote = this.liveQuotes?.().get(symbol.toUpperCase());
+          const currency = this.state
+            .backendWatchlistInstrumentOptions?.()
+            .find(
+              (instrument) => instrument.symbol.toUpperCase() === symbol.toUpperCase(),
+            )?.currency;
           return {
             symbol,
             name: symbol,
+            currency: currency ?? quote?.currency ?? REPORTING_CURRENCY,
             price: quote?.price ?? null,
             changePct: quote?.changePct ?? null,
           };
@@ -88,6 +99,7 @@ export class WatchlistWidgetComponent implements OnInit, OnDestroy {
         return {
           symbol,
           name: asset.name,
+          currency: asset.currency,
           price,
           changePct: hasBasePrice ? ((price - asset.basePrice) / asset.basePrice) * 100 : null,
         };

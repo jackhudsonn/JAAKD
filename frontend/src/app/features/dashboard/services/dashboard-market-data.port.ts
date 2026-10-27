@@ -1,5 +1,6 @@
 import { InjectionToken } from '@angular/core';
 import { InstrumentType } from '@core/models';
+import type { CashCurrency } from '@core/models/api.models';
 import {
   MOCK_ASSETS,
   MOCK_TOP_LOSERS,
@@ -15,12 +16,14 @@ import { LineChartPoint } from '@shared/components/line-chart/line-chart.compone
 export interface DashboardMarketAsset {
   symbol: string;
   name: string;
+  currency: CashCurrency;
   instrumentType: InstrumentType;
   basePrice: number;
 }
 
 export interface DashboardMover {
   symbol: string;
+  currency: CashCurrency;
   changeAmount: number;
   changePct: number;
 }

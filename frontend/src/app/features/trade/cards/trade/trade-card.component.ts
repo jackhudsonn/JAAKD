@@ -6,6 +6,7 @@ import { ScrollableListComponent } from '@shared/components/scrollable-list/scro
 import { DisplaySymbolPipe } from '@shared/pipes/display-symbol.pipe';
 import { startCycleTimer } from '@shared/utils/cycle-timer';
 import { isFlatChange } from '@shared/utils/format-percentage-change';
+import { formatCurrency } from '@shared/utils/display-format';
 import { InstrumentType } from '@core/models';
 import {
   TRADE_MARKET_DATA_PORT,
@@ -49,6 +50,7 @@ export class TradeCardComponent implements OnInit, OnDestroy {
   selectSymbol = output<string>();
 
   instrumentOptions = INSTRUMENT_OPTIONS;
+  readonly formatCurrency = formatCurrency;
   instrument = signal<InstrumentFilter>('all');
   search = signal('');
 

@@ -1,5 +1,5 @@
 import type { OrderStatus } from '@core/constants/order-status.constants';
-import { CashCurrency, InstrumentClass } from './api.models';
+import type { CashCurrency, InstrumentClass } from './api.models';
 // Domain interfaces — expand as the backend API is defined
 
 export type InstrumentType = 'crypto' | 'equity' | 'etf';
@@ -9,6 +9,7 @@ export type OrderType = 'buy' | 'sell';
 export type { OrderStatus };
 export interface Holding {
   symbol: string;
+  currency?: CashCurrency;
   instrumentType: InstrumentType;
   instrumentClass?: HoldingInstrumentClass;
   quantity: number;
@@ -19,6 +20,7 @@ export interface Holding {
 export interface Order {
   id: string;
   symbol: string;
+  currency?: CashCurrency;
   instrumentType: InstrumentType;
   kind: OrderKind;
   type: OrderType;

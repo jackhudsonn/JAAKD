@@ -28,7 +28,7 @@
           </div>
 
           <div class="price-stack">
-            <span class="price">{{ row.amount | number: '1.2-2' }}</span>
+            <span class="price">{{ formatCurrency(row.amount, row.currency) }}</span>
             <span class="change">0.00%</span>
           </div>
         </button>
@@ -44,7 +44,7 @@
           </div>
 
           <div class="price-stack">
-            <span class="price">{{ row.marketValue | number: '1.2-2' }}</span>
+            <span class="price">{{ formatCurrency(row.marketValue, row.currency) }}</span>
             <span
               class="change"
               [class.positive]="!row.flat && row.changePct > 0"

@@ -1,5 +1,5 @@
 import { Pipe, PipeTransform } from '@angular/core';
-import { toDisplaySymbol } from '@shared/utils/display-symbol';
+import { toDisplaySymbol } from '@shared/utils/display-format';
 
 @Pipe({
   name: 'displaySymbol',

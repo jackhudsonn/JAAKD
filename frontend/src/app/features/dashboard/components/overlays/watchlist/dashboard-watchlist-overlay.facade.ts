@@ -1,5 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { InstrumentType } from '@core/models';
+import type { CashCurrency } from '@core/models/api.models';
 import {
   DASHBOARD_MARKET_DATA_PORT,
   DashboardMarketAsset,
@@ -10,6 +11,7 @@ import { ToastService } from '@shared/components/toast/toast.service';
 export interface DashboardWatchlistAssetSummary {
   symbol: string;
   name: string;
+  currency: CashCurrency;
   price: number | null;
   changePct: number | null;
 }
@@ -90,6 +92,7 @@ export class DashboardWatchlistOverlayFacade {
       ? (this.state.backendWatchlistInstrumentOptions?.() ?? []).map((instrument) => ({
           symbol: instrument.symbol,
           name: instrument.name,
+          currency: instrument.currency,
           instrumentType: instrument.instrumentType,
           basePrice: 0,
         }))
@@ -155,6 +158,11 @@ export class DashboardWatchlistOverlayFacade {
       return {
         symbol,
         name: symbol,
+        currency:
+          this.state
+            .backendWatchlistInstrumentOptions?.()
+            .find((instrument) => instrument.symbol.toUpperCase() === symbol.toUpperCase())
+            ?.currency ?? 'USD',
         price: quote?.price ?? null,
         changePct: quote?.changePct ?? null,
       };
@@ -170,6 +178,7 @@ export class DashboardWatchlistOverlayFacade {
     return {
       symbol,
       name: asset.name,
+      currency: asset.currency,
       price,
       changePct,
     };

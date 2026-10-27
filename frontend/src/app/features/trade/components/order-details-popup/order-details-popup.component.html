@@ -29,7 +29,9 @@
     @if (order().limitPrice !== undefined) {
       <div class="detail-row">
         <span class="detail-label">Limit Price</span>
-        <span class="detail-value">{{ order().limitPrice! | number: '1.2-2' }}</span>
+        <span class="detail-value">{{
+          formatCurrency(order().limitPrice!, order().currency ?? fallbackCurrency)
+        }}</span>
       </div>
     }
 

@@ -3,7 +3,11 @@
     <div class="value-display" [class.fading]="valueFading()">
       <p class="value-label">{{ activeValueLabel }}</p>
       <p class="value-amount">
-        {{ activeValueAmount | number: '1.2-2' }}
+        @if (activeValueCurrency; as currency) {
+          {{ formatCurrency(activeValueAmount, currency) }}
+        } @else {
+          {{ activeValueAmount | number: '1.2-2' }}
+        }
       </p>
     </div>
 
@@ -17,7 +21,8 @@
           [class.positive]="returnsPositive"
           [class.negative]="!returnsPositive"
         >
-          {{ returnsPositive ? '+' : '' }}{{ activeReturnsAmount | number: '1.2-2' }}
+          {{ returnsPositive ? '+' : ''
+          }}{{ formatCurrency(activeReturnsAmount, reportingCurrency) }}
         </p>
       }
     </div>

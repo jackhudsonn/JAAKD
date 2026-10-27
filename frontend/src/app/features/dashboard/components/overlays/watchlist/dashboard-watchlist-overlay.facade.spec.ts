@@ -59,12 +59,14 @@ describe('DashboardWatchlistOverlayFacade', () => {
         instrumentId: 'inst-vod',
         symbol: 'VOD',
         name: 'Vodafone',
+        currency: 'GBP',
         instrumentType: 'equity' as const,
       },
       {
         instrumentId: 'inst-aapl',
         symbol: 'AAPL',
         name: 'Apple',
+        currency: 'USD',
         instrumentType: 'equity' as const,
       },
     ]),
@@ -98,6 +100,7 @@ describe('DashboardWatchlistOverlayFacade', () => {
     expect(facade.selectedWatchlistAsset()).toEqual({
       symbol: 'VOD',
       name: 'VOD',
+      currency: 'GBP',
       price: null,
       changePct: null,
     });

@@ -40,6 +40,7 @@ export class BackendTradeMarketDataService implements TradeMarketDataPort {
         return {
           symbol: instrument.ticker,
           name: instrument.name,
+          currency: instrument.tradingCurrency,
           instrumentType,
           basePrice: this.toPreviousClose(price, changePct),
         };

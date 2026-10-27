@@ -2,6 +2,7 @@ import { Component, input, output } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { ModalComponent } from '@shared/components/modal/modal.component';
 import { DisplaySymbolPipe } from '@shared/pipes/display-symbol.pipe';
+import { formatCurrency } from '@shared/utils/display-format';
 import { DashboardWatchlistAssetSummary } from './dashboard-watchlist-overlay.facade';
 
 @Component({
@@ -12,6 +13,8 @@ import { DashboardWatchlistAssetSummary } from './dashboard-watchlist-overlay.fa
   styleUrl: './watchlist-dialog-overlays.component.css',
 })
 export class WatchlistDialogOverlaysComponent {
+  readonly formatCurrency = formatCurrency;
+
   watchlistDialogMode = input<'create' | 'edit' | null>(null);
   watchlistNameDraft = input('');
   canCreateWatchlist = input(false);

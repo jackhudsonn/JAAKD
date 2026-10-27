@@ -11,6 +11,7 @@ describe('HoldingsCardComponent change display', () => {
   const asset: TradeMarketAsset = {
     symbol: 'AAPL',
     name: 'Apple',
+    currency: 'USD',
     instrumentType: 'equity',
     basePrice: 100,
   };

@@ -4,6 +4,9 @@ import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.
 import { startCycleTimer } from '@shared/utils/cycle-timer';
 import { DASHBOARD_MARKET_DATA_PORT } from '@features/dashboard/services/dashboard-market-data.port';
 import { DASHBOARD_STATE_PORT } from '@features/dashboard/services/dashboard-state.port';
+import type { CashCurrency } from '@core/models/api.models';
+import { REPORTING_CURRENCY } from '@core/models/api.models';
+import { formatCurrency } from '@shared/utils/display-format';
 
 type ValueMode = 'cash' | 'assets' | 'total';
 type ReturnsMode = 'allTime' | 'daily';
@@ -37,6 +40,8 @@ export class PortfolioValueWidgetComponent implements OnInit, OnDestroy {
   // TODO: replace with a live performance/analytics endpoint (all-time + daily P&L).
   private readonly returns = this.state.returns;
   private readonly backendDataMode = this.state.backendDataMode ?? false;
+  readonly formatCurrency = formatCurrency;
+  readonly reportingCurrency = REPORTING_CURRENCY;
 
   valueIndex = signal(0);
   valueFading = signal(false);
@@ -72,6 +77,30 @@ export class PortfolioValueWidgetComponent implements OnInit, OnDestroy {
     }
 
     return cash + assets;
+  }
+
+  get activeValueCurrency(): CashCurrency | null {
+    const mode = VALUE_MODES[this.valueIndex()].mode;
+    if (mode === 'cash') {
+      return REPORTING_CURRENCY;
+    }
+
+    const currencies = new Set(
+      this.state.holdings().map((holding) => {
+        const asset = this.marketData.getAsset(holding.symbol);
+        return holding.currency ?? asset?.currency ?? REPORTING_CURRENCY;
+      }),
+    );
+    if (currencies.size > 1) {
+      return null;
+    }
+
+    const [assetCurrency] = currencies;
+    if (mode === 'assets') {
+      return assetCurrency ?? REPORTING_CURRENCY;
+    }
+
+    return assetCurrency && assetCurrency !== REPORTING_CURRENCY ? null : REPORTING_CURRENCY;
   }
 
   get activeReturnsLabel() {

@@ -7,6 +7,7 @@ import { LineChartPoint } from '@shared/components/line-chart/line-chart.compone
 export interface MockAsset {
   symbol: string;
   name: string;
+  currency: 'USD';
   instrumentType: InstrumentType;
   basePrice: number;
   volatility: number;
@@ -14,6 +15,7 @@ export interface MockAsset {
 
 export interface MockMover {
   symbol: string;
+  currency: 'USD';
   changeAmount: number;
   changePct: number;
 }
@@ -28,12 +30,34 @@ export interface PerformancePoint {
 }
 
 export const MOCK_ASSETS: MockAsset[] = [
-  { symbol: 'BTC', name: 'Bitcoin', instrumentType: 'crypto', basePrice: 61_200, volatility: 0.05 },
-  { symbol: 'ETH', name: 'Ethereum', instrumentType: 'crypto', basePrice: 2_980, volatility: 0.06 },
-  { symbol: 'ADA', name: 'Cardano', instrumentType: 'crypto', basePrice: 0.42, volatility: 0.08 },
+  {
+    symbol: 'BTC',
+    name: 'Bitcoin',
+    currency: 'USD',
+    instrumentType: 'crypto',
+    basePrice: 61_200,
+    volatility: 0.05,
+  },
+  {
+    symbol: 'ETH',
+    name: 'Ethereum',
+    currency: 'USD',
+    instrumentType: 'crypto',
+    basePrice: 2_980,
+    volatility: 0.06,
+  },
+  {
+    symbol: 'ADA',
+    name: 'Cardano',
+    currency: 'USD',
+    instrumentType: 'crypto',
+    basePrice: 0.42,
+    volatility: 0.08,
+  },
   {
     symbol: 'NVDA',
     name: 'NVIDIA Corp.',
+    currency: 'USD',
     instrumentType: 'equity',
     basePrice: 118.6,
     volatility: 0.03,
@@ -41,6 +65,7 @@ export const MOCK_ASSETS: MockAsset[] = [
   {
     symbol: 'AMZN',
     name: 'Amazon.com Inc.',
+    currency: 'USD',
     instrumentType: 'equity',
     basePrice: 186.3,
     volatility: 0.02,
@@ -48,6 +73,7 @@ export const MOCK_ASSETS: MockAsset[] = [
   {
     symbol: 'IBM',
     name: 'IBM Corp.',
+    currency: 'USD',
     instrumentType: 'equity',
     basePrice: 231.4,
     volatility: 0.015,
@@ -55,6 +81,7 @@ export const MOCK_ASSETS: MockAsset[] = [
   {
     symbol: 'GOVT',
     name: 'US Treasury 10-20yr ETF',
+    currency: 'USD',
     instrumentType: 'etf',
     basePrice: 24.1,
     volatility: 0.005,
@@ -62,6 +89,7 @@ export const MOCK_ASSETS: MockAsset[] = [
   {
     symbol: 'BND',
     name: 'Total Market ETF',
+    currency: 'USD',
     instrumentType: 'etf',
     basePrice: 72.8,
     volatility: 0.004,
@@ -69,6 +97,7 @@ export const MOCK_ASSETS: MockAsset[] = [
   {
     symbol: 'IONQ',
     name: 'IonQ Inc.',
+    currency: 'USD',
     instrumentType: 'equity',
     basePrice: 18.75,
     volatility: 0.04,
@@ -76,19 +105,19 @@ export const MOCK_ASSETS: MockAsset[] = [
 ];
 
 export const MOCK_TOP_WINNERS: MockMover[] = [
-  { symbol: 'NVDA', changeAmount: 4.1, changePct: 3.58 },
-  { symbol: 'BTC', changeAmount: 1_842.0, changePct: 3.11 },
-  { symbol: 'IONQ', changeAmount: 0.97, changePct: 5.45 },
-  { symbol: 'AAPL', changeAmount: 2.5, changePct: 1.1 },
-  { symbol: 'TSLA', changeAmount: 3.2, changePct: 0.9 },
+  { symbol: 'NVDA', currency: 'USD', changeAmount: 4.1, changePct: 3.58 },
+  { symbol: 'BTC', currency: 'USD', changeAmount: 1_842.0, changePct: 3.11 },
+  { symbol: 'IONQ', currency: 'USD', changeAmount: 0.97, changePct: 5.45 },
+  { symbol: 'AAPL', currency: 'USD', changeAmount: 2.5, changePct: 1.1 },
+  { symbol: 'TSLA', currency: 'USD', changeAmount: 3.2, changePct: 0.9 },
 ];
 
 export const MOCK_TOP_LOSERS: MockMover[] = [
-  { symbol: 'MSFT', changeAmount: -1.75, changePct: -0.42 },
-  { symbol: 'AMD', changeAmount: -2.9, changePct: -2.14 },
-  { symbol: 'GOOGL', changeAmount: -5.1, changePct: -1.8 },
-  { symbol: 'AMZN', changeAmount: -3.2, changePct: -1.7 },
-  { symbol: 'PLTR', changeAmount: -5.8, changePct: -1.5 },
+  { symbol: 'MSFT', currency: 'USD', changeAmount: -1.75, changePct: -0.42 },
+  { symbol: 'AMD', currency: 'USD', changeAmount: -2.9, changePct: -2.14 },
+  { symbol: 'GOOGL', currency: 'USD', changeAmount: -5.1, changePct: -1.8 },
+  { symbol: 'AMZN', currency: 'USD', changeAmount: -3.2, changePct: -1.7 },
+  { symbol: 'PLTR', currency: 'USD', changeAmount: -5.8, changePct: -1.5 },
 ];
 
 export const MARKET_ORDER_PENDING_MS = 10_000;

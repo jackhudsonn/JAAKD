@@ -6,15 +6,18 @@
         <span class="asset-type">{{ asset()!.instrumentType | titlecase }}</span>
       }
       <div class="asset-price-group">
-        <span class="asset-price">{{ currentPrice() | number: '1.2-2' }}</span>
+        <span class="asset-price">{{
+          formatCurrency(currentPrice(), asset()?.currency ?? fallbackCurrency)
+        }}</span>
         <span
           class="asset-price-change"
           [class.positive]="isPositive() && !isFlat()"
           [class.negative]="!isPositive() && !isFlat()"
           [class.neutral]="isFlat()"
         >
-          {{ isPositive() && !isFlat() ? '+' : '' }}${{
-            (isFlat() ? 0 : changeAmount()) | number: '1.2-2'
+          {{ isPositive() && !isFlat() ? '+' : ''
+          }}{{
+            formatCurrency(isFlat() ? 0 : changeAmount(), asset()?.currency ?? fallbackCurrency)
           }}
           ({{ isPositive() && !isFlat() ? '+' : ''
           }}{{ (isFlat() ? 0 : changePct()) | number: '1.2-2' }}%)
@@ -92,6 +95,7 @@
       <div class="trade-view">
         <app-order-form
           [currentPrice]="currentPrice()"
+          [currency]="asset()?.currency ?? fallbackCurrency"
           [ownedQuantity]="ownedQuantity()"
           [accountCash]="accountCash()"
           [backendDataMode]="backendDataMode()"

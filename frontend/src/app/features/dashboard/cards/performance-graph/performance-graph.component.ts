@@ -7,6 +7,8 @@ import {
   DashboardPerformanceInterval,
 } from '@features/dashboard/services/dashboard-market-data.port';
 import { DASHBOARD_STATE_PORT } from '@features/dashboard/services/dashboard-state.port';
+import { formatCurrency } from '@shared/utils/display-format';
+import { REPORTING_CURRENCY } from '@core/models/api.models';
 
 @Component({
   selector: 'app-performance-graph-widget',
@@ -19,6 +21,8 @@ export class PerformanceGraphWidgetComponent {
   private readonly marketData = inject(DASHBOARD_MARKET_DATA_PORT);
   private readonly state = inject(DASHBOARD_STATE_PORT);
   readonly backendDataMode = this.state.backendDataMode ?? false;
+  readonly formatCurrency = formatCurrency;
+  readonly reportingCurrency = REPORTING_CURRENCY;
 
   intervals = this.marketData.performanceIntervals;
   selectedInterval = signal<DashboardPerformanceInterval>('1D');

@@ -38,7 +38,13 @@ describe('AssetPopupComponent', () => {
   }
 
   beforeEach(() => {
-    asset = { symbol: 'AAPL', name: 'Apple', instrumentType: 'equity', basePrice: 100 };
+    asset = {
+      symbol: 'AAPL',
+      name: 'Apple',
+      currency: 'USD',
+      instrumentType: 'equity',
+      basePrice: 100,
+    };
     price = 110;
     series = [];
   });
@@ -78,7 +84,13 @@ describe('AssetPopupComponent', () => {
   });
 
   it('is not flat when under a cent moves a cheap asset by a visible percent', () => {
-    asset = { symbol: 'ADA', name: 'Cardano', instrumentType: 'crypto', basePrice: 0.42 };
+    asset = {
+      symbol: 'ADA',
+      name: 'Cardano',
+      currency: 'USD',
+      instrumentType: 'crypto',
+      basePrice: 0.42,
+    };
     price = 0.424;
     create();
 

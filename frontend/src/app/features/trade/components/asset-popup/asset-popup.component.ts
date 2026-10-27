@@ -29,6 +29,8 @@ import {
 } from '@features/trade/services/trade-market-data.port';
 import { startCycleTimer } from '@shared/utils/cycle-timer';
 import { isFlatChange } from '@shared/utils/format-percentage-change';
+import { formatCurrency } from '@shared/utils/display-format';
+import { REPORTING_CURRENCY } from '@core/models/api.models';
 
 export type AssetOrderPlaced = OrderFormSubmit & { symbol: string };
 
@@ -86,6 +88,8 @@ export class AssetPopupComponent implements OnInit, OnDestroy {
   watchlistDropdownOpen = signal(false);
   activeView = signal<'analysis' | 'trade'>('analysis');
   intervals = this.marketData.performanceIntervals;
+  readonly formatCurrency = formatCurrency;
+  readonly fallbackCurrency = REPORTING_CURRENCY;
   selectedInterval = signal<TradeAssetPerformanceInterval>('1D');
 
   private priceTick = signal(0);

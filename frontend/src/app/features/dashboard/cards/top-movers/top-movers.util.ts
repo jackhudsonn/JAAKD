@@ -1,6 +1,6 @@
 import { LiveQuote } from '@features/dashboard/services/dashboard-backend.mappers';
 import { DashboardMover } from '@features/dashboard/services/dashboard-market-data.port';
-import { toDisplaySymbol } from '@shared/utils/display-symbol';
+import { toDisplaySymbol } from '@shared/utils/display-format';
 
 export const TOP_MOVERS_LIMIT = 5;
 
@@ -30,6 +30,7 @@ export function toTopMovers(
     if (!bySymbol.has(symbol)) {
       bySymbol.set(symbol, {
         symbol,
+        currency: quote.currency,
         changeAmount: toChangeAmount(quote.price, changePct),
         changePct,
       });
