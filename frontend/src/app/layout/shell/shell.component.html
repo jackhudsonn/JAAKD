@@ -17,7 +17,7 @@
           </span>
 
           <span class="ticker-value">
-            {{ item.price | number: '1.2-2' }}
+            {{ formatCurrency(item.price, item.currency) }}
           </span>
 
           @if (item.changePct === null) {

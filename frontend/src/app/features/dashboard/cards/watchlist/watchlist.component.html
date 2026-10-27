@@ -44,14 +44,14 @@
     <ng-template let-row>
       <button type="button" class="listing-row" (click)="requestAssetDetails(row.symbol)">
         <div class="watchlist-info">
-          <span class="symbol">{{ row.symbol }}</span>
+          <span class="symbol">{{ row.symbol | displaySymbol }}</span>
           <span class="name">{{ row.name }}</span>
         </div>
         <div class="price-stack">
           @if (row.price === null) {
             <span class="price">Price unavailable</span>
           } @else {
-            <span class="price">{{ row.price | number: '1.2-2' }}</span>
+            <span class="price">{{ formatCurrency(row.price, row.currency) }}</span>
           }
 
           @if (row.changePct !== null) {

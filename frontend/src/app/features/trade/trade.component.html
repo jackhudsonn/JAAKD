@@ -34,13 +34,13 @@
     <button type="button" class="btn btn-secondary" (click)="retryLoad()">Retry</button>
   } @else {
     <section class="trade-grid">
-      <app-trade-card (selectSymbol)="openAsset($event, false)" />
+      <app-trade-card (selectSymbol)="openAsset($event)" />
 
       <app-holdings-card
         [holdings]="holdings()"
         [accountCash]="accountCash()"
         [cashBalances]="cashBalances()"
-        (selectSymbol)="openAsset($event, false)"
+        (selectSymbol)="openAsset($event)"
       />
 
       <app-trade-history
@@ -54,7 +54,6 @@
   @if (activeAssetSymbol(); as symbol) {
     <app-asset-popup
       [symbol]="symbol"
-      [showChart]="activeAssetShowChart()"
       [ownedQuantity]="activeAssetOwnedQuantity()"
       [accountCash]="accountCash()"
       [backendDataMode]="backendDataMode"

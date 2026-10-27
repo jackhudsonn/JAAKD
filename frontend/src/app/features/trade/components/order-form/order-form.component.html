@@ -60,7 +60,7 @@
 
   @if (kind() === 'limit') {
     <div class="form-field">
-      <label for="order-limit-price">Limit Price</label>
+      <label for="order-limit-price">Limit Price ({{ currency() }})</label>
       <input
         id="order-limit-price"
         type="number"
@@ -80,21 +80,40 @@
   <div class="order-preview">
     <div class="order-preview-row">
       <span>{{ preview().label }}</span>
-      <span class="order-preview-value">{{ (preview().total | currency: 'USD') ?? '-' }}</span>
+      <span class="order-preview-value">
+        {{ preview().total === null ? '-' : formatCurrency(preview().total!, currency()) }}
+      </span>
     </div>
     <div class="order-preview-row">
       <span>Cash after order</span>
-      <span class="order-preview-value">{{ (preview().cashAfter | currency: 'USD') ?? '-' }}</span>
-    </div>
-    <p class="order-hint">
-      @if (type() === 'buy') {
-        Max affordable: {{ maxBuyQuantity() | number: '1.0-6' }} share(s)
+      @if (canPreviewCashImpact) {
+        <span class="order-preview-value">
+          {{
+            preview().cashAfter === null
+              ? '-'
+              : formatCurrency(preview().cashAfter!, reportingCurrency)
+          }}
+        </span>
       } @else {
-        Owned: {{ ownedQuantity() | number: '1.0-6' }} share(s)
+        <span class="order-preview-value">Unavailable</span>
       }
-    </p>
-    <p class="order-hint">Final price is the live quote at execution.</p>
+    </div>
+    <div class="order-preview-row">
+      <span>Max affordable</span>
+      @if (type() === 'buy') {
+        <span class="order-preview-value">
+          @if (canPreviewCashImpact) {
+            {{ maxBuyQuantity() | number: '1.0-6' }} share(s)
+          } @else {
+            Unavailable
+          }
+        </span>
+      } @else {
+        <span class="order-preview-value">{{ ownedQuantity() | number: '1.0-6' }} share(s)</span>
+      }
+    </div>
   </div>
+  <p class="order-hint">Final price is the live quote at execution.</p>
 
   <div class="form-actions" [class.with-back]="showBackButton()">
     @if (showBackButton()) {

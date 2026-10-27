@@ -6,7 +6,6 @@ import {
 } from '@core/models/api.models';
 import {
   toCash,
-  toDisplaySymbol,
   toHoldings,
   toInstrumentType,
   toLatestPriceBySymbol,
@@ -26,6 +25,7 @@ const EQUITY_INSTRUMENT: InstrumentResponse = {
   market: 'NASDAQ',
   name: 'Apple Inc.',
   instrumentClass: 'EQUITY',
+  tradingCurrency: 'USD',
   logoUrl: null,
   description: null,
 };
@@ -36,6 +36,7 @@ const SECOND_EQUITY_INSTRUMENT: InstrumentResponse = {
   market: 'NASDAQ',
   name: 'Microsoft Corp.',
   instrumentClass: 'EQUITY',
+  tradingCurrency: 'USD',
   logoUrl: null,
   description: null,
 };
@@ -46,6 +47,7 @@ const ETF_INSTRUMENT: InstrumentResponse = {
   market: 'NASDAQ',
   name: 'Vanguard Aggregate ETF',
   instrumentClass: 'ETF',
+  tradingCurrency: 'USD',
   logoUrl: null,
   description: null,
 };
@@ -56,6 +58,7 @@ const CASH_INSTRUMENT: InstrumentResponse = {
   market: 'CASH',
   name: 'US Dollar',
   instrumentClass: 'CASH',
+  tradingCurrency: 'USD',
   logoUrl: null,
   description: null,
 };
@@ -526,12 +529,13 @@ describe('dashboard-backend.mappers', () => {
       symbol: string,
       price: number | null,
       changePercent: number | null = null,
+      currency = 'USD',
     ): QuoteResponse => ({
       symbol,
       price,
       bid: null,
       ask: null,
-      currency: 'USD',
+      currency,
       asOf: null,
       marketState: null,
       changePercent,
@@ -594,12 +598,6 @@ describe('dashboard-backend.mappers', () => {
       expect(prices.get('X:BTC-USD')).toBe(61200);
     });
 
-    it('toDisplaySymbol shows crypto without the Fauxnance prefix', () => {
-      expect(toDisplaySymbol('X:BTC-USD')).toBe('BTC');
-      expect(toDisplaySymbol('AAPL')).toBe('AAPL');
-      expect(toDisplaySymbol('FX:EURUSD')).toBe('FX:EURUSD');
-    });
-
     it('toQuotePriceBySymbol keeps only positive prices', () => {
       const prices = toQuotePriceBySymbol([
         quote('aapl', 190),
@@ -619,8 +617,16 @@ describe('dashboard-backend.mappers', () => {
         quote('MSFT', null, 0.5),
       ]);
 
-      expect(liveQuotes.get('NVDA')).toEqual({ price: 118.6, changePct: 1.84 });
-      expect(liveQuotes.get('BTC')).toEqual({ price: 61200, changePct: null });
+      expect(liveQuotes.get('NVDA')).toEqual({
+        price: 118.6,
+        changePct: 1.84,
+        currency: 'USD',
+      });
+      expect(liveQuotes.get('BTC')).toEqual({
+        price: 61200,
+        changePct: null,
+        currency: 'USD',
+      });
       expect(liveQuotes.has('MSFT')).toBe(false);
     });
 
@@ -628,6 +634,12 @@ describe('dashboard-backend.mappers', () => {
       const liveQuotes = toLiveQuoteBySymbol([quote('AAPL', 190, -0.003)]);
 
       expect(Object.is(liveQuotes.get('AAPL')?.changePct, 0)).toBe(true);
+    });
+
+    it('preserves a supported non-USD quote currency', () => {
+      const liveQuotes = toLiveQuoteBySymbol([quote('RELIANCE.NS', 2500, 1.2, 'INR')]);
+
+      expect(liveQuotes.get('RELIANCE.NS')?.currency).toBe('INR');
     });
 
     it('toPriceResolver reads prices case-insensitively', () => {

@@ -1,7 +1,14 @@
-import { LiveQuote, toDisplaySymbol } from '@features/dashboard/services/dashboard-backend.mappers';
-import { DashboardMover } from '@features/dashboard/services/dashboard-market-data.port';
+import { LiveQuote } from '@features/dashboard/services/dashboard-backend.mappers';
+import { toDisplaySymbol } from '@shared/utils/display-format';
 
 export const TOP_MOVERS_LIMIT = 5;
+
+export interface TopMover {
+  symbol: string;
+  currency: LiveQuote['currency'];
+  changeAmount: number;
+  changePct: number;
+}
 
 // Quotes only carry a percent change, so the amount is worked back from the previous close.
 export function toChangeAmount(price: number, changePct: number): number {
@@ -12,9 +19,9 @@ export function toTopMovers(
   liveQuotes: ReadonlyMap<string, LiveQuote>,
   positive: boolean,
   limit = TOP_MOVERS_LIMIT,
-): DashboardMover[] {
+): TopMover[] {
   // Crypto quotes are filed under both "BTC" and "X:BTC-USD"; keep one row per display symbol.
-  const bySymbol = new Map<string, DashboardMover>();
+  const bySymbol = new Map<string, TopMover>();
 
   for (const [key, quote] of liveQuotes) {
     const changePct = quote.changePct;
@@ -29,6 +36,7 @@ export function toTopMovers(
     if (!bySymbol.has(symbol)) {
       bySymbol.set(symbol, {
         symbol,
+        currency: quote.currency,
         changeAmount: toChangeAmount(quote.price, changePct),
         changePct,
       });

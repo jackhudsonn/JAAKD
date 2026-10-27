@@ -18,8 +18,10 @@
           >
             {{ row.order.type | titlecase }}
           </span>
-          <span class="order-symbol">{{ row.order.symbol }}</span>
-          <span class="order-method">{{ row.order.quantity }} {{ row.order.quantity === 1 ? "share" : "shares" }}</span>
+          <span class="order-symbol">{{ row.order.symbol | displaySymbol }}</span>
+          <span class="order-method"
+            >{{ row.order.quantity }} {{ row.order.quantity === 1 ? 'share' : 'shares' }}</span
+          >
         } @else {
           <span
             class="order-type"

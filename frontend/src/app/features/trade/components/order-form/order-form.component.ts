@@ -1,9 +1,12 @@
-import { CurrencyPipe, DecimalPipe } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import { Component, computed, effect, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { OrderKind, OrderType } from '@core/models';
+import type { CashCurrency } from '@core/models/api.models';
+import { REPORTING_CURRENCY } from '@core/models/api.models';
 import { ToastService } from '@shared/components/toast/toast.service';
 import { floorToQuantityDecimals, isValidQuantity, toOrderPreview } from './order-preview.util';
+import { formatCurrency } from '@shared/utils/display-format';
 
 export interface OrderFormSubmit {
   kind: OrderKind;
@@ -19,7 +22,7 @@ export interface OrderFormSubmit {
 @Component({
   selector: 'app-order-form',
   standalone: true,
-  imports: [FormsModule, CurrencyPipe, DecimalPipe],
+  imports: [FormsModule, DecimalPipe],
   templateUrl: './order-form.component.html',
   styleUrl: './order-form.component.css',
 })
@@ -27,6 +30,7 @@ export class OrderFormComponent {
   private readonly toastService = inject(ToastService);
 
   currentPrice = input.required<number>();
+  currency = input<CashCurrency>(REPORTING_CURRENCY);
   ownedQuantity = input(0);
   accountCash = input(0);
   backendDataMode = input(false);
@@ -35,6 +39,8 @@ export class OrderFormComponent {
 
   placed = output<OrderFormSubmit>();
   backPressed = output<void>();
+  readonly formatCurrency = formatCurrency;
+  readonly reportingCurrency = REPORTING_CURRENCY;
 
   type = signal<OrderType>('buy');
   kind = signal<OrderKind>('market');
@@ -93,6 +99,7 @@ export class OrderFormComponent {
 
     if (
       !backendPriceUnavailableForBuy &&
+      this.currency() === REPORTING_CURRENCY &&
       this.type() === 'buy' &&
       quantity > this.maxBuyQuantity()
     ) {
@@ -101,6 +108,10 @@ export class OrderFormComponent {
 
     return '';
   });
+
+  get canPreviewCashImpact() {
+    return this.currency() === REPORTING_CURRENCY;
+  }
 
   setType(type: OrderType) {
     if (type === 'sell' && !this.canSell()) {

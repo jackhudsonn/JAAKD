@@ -1,24 +1,35 @@
-<app-modal [title]="asset()?.name ?? symbol()" (closed)="closed.emit()">
+<app-modal [title]="asset()?.name ?? (symbol() | displaySymbol)" (closed)="closed.emit()">
   <div class="asset-popup">
     <div class="asset-header">
-      <span class="asset-symbol">{{ symbol() }}</span>
+      <span class="asset-symbol">{{ symbol() | displaySymbol }}</span>
       @if (asset()) {
         <span class="asset-type">{{ asset()!.instrumentType | titlecase }}</span>
       }
       <div class="asset-price-group">
-        <span class="asset-price">{{ currentPrice() | number: '1.2-2' }}</span>
-        <span
-          class="asset-price-change"
-          [class.positive]="isPositive() && !isFlat()"
-          [class.negative]="!isPositive() && !isFlat()"
-          [class.neutral]="isFlat()"
-        >
-          {{ isPositive() && !isFlat() ? '+' : '' }}${{
-            (isFlat() ? 0 : changeAmount()) | number: '1.2-2'
-          }}
-          ({{ isPositive() && !isFlat() ? '+' : ''
-          }}{{ (isFlat() ? 0 : changePct()) | number: '1.2-2' }}%)
-        </span>
+        @if (currentPrice() === null) {
+          <span class="asset-price">Price unavailable</span>
+        } @else {
+          <span class="asset-price">{{
+            formatCurrency(currentPrice()!, asset()?.currency ?? fallbackCurrency)
+          }}</span>
+          @if (hasPriceChange()) {
+            <span
+              class="asset-price-change"
+              [class.positive]="isPositive() && !isFlat()"
+              [class.negative]="!isPositive() && !isFlat()"
+              [class.neutral]="isFlat()"
+            >
+              {{ isPositive() && !isFlat() ? '+' : ''
+              }}{{
+                formatCurrency(isFlat() ? 0 : changeAmount(), asset()?.currency ?? fallbackCurrency)
+              }}
+              ({{ isPositive() && !isFlat() ? '+' : ''
+              }}{{ (isFlat() ? 0 : changePct()) | number: '1.2-2' }}%)
+            </span>
+          } @else {
+            <span class="asset-price-change">Change unavailable</span>
+          }
+        }
       </div>
     </div>
 
@@ -32,7 +43,10 @@
             [attr.aria-expanded]="watchlistDropdownOpen()"
             aria-label="Toggle watchlist selector"
           >
-            <span>{{ symbol() }} is in {{ watchlistMembershipCount() }} watchlist(s)</span>
+            <span
+              >{{ symbol() | displaySymbol }} is in
+              {{ watchlistMembershipCount() }} watchlist(s)</span
+            >
             <span class="watchlist-selector-chevron" [class.open]="watchlistDropdownOpen()">▾</span>
           </button>
 
@@ -66,29 +80,17 @@
         </div>
       }
       <div class="analysis-view">
-        <app-line-chart [points]="performanceSeries()" [positive]="isPositive()" />
-
-        <div class="interval-tabs" aria-label="Performance interval">
-          @for (interval of intervals; track interval.id) {
-            <button
-              type="button"
-              class="interval-tab"
-              [class.active]="selectedInterval() === interval.id"
-              (click)="selectInterval(interval.id)"
-            >
-              {{ interval.label }}
-            </button>
-          }
-        </div>
+        <p class="unavailable-note">Performance history isn't available yet.</p>
 
         <button type="button" class="btn btn-primary trade-cta" (click)="openTradeView()">
-          Trade {{ symbol() }}
+          Trade {{ symbol() | displaySymbol }}
         </button>
       </div>
     } @else {
       <div class="trade-view">
         <app-order-form
-          [currentPrice]="currentPrice()"
+          [currentPrice]="currentPrice() ?? 0"
+          [currency]="asset()?.currency ?? fallbackCurrency"
           [ownedQuantity]="ownedQuantity()"
           [accountCash]="accountCash()"
           [backendDataMode]="backendDataMode()"

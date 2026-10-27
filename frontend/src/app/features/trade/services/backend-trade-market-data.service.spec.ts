@@ -101,15 +101,17 @@ describe('BackendTradeMarketDataService', () => {
     liveQuoteBySymbolData.set(toLiveQuoteBySymbol([quote('AAPL', 123.45, 10)]));
 
     const aapl = service.getAsset('AAPL')!;
+    const basePrice = aapl.basePrice;
 
-    expect(aapl.basePrice).toBeCloseTo(123.45 / 1.1, 6);
-    expect(((123.45 - aapl.basePrice) / aapl.basePrice) * 100).toBeCloseTo(10, 6);
+    expect(basePrice).not.toBeNull();
+    expect(basePrice!).toBeCloseTo(123.45 / 1.1, 6);
+    expect(((123.45 - basePrice!) / basePrice!) * 100).toBeCloseTo(10, 6);
   });
 
   it('finds crypto quotes filed as X:BTC-USD by the plain ticker', () => {
     liveQuoteBySymbolData.set(toLiveQuoteBySymbol([quote('X:BTC-USD', 60000, -4)]));
 
-    expect(service.getAsset('BTC')!.basePrice).toBeCloseTo(60000 / 0.96, 6);
+    expect(service.getAsset('BTC')!.basePrice!).toBeCloseTo(60000 / 0.96, 6);
   });
 
   it('keeps the price as base when the change percent is null or zero', () => {
@@ -128,12 +130,8 @@ describe('BackendTradeMarketDataService', () => {
     expect(service.getAsset('MSFT')).toBeUndefined();
   });
 
-  it('returns latest backend price or zero', () => {
+  it('returns the latest backend price or null when unavailable', () => {
     expect(service.getPrice('AAPL')).toBe(123.45);
-    expect(service.getPrice('MSFT')).toBe(0);
-  });
-
-  it('returns empty performance series', () => {
-    expect(service.getPerformanceSeries('AAPL', '1D')).toEqual([]);
+    expect(service.getPrice('MSFT')).toBeNull();
   });
 });

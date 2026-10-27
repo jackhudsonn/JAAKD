@@ -6,6 +6,7 @@ import { Order, Transaction } from '@core/models';
 import { DASHBOARD_STATE_PORT } from '@features/dashboard/services/dashboard-state.port';
 import { ScrollableListComponent } from '@shared/components/scrollable-list/scrollable-list.component';
 import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
+import { DisplaySymbolPipe } from '@shared/pipes/display-symbol.pipe';
 import { formatLabel } from '@shared/utils/format-label';
 
 type PendingOrderRow =
@@ -15,7 +16,14 @@ type PendingOrderRow =
 @Component({
   selector: 'app-open-orders-widget',
   standalone: true,
-  imports: [WidgetCardComponent, ScrollableListComponent, CurrencyPipe, DatePipe, TitleCasePipe],
+  imports: [
+    WidgetCardComponent,
+    ScrollableListComponent,
+    CurrencyPipe,
+    DatePipe,
+    TitleCasePipe,
+    DisplaySymbolPipe,
+  ],
   templateUrl: './open-orders.component.html',
   styleUrl: './open-orders.component.css',
 })

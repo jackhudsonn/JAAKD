@@ -1,0 +1,72 @@
+"instrumentID","ticker","market","name","instrumentClass","tradingCurrency","logoUrl","description"
+"002076f0-f1bb-49e7-8398-c12c2f63ca73","AMZN","US","Amazon","EQUITY","USD",NULL,NULL
+"00625925-93ea-4169-a276-2a64712b3ca4","COST","US","Costco","EQUITY","USD",NULL,NULL
+"09165379-7cdc-44f0-b235-b340ad88fd7e","FBND","NYSEArca","Fidelity Total Bond ETF","ETF","USD",NULL,NULL
+"14ca546d-d512-4800-940f-bbb307924b09","NFLX","US","Netflix","EQUITY","USD",NULL,NULL
+"1547805c-9e55-4b18-83d3-aeb385b01dbb","PLTR","US","Palantir Technologies","EQUITY","USD",NULL,NULL
+"1bfb56bb-a6c9-4b04-8c0a-23b3a4fdb825","NVDA","US","Nvidia","EQUITY","USD",NULL,NULL
+"1d950ebc-5f2c-4d7a-9966-0c81f40b2f9b","HD","US","Home Depot (The)","EQUITY","USD",NULL,NULL
+"219ff0b5-1aac-494d-b90f-fbd617f7a99e","CVX","US","Chevron Corporation","EQUITY","USD",NULL,NULL
+"284537db-504e-4a9c-9156-df3fe3194f11","MS","US","Morgan Stanley","EQUITY","USD",NULL,NULL
+"2c39e97f-6d03-413f-8cf7-548939205918","BRK.B","US","Berkshire Hathaway","EQUITY","USD",NULL,NULL
+"2f77b6ab-364c-45d1-a67b-b28ff305e148","AMAT","US","Applied Materials","EQUITY","USD",NULL,NULL
+"33c5aaa8-8a94-45df-b7fd-aeba80d83276","JNJ","US","Johnson & Johnson","EQUITY","USD",NULL,NULL
+"375f7868-a67f-4da8-b994-d42cac5d4a86","GBP","INTERNAL","Great British Pound","CASH","GBP",NULL,"Seeded cash instrument for GBP."
+"3a95b896-7db1-4138-8489-369f7898f173","IBM","US","IBM","EQUITY","USD",NULL,NULL
+"3ee4264a-2ac5-4432-a65a-e77ac58dffa8","AMD","US","Advanced Micro Devices","EQUITY","USD",NULL,NULL
+"40a49bbc-62e0-4b00-82fb-fb8d45900977","X:ETH-USD","CRYPTO","Ethereum","CRYPTO","USD",NULL,NULL
+"41555876-ae17-45e6-bdff-26695193b8aa","V","US","Visa Inc.","EQUITY","USD",NULL,NULL
+"427eee4e-cd3a-4207-8ff1-3b6adf5a7ee5","LRCX","US","Lam Research","EQUITY","USD",NULL,NULL
+"47fa7b11-f39a-4644-a8be-8f900abd2fee","TSLA","US","Tesla, Inc.","EQUITY","USD",NULL,NULL
+"49cdb813-c952-446d-b318-cb5ace4ead78","RTX","US","RTX Corporation","EQUITY","USD",NULL,NULL
+"4a22f594-dae5-422f-b7f6-208e68ec548d","CSCO","US","Cisco","EQUITY","USD",NULL,NULL
+"4acb564b-a530-4b5e-825e-1ae465b20621","XOM","US","ExxonMobil","EQUITY","USD",NULL,NULL
+"4edef268-34e9-4adc-bd68-5d259064d01e","GE","US","GE Aerospace","EQUITY","USD",NULL,NULL
+"4fb40107-45d0-4b01-a586-edec671a79a8","DOW","US","Dow Inc.","EQUITY","USD",NULL,NULL
+"551aa33c-bc6a-4b0c-970e-8e40dbc8f167","TMO","US","Thermo Fisher Scientific","EQUITY","USD",NULL,NULL
+"56dfe53f-5d1b-4453-8fb4-428febb2980a","AMGN","US","Amgen","EQUITY","USD",NULL,NULL
+"59fc8a8d-90ef-4f21-9d81-55b114fbe199","GS","US","Goldman Sachs","EQUITY","USD",NULL,NULL
+"5f91a887-4b2d-412a-9fdb-5cba1412de8d","MSFT","US","Microsoft","EQUITY","USD",NULL,NULL
+"63285939-79c8-4a9f-8b81-dfd99a623af7","USD","INTERNAL","United States Dollar","CASH","USD",NULL,"Seeded cash instrument for USD."
+"6c0bbede-570a-44b0-ba5e-037087656b6f","WFC","US","Wells Fargo","EQUITY","USD",NULL,NULL
+"71614c51-1279-4da4-a744-7ed3d7ae334a","WMT","US","Walmart","EQUITY","USD",NULL,NULL
+"722d952d-743f-4a88-a0f1-d35826f8cb1e","ABBV","US","AbbVie","EQUITY","USD",NULL,NULL
+"735a9d0d-5dbe-4e9d-b427-0f2726fa3957","AVGO","US","Broadcom","EQUITY","USD",NULL,NULL
+"7d883caa-8584-4791-8c92-3cf56f28cf0a","VOO","NYSEArca","Vanguard S&P 500 ETF","ETF","USD",NULL,NULL
+"7dd00d35-ce7e-4eb9-925b-72fb14c52bfc","SBIN.NS","NSE","State Bank of India","EQUITY","INR",NULL,NULL
+"80eb6df1-79a3-4f4d-8f3c-19e0f8d62c40","X:DOGE-INR","CRYPTO","Dogecoin INR","CRYPTO","INR",NULL,NULL
+"8190e8e8-f8d5-4491-9dae-7275c0f3f1c4","MA","US","Mastercard","EQUITY","USD",NULL,NULL
+"829547a6-e7ae-4c85-b189-6166a50f0337","LLY","US","Lilly (Eli)","EQUITY","USD",NULL,NULL
+"88222a63-9672-490d-8816-bf0f10b05eb3","X:ETH-INR","CRYPTO","Ethereum INR","CRYPTO","INR",NULL,NULL
+"8a0c3d00-3dee-4316-8c57-bc93dc247d74","GOOG","US","Alphabet Inc. (Class C)","EQUITY","USD",NULL,NULL
+"8a23370b-5f82-4982-91ad-497376509386","X:BTC-INR","CRYPTO","Bitcoin INR","CRYPTO","INR",NULL,NULL
+"8c7e71bb-64be-487e-bac1-07066b394a4f","FBTC","Cboe US","Fidelity Wise Origin Bitcoin Fund","ETF","USD",NULL,NULL
+"8d2881d0-37ac-48f0-a9ee-d1b6bd9731f3","ORCL","US","Oracle Corporation","EQUITY","USD",NULL,NULL
+"8dea5dec-440c-40e9-95b4-0e5f2b15e567","SPY","NYSE ARCA","SPDR S&P 500 ETF Trust","ETF","USD",NULL,NULL
+"924525e7-6fef-4716-bd68-c867f61c86b7","AAPL","US","Apple Inc.","EQUITY","USD",NULL,NULL
+"9384564b-f1a2-4603-b3aa-a551c416170d","DELL","US","Dell Technologies","EQUITY","USD",NULL,NULL
+"972f03f5-38be-4417-bf99-74d8244bc28a","LIN","US","Linde plc","EQUITY","USD",NULL,NULL
+"9d979cdd-5ef0-4221-8588-3cb764709c31","JPM","US","JPMorgan Chase","EQUITY","USD",NULL,NULL
+"9fd5113e-cc93-4ea5-8f5d-36e8249b44bc","KO","US","Coca-Cola Company (The)","EQUITY","USD",NULL,NULL
+"a44530df-c979-4cca-9dde-a8171bd86074","X:DOGE-USD","CRYPTO","Dogecoin","CRYPTO","USD",NULL,NULL
+"aa46003d-332b-4d56-b22f-3979d73befef","PANW","US","Palo Alto Networks","EQUITY","USD",NULL,NULL
+"b05bd3e4-9fde-49bb-8bf1-78060932970d","CRWD","US","CrowdStrike","EQUITY","USD",NULL,NULL
+"b0c1400b-d9cb-4171-b162-a2b49b53cac1","FELC","NYSEArca","Fidelity Enhanced Large Cap Core ETF","ETF","USD",NULL,NULL
+"b62dd5dc-173c-4b6e-9cac-c2c116b2610c","MRK","US","Merck & Co.","EQUITY","USD",NULL,NULL
+"ba96d1fc-2c93-402c-bd30-3c9a2ea4f086","CAT","US","Caterpillar Inc.","EQUITY","USD",NULL,NULL
+"bf78144a-bd9f-4e53-9d8a-6e096d98a484","FFLG","Cboe US","Fidelity Covington Trust - Fidelity Fundamental Large Cap Growth ETF","ETF","USD",NULL,NULL
+"c399240b-9b85-4c2f-a460-14d2dc150482","BAC","US","Bank of America","EQUITY","USD",NULL,NULL
+"c5758ebb-7909-4535-853e-b224b33ad96e","UNH","US","UnitedHealth Group","EQUITY","USD",NULL,NULL
+"c9f5f57e-1154-46e7-8b53-7eea88b193ff","MU","US","Micron Technology","EQUITY","USD",NULL,NULL
+"ccb52ce9-328a-471e-b27f-aadbdfd56cdb","TXN","US","Texas Instruments","EQUITY","USD",NULL,NULL
+"ccdb0130-a946-4cfb-99eb-5106ff891b06","GOOGL","US","Alphabet Inc. (Class A)","EQUITY","USD",NULL,NULL
+"d253accc-f416-4b5d-9596-153bddb5b1f4","INR","INTERNAL","Indian Rupee","CASH","INR",NULL,"Seeded cash instrument for INR."
+"d3b26d45-a0cb-45e5-a498-c2ae0f7ffc37","PM","US","Philip Morris International","EQUITY","USD",NULL,NULL
+"d9888ed1-70f7-4242-8672-dfd659bb0a18","X:BTC-USD","CRYPTO","Bitcoin","CRYPTO","USD",NULL,NULL
+"e1fddc68-b48e-4803-b066-c0c7264e9aab","TCS.NS","NSE","Tata Consultancy Services Limited","EQUITY","INR",NULL,NULL
+"e33cf97a-fa8a-40c7-b94f-7c4832ce38fc","PG","US","Procter & Gamble","EQUITY","USD",NULL,NULL
+"e3b4785e-6bcb-414c-80db-4e092de34c7f","INTC","US","Intel","EQUITY","USD",NULL,NULL
+"e47cd253-ff85-4cbf-98b8-9a73fd00ca1e","INFY.NS","NSE","Infosys Limited","EQUITY","INR",NULL,NULL
+"ec5127a1-0e80-4c55-b486-029f6eb250bf","META","US","Meta Platforms","EQUITY","USD",NULL,NULL
+"fd7a8c33-d20f-4c8f-955d-6690988d1f45","EUR","INTERNAL","Euro","CASH","EUR",NULL,"Seeded cash instrument for EUR."
+"fde9be39-cae3-48d5-9934-c23460ed645c","RELIANCE.NS","NSE","Reliance Industries Limited","EQUITY","INR",NULL,NULL

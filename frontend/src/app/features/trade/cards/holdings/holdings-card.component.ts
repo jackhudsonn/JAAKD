@@ -1,40 +1,34 @@
-import {
-  Component,
-  OnDestroy,
-  OnInit,
-  computed,
-  inject,
-  input,
-  output,
-  signal,
-} from '@angular/core';
+import { Component, computed, inject, input, output, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
 import { ScrollableListComponent } from '@shared/components/scrollable-list/scrollable-list.component';
-import { startCycleTimer } from '@shared/utils/cycle-timer';
+import { DisplaySymbolPipe } from '@shared/pipes/display-symbol.pipe';
 import { Holding, InstrumentType } from '@core/models';
 import { CASH_CURRENCIES } from '@core/models/api.models';
+import type { CashCurrency } from '@core/models/api.models';
 import { TRADE_MARKET_DATA_PORT } from '@features/trade/services/trade-market-data.port';
 import { isFlatChange } from '@shared/utils/format-percentage-change';
+import { formatCurrency } from '@shared/utils/display-format';
 
 type HoldingsRow =
-  | { kind: 'cash'; currency: string; amount: number }
+  | { kind: 'cash'; currency: CashCurrency; amount: number }
   | {
       kind: 'holding';
       holding: Holding;
-      price: number;
-      marketValue: number;
-      changePct: number;
+      price: number | null;
+      marketValue: number | null;
+      changePct: number | null;
       flat: boolean;
       name: string;
+      currency: CashCurrency;
     };
 
 type HoldingsFilter = InstrumentType | 'all' | 'cash';
 
 interface CashBalance {
-  currency: string;
+  currency: CashCurrency;
   amount: number;
 }
 
@@ -49,11 +43,17 @@ const HOLDINGS_FILTER_OPTIONS: { id: HoldingsFilter; label: string }[] = [
 @Component({
   selector: 'app-holdings-card',
   standalone: true,
-  imports: [WidgetCardComponent, ScrollableListComponent, FormsModule, DecimalPipe],
+  imports: [
+    WidgetCardComponent,
+    ScrollableListComponent,
+    FormsModule,
+    DecimalPipe,
+    DisplaySymbolPipe,
+  ],
   templateUrl: './holdings-card.component.html',
   styleUrl: './holdings-card.component.css',
 })
-export class HoldingsCardComponent implements OnInit, OnDestroy {
+export class HoldingsCardComponent {
   private readonly marketData = inject(TRADE_MARKET_DATA_PORT);
   private readonly cashDisplayOrder: readonly string[] = CASH_CURRENCIES;
 
@@ -70,14 +70,11 @@ export class HoldingsCardComponent implements OnInit, OnDestroy {
 
   filterOptions = HOLDINGS_FILTER_OPTIONS;
   instrument = signal<HoldingsFilter>('all');
-
-  private priceTick = signal(0);
-  private stopTicking?: () => void;
+  readonly formatCurrency = formatCurrency;
 
   constructor(private router: Router) {}
 
   rows = computed<HoldingsRow[]>(() => {
-    this.priceTick();
     const selectedFilter = this.instrument();
     const rows: HoldingsRow[] = [];
 
@@ -98,15 +95,20 @@ export class HoldingsCardComponent implements OnInit, OnDestroy {
       const price = this.marketData.getPrice(holding.symbol);
       const asset = this.marketData.getAsset(holding.symbol);
       const basePrice = asset?.basePrice ?? price;
-      const changePct = ((price - basePrice) / basePrice) * 100;
+      const currentPrice = holding.indicativePrice ?? price;
+      const changePct =
+        currentPrice !== null && basePrice !== null && basePrice > 0
+          ? ((currentPrice - basePrice) / basePrice) * 100
+          : null;
       rows.push({
         kind: 'holding',
         holding,
-        price,
-        marketValue: price * holding.quantity,
+        price: currentPrice,
+        marketValue: currentPrice === null ? null : currentPrice * holding.quantity,
         changePct,
-        flat: isFlatChange(changePct),
+        flat: changePct === null || isFlatChange(changePct),
         name: asset?.name ?? holding.symbol,
+        currency: asset?.currency ?? holding.currency ?? 'USD',
       });
     }
 
@@ -127,8 +129,11 @@ export class HoldingsCardComponent implements OnInit, OnDestroy {
           ];
 
     return balances
+      .flatMap(({ currency, amount }) => {
+        const supportedCurrency = CASH_CURRENCIES.find((entry) => entry === currency);
+        return supportedCurrency ? [{ currency: supportedCurrency, amount }] : [];
+      })
       .filter(({ amount }) => Math.abs(amount) > Number.EPSILON)
-      .slice()
       .sort((left, right) => this.compareCashBalances(left, right));
   }
 
@@ -155,13 +160,5 @@ export class HoldingsCardComponent implements OnInit, OnDestroy {
 
   goToTransact() {
     this.router.navigate(['/transact']);
-  }
-
-  ngOnInit() {
-    this.stopTicking = startCycleTimer(1, 1000, () => this.priceTick.update((tick) => tick + 1));
-  }
-
-  ngOnDestroy() {
-    this.stopTicking?.();
   }
 }

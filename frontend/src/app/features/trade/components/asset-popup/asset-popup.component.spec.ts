@@ -1,5 +1,4 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { LineChartPoint } from '@shared/components/line-chart/line-chart.component';
 import {
   TRADE_MARKET_DATA_PORT,
   TradeMarketAsset,
@@ -11,14 +10,11 @@ describe('AssetPopupComponent', () => {
   let component: AssetPopupComponent;
 
   let asset: TradeMarketAsset | undefined;
-  let price: number;
-  let series: LineChartPoint[];
+  let price: number | null;
 
   const marketData = {
-    performanceIntervals: [{ id: '1D', label: '1D' }],
     getAsset: () => asset,
     getPrice: () => price,
-    getPerformanceSeries: () => series,
   };
 
   function create() {
@@ -38,14 +34,19 @@ describe('AssetPopupComponent', () => {
   }
 
   beforeEach(() => {
-    asset = { symbol: 'AAPL', name: 'Apple', instrumentType: 'equity', basePrice: 100 };
+    asset = {
+      symbol: 'AAPL',
+      name: 'Apple',
+      currency: 'USD',
+      instrumentType: 'equity',
+      basePrice: 100,
+    };
     price = 110;
-    series = [];
   });
 
   afterEach(() => fixture.destroy());
 
-  it('uses basePrice and the current price when there is no performance series', () => {
+  it('uses the previous close and current price to calculate the change', () => {
     create();
 
     expect(component.changeAmount()).toBeCloseTo(10, 6);
@@ -78,7 +79,13 @@ describe('AssetPopupComponent', () => {
   });
 
   it('is not flat when under a cent moves a cheap asset by a visible percent', () => {
-    asset = { symbol: 'ADA', name: 'Cardano', instrumentType: 'crypto', basePrice: 0.42 };
+    asset = {
+      symbol: 'ADA',
+      name: 'Cardano',
+      currency: 'USD',
+      instrumentType: 'crypto',
+      basePrice: 0.42,
+    };
     price = 0.424;
     create();
 
@@ -87,14 +94,11 @@ describe('AssetPopupComponent', () => {
     expect(changeElement().classList).toContain('positive');
   });
 
-  it('still uses the performance series when there is one', () => {
-    series = [
-      { label: 'a', value: 50 },
-      { label: 'b', value: 60 },
-    ];
+  it('shows an unavailable price when the quote is missing', () => {
+    price = null;
     create();
 
-    expect(component.changeAmount()).toBe(10);
-    expect(component.changePct()).toBe(20);
+    expect(fixture.nativeElement.textContent).toContain('Price unavailable');
+    expect(component.hasPriceChange()).toBe(false);
   });
 });

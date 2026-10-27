@@ -24,6 +24,7 @@ export interface InstrumentResponse {
   market: string;
   name: string;
   instrumentClass: InstrumentClass;
+  tradingCurrency: CashCurrency;
   logoUrl: string | null;
   description: string | null;
 }

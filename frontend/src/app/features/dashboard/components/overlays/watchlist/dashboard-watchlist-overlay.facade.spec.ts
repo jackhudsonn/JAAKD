@@ -1,42 +1,13 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
-import { DASHBOARD_MARKET_DATA_PORT } from '@features/dashboard/services/dashboard-market-data.port';
 import {
   DASHBOARD_STATE_PORT,
   DashboardStatePort,
 } from '@features/dashboard/services/dashboard-state.port';
+import { ToastService } from '@shared/components/toast/toast.service';
 import { DashboardWatchlistOverlayFacade } from './dashboard-watchlist-overlay.facade';
 
 describe('DashboardWatchlistOverlayFacade', () => {
-  const marketData = {
-    performanceIntervals: [],
-    listAssets: vi.fn(() => [
-      {
-        symbol: 'AAPL',
-        name: 'Apple',
-        instrumentType: 'equity' as const,
-        basePrice: 100,
-      },
-    ]),
-    getAsset: vi.fn((symbol: string) => {
-      if (symbol === 'AAPL') {
-        return {
-          symbol: 'AAPL',
-          name: 'Apple',
-          instrumentType: 'equity' as const,
-          basePrice: 100,
-        };
-      }
-
-      return undefined;
-    }),
-    getPrice: vi.fn((symbol: string) => (symbol === 'AAPL' ? 110 : 0)),
-    getPerformanceSeries: vi.fn(() => []),
-    getTopWinners: vi.fn(() => []),
-    getTopLosers: vi.fn(() => []),
-    isKnownSymbol: vi.fn((symbol: string) => symbol === 'AAPL'),
-  };
-
   const state: DashboardStatePort = {
     accountCash: signal(0),
     holdings: signal([]),
@@ -44,26 +15,25 @@ describe('DashboardWatchlistOverlayFacade', () => {
     transactions: signal([]),
     watchlists: signal([{ id: 'watchlist', name: 'Watchlist', symbols: ['VOD'] }]),
     activeWatchlistId: signal('watchlist'),
-    dashboardOpenOrders: signal([]),
-    returns: { allTime: 0, daily: 0 },
     watchlistConstraints: {
       minWatchlists: 0,
       maxWatchlists: 15,
       minHoldingsPerWatchlist: 0,
       maxHoldingsPerWatchlist: null,
     },
-    backendDataMode: true,
     backendWatchlistInstrumentOptions: signal([
       {
         instrumentId: 'inst-vod',
         symbol: 'VOD',
         name: 'Vodafone',
+        currency: 'GBP',
         instrumentType: 'equity' as const,
       },
       {
         instrumentId: 'inst-aapl',
         symbol: 'AAPL',
         name: 'Apple',
+        currency: 'USD',
         instrumentType: 'equity' as const,
       },
     ]),
@@ -83,7 +53,6 @@ describe('DashboardWatchlistOverlayFacade', () => {
     TestBed.configureTestingModule({
       providers: [
         DashboardWatchlistOverlayFacade,
-        { provide: DASHBOARD_MARKET_DATA_PORT, useValue: marketData },
         { provide: DASHBOARD_STATE_PORT, useValue: state },
       ],
     });
@@ -96,7 +65,8 @@ describe('DashboardWatchlistOverlayFacade', () => {
 
     expect(facade.selectedWatchlistAsset()).toEqual({
       symbol: 'VOD',
-      name: 'VOD',
+      name: 'Vodafone',
+      currency: 'GBP',
       price: null,
       changePct: null,
     });
@@ -114,5 +84,16 @@ describe('DashboardWatchlistOverlayFacade', () => {
     facade.requestWatchlistAsset('VOD');
     await facade.removeSelectedWatchlistAsset();
     expect(state.setWatchlistMembership).toHaveBeenCalledWith('VOD', 'watchlist', false);
+  });
+
+  it('shows the backend validation message when an instrument cannot be added', async () => {
+    const message = 'Only equities, ETFs, and crypto instruments can be added to a watchlist.';
+    const toastService = TestBed.inject(ToastService);
+    const errorToast = vi.spyOn(toastService, 'error');
+    vi.mocked(state.setWatchlistMembership!).mockRejectedValueOnce({ error: { message } });
+
+    await facade.addSymbolToActiveWatchlist('USD');
+
+    expect(errorToast).toHaveBeenCalledWith(message);
   });
 });

@@ -1,24 +1,12 @@
 import { Injectable } from '@angular/core';
-import {
-  ASSET_PERFORMANCE_INTERVALS,
-  MARKET_ORDER_PENDING_MS,
-} from '@core/mocks/market-reference.mock';
 import { toInstrumentType } from '@features/dashboard/services/dashboard-backend.mappers';
-import { LineChartPoint } from '@shared/components/line-chart/line-chart.component';
-import {
-  TradeAssetPerformanceInterval,
-  TradeMarketAsset,
-  TradeMarketDataPort,
-} from './trade-market-data.port';
+import { TradeMarketAsset, TradeMarketDataPort } from './trade-market-data.port';
 import { BackendTradeStateService } from './backend-trade-state.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class BackendTradeMarketDataService implements TradeMarketDataPort {
-  readonly marketOrderPendingMs = MARKET_ORDER_PENDING_MS;
-  readonly performanceIntervals = ASSET_PERFORMANCE_INTERVALS;
-
   constructor(private backendTradeStateService: BackendTradeStateService) {}
 
   listAssets(): readonly TradeMarketAsset[] {
@@ -33,15 +21,16 @@ export class BackendTradeMarketDataService implements TradeMarketDataPort {
           return null;
         }
 
-        const price = prices.get(instrument.ticker) ?? 0;
+        const price = prices.get(instrument.ticker) ?? null;
         // Quotes are filed under both "BTC" and "X:BTC-USD", so the ticker finds crypto either way.
         const changePct = liveQuotes.get(instrument.ticker.toUpperCase())?.changePct ?? null;
 
         return {
           symbol: instrument.ticker,
           name: instrument.name,
+          currency: instrument.tradingCurrency,
           instrumentType,
-          basePrice: this.toPreviousClose(price, changePct),
+          basePrice: price === null ? null : this.toPreviousClose(price, changePct),
         };
       })
       .filter((asset): asset is TradeMarketAsset => asset !== null);
@@ -51,15 +40,8 @@ export class BackendTradeMarketDataService implements TradeMarketDataPort {
     return this.listAssets().find((asset) => asset.symbol === symbol);
   }
 
-  getPrice(symbol: string): number {
-    return this.backendTradeStateService.latestPriceBySymbolData().get(symbol) ?? 0;
-  }
-
-  getPerformanceSeries(
-    _symbol: string,
-    _interval: TradeAssetPerformanceInterval,
-  ): LineChartPoint[] {
-    return [];
+  getPrice(symbol: string): number | null {
+    return this.backendTradeStateService.latestPriceBySymbolData().get(symbol) ?? null;
   }
 
   isKnownSymbol(symbol: string): boolean {

@@ -1,15 +1,18 @@
 import { Component, input, output } from '@angular/core';
-import { DatePipe, DecimalPipe, TitleCasePipe } from '@angular/common';
+import { DatePipe, TitleCasePipe } from '@angular/common';
 import { ORDER_STATUS } from '@core/constants/order-status.constants';
 import { ModalComponent } from '@shared/components/modal/modal.component';
 import { StatusBadgeComponent } from '@shared/components/status-badge/status-badge.component';
+import { DisplaySymbolPipe } from '@shared/pipes/display-symbol.pipe';
 import { formatLabel } from '@shared/utils/format-label';
 import { Order } from '@core/models';
+import { formatCurrency } from '@shared/utils/display-format';
+import { REPORTING_CURRENCY } from '@core/models/api.models';
 
 @Component({
   selector: 'app-order-details-popup',
   standalone: true,
-  imports: [ModalComponent, StatusBadgeComponent, DatePipe, DecimalPipe, TitleCasePipe],
+  imports: [ModalComponent, StatusBadgeComponent, DatePipe, TitleCasePipe, DisplaySymbolPipe],
   templateUrl: './order-details-popup.component.html',
   styleUrl: './order-details-popup.component.css',
 })
@@ -20,6 +23,8 @@ export class OrderDetailsPopupComponent {
   cancel = output<string>();
 
   formatLabel = formatLabel;
+  readonly formatCurrency = formatCurrency;
+  readonly fallbackCurrency = REPORTING_CURRENCY;
 
   canCancelOrder() {
     const status = this.order().status;

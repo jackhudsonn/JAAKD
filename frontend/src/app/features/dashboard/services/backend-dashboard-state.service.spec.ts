@@ -183,7 +183,11 @@ describe('BackendDashboardStateService', () => {
     await service.load();
 
     expect(instrumentApiService.getQuotes).toHaveBeenCalledTimes(1);
-    expect(service.liveQuotes().get('AAPL')).toEqual({ price: 190, changePct: -0.75 });
+    expect(service.liveQuotes().get('AAPL')).toEqual({
+      price: 190,
+      changePct: -0.75,
+      currency: 'USD',
+    });
   });
 
   it('loads backend dashboard cash, holdings, orders, transactions, and watchlist', async () => {
@@ -212,7 +216,6 @@ describe('BackendDashboardStateService', () => {
       { id: 'watchlist-1', name: 'My Watchlist', symbols: ['AAPL'] },
     ]);
     expect(service.activeWatchlistId()).toBe('watchlist-1');
-    expect(service.dashboardOpenOrders()).toEqual([]);
     expect(service.dashboardWidgets()).toEqual(preferences.dashboardWidgets);
     expect(service.backendWatchlistInstrumentOptions()).toEqual([
       {
@@ -242,7 +245,6 @@ describe('BackendDashboardStateService', () => {
     expect(service.transactions()).toEqual([]);
     expect(service.watchlists()).toEqual([]);
     expect(service.activeWatchlistId()).toBe('');
-    expect(service.dashboardOpenOrders()).toEqual([]);
     expect(service.dashboardWidgets()).toBeNull();
     expect(service.backendWatchlistInstrumentOptions()).toEqual([]);
   });

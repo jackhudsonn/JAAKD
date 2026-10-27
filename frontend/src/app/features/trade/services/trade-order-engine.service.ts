@@ -1,6 +1,6 @@
 import { Injectable, computed, inject } from '@angular/core';
-import { ORDER_STATUS, isActiveOrderStatus } from '@core/constants/order-status.constants';
-import { Holding, Order } from '@core/models';
+import { isActiveOrderStatus } from '@core/constants/order-status.constants';
+import { Order } from '@core/models';
 import { TRADE_MARKET_DATA_PORT } from './trade-market-data.port';
 import { TRADE_STATE_PORT } from './trade-state.port';
 
@@ -56,132 +56,18 @@ export class TradeOrderEngineService {
   }
 
   async placeOrder(request: TradePlaceOrderRequest) {
-    if (this.state.backendDataMode && this.state.submitOrder) {
-      await this.state.submitOrder(request);
-      return;
+    if (!this.state.submitOrder) {
+      throw new Error('Order placement is unavailable.');
     }
 
-    const asset = this.marketData.getAsset(request.symbol);
-    if (!asset) {
-      return;
-    }
-
-    const order: Order = {
-      id: `ord-${Date.now()}`,
-      symbol: request.symbol,
-      instrumentType: asset.instrumentType,
-      kind: request.kind,
-      type: request.type,
-      quantity: request.quantity,
-      limitPrice: request.limitPrice,
-      status: request.kind === 'market' ? ORDER_STATUS.PENDING : ORDER_STATUS.ACCEPTED,
-      createdAt: new Date().toISOString(),
-    };
-
-    this.ordersState.update((current) => [order, ...current]);
+    await this.state.submitOrder(request);
   }
 
   async cancelOrder(orderId: string) {
-    if (this.state.backendDataMode && this.state.cancelOrder) {
-      await this.state.cancelOrder(orderId);
-      return;
+    if (!this.state.cancelOrder) {
+      throw new Error('Order cancellation is unavailable.');
     }
 
-    this.ordersState.update((current) =>
-      current.map((order) =>
-        order.id === orderId
-          ? {
-              ...order,
-              status: ORDER_STATUS.CANCELLED,
-              cancelledAt: new Date().toISOString(),
-            }
-          : order,
-      ),
-    );
-  }
-
-  processOrders() {
-    if (this.state.backendDataMode) {
-      return;
-    }
-
-    const now = Date.now();
-
-    for (const order of this.ordersState()) {
-      if (order.status === ORDER_STATUS.SUBMITTED || order.status === ORDER_STATUS.PENDING) {
-        if (now - new Date(order.createdAt).getTime() >= this.marketData.marketOrderPendingMs) {
-          this.fillOrder(order.id, this.marketData.getPrice(order.symbol));
-        }
-      } else if (order.status === ORDER_STATUS.ACCEPTED && order.limitPrice !== undefined) {
-        const price = this.marketData.getPrice(order.symbol);
-        const crossed =
-          order.type === 'buy' ? price <= order.limitPrice : price >= order.limitPrice;
-        if (crossed) {
-          this.fillOrder(order.id, order.limitPrice);
-        }
-      }
-    }
-  }
-
-  private fillOrder(orderId: string, fillPrice: number) {
-    const order = this.ordersState().find((entry) => entry.id === orderId);
-    if (!order) {
-      return;
-    }
-
-    this.ordersState.update((current) =>
-      current.map((entry) =>
-        entry.id === orderId
-          ? {
-              ...entry,
-              status: ORDER_STATUS.EXECUTED,
-              fillPrice,
-              filledAt: new Date().toISOString(),
-            }
-          : entry,
-      ),
-    );
-
-    const cost = fillPrice * order.quantity;
-
-    this.accountCashState.update((cash) => (order.type === 'buy' ? cash - cost : cash + cost));
-
-    this.holdingsState.update((current) => this.reconcileHoldings(current, order));
-  }
-
-  private reconcileHoldings(current: Holding[], order: Order): Holding[] {
-    const existing = current.find((holding) => holding.symbol === order.symbol);
-
-    if (order.type === 'buy') {
-      if (existing) {
-        return current.map((holding) =>
-          holding.symbol === order.symbol
-            ? { ...holding, quantity: holding.quantity + order.quantity }
-            : holding,
-        );
-      }
-
-      return [
-        ...current,
-        {
-          symbol: order.symbol,
-          instrumentType: order.instrumentType,
-          quantity: order.quantity,
-        },
-      ];
-    }
-
-    if (!existing) {
-      return current;
-    }
-
-    const remaining = existing.quantity - order.quantity;
-    if (remaining <= 0) {
-      return current.filter((holding) => holding.symbol !== order.symbol);
-    }
-
-    return current.map((holding) =>
-      holding.symbol === order.symbol ? { ...holding, quantity: remaining } : holding,
-    );
+    await this.state.cancelOrder(orderId);
   }
 }

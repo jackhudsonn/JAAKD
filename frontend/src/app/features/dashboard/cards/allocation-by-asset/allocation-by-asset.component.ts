@@ -3,7 +3,7 @@ import { Component, computed, inject, output, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
 import { PieChartComponent, PieChartSlice } from '@shared/components/pie-chart/pie-chart.component';
-import { DASHBOARD_MARKET_DATA_PORT } from '@features/dashboard/services/dashboard-market-data.port';
+import { DisplaySymbolPipe } from '@shared/pipes/display-symbol.pipe';
 import { DASHBOARD_STATE_PORT } from '@features/dashboard/services/dashboard-state.port';
 import { CashCurrency, CASH_CURRENCIES, REPORTING_CURRENCY } from '@core/models/api.models';
 import { convertAmountBetweenCurrencies } from '@core/constants/cash-exchange-rates.constants';
@@ -48,12 +48,11 @@ interface UnavailablePriceHolding {
 @Component({
   selector: 'app-allocation-by-asset-widget',
   standalone: true,
-  imports: [WidgetCardComponent, PieChartComponent, DecimalPipe],
+  imports: [WidgetCardComponent, PieChartComponent, DecimalPipe, DisplaySymbolPipe],
   templateUrl: './allocation-by-asset.component.html',
   styleUrl: './allocation-by-asset.component.css',
 })
 export class AllocationByAssetWidgetComponent {
-  private readonly marketData = inject(DASHBOARD_MARKET_DATA_PORT);
   private readonly state = inject(DASHBOARD_STATE_PORT);
 
   private readonly accountCash = this.state.accountCash;
@@ -103,9 +102,12 @@ export class AllocationByAssetWidgetComponent {
     const bySymbol = new Map<string, { category: AllocationCategory; value: number }>();
 
     for (const holding of this.holdings()) {
+      if (holding.indicativePrice === null || holding.indicativePrice === undefined) {
+        continue;
+      }
+
       const category: AllocationCategory = holding.instrumentType;
-      const value =
-        holding.quantity * (holding.indicativePrice ?? this.marketData.getPrice(holding.symbol));
+      const value = holding.quantity * holding.indicativePrice;
       const existing = bySymbol.get(holding.symbol);
 
       bySymbol.set(holding.symbol, {
@@ -186,11 +188,14 @@ export class AllocationByAssetWidgetComponent {
     }
     const matchingHoldings = this.holdings().filter((entry) => entry.symbol === slice.label);
     const representativeHolding = matchingHoldings[0];
-    const price = representativeHolding?.indicativePrice ?? this.marketData.getPrice(slice.label);
+    const price = representativeHolding?.indicativePrice;
+    if (price === null || price === undefined) {
+      return;
+    }
+
     const estimatedUnits = matchingHoldings.reduce((sum, entry) => sum + entry.quantity, 0);
     const valueInUsd = matchingHoldings.reduce(
-      (sum, entry) =>
-        sum + entry.quantity * (entry.indicativePrice ?? this.marketData.getPrice(entry.symbol)),
+      (sum, entry) => sum + entry.quantity * (entry.indicativePrice ?? 0),
       0,
     );
     const displayCurrency = this.displayCurrency();

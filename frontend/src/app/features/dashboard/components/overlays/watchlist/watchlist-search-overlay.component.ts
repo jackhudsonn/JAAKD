@@ -3,6 +3,8 @@ import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ModalComponent } from '@shared/components/modal/modal.component';
 import { ScrollableListComponent } from '@shared/components/scrollable-list/scrollable-list.component';
+import { DisplaySymbolPipe } from '@shared/pipes/display-symbol.pipe';
+import { formatCurrency } from '@shared/utils/display-format';
 import {
   DashboardInstrumentFilter,
   DashboardInstrumentOption,
@@ -12,11 +14,13 @@ import {
 @Component({
   selector: 'app-watchlist-search-overlay',
   standalone: true,
-  imports: [ModalComponent, ScrollableListComponent, FormsModule, DecimalPipe],
+  imports: [ModalComponent, ScrollableListComponent, FormsModule, DecimalPipe, DisplaySymbolPipe],
   templateUrl: './watchlist-search-overlay.component.html',
   styleUrl: './watchlist-search-overlay.component.css',
 })
 export class WatchlistSearchOverlayComponent {
+  readonly formatCurrency = formatCurrency;
+
   watchlistSearchOpen = input(false);
   watchlistSearch = input('');
   watchlistSearchInstrument = input<DashboardInstrumentFilter>('all');

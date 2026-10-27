@@ -9,8 +9,15 @@ import {
   WatchlistResponse,
 } from '@core/models/api.models';
 import { ORDER_STATUS, isActiveOrderStatus } from '@core/constants/order-status.constants';
-import { Holding, HoldingInstrumentClass, InstrumentType, Order, Transaction } from '@core/models';
-import { SharedWatchlist } from '@core/mocks/watchlist.mock';
+import {
+  Holding,
+  HoldingInstrumentClass,
+  InstrumentType,
+  Order,
+  SharedWatchlist,
+  Transaction,
+} from '@core/models';
+import { toDisplaySymbol } from '@shared/utils/display-format';
 import { roundChangePct } from '@shared/utils/format-percentage-change';
 
 const TRADE_SIDES = new Set(['BUY', 'SELL']);
@@ -54,7 +61,7 @@ const buildLatestExecutedPriceByInstrumentId = (
 
 export interface HoldingPriceResolver {
   isKnownSymbol(symbol: string): boolean;
-  getPrice(symbol: string): number;
+  getPrice(symbol: string): number | null;
 }
 
 const extractStatusReason = (metadata: string | null): string => {
@@ -175,15 +182,17 @@ export const toHoldings = (
 
     const indicativePrice = holdingPriceResolver.isKnownSymbol(instrument.ticker)
       ? holdingPriceResolver.getPrice(instrument.ticker)
-      : (latestExecutedPriceByInstrumentId.get(holding.instrumentID) ?? 0);
+      : (latestExecutedPriceByInstrumentId.get(holding.instrumentID) ?? null);
 
     mapped.push({
       symbol: instrument.ticker,
+      currency: instrument.tradingCurrency,
       instrumentType,
       instrumentClass,
       quantity: holding.currentQuantity,
       indicativePrice,
-      priceStatus: indicativePrice > 0 ? 'available' : 'price unavailable',
+      priceStatus:
+        indicativePrice !== null && indicativePrice > 0 ? 'available' : 'price unavailable',
     });
   }
 
@@ -233,6 +242,7 @@ export const toOrders = (
     const baseOrder: Order = {
       id: newestRow.orderId,
       symbol: instrument.ticker,
+      currency: instrument.tradingCurrency,
       instrumentType,
       kind: 'market',
       type: newestRow.side === 'BUY' ? 'buy' : 'sell',
@@ -280,7 +290,8 @@ const readMetadataValue = (metadata: string | null, key: string): string | null 
 };
 
 const toCashCurrency = (value: string | null | undefined): CashCurrency | undefined => {
-  return CASH_CURRENCIES.find((currency) => currency === value);
+  const normalized = value?.toUpperCase();
+  return CASH_CURRENCIES.find((currency) => currency === normalized);
 };
 
 export const toTransactions = (
@@ -449,6 +460,7 @@ export const toOpenOrders = (
     mapped.push({
       id: newestRow.orderId,
       symbol: instrument.ticker,
+      currency: instrument.tradingCurrency,
       instrumentType,
       kind: 'market',
       type: newestRow.side === 'BUY' ? 'buy' : 'sell',
@@ -469,10 +481,6 @@ const toFauxnanceSymbol = (instrument: InstrumentResponse): string => {
     ? `X:${ticker}-USD`
     : instrument.ticker;
 };
-
-// "X:BTC-USD" -> "BTC"; every other symbol is returned unchanged.
-export const toDisplaySymbol = (symbol: string): string =>
-  /^X:([^-]+)-/i.exec(symbol)?.[1] ?? symbol;
 
 // Crypto can be stored as "BTC" or "X:BTC-USD", so a quote is filed under both spellings.
 const setQuoteKeys = <T>(map: Map<string, T>, symbol: string, value: T): void => {
@@ -501,6 +509,7 @@ export const toQuotePriceBySymbol = (quotes: QuoteResponse[]): Map<string, numbe
 export interface LiveQuote {
   price: number;
   changePct: number | null;
+  currency: CashCurrency;
 }
 
 export const toLiveQuoteBySymbol = (quotes: QuoteResponse[]): Map<string, LiveQuote> => {
@@ -508,9 +517,18 @@ export const toLiveQuoteBySymbol = (quotes: QuoteResponse[]): Map<string, LiveQu
 
   for (const quote of quotes) {
     if (quote.price !== null && quote.price > 0) {
+      const currency = toCashCurrency(quote.currency);
+      if (!currency) {
+        console.warn(
+          `Skipping live quote ${quote.symbol}: unsupported or missing currency "${quote.currency}".`,
+        );
+        continue;
+      }
+
       setQuoteKeys(liveQuotes, quote.symbol, {
         price: quote.price,
         changePct: quote.changePercent === null ? null : roundChangePct(quote.changePercent),
+        currency,
       });
     }
   }
@@ -520,5 +538,5 @@ export const toLiveQuoteBySymbol = (quotes: QuoteResponse[]): Map<string, LiveQu
 
 export const toPriceResolver = (prices: Map<string, number>): HoldingPriceResolver => ({
   isKnownSymbol: (symbol) => prices.has(symbol.toUpperCase()),
-  getPrice: (symbol) => prices.get(symbol.toUpperCase()) ?? 0,
+  getPrice: (symbol) => prices.get(symbol.toUpperCase()) ?? null,
 });

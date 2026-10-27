@@ -3,7 +3,9 @@ import { LiveQuote } from '@features/dashboard/services/dashboard-backend.mapper
 import { toChangeAmount, toTopMovers } from './top-movers.util';
 
 const quotes = (entries: [string, number, number | null][]): Map<string, LiveQuote> =>
-  new Map(entries.map(([symbol, price, changePct]) => [symbol, { price, changePct }]));
+  new Map(
+    entries.map(([symbol, price, changePct]) => [symbol, { price, changePct, currency: 'USD' }]),
+  );
 
 describe('toChangeAmount', () => {
   it('derives the amount from the previous close', () => {
@@ -42,7 +44,7 @@ describe('toTopMovers', () => {
   });
 
   it('shows crypto once under its display symbol', () => {
-    const btc: LiveQuote = { price: 105, changePct: 5 };
+    const btc: LiveQuote = { price: 105, changePct: 5, currency: 'USD' };
     const crypto = new Map<string, LiveQuote>([
       ['X:BTC-USD', btc],
       ['BTC', btc],

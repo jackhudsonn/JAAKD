@@ -26,7 +26,8 @@
     <div class="unavailable-prices">
       @for (holding of unavailablePriceHoldings(); track holding.symbol) {
         <p class="unavailable-price-row">
-          {{ holding.symbol }} Qty {{ holding.quantity | number: '1.0-6' }}: price unavailable
+          {{ holding.symbol | displaySymbol }} Qty {{ holding.quantity | number: '1.0-6' }}: price
+          unavailable
         </p>
       }
     </div>

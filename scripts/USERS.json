@@ -34,32 +34,6 @@
         "symbols": []
       }
     ],
-    "instruments": [
-      {
-        "ticker": "AAPL",
-        "market": "NASDAQ",
-        "name": "Apple Inc",
-        "instrumentClass": "EQUITY"
-      },
-      {
-        "ticker": "MSFT",
-        "market": "NASDAQ",
-        "name": "Microsoft Corp",
-        "instrumentClass": "EQUITY"
-      },
-      {
-        "ticker": "TSLA",
-        "market": "NASDAQ",
-        "name": "Tesla Inc",
-        "instrumentClass": "EQUITY"
-      },
-      {
-        "ticker": "VOO",
-        "market": "NYSE",
-        "name": "Vanguard S&P 500 ETF",
-        "instrumentClass": "ETF"
-      }
-    ],
     "orders": []
   },
   {
@@ -96,50 +70,6 @@
       {
         "name": "My Watchlist",
         "symbols": ["NVDA", "AMZN", "GOOGL", "VOO"]
-      }
-    ],
-    "instruments": [
-      {
-        "ticker": "NVDA",
-        "market": "NASDAQ",
-        "name": "NVIDIA Corp",
-        "instrumentClass": "EQUITY"
-      },
-      {
-        "ticker": "AMZN",
-        "market": "NASDAQ",
-        "name": "Amazon.com Inc",
-        "instrumentClass": "EQUITY"
-      },
-      {
-        "ticker": "GOOGL",
-        "market": "NASDAQ",
-        "name": "Alphabet Inc Class A",
-        "instrumentClass": "EQUITY"
-      },
-      {
-        "ticker": "META",
-        "market": "NASDAQ",
-        "name": "Meta Platforms Inc",
-        "instrumentClass": "EQUITY"
-      },
-      {
-        "ticker": "JPM",
-        "market": "NYSE",
-        "name": "JPMorgan Chase & Co",
-        "instrumentClass": "EQUITY"
-      },
-      {
-        "ticker": "XOM",
-        "market": "NYSE",
-        "name": "Exxon Mobil Corp",
-        "instrumentClass": "EQUITY"
-      },
-      {
-        "ticker": "VOO",
-        "market": "NYSE",
-        "name": "Vanguard S&P 500 ETF",
-        "instrumentClass": "ETF"
       }
     ],
     "orders": [
@@ -276,99 +206,22 @@
           "JPM",
           "XOM",
           "VOO",
-          "TLT",
-          "BTC",
-          "ETH",
-          "USD",
-          "EUR",
-          "INR"
+          "FBND",
+          "X:BTC-USD",
+          "X:ETH-USD"
         ]
       },
       {
         "name": "Crypto Movers",
-        "symbols": ["BTC", "ETH"]
+        "symbols": ["X:BTC-USD", "X:ETH-USD"]
       },
       {
         "name": "Income Ideas",
-        "symbols": ["VOO", "TLT"]
+        "symbols": ["VOO", "FBND"]
       },
       {
         "name": "Empty Sandbox",
         "symbols": []
-      }
-    ],
-    "instruments": [
-      {
-        "ticker": "AAPL",
-        "market": "NASDAQ",
-        "name": "Apple Inc",
-        "instrumentClass": "EQUITY"
-      },
-      {
-        "ticker": "MSFT",
-        "market": "NASDAQ",
-        "name": "Microsoft Corp",
-        "instrumentClass": "EQUITY"
-      },
-      {
-        "ticker": "NVDA",
-        "market": "NASDAQ",
-        "name": "NVIDIA Corp",
-        "instrumentClass": "EQUITY"
-      },
-      {
-        "ticker": "AMZN",
-        "market": "NASDAQ",
-        "name": "Amazon.com Inc",
-        "instrumentClass": "EQUITY"
-      },
-      {
-        "ticker": "GOOGL",
-        "market": "NASDAQ",
-        "name": "Alphabet Inc Class A",
-        "instrumentClass": "EQUITY"
-      },
-      {
-        "ticker": "META",
-        "market": "NASDAQ",
-        "name": "Meta Platforms Inc",
-        "instrumentClass": "EQUITY"
-      },
-      {
-        "ticker": "JPM",
-        "market": "NYSE",
-        "name": "JPMorgan Chase & Co",
-        "instrumentClass": "EQUITY"
-      },
-      {
-        "ticker": "XOM",
-        "market": "NYSE",
-        "name": "Exxon Mobil Corp",
-        "instrumentClass": "EQUITY"
-      },
-      {
-        "ticker": "VOO",
-        "market": "NYSE",
-        "name": "Vanguard S&P 500 ETF",
-        "instrumentClass": "ETF"
-      },
-      {
-        "ticker": "TLT",
-        "market": "NASDAQ",
-        "name": "iShares 20+ Year Treasury Bond ETF",
-        "instrumentClass": "ETF"
-      },
-      {
-        "ticker": "BTC",
-        "market": "CRYPTO",
-        "name": "Bitcoin",
-        "instrumentClass": "CRYPTO"
-      },
-      {
-        "ticker": "ETH",
-        "market": "CRYPTO",
-        "name": "Ethereum",
-        "instrumentClass": "CRYPTO"
       }
     ],
     "orders": [
@@ -461,21 +314,21 @@
       },
       {
         "key": "buy-tlt-01",
-        "ticker": "TLT",
+        "ticker": "FBND",
         "side": "BUY",
         "quantity": 85,
         "executionPrice": 91.7
       },
       {
         "key": "buy-btc-01",
-        "ticker": "BTC",
+        "ticker": "X:BTC-USD",
         "side": "BUY",
         "quantity": 2.4,
         "executionPrice": 62450
       },
       {
         "key": "buy-eth-01",
-        "ticker": "ETH",
+        "ticker": "X:ETH-USD",
         "side": "BUY",
         "quantity": 18,
         "executionPrice": 3225
@@ -496,7 +349,7 @@
       },
       {
         "key": "sell-btc-01",
-        "ticker": "BTC",
+        "ticker": "X:BTC-USD",
         "side": "SELL",
         "quantity": 0.7,
         "executionPrice": 66880
@@ -515,7 +368,7 @@
       },
       {
         "key": "pending-tlt-01",
-        "ticker": "TLT",
+        "ticker": "FBND",
         "side": "BUY",
         "quantity": 5,
         "status": "PENDING",
@@ -523,7 +376,7 @@
       },
       {
         "key": "rejected-eth-01",
-        "ticker": "ETH",
+        "ticker": "X:ETH-USD",
         "side": "BUY",
         "quantity": 1,
         "status": "REJECTED",

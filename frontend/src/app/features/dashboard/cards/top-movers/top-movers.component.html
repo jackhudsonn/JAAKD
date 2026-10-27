@@ -9,7 +9,8 @@
           [class.negative]="mover.changeAmount < 0"
           [class.neutral]="mover.changeAmount === 0"
         >
-          {{ mover.changeAmount > 0 ? '+' : '' }}{{ mover.changeAmount | number: '1.2-2' }} ({{
+          {{ mover.changeAmount > 0 ? '+' : ''
+          }}{{ formatCurrency(mover.changeAmount, mover.currency) }} ({{
             formatChange(mover.changePct)
           }})
         </span>

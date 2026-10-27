@@ -142,6 +142,7 @@ describe('AuditorComponent', () => {
         market: 'NASDAQ',
         name: 'Apple Inc',
         instrumentClass: 'EQUITY',
+        tradingCurrency: 'USD',
         logoUrl: null,
         description: null,
       },

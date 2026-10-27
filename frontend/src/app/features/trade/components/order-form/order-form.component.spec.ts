@@ -59,6 +59,18 @@ describe('OrderFormComponent', () => {
       ...(fixture.nativeElement as HTMLElement).querySelectorAll('.order-preview-value'),
     ].map((value) => value.textContent?.trim());
 
-    expect(values).toEqual(['-', '-']);
+    expect(values).toEqual(['-', '-', '10 share(s)']);
+  });
+
+  it('formats the estimate in instrument currency and hides USD-only cash estimates for foreign currency', () => {
+    fixture.componentRef.setInput('currency', 'INR');
+    component.quantity.set(2);
+    fixture.detectChanges();
+
+    const values = [
+      ...(fixture.nativeElement as HTMLElement).querySelectorAll('.order-preview-value'),
+    ].map((value) => value.textContent?.trim());
+
+    expect(values).toEqual(['₹20.00', 'Unavailable', 'Unavailable']);
   });
 });
