@@ -14,8 +14,7 @@ export type WidgetId =
   | 'watchlist'
   | 'top-movers'
   | 'allocation-by-asset'
-  | 'performance-graph'
-  | 'to-be-deleted';
+  | 'performance-graph';
 
 interface WidgetDefinition {
   id: WidgetId;
@@ -31,7 +30,6 @@ export const WIDGET_CATALOGUE: WidgetDefinition[] = [
   { id: 'allocation-by-asset', label: 'Allocation by Asset', defaultEnabled: true },
   { id: 'open-orders', label: 'Open Orders', defaultEnabled: false },
   { id: 'top-movers', label: 'Top Movers', defaultEnabled: false },
-  { id: 'to-be-deleted', label: 'To Be Deleted', defaultEnabled: false },
 ];
 
 const MIN_SELECTED_WIDGETS = 2;

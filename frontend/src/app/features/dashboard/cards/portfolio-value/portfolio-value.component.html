@@ -1,27 +1,67 @@
 <app-widget-card title="Portfolio Value">
-  <div class="cycle-stack">
-    <div class="value-display" [class.fading]="valueFading()">
-      <p class="value-label">{{ activeValueLabel }}</p>
+  <div class="portfolio-value-content">
+    <div class="value-display">
+      <p class="value-label">Total Value</p>
       <p class="value-amount">
-        @if (shouldShowValueUnavailableMessage) {
+        @if (holdingsPriceMissing) {
           <span class="unavailable">Market prices unavailable</span>
-        } @else if (activeValueCurrency; as currency) {
-          {{ formatCurrency(activeValueAmount, currency) }}
+        } @else if (totalCurrency; as currency) {
+          {{ formatCurrency(totalAmount, currency) }}
         } @else {
-          {{ activeValueAmount | number: '1.2-2' }}
+          {{ totalAmount | number: '1.2-2' }}
+        }
+      </p>
+      <p class="value-breakdown">
+        Cash {{ formatCurrency(cashAmount, reportingCurrency) }} · Holdings
+        @if (holdingsPriceMissing) {
+          price unavailable
+        } @else if (holdingsCurrency; as currency) {
+          {{ formatCurrency(holdingsAmount, currency) }}
+        } @else {
+          {{ holdingsAmount | number: '1.2-2' }}
         }
       </p>
     </div>
 
-    <div class="value-display">
-      <p class="value-label">Returns</p>
-      <p class="value-amount returns-amount unavailable">Not available yet</p>
+    <div class="split-row returns-row">
+      @if (hasReturnsData) {
+        <ng-container
+          *ngTemplateOutlet="
+            returnColumn;
+            context: { label: 'All-Time Return', view: allTimeReturn }
+          "
+        />
+        <ng-container
+          *ngTemplateOutlet="returnColumn; context: { label: 'Today\'s Return', view: todayReturn }"
+        />
+      } @else {
+        <div class="split-column">
+          <p class="value-label">Returns</p>
+          <p class="split-value unavailable">Not available yet</p>
+        </div>
+      }
     </div>
-  </div>
 
-  <p class="value-hint">
-    <span>Total → Cash → Assets</span>
-    <span>All-Time → Today</span>
-    <span>Prices are indicative.</span>
-  </p>
+    <p class="value-hint">Prices are indicative.</p>
+  </div>
 </app-widget-card>
+
+<ng-template #returnColumn let-label="label" let-view="view">
+  <div class="split-column">
+    <p class="value-label">{{ label }}</p>
+    @if (view === null) {
+      <p class="split-value unavailable">Market prices unavailable</p>
+    } @else {
+      <div
+        class="returns-figures"
+        [class.positive]="!view.flat && view.amount > 0"
+        [class.negative]="!view.flat && view.amount < 0"
+      >
+        <p class="returns-amount">{{ view.amountText }}</p>
+        @if (view.pctText) {
+          <span class="returns-pill">{{ view.pctText }}</span>
+        }
+      </div>
+    }
+  </div>
+</ng-template>

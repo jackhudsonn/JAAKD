@@ -14,7 +14,6 @@ import { WatchlistWidgetComponent } from './cards/watchlist/watchlist.component'
 import { TopMoversWidgetComponent } from './cards/top-movers/top-movers.component';
 import { AllocationByAssetWidgetComponent } from './cards/allocation-by-asset/allocation-by-asset.component';
 import { PerformanceGraphWidgetComponent } from './cards/performance-graph/performance-graph.component';
-import { ToBeDeletedWidgetComponent } from './cards/to-be-deleted/to-be-deleted.component';
 import { DashboardOverlaysComponent } from './components/overlays/dashboard-overlays.component';
 import { WidgetId, WIDGET_CATALOGUE } from './components/widget-selector/widget-selector.component';
 import { DASHBOARD_STATE_PORT } from '@features/dashboard/services/dashboard-state.port';
@@ -38,7 +37,6 @@ import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.
     TopMoversWidgetComponent,
     AllocationByAssetWidgetComponent,
     PerformanceGraphWidgetComponent,
-    ToBeDeletedWidgetComponent,
     DashboardOverlaysComponent,
     WidgetCardComponent,
   ],
