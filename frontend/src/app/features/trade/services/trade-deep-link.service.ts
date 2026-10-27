@@ -3,9 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { TradeFacadeService } from './trade-facade.service';
 
-@Injectable({
-  providedIn: 'root',
-})
+@Injectable()
 export class TradeDeepLinkService {
   private readonly router = inject(Router);
   private readonly tradeFacade = inject(TradeFacadeService);

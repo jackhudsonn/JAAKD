@@ -30,6 +30,7 @@ import { OrderStatus } from '@core/models';
     BackendTradeStateService,
     BackendTradeMarketDataService,
     TradeFacadeService,
+    TradeDeepLinkService,
     TradeOrderEngineService,
     TradeWatchlistService,
     { provide: TRADE_STATE_PORT, useExisting: BackendTradeStateService },
