@@ -1,5 +1,30 @@
 <app-modal title="Order Details" (closed)="closed.emit()">
   <div class="order-details">
+    <div class="status-navigation" role="group" aria-label="Order status history">
+      <button
+        type="button"
+        class="status-navigation-arrow"
+        aria-label="Show previous status"
+        [disabled]="!canGoToPreviousStatus()"
+        (click)="showPreviousStatus()"
+      >
+        ‹
+      </button>
+      <div class="status-navigation-current" aria-live="polite">
+        <span class="detail-label">Status</span>
+        <app-status-badge [status]="selectedStatus()" />
+      </div>
+      <button
+        type="button"
+        class="status-navigation-arrow"
+        aria-label="Show next status"
+        [disabled]="!canGoToNextStatus()"
+        (click)="showNextStatus()"
+      >
+        ›
+      </button>
+    </div>
+
     <div class="detail-row">
       <span class="detail-label">Symbol</span>
       <span class="detail-value">{{ order().symbol | displaySymbol }}</span>
@@ -22,21 +47,28 @@
     </div>
 
     <div class="detail-row">
-      <span class="detail-label">Status</span>
-      <app-status-badge [status]="order().status" />
+      <span class="detail-label">Quoted Price</span>
+      <span class="detail-value">{{ selectedQuotedPrice() }}</span>
     </div>
-
-    @if ((order().status === 'REJECTED' || order().status === 'FAILED') && order().statusReason) {
-      <div class="detail-row">
-        <span class="detail-label">Reason</span>
-        <span class="detail-value">{{ order().statusReason }}</span>
-      </div>
-    }
 
     <div class="detail-row">
-      <span class="detail-label">Placed</span>
-      <span class="detail-value">{{ order().createdAt | date: 'MMM d, y, h:mm a' }}</span>
+      <span class="detail-label">Execution Price</span>
+      <span class="detail-value">{{ selectedExecutionPrice() }}</span>
     </div>
+
+    <div class="detail-row">
+      <span class="detail-label">Date</span>
+      <time class="detail-value" [attr.datetime]="selectedTimestamp()">
+        {{ selectedTimestamp() | date: 'MMM d, y, h:mm:ss a' }}
+      </time>
+    </div>
+
+    @if (selectedReason(); as reason) {
+      <div class="detail-row">
+        <span class="detail-label">Reason</span>
+        <span class="detail-value">{{ reason }}</span>
+      </div>
+    }
 
     @if (canCancelOrder()) {
       <button type="button" class="btn btn-secondary cancel-btn" (click)="cancel.emit(order().id)">

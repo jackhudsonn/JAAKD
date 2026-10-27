@@ -21,6 +21,7 @@
 
 .trade-row {
   width: 100%;
+  padding: var(--space-xs) var(--space-sm);
 
   font-family: var(--font-base);
   color: inherit;
@@ -28,10 +29,12 @@
   border: none;
 
   text-align: left;
+  cursor: pointer;
 }
 
-.trade-row.selectable {
-  cursor: pointer;
+.trade-row:focus-visible {
+  outline: 2px solid var(--secondary-light);
+  outline-offset: -2px;
 }
 
 .column-label {

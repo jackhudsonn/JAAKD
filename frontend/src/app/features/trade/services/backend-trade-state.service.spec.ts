@@ -1,6 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
-import { QuoteResponse } from '@core/models/api.models';
+import { OrderLogResponse, QuoteResponse } from '@core/models/api.models';
 import { HoldingApiService } from '@core/services/holding-api.service';
 import { InstrumentApiService } from '@core/services/instrument-api.service';
 import { OrderLogApiService } from '@core/services/order-log-api.service';
@@ -67,7 +67,7 @@ describe('BackendTradeStateService', () => {
     },
   ];
 
-  let orderLogs = [
+  let orderLogs: OrderLogResponse[] = [
     {
       logOrderId: 'log-1',
       orderId: 'ord-1',
@@ -170,6 +170,57 @@ describe('BackendTradeStateService', () => {
       { id: 'watchlist-1', name: 'My Watchlist', symbols: ['AAPL'] },
     ]);
     expect(service.latestPriceBySymbolData().get('AAPL')).toBe(100);
+  });
+
+  it('returns an order lifecycle in timestamp order without including other orders', async () => {
+    orderLogs = [
+      {
+        logOrderId: 'log-executed',
+        orderId: 'ord-1',
+        portfolioId: portfolio.portfolioId,
+        instrumentId: 'inst-aapl',
+        side: 'BUY',
+        quantity: 1,
+        timestamp: '2026-01-01T00:02:00.000Z',
+        metadata: null,
+        status: 'EXECUTED',
+        executionPrice: 100,
+        quotedPrice: 99,
+      },
+      {
+        logOrderId: 'log-other-order',
+        orderId: 'ord-2',
+        portfolioId: portfolio.portfolioId,
+        instrumentId: 'inst-aapl',
+        side: 'BUY',
+        quantity: 1,
+        timestamp: '2026-01-01T00:01:00.000Z',
+        metadata: null,
+        status: 'FAILED',
+        executionPrice: 0,
+        quotedPrice: null,
+      },
+      {
+        logOrderId: 'log-submitted',
+        orderId: 'ord-1',
+        portfolioId: portfolio.portfolioId,
+        instrumentId: 'inst-aapl',
+        side: 'BUY',
+        quantity: 1,
+        timestamp: '2026-01-01T00:00:00.000Z',
+        metadata: null,
+        status: 'SUBMITTED',
+        executionPrice: 0,
+        quotedPrice: 99,
+      },
+    ];
+
+    await service.load();
+
+    expect(service.getOrderHistory('ord-1').map((log) => log.logOrderId)).toEqual([
+      'log-submitted',
+      'log-executed',
+    ]);
   });
 
   it('sets error state and clears mapped signals when load fails', async () => {

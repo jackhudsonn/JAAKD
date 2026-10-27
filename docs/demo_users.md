@@ -16,6 +16,19 @@ and historical timestamp so seed data is not run through the live market-hours
 validation path. The endpoint is disabled outside the development Spring
 profile and requires an `ADMIN` account.
 
+Each order in `scripts/USERS.json` may include a `history` array of statuses
+that precede its final `status` (which defaults to `EXECUTED`). The seed script
+creates one order ID for the entire sequence and dates each prior state before
+the final state. Seeding an `EXECUTED` state also creates its `ACCEPTED` log
+through the demo endpoint, matching the normal lifecycle. Rejected and failed
+orders can include a `reason`, which is stored in the final log metadata.
+Orders may also define a `quotedPrice`, copied across their lifecycle events,
+and an `executionPrice`, set only for the final `EXECUTED` event.
+Order-log rows are immutable through the seed API. If existing demo orders have
+no quoted price, recreate the local demo data before rerunning the seed; the
+script detects stale quote values and reports this rather than silently
+skipping the updated fixture.
+
 The shared tradable-instrument catalog comes from `scripts/instruments.csv`.
 The script ensures this catalog once with the seeded admin before creating
 demo-user portfolios; instrument records are shared and are not seeded once

@@ -1,5 +1,6 @@
 import { Injectable, computed, inject } from '@angular/core';
 import { Order } from '@core/models';
+import { OrderLogResponse } from '@core/models/api.models';
 import { TradeOrderEngineService, TradePlaceOrderRequest } from './trade-order-engine.service';
 import {
   TradeSetWatchlistMembershipRequest,
@@ -37,6 +38,10 @@ export class TradeFacadeService {
 
   getOrderById(orderId: string | null): Order | null {
     return this.orderEngine.getOrderById(orderId);
+  }
+
+  getOrderHistory(orderId: string | null): OrderLogResponse[] {
+    return orderId ? (this.state.getOrderHistory?.(orderId) ?? []) : [];
   }
 
   getOwnedQuantity(symbol: string | null): number {

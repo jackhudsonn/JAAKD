@@ -139,6 +139,16 @@ export class BackendTradeStateService implements TradeStatePort {
     }
   }
 
+  getOrderHistory(orderId: string): OrderLogResponse[] {
+    return this.orderLogsData()
+      .filter((log) => log.orderId === orderId)
+      .sort(
+        (a, b) =>
+          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime() ||
+          a.logOrderId.localeCompare(b.logOrderId),
+      );
+  }
+
   async setWatchlistMembership(
     symbol: string,
     watchlistId: string,
