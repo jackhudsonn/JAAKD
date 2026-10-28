@@ -34,6 +34,16 @@ export interface InstrumentResponse {
   description: string | null;
 }
 
+export interface InstrumentCandleResponse {
+  date: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number | null;
+  currency: string;
+}
+
 export interface OrderLogResponse {
   logOrderId: string;
   orderId: string;

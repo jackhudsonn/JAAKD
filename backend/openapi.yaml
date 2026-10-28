@@ -587,6 +587,34 @@ paths:
         "500":
           $ref: "#/components/responses/ServerError"
 
+  /api/instruments/{instrumentId}/candles:
+    get:
+      tags: [Instruments]
+      summary: Get daily OHLC candles for an instrument
+      description: Defaults to the year ending today; at most five years per request. Synthetic candles are omitted.
+      operationId: getInstrumentCandles
+      parameters:
+        - $ref: "#/components/parameters/InstrumentId"
+        - $ref: "#/components/parameters/SeriesFrom"
+        - $ref: "#/components/parameters/SeriesTo"
+      responses:
+        "200":
+          description: Daily candles, oldest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/InstrumentCandleResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
   /api/instruments/ticker/{ticker}:
     get:
       tags: [Instruments]
@@ -2974,6 +3002,26 @@ components:
           type: [string, "null"]
         description:
           type: [string, "null"]
+    InstrumentCandleResponse:
+      type: object
+      required: [date, open, high, low, close, currency]
+      properties:
+        date:
+          type: string
+          format: date
+        open:
+          type: number
+        high:
+          type: number
+        low:
+          type: number
+        close:
+          type: number
+        volume:
+          type: [integer, "null"]
+          format: int64
+        currency:
+          type: string
     InstrumentPriceResponse:
       type: object
       properties:

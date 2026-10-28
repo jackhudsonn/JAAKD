@@ -10,7 +10,13 @@ import {
   signal,
 } from '@angular/core';
 import { DecimalPipe, TitleCasePipe } from '@angular/common';
+import { InstrumentCandleResponse } from '@core/models/api.models';
+import { InstrumentApiService } from '@core/services/instrument-api.service';
 import { ModalComponent } from '@shared/components/modal/modal.component';
+import {
+  LineChartComponent,
+  LineChartPoint,
+} from '@shared/components/line-chart/line-chart.component';
 import { DisplaySymbolPipe } from '@shared/pipes/display-symbol.pipe';
 import { ToastService } from '@shared/components/toast/toast.service';
 import {
@@ -39,19 +45,83 @@ export interface AssetSetWatchlistMembershipRequest {
   included: boolean;
 }
 
+export type AssetPriceInterval = '1W' | '1M' | '1Y' | 'YTD' | 'ALL';
+
+export const ASSET_PRICE_INTERVALS: AssetPriceInterval[] = ['1W', '1M', '1Y', 'YTD', 'ALL'];
+
+function shiftUtcDate(date: Date, years: number, months: number) {
+  const day = date.getUTCDate();
+  const target = new Date(Date.UTC(date.getUTCFullYear() + years, date.getUTCMonth() + months, 1));
+  const lastDay = new Date(
+    Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0),
+  ).getUTCDate();
+  date.setUTCFullYear(target.getUTCFullYear(), target.getUTCMonth(), Math.min(day, lastDay));
+}
+
+export function assetPriceRangeFor(
+  interval: AssetPriceInterval,
+  today = new Date(),
+): { from: string; to: string } {
+  const to = today.toISOString().slice(0, 10);
+  const start = new Date(`${to}T00:00:00Z`);
+
+  switch (interval) {
+    case '1W':
+      start.setUTCDate(start.getUTCDate() - 7);
+      break;
+    case '1M':
+      shiftUtcDate(start, 0, -1);
+      break;
+    case '1Y':
+      shiftUtcDate(start, -1, 0);
+      break;
+    case 'YTD':
+      start.setUTCMonth(0, 1);
+      break;
+    case 'ALL':
+      shiftUtcDate(start, -5, 0);
+      break;
+  }
+
+  return { from: start.toISOString().slice(0, 10), to };
+}
+
+export function toPriceChartLabel(date: string): string {
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date(`${date}T00:00:00Z`));
+}
+
+export function toAveragePricePoints(candles: InstrumentCandleResponse[]): LineChartPoint[] {
+  return candles.map((candle) => ({
+    label: toPriceChartLabel(candle.date),
+    value: (candle.open + candle.high + candle.low + candle.close) / 4,
+  }));
+}
+
 /**
  * Asset details popup opened from the Trade card or ticker search.
  */
 @Component({
   selector: 'app-asset-popup',
   standalone: true,
-  imports: [ModalComponent, OrderFormComponent, DecimalPipe, TitleCasePipe, DisplaySymbolPipe],
+  imports: [
+    ModalComponent,
+    OrderFormComponent,
+    LineChartComponent,
+    DecimalPipe,
+    TitleCasePipe,
+    DisplaySymbolPipe,
+  ],
   templateUrl: './asset-popup.component.html',
   styleUrl: './asset-popup.component.css',
 })
 export class AssetPopupComponent {
   private readonly elementRef = inject(ElementRef<HTMLElement>);
   private readonly marketData = inject(TRADE_MARKET_DATA_PORT);
+  private readonly instrumentApi = inject(InstrumentApiService);
   private readonly toastService = inject(ToastService);
 
   symbol = input.required<string>();
@@ -66,10 +136,16 @@ export class AssetPopupComponent {
 
   watchlistDropdownOpen = signal(false);
   activeView = signal<'analysis' | 'trade'>('analysis');
+  candles = signal<InstrumentCandleResponse[]>([]);
+  averagePricePoints = computed(() => toAveragePricePoints(this.candles()));
+  priceIntervals = ASSET_PRICE_INTERVALS;
+  selectedPriceInterval = signal<AssetPriceInterval>('1M');
+  candleState = signal<'loading' | 'ready' | 'error'>('loading');
   readonly formatCurrency = formatCurrency;
   readonly fallbackCurrency = REPORTING_CURRENCY;
 
   private readonly reportedUnavailableData = new Set<string>();
+  private candleRequestId = 0;
 
   asset = computed(() => this.marketData.getAsset(this.symbol()));
   currentPrice = computed(() => this.marketData.getPrice(this.symbol()));
@@ -96,6 +172,21 @@ export class AssetPopupComponent {
 
   constructor() {
     effect(() => {
+      const instrumentId = this.asset()?.instrumentId;
+      const interval = this.selectedPriceInterval();
+      const requestId = ++this.candleRequestId;
+      this.candles.set([]);
+
+      if (!instrumentId) {
+        this.candleState.set('ready');
+        return;
+      }
+
+      this.candleState.set('loading');
+      void this.loadCandles(instrumentId, requestId, interval);
+    });
+
+    effect(() => {
       const symbol = this.symbol();
       const price = this.currentPrice();
 
@@ -109,6 +200,27 @@ export class AssetPopupComponent {
       this.watchlistDropdownOpen.set(false);
       this.activeView.set('analysis');
     });
+  }
+
+  private async loadCandles(instrumentId: string, requestId: number, interval: AssetPriceInterval) {
+    try {
+      const { from, to } = assetPriceRangeFor(interval);
+      const candles = await this.instrumentApi.getCandles(instrumentId, from, to);
+      if (requestId !== this.candleRequestId) {
+        return;
+      }
+
+      this.candles.set(candles);
+      this.candleState.set('ready');
+    } catch {
+      if (requestId === this.candleRequestId) {
+        this.candleState.set('error');
+      }
+    }
+  }
+
+  selectPriceInterval(interval: AssetPriceInterval) {
+    this.selectedPriceInterval.set(interval);
   }
 
   @HostListener('document:click', ['$event'])

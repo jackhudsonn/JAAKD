@@ -32,6 +32,7 @@ export function formatChartValue(
   value: number,
   format: LineChartValueFormat,
   compact: boolean,
+  currency = 'USD',
 ): string {
   switch (format) {
     case 'percent':
@@ -47,7 +48,7 @@ export function formatChartValue(
     default:
       return new Intl.NumberFormat('en-US', {
         style: 'currency',
-        currency: 'USD',
+        currency,
         ...(compact ? { notation: 'compact', maximumFractionDigits: 1 } : {}),
       }).format(value);
   }
@@ -89,6 +90,7 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
   comparePoints = input<LineChartPoint[] | null>(null);
   seriesLabel = input<string>('');
   compareLabel = input<string>('');
+  currency = input<string>('USD');
   referenceLines = input<LineChartReferenceLine[]>([]);
 
   @ViewChild('canvas') private canvasRef!: ElementRef<HTMLCanvasElement>;
@@ -169,6 +171,11 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
         changes['positive'] ||
         changes['flat'] ||
         changes['comparePoints'] ||
+        changes['currency']) &&
+      (changes['points'] ||
+        changes['positive'] ||
+        changes['flat'] ||
+        changes['comparePoints'] ||
         changes['referenceLines']) &&
       this.chart
     ) {
@@ -182,7 +189,7 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
   }
 
   private formatValue(value: number, compact: boolean): string {
-    return formatChartValue(value, this.valueFormat(), compact);
+    return formatChartValue(value, this.valueFormat(), compact, this.currency());
   }
 
   private lineColor(): string {

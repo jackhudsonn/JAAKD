@@ -129,12 +129,7 @@ export class AllocationByAssetWidgetComponent {
         continue;
       }
 
-      const value = convertAmountBetweenCurrencies(
-        amount,
-        cashCurrency,
-        REPORTING_CURRENCY,
-        rates,
-      );
+      const value = convertAmountBetweenCurrencies(amount, cashCurrency, REPORTING_CURRENCY, rates);
       if (value === null) {
         continue;
       }

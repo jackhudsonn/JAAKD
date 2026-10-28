@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import io.github.jackhudsonn.jaakd.dto.CreateInstrumentRequest;
+import io.github.jackhudsonn.jaakd.dto.InstrumentCandleResponse;
 import io.github.jackhudsonn.jaakd.dto.InstrumentResponse;
 import io.github.jackhudsonn.jaakd.dto.SyncCryptoInstrumentRequest;
 import io.github.jackhudsonn.jaakd.dto.UpdateInstrumentRequest;
@@ -25,6 +26,7 @@ import io.github.jackhudsonn.jaakd.model.fauxnance.FauxnanceQuoteResponse;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/api/instruments")
@@ -62,6 +64,16 @@ public class InstrumentController {
 	public InstrumentResponse getInstrumentById(@PathVariable UUID instrumentId) {
 		Instrument instrument = instrumentService.getInstrumentById(instrumentId);
 		return toResponse(instrument);
+	}
+
+	@GetMapping("/{instrumentId}/candles")
+	@ResponseStatus(HttpStatus.OK)
+	public List<InstrumentCandleResponse> getCandles(
+			@PathVariable UUID instrumentId,
+			@RequestParam(required = false) LocalDate from,
+			@RequestParam(required = false) LocalDate to
+	) {
+		return instrumentService.getCandles(instrumentId, from, to);
 	}
 
 	@GetMapping("/ticker/{ticker}")

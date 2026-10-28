@@ -9,6 +9,7 @@ import { HoldingsCardComponent } from './holdings-card.component';
 describe('HoldingsCardComponent change display', () => {
   let fixture: ComponentFixture<HoldingsCardComponent>;
   const asset: TradeMarketAsset = {
+    instrumentId: 'instrument-aapl',
     symbol: 'AAPL',
     name: 'Apple',
     currency: 'USD',

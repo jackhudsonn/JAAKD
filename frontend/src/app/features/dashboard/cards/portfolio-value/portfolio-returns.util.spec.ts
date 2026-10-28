@@ -53,9 +53,9 @@ describe('portfolio returns', () => {
   });
 
   it('works out the all-time return, or null when a price is missing', () => {
-    expect(
-      toAllTimeReturn(500, [holding(5, 120)], [tx('deposit', 1000)], USD_RATES_BY_USD),
-    ).toBe(100);
+    expect(toAllTimeReturn(500, [holding(5, 120)], [tx('deposit', 1000)], USD_RATES_BY_USD)).toBe(
+      100,
+    );
     expect(
       toAllTimeReturn(500, [holding(5, null)], [tx('deposit', 1000)], USD_RATES_BY_USD),
     ).toBeNull();
@@ -75,9 +75,7 @@ describe('portfolio returns', () => {
     expect(toCashInUsd(0, { INR: 100 }, rates)).toBeNull();
     expect(toHoldingsValueInUsd([holding(2, 50, 'INR')], rates)).toBeNull();
     expect(toNetDepositsInUsd([tx('deposit', 100, 'EXECUTED', 'INR')], rates)).toBeNull();
-    expect(
-      toAllTimeReturn(500, [holding(2, 50, 'INR')], [tx('deposit', 1000)], rates),
-    ).toBeNull();
+    expect(toAllTimeReturn(500, [holding(2, 50, 'INR')], [tx('deposit', 1000)], rates)).toBeNull();
   });
 
   it('has no percent without a positive base', () => {

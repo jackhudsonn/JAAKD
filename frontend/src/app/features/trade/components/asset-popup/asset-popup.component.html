@@ -80,7 +80,36 @@
         </div>
       }
       <div class="analysis-view">
-        <p class="unavailable-note">Performance history isn't available yet.</p>
+        <section class="price-history" aria-label="Price history">
+          <h3>Daily price history</h3>
+          <div class="interval-tabs" role="group" aria-label="Price history range">
+            @for (interval of priceIntervals; track interval) {
+              <button
+                type="button"
+                class="interval-tab"
+                [class.active]="selectedPriceInterval() === interval"
+                [attr.aria-pressed]="selectedPriceInterval() === interval"
+                (click)="selectPriceInterval(interval)"
+              >
+                {{ interval }}
+              </button>
+            }
+          </div>
+          @if (candleState() === 'loading') {
+            <p class="history-message" role="status">Loading price history...</p>
+          } @else if (candleState() === 'error') {
+            <p class="history-message" role="alert">Price history couldn't be loaded.</p>
+          } @else if (candles().length === 0) {
+            <p class="history-message">No price history is available for this asset.</p>
+          } @else {
+            <app-line-chart
+              [points]="averagePricePoints()"
+              [seriesLabel]="symbol()"
+              [valueFormat]="'currency'"
+              [currency]="asset()?.currency ?? fallbackCurrency"
+            />
+          }
+        </section>
 
         <button type="button" class="btn btn-primary trade-cta" (click)="openTradeView()">
           Trade {{ symbol() | displaySymbol }}

@@ -57,4 +57,18 @@ describe('InstrumentApiService', () => {
   it('getQuotes makes no request when there are no symbols', async () => {
     await expect(service.getQuotes([])).resolves.toEqual([]);
   });
+
+  it('getCandles requests the instrument candle series and date bounds', async () => {
+    const promise = service.getCandles('instrument-1', '2025-01-01', '2025-12-31');
+
+    const req = httpTestingController.expectOne(
+      (request) => request.url === `${environment.apiUrl}/api/instruments/instrument-1/candles`,
+    );
+    expect(req.request.method).toBe('GET');
+    expect(req.request.params.get('from')).toBe('2025-01-01');
+    expect(req.request.params.get('to')).toBe('2025-12-31');
+    req.flush([]);
+
+    await expect(promise).resolves.toEqual([]);
+  });
 });
