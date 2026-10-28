@@ -171,6 +171,35 @@ describe('AssetPopupComponent', () => {
     expect(component.selectedPriceInterval()).toBe('1W');
   });
 
+  it('colours the price chart by the plotted range, not the previous close', async () => {
+    candleRequest = async () => [
+      {
+        date: '2025-03-04',
+        open: 100,
+        high: 108,
+        low: 96,
+        close: 104,
+        volume: 2400,
+        currency: 'USD',
+      },
+      {
+        date: '2025-03-05',
+        open: 90,
+        high: 94,
+        low: 86,
+        close: 88,
+        volume: 1800,
+        currency: 'USD',
+      },
+    ];
+    create();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(component.changePct()).toBeCloseTo(10, 6);
+    expect(component.priceTrend()).toBe('down');
+  });
+
   it('plots the average of each candle OHLC as a line-chart point', () => {
     expect(
       toAveragePricePoints([
@@ -184,7 +213,7 @@ describe('AssetPopupComponent', () => {
           currency: 'USD',
         },
       ]),
-    ).toEqual([{ label: 'Mar 4', value: 102 }]);
+    ).toEqual([{ label: 'Mar 4', tooltipLabel: 'Mar 4, 2025', value: 102 }]);
   });
 
   it('shows a loading state while candle history is pending', () => {

@@ -15,8 +15,7 @@
     <div class="performance-body">
       <app-line-chart
         [points]="chartPoints()"
-        [positive]="trend() === 'up'"
-        [flat]="trend() === 'flat'"
+        [trend]="trend()"
         [compact]="true"
         seriesLabel="Value"
         [referenceLines]="chartReferenceLines()"

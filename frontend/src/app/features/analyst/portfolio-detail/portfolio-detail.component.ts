@@ -34,6 +34,8 @@ import {
   sortRows,
   topSlices,
 } from '../analyst-format';
+import { toDateChartPoints } from '@shared/utils/chart-date-label';
+import { trendForFraction, trendForValue } from '@shared/utils/format-percentage-change';
 import { LoadState, keepsContent, loadStateFor } from '../analyst-load-state';
 import { LoadStateMessageComponent } from '../load-state-message/load-state-message.component';
 
@@ -88,6 +90,8 @@ export class PortfolioDetailComponent {
   readonly formatPercent = formatPercent;
   readonly formatQuantity = formatQuantity;
   readonly signClass = signClass;
+  readonly trendForValue = trendForValue;
+  readonly trendForFraction = trendForFraction;
   readonly shortId = shortId;
   readonly keepsContent = keepsContent;
 
@@ -156,7 +160,9 @@ export class PortfolioDetailComponent {
 
   // Whole portfolio: value and time-weighted return.
   readonly valuePoints = computed<LineChartPoint[]>(() =>
-    this.series().map((point) => ({ label: point.date, value: point.marketValueUsd })),
+    toDateChartPoints(
+      this.series().map((point) => ({ date: point.date, value: point.marketValueUsd })),
+    ),
   );
   readonly returnPoints = computed(() =>
     rebaseCumulative(
@@ -172,16 +178,28 @@ export class PortfolioDetailComponent {
     ),
   );
   readonly classValuePoints = computed<LineChartPoint[]>(() =>
-    this.pricedClassPoints().map((point) => ({ label: point.date, value: point.marketValueUsd! })),
+    toDateChartPoints(
+      this.pricedClassPoints().map((point) => ({
+        date: point.date,
+        value: point.marketValueUsd!,
+      })),
+    ),
   );
   readonly classCostPoints = computed<LineChartPoint[]>(() =>
-    this.pricedClassPoints().map((point) => ({ label: point.date, value: point.costBasisUsd! })),
+    toDateChartPoints(
+      this.pricedClassPoints().map((point) => ({
+        date: point.date,
+        value: point.costBasisUsd!,
+      })),
+    ),
   );
   readonly classPnlPoints = computed<LineChartPoint[]>(() =>
-    this.pricedClassPoints().map((point) => ({
-      label: point.date,
-      value: (point.realizedPnlToDateUsd ?? 0) + (point.unrealizedPnlUsd ?? 0),
-    })),
+    toDateChartPoints(
+      this.pricedClassPoints().map((point) => ({
+        date: point.date,
+        value: (point.realizedPnlToDateUsd ?? 0) + (point.unrealizedPnlUsd ?? 0),
+      })),
+    ),
   );
   readonly classPnl = computed(() => this.classPnlPoints().at(-1)?.value ?? null);
 

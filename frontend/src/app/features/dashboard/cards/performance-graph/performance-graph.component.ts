@@ -11,14 +11,14 @@ import {
 import { REPORTING_CURRENCY } from '@core/models/api.models';
 import { DASHBOARD_STATE_PORT } from '@features/dashboard/services/dashboard-state.port';
 import { formatCurrency } from '@shared/utils/display-format';
-import { isFlatChange } from '@shared/utils/format-percentage-change';
+import { toDateChartPoints } from '@shared/utils/chart-date-label';
+import { Trend, trendForValue } from '@shared/utils/format-percentage-change';
 import { formatSignedPct, formatSignedUsd } from '../portfolio-value/portfolio-returns.util';
 import {
   PERFORMANCE_INTERVALS,
   PerformanceInterval,
   filterByInterval,
   summarize,
-  toChartLabel,
 } from './performance-graph.util';
 
 @Component({
@@ -41,16 +41,12 @@ export class PerformanceGraphWidgetComponent {
   readonly status = computed<WidgetStatus>(() => this.state.performanceLoadState?.() ?? 'idle');
   readonly history = computed(() => this.state.performance?.() ?? []);
   readonly selectedInterval = signal<PerformanceInterval>('1M');
-  readonly selectedIntervalIndex = computed(() =>
-    this.intervals.indexOf(this.selectedInterval()),
-  );
+  readonly selectedIntervalIndex = computed(() => this.intervals.indexOf(this.selectedInterval()));
 
   readonly visiblePoints = computed(() =>
     filterByInterval(this.history(), this.selectedInterval()),
   );
-  readonly chartPoints = computed<LineChartPoint[]>(() =>
-    this.visiblePoints().map((point) => ({ label: toChartLabel(point.date), value: point.value })),
-  );
+  readonly chartPoints = computed<LineChartPoint[]>(() => toDateChartPoints(this.visiblePoints()));
   readonly summary = computed(() => summarize(this.visiblePoints()));
   readonly chartReferenceLines = computed<LineChartReferenceLine[]>(() => {
     const summary = this.summary();
@@ -62,13 +58,9 @@ export class PerformanceGraphWidgetComponent {
       : [];
   });
   // Grey when the change rounds to 0.00, as on the other cards.
-  readonly trend = computed<'up' | 'down' | 'flat'>(() => {
+  readonly trend = computed<Trend>(() => {
     const summary = this.summary();
-    if (!summary || isFlatChange(summary.changePct ?? summary.change)) {
-      return 'flat';
-    }
-
-    return summary.change > 0 ? 'up' : 'down';
+    return summary ? trendForValue(summary.changePct ?? summary.change) : 'flat';
   });
 
   load() {

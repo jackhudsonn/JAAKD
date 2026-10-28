@@ -138,7 +138,7 @@
           <app-line-chart
             [points]="classValuePoints()"
             [comparePoints]="classCostPoints()"
-            [positive]="(classPnl() ?? 0) >= 0"
+            [trend]="trendForValue(classPnl())"
             seriesLabel="Market value"
             compareLabel="Cost basis"
           />
@@ -154,7 +154,7 @@
         >
           <app-line-chart
             [points]="classPnlPoints()"
-            [positive]="(classPnl() ?? 0) >= 0"
+            [trend]="trendForValue(classPnl())"
             seriesLabel="P&L"
           />
         </app-widget-card>
@@ -171,7 +171,7 @@
       >
         <app-line-chart
           [points]="valuePoints()"
-          [positive]="(rangeReturn() ?? 0) >= 0"
+          [trend]="trendForFraction(rangeReturn())"
           seriesLabel="Value"
         />
       </app-widget-card>
@@ -188,7 +188,7 @@
       >
         <app-line-chart
           [points]="returnPoints()"
-          [positive]="(rangeReturn() ?? 0) >= 0"
+          [trend]="trendForFraction(rangeReturn())"
           valueFormat="percent"
           seriesLabel="Return"
         />

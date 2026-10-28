@@ -9,10 +9,13 @@ import {
   input,
 } from '@angular/core';
 import { Chart, ChartData, Plugin, ScriptableContext } from 'chart.js/auto';
+import { Trend } from '@shared/utils/format-percentage-change';
 
 export interface LineChartPoint {
   label: string;
   value: number;
+  // Shown as the tooltip title when set; the axis keeps the shorter label.
+  tooltipLabel?: string;
 }
 
 export interface LineChartReferenceLine {
@@ -80,9 +83,8 @@ function fadingFill(color: string) {
 })
 export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
   points = input.required<LineChartPoint[]>();
-  positive = input<boolean>(true);
-  // Grey line, wins over positive.
-  flat = input<boolean>(false);
+  // Required, so a chart can never silently default to green.
+  trend = input.required<Trend>();
   // Small dashboard cards: fewer axis labels, fainter grid, fading fill. Read once when the chart is created.
   compact = input<boolean>(false);
   valueFormat = input<LineChartValueFormat>('currency');
@@ -153,6 +155,10 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
           legend: { display: false },
           tooltip: {
             callbacks: {
+              title: (items) => {
+                const point = this.points()[items[0]?.dataIndex ?? -1];
+                return point?.tooltipLabel ?? point?.label ?? '';
+              },
               label: (context: any) => {
                 const val = context.parsed?.y ?? context.parsed ?? context.raw;
                 const prefix = context.dataset.label ? `${context.dataset.label}: ` : '';
@@ -168,14 +174,9 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
   ngOnChanges(changes: SimpleChanges) {
     if (
       (changes['points'] ||
-        changes['positive'] ||
-        changes['flat'] ||
+        changes['trend'] ||
         changes['comparePoints'] ||
-        changes['currency']) &&
-      (changes['points'] ||
-        changes['positive'] ||
-        changes['flat'] ||
-        changes['comparePoints'] ||
+        changes['currency'] ||
         changes['referenceLines']) &&
       this.chart
     ) {
@@ -193,10 +194,14 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
   }
 
   private lineColor(): string {
-    if (this.flat()) {
-      return COMPARE_COLOR;
+    switch (this.trend()) {
+      case 'flat':
+        return COMPARE_COLOR;
+      case 'up':
+        return '#4fc46a';
+      default:
+        return '#e45b65';
     }
-    return this.positive() ? '#4fc46a' : '#e45b65';
   }
 
   private drawHoverReferenceLines(chart: Chart<'line'>): void {

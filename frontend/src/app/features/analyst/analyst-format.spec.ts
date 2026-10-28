@@ -109,7 +109,8 @@ describe('analyst-format', () => {
       { date: '2026-10-22', value: 0.21 },
     ]);
 
-    expect(points.map((point) => point.label)).toEqual(['2026-10-21', '2026-10-22']);
+    expect(points.map((point) => point.label)).toEqual(['Oct 21', 'Oct 22']);
+    expect(points.map((point) => point.tooltipLabel)).toEqual(['Oct 21, 2026', 'Oct 22, 2026']);
     expect(points[0].value).toBe(0);
     expect(points[1].value).toBeCloseTo(0.1);
   });

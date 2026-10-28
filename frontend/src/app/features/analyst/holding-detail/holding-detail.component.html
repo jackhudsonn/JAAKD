@@ -68,7 +68,7 @@
       <app-line-chart
         [points]="valuePoints()"
         [comparePoints]="costPoints()"
-        [positive]="(last.unrealizedPnlUsd ?? 0) >= 0"
+        [trend]="trendForValue(last.unrealizedPnlUsd)"
         seriesLabel="Market value"
         compareLabel="Cost basis"
       />
@@ -80,7 +80,7 @@
     <app-widget-card title="Total P&L" subtitle="Realized + unrealized, USD">
       <app-line-chart
         [points]="pnlPoints()"
-        [positive]="(totalPnl() ?? 0) >= 0"
+        [trend]="trendForValue(totalPnl())"
         seriesLabel="P&L"
       />
     </app-widget-card>

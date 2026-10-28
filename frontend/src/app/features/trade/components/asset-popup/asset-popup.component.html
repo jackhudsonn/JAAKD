@@ -104,6 +104,7 @@
           } @else {
             <app-line-chart
               [points]="averagePricePoints()"
+              [trend]="priceTrend()"
               [seriesLabel]="symbol()"
               [valueFormat]="'currency'"
               [currency]="asset()?.currency ?? fallbackCurrency"

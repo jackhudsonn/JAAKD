@@ -9,8 +9,7 @@ import { PerformanceGraphWidgetComponent } from './performance-graph.component';
 @Component({ selector: 'app-line-chart', standalone: true, template: '' })
 class LineChartStubComponent {
   points = input<unknown>();
-  positive = input<boolean>();
-  flat = input<boolean>();
+  trend = input<string>();
   compact = input<boolean>();
   seriesLabel = input<string>();
   referenceLines = input<unknown>();

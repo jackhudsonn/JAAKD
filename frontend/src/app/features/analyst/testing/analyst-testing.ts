@@ -11,6 +11,7 @@ import {
   LineChartPoint,
   LineChartValueFormat,
 } from '@shared/components/line-chart/line-chart.component';
+import { Trend } from '@shared/utils/format-percentage-change';
 import { PieChartSlice } from '@shared/components/pie-chart/pie-chart.component';
 import { SegmentBarDataset } from '../segment-bar-chart/segment-bar-chart.component';
 
@@ -74,7 +75,7 @@ export const flushPromises = () => new Promise<void>((resolve) => setTimeout(res
 @Component({ selector: 'app-line-chart', standalone: true, template: '' })
 export class LineChartStubComponent {
   points = input.required<LineChartPoint[]>();
-  positive = input(true);
+  trend = input<Trend>();
   valueFormat = input<LineChartValueFormat>('currency');
   comparePoints = input<LineChartPoint[] | null>(null);
   seriesLabel = input('');
