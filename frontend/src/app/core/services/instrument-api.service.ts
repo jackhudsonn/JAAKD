@@ -21,7 +21,11 @@ export class InstrumentApiService {
     );
   }
 
-  getCandles(instrumentId: string, from?: string, to?: string): Promise<InstrumentCandleResponse[]> {
+  getCandles(
+    instrumentId: string,
+    from?: string,
+    to?: string,
+  ): Promise<InstrumentCandleResponse[]> {
     return firstValueFrom(
       this.httpClient.get<InstrumentCandleResponse[]>(
         `${environment.apiUrl}/api/instruments/${instrumentId}/candles`,

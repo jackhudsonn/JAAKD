@@ -22,7 +22,7 @@ describe('AssetPopupComponent', () => {
   let requestedDateRange: { from: string | null; to: string | null } | null;
 
   const marketData = {
-    getAsset: (symbol: string) => asset?.symbol === symbol ? asset : undefined,
+    getAsset: (symbol: string) => (asset?.symbol === symbol ? asset : undefined),
     getPrice: () => price,
   };
 
@@ -172,17 +172,19 @@ describe('AssetPopupComponent', () => {
   });
 
   it('plots the average of each candle OHLC as a line-chart point', () => {
-    expect(toAveragePricePoints([
-      {
-        date: '2025-03-04',
-        open: 100,
-        high: 108,
-        low: 96,
-        close: 104,
-        volume: 2400,
-        currency: 'USD',
-      },
-    ])).toEqual([{ label: 'Mar 4', value: 102 }]);
+    expect(
+      toAveragePricePoints([
+        {
+          date: '2025-03-04',
+          open: 100,
+          high: 108,
+          low: 96,
+          close: 104,
+          volume: 2400,
+          currency: 'USD',
+        },
+      ]),
+    ).toEqual([{ label: 'Mar 4', value: 102 }]);
   });
 
   it('shows a loading state while candle history is pending', () => {

@@ -13,7 +13,10 @@ import { DecimalPipe, TitleCasePipe } from '@angular/common';
 import { InstrumentCandleResponse } from '@core/models/api.models';
 import { InstrumentApiService } from '@core/services/instrument-api.service';
 import { ModalComponent } from '@shared/components/modal/modal.component';
-import { LineChartComponent, LineChartPoint } from '@shared/components/line-chart/line-chart.component';
+import {
+  LineChartComponent,
+  LineChartPoint,
+} from '@shared/components/line-chart/line-chart.component';
 import { DisplaySymbolPipe } from '@shared/pipes/display-symbol.pipe';
 import { ToastService } from '@shared/components/toast/toast.service';
 import {
@@ -180,7 +183,7 @@ export class AssetPopupComponent {
       }
 
       this.candleState.set('loading');
-  void this.loadCandles(instrumentId, requestId, interval);
+      void this.loadCandles(instrumentId, requestId, interval);
     });
 
     effect(() => {
@@ -199,11 +202,7 @@ export class AssetPopupComponent {
     });
   }
 
-  private async loadCandles(
-    instrumentId: string,
-    requestId: number,
-    interval: AssetPriceInterval,
-  ) {
+  private async loadCandles(instrumentId: string, requestId: number, interval: AssetPriceInterval) {
     try {
       const { from, to } = assetPriceRangeFor(interval);
       const candles = await this.instrumentApi.getCandles(instrumentId, from, to);

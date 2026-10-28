@@ -14,12 +14,7 @@ const toUsd = (
   currency: CashCurrency | undefined,
   rates: CashRatesByUsd,
 ): number | null =>
-  convertAmountBetweenCurrencies(
-    amount,
-    currency ?? REPORTING_CURRENCY,
-    REPORTING_CURRENCY,
-    rates,
-  );
+  convertAmountBetweenCurrencies(amount, currency ?? REPORTING_CURRENCY, REPORTING_CURRENCY, rates);
 
 // Every cash currency counts, so a deposit in EUR or an FX exchange does not look like a loss.
 export function toCashInUsd(
@@ -64,10 +59,7 @@ export function toNetDepositsInUsd(
 }
 
 // Null when a holding has no price, so a missing price never shows as a loss.
-export function toHoldingsValueInUsd(
-  holdings: Holding[],
-  rates: CashRatesByUsd,
-): number | null {
+export function toHoldingsValueInUsd(holdings: Holding[], rates: CashRatesByUsd): number | null {
   let holdingsValue = 0;
   for (const holding of holdings) {
     if (holding.indicativePrice == null) {

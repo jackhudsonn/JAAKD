@@ -138,7 +138,11 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
 
   ngOnChanges(changes: SimpleChanges) {
     if (
-      (changes['points'] || changes['positive'] || changes['flat'] || changes['comparePoints'] || changes['currency']) &&
+      (changes['points'] ||
+        changes['positive'] ||
+        changes['flat'] ||
+        changes['comparePoints'] ||
+        changes['currency']) &&
       this.chart
     ) {
       this.chart.data = this.toChartData();
