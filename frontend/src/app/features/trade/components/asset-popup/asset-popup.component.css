@@ -13,6 +13,22 @@
   gap: var(--space-md);
 }
 
+.price-history h3 {
+  margin: 0 0 var(--space-sm);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.history-message {
+  min-height: 280px;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  text-align: center;
+}
+
 .asset-header {
   display: flex;
   align-items: center;
@@ -71,22 +87,28 @@
 }
 
 .interval-tabs {
-  display: flex;
-  flex-wrap: wrap;
+  display: inline-flex;
+  align-self: flex-start;
 
-  gap: var(--space-xxs);
-}
+  gap: 2px;
 
-.interval-tab {
-  min-height: 28px;
-
-  padding: var(--space-xxs) var(--space-sm);
+  padding: 2px;
 
   background: var(--tertiary-bg);
   border: 1px solid var(--quaternary-bg-border);
+  border-radius: var(--radius-md);
+}
+
+.interval-tab {
+  min-height: 24px;
+
+  padding: 0 var(--space-xs);
+
+  background: transparent;
+  border: 0;
   border-radius: var(--radius-sm);
 
-  color: var(--text-secondary);
+  color: var(--text-muted);
   font-size: var(--font-size-xs);
   font-weight: 600;
 
@@ -94,19 +116,21 @@
 
   transition:
     background-color 120ms ease,
-    color 120ms ease,
-    border-color 120ms ease;
+    color 120ms ease;
 }
 
 .interval-tab:hover {
-  border-color: var(--primary);
   color: var(--secondary-light);
+}
+
+.interval-tab:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
 }
 
 .interval-tab.active {
   background: var(--primary);
-  border-color: var(--primary-dark);
-  color: #1f1f1f;
+  color: var(--primary-ink);
 }
 
 .watchlist-selector {

@@ -36,8 +36,7 @@ const CURRENCY_SYMBOLS: Record<CashCurrency, string> = {
   INR: '₹',
 };
 
-const isPositiveRate = (rate: number | undefined): rate is number =>
-  rate !== undefined && rate > 0;
+const isPositiveRate = (rate: number | undefined): rate is number => rate !== undefined && rate > 0;
 
 export interface AllocationAssetSelection {
   symbol: string;
@@ -106,12 +105,7 @@ export class AllocationByAssetWidgetComponent {
         continue;
       }
 
-      const value = convertAmountBetweenCurrencies(
-        amount,
-        cashCurrency,
-        REPORTING_CURRENCY,
-        rates,
-      );
+      const value = convertAmountBetweenCurrencies(amount, cashCurrency, REPORTING_CURRENCY, rates);
       if (value === null) {
         continue;
       }

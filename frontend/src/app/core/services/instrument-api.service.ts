@@ -1,7 +1,11 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-import { InstrumentResponse, QuoteResponse } from '@core/models/api.models';
+import {
+  InstrumentCandleResponse,
+  InstrumentResponse,
+  QuoteResponse,
+} from '@core/models/api.models';
 import { environment } from '@environments/environment.local';
 
 const MAX_QUOTES_PER_REQUEST = 25;
@@ -14,6 +18,19 @@ export class InstrumentApiService {
   list(): Promise<InstrumentResponse[]> {
     return firstValueFrom(
       this.httpClient.get<InstrumentResponse[]>(`${environment.apiUrl}/api/instruments`),
+    );
+  }
+
+  getCandles(
+    instrumentId: string,
+    from?: string,
+    to?: string,
+  ): Promise<InstrumentCandleResponse[]> {
+    return firstValueFrom(
+      this.httpClient.get<InstrumentCandleResponse[]>(
+        `${environment.apiUrl}/api/instruments/${instrumentId}/candles`,
+        { params: { ...(from ? { from } : {}), ...(to ? { to } : {}) } },
+      ),
     );
   }
 

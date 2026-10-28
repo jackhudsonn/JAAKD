@@ -8,6 +8,7 @@ import { TradeCardComponent } from './trade-card.component';
 describe('TradeCardComponent change display', () => {
   let fixture: ComponentFixture<TradeCardComponent>;
   const asset: TradeMarketAsset = {
+    instrumentId: 'instrument-aapl',
     symbol: 'AAPL',
     name: 'Apple',
     currency: 'USD',

@@ -36,6 +36,7 @@ describe('BackendTradeMarketDataService', () => {
           market: 'NASDAQ',
           name: 'Apple Inc.',
           instrumentClass: 'EQUITY',
+          tradingCurrency: 'USD',
           logoUrl: null,
           description: null,
         },
@@ -45,6 +46,7 @@ describe('BackendTradeMarketDataService', () => {
           market: 'CRYPTO',
           name: 'Bitcoin',
           instrumentClass: 'CRYPTO',
+          tradingCurrency: 'USD',
           logoUrl: null,
           description: null,
         },
@@ -54,6 +56,7 @@ describe('BackendTradeMarketDataService', () => {
           market: 'CASH',
           name: 'US Dollar',
           instrumentClass: 'CASH',
+          tradingCurrency: 'USD',
           logoUrl: null,
           description: null,
         },
@@ -83,14 +86,18 @@ describe('BackendTradeMarketDataService', () => {
 
     expect(assets).toEqual([
       {
+        instrumentId: 'inst-aapl',
         symbol: 'AAPL',
         name: 'Apple Inc.',
+        currency: 'USD',
         instrumentType: 'equity',
         basePrice: 123.45,
       },
       {
+        instrumentId: 'inst-btc',
         symbol: 'BTC',
         name: 'Bitcoin',
+        currency: 'USD',
         instrumentType: 'crypto',
         basePrice: 60000,
       },

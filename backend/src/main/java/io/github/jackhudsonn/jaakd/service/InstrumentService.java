@@ -6,8 +6,12 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.dao.DataAccessException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.github.jackhudsonn.jaakd.dto.CreateInstrumentRequest;
+import io.github.jackhudsonn.jaakd.dto.InstrumentCandleResponse;
 import io.github.jackhudsonn.jaakd.dto.UpdateInstrumentRequest;
 import io.github.jackhudsonn.jaakd.exception.InstrumentConflictException;
 import io.github.jackhudsonn.jaakd.exception.InstrumentNotFoundException;
@@ -16,16 +20,27 @@ import io.github.jackhudsonn.jaakd.exception.ValidationException;
 import io.github.jackhudsonn.jaakd.model.CashCurrency;
 import io.github.jackhudsonn.jaakd.model.Instrument;
 import io.github.jackhudsonn.jaakd.model.InstrumentClass;
+import io.github.jackhudsonn.jaakd.model.InstrumentPrice;
 import io.github.jackhudsonn.jaakd.model.UserType;
 import io.github.jackhudsonn.jaakd.repository.InstrumentRepository;
+import io.github.jackhudsonn.jaakd.repository.InstrumentPriceRepository;
 import io.github.jackhudsonn.jaakd.security.RequiresUserType;
 import io.github.jackhudsonn.jaakd.model.fauxnance.FauxnanceCandleResponse;
+import io.github.jackhudsonn.jaakd.model.fauxnance.FauxnanceCandle;
 import io.github.jackhudsonn.jaakd.model.fauxnance.FauxnanceQuoteResponse;
 import io.github.jackhudsonn.jaakd.model.fauxnance.FauxnanceSymbolResponse;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.time.Clock;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.DayOfWeek;
+import java.time.format.DateTimeParseException;
+import java.math.BigDecimal;
+import java.util.Map;
+import java.util.TreeMap;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -35,20 +50,231 @@ import jakarta.validation.constraints.Size;
 @Validated
 public class InstrumentService {
 
+    private static final Logger log = LoggerFactory.getLogger(InstrumentService.class);
+
     private static final int DEFAULT_PAGE = 0;
     private static final int DEFAULT_SIZE = 25;
     private static final int MAX_SIZE = 100;
     private static final int MAX_QUOTES_BATCH_SIZE = 25;
+    private static final int DEFAULT_CANDLE_SERIES_YEARS = 1;
+    private static final int MAX_CANDLE_SERIES_YEARS = 5;
+    private static final int MAX_MISSING_TRADING_DAYS = 5;
 
     private final InstrumentRepository instrumentRepository;
+    private final InstrumentPriceRepository instrumentPriceRepository;
     private final FauxnanceService fauxnanceService;
+    private final PriceHistoryTxService priceHistoryTxService;
+    private final Clock clock;
 
     public InstrumentService(
         InstrumentRepository instrumentRepository,
-        FauxnanceService fauxnanceService
+        InstrumentPriceRepository instrumentPriceRepository,
+        FauxnanceService fauxnanceService,
+        PriceHistoryTxService priceHistoryTxService,
+        Clock clock
     ) {
         this.instrumentRepository = instrumentRepository;
+        this.instrumentPriceRepository = instrumentPriceRepository;
         this.fauxnanceService = fauxnanceService;
+        this.priceHistoryTxService = priceHistoryTxService;
+        this.clock = clock;
+    }
+
+    public List<InstrumentCandleResponse> getCandles(
+        @NotNull UUID instrumentId,
+        LocalDate from,
+        LocalDate to
+    ) {
+        Instrument instrument = getInstrumentById(instrumentId);
+
+        LocalDate resolvedTo = to == null ? LocalDate.now(clock) : to;
+        LocalDate resolvedFrom = from == null ? resolvedTo.minusYears(DEFAULT_CANDLE_SERIES_YEARS) : from;
+        if (resolvedFrom.isAfter(resolvedTo)) {
+            throw new InvalidInstrumentException("from must not be after to");
+        }
+        if (resolvedFrom.isBefore(resolvedTo.minusYears(MAX_CANDLE_SERIES_YEARS))) {
+            throw new InvalidInstrumentException("Candle series range must not exceed five years");
+        }
+
+        List<InstrumentPrice> cachedPrices = instrumentPriceRepository
+            .findByInstrumentIdAndPriceDateBetweenOrderByPriceDateAsc(instrumentId, resolvedFrom, resolvedTo)
+            .stream()
+            .filter(price -> !price.isSynthetic())
+            .toList();
+
+        if (instrument.getInstrumentClass() == InstrumentClass.CASH) {
+            return toCandleResponses(cachedPrices);
+        }
+
+        Map<LocalDate, InstrumentCandleResponse> candlesByDate = new TreeMap<>();
+        toCandleResponses(cachedPrices).forEach(candle -> candlesByDate.put(candle.date(), candle));
+
+        for (CandleDateRange missingRange : findMissingCandleRanges(cachedPrices, resolvedFrom, resolvedTo)) {
+            fetchAndMergeCandles(instrument, instrumentId, missingRange, candlesByDate);
+        }
+
+        return List.copyOf(candlesByDate.values());
+    }
+
+    private List<CandleDateRange> findMissingCandleRanges(
+        List<InstrumentPrice> prices,
+        LocalDate from,
+        LocalDate to
+    ) {
+        if (prices.isEmpty()) {
+            return List.of(new CandleDateRange(from, to));
+        }
+
+        List<CandleDateRange> ranges = new ArrayList<>();
+        LocalDate firstDate = prices.get(0).getPriceDate();
+        if (countWeekdays(from, firstDate.minusDays(1)) > MAX_MISSING_TRADING_DAYS) {
+            ranges.add(weekdayRange(from, firstDate.minusDays(1)));
+        }
+
+        for (int index = 1; index < prices.size(); index++) {
+            LocalDate gapFrom = prices.get(index - 1).getPriceDate().plusDays(1);
+            LocalDate gapTo = prices.get(index).getPriceDate().minusDays(1);
+            if (countWeekdays(gapFrom, gapTo) > MAX_MISSING_TRADING_DAYS) {
+                ranges.add(weekdayRange(gapFrom, gapTo));
+            }
+        }
+
+        LocalDate lastDate = prices.get(prices.size() - 1).getPriceDate();
+        if (countWeekdays(lastDate.plusDays(1), to) > MAX_MISSING_TRADING_DAYS) {
+            ranges.add(weekdayRange(lastDate.plusDays(1), to));
+        }
+
+        return ranges;
+    }
+
+    private static int countWeekdays(LocalDate from, LocalDate to) {
+        int weekdays = 0;
+        for (LocalDate date = from; !date.isAfter(to); date = date.plusDays(1)) {
+            DayOfWeek day = date.getDayOfWeek();
+            if (day != DayOfWeek.SATURDAY && day != DayOfWeek.SUNDAY) {
+                weekdays++;
+            }
+        }
+        return weekdays;
+    }
+
+    private static CandleDateRange weekdayRange(LocalDate from, LocalDate to) {
+        LocalDate firstWeekday = from;
+        while (isWeekend(firstWeekday)) {
+            firstWeekday = firstWeekday.plusDays(1);
+        }
+
+        LocalDate lastWeekday = to;
+        while (isWeekend(lastWeekday)) {
+            lastWeekday = lastWeekday.minusDays(1);
+        }
+
+        return new CandleDateRange(firstWeekday, lastWeekday);
+    }
+
+    private static boolean isWeekend(LocalDate date) {
+        DayOfWeek day = date.getDayOfWeek();
+        return day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY;
+    }
+
+    private void fetchAndMergeCandles(
+        Instrument instrument,
+        UUID instrumentId,
+        CandleDateRange range,
+        Map<LocalDate, InstrumentCandleResponse> candlesByDate
+    ) {
+        FauxnanceCandleResponse externalResponse;
+        try {
+            externalResponse = fauxnanceService.getCandles(
+                FauxnanceSymbols.forInstrument(instrument),
+                range.from(),
+                range.to()
+            );
+        } catch (RuntimeException exception) {
+            log.warn(
+                "Fauxnance candle fallback failed for {} over {} to {}: {}",
+                instrument.getTicker(), range.from(), range.to(), exception.getMessage()
+            );
+            return;
+        }
+
+        List<FauxnanceCandle> externalCandles = externalResponse == null || externalResponse.candles() == null
+            ? List.of()
+            : externalResponse.candles();
+        String currency = externalResponse == null || externalResponse.currency() == null
+                || externalResponse.currency().isBlank()
+            ? instrument.getTradingCurrency().name()
+            : externalResponse.currency().trim().toUpperCase();
+
+        if (!externalCandles.isEmpty()) {
+            try {
+                priceHistoryTxService.writeCandles(
+                    instrumentId,
+                    currency,
+                    externalCandles,
+                    range.from(),
+                    range.to(),
+                    LocalDateTime.now(clock)
+                );
+            } catch (DataAccessException exception) {
+                log.warn("Could not cache Fauxnance candles for {}: {}", instrument.getTicker(), exception.getMessage());
+            }
+        }
+
+        for (FauxnanceCandle candle : externalCandles) {
+            InstrumentCandleResponse response = toCandleResponse(candle, currency, range.from(), range.to());
+            if (response != null) {
+                candlesByDate.putIfAbsent(response.date(), response);
+            }
+        }
+    }
+
+    private static List<InstrumentCandleResponse> toCandleResponses(List<InstrumentPrice> prices) {
+        return prices.stream()
+            .map(price -> new InstrumentCandleResponse(
+                price.getPriceDate(),
+                price.getOpen(),
+                price.getHigh(),
+                price.getLow(),
+                price.getClose(),
+                price.getVolume(),
+                price.getCurrency()
+            ))
+            .toList();
+    }
+
+    private static InstrumentCandleResponse toCandleResponse(
+        FauxnanceCandle candle,
+        String currency,
+        LocalDate from,
+        LocalDate to
+    ) {
+        if (candle == null || Boolean.TRUE.equals(candle.synthetic())
+            || candle.date() == null || candle.open() == null || candle.high() == null
+            || candle.low() == null || candle.close() == null) {
+            return null;
+        }
+
+        try {
+            LocalDate date = LocalDate.parse(candle.date());
+            if (date.isBefore(from) || date.isAfter(to)) {
+                return null;
+            }
+            return new InstrumentCandleResponse(
+                date,
+                BigDecimal.valueOf(candle.open()),
+                BigDecimal.valueOf(candle.high()),
+                BigDecimal.valueOf(candle.low()),
+                BigDecimal.valueOf(candle.close()),
+                candle.volume() == null ? null : candle.volume().longValue(),
+                currency
+            );
+        } catch (DateTimeParseException exception) {
+            return null;
+        }
+    }
+
+    private record CandleDateRange(LocalDate from, LocalDate to) {
     }
 
     public List<Instrument> getAllInstruments() {

@@ -3,6 +3,7 @@ import { InstrumentType } from '@core/models';
 import type { CashCurrency } from '@core/models/api.models';
 
 export interface TradeMarketAsset {
+  instrumentId: string;
   symbol: string;
   name: string;
   currency: CashCurrency;

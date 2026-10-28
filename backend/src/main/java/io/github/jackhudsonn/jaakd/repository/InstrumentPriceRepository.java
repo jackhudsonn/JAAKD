@@ -13,6 +13,12 @@ public interface InstrumentPriceRepository extends JpaRepository<InstrumentPrice
 
     List<InstrumentPrice> findByInstrumentIdAndPriceDateBetween(UUID instrumentId, LocalDate from, LocalDate to);
 
+    List<InstrumentPrice> findByInstrumentIdAndPriceDateBetweenOrderByPriceDateAsc(
+        UUID instrumentId,
+        LocalDate from,
+        LocalDate to
+    );
+
     List<InstrumentPrice> findByInstrumentIdInAndPriceDateBetween(
         Collection<UUID> instrumentIds,
         LocalDate from,
