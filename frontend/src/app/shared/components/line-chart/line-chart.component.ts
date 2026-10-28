@@ -8,10 +8,15 @@ import {
   ViewChild,
   input,
 } from '@angular/core';
-import { Chart, ChartData, ScriptableContext } from 'chart.js/auto';
+import { Chart, ChartData, Plugin, ScriptableContext } from 'chart.js/auto';
 import { Trend } from '@shared/utils/format-percentage-change';
 
 export interface LineChartPoint {
+  label: string;
+  value: number;
+}
+
+export interface LineChartReferenceLine {
   label: string;
   value: number;
 }
@@ -86,9 +91,32 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
   seriesLabel = input<string>('');
   compareLabel = input<string>('');
   currency = input<string>('USD');
+  referenceLines = input<LineChartReferenceLine[]>([]);
 
   @ViewChild('canvas') private canvasRef!: ElementRef<HTMLCanvasElement>;
   private chart?: Chart;
+  private isHoveringChart = false;
+  private readonly hoverReferenceLinesPlugin: Plugin<'line'> = {
+    id: 'hoverReferenceLines',
+    afterEvent: (chart, args) => {
+      const { event } = args;
+      const chartArea = chart.chartArea;
+      const isHovering =
+        event.type !== 'mouseout' &&
+        event.x !== null &&
+        event.y !== null &&
+        event.x >= chartArea.left &&
+        event.x <= chartArea.right &&
+        event.y >= chartArea.top &&
+        event.y <= chartArea.bottom;
+
+      if (isHovering !== this.isHoveringChart) {
+        this.isHoveringChart = isHovering;
+        args.changed = true;
+      }
+    },
+    afterDraw: (chart) => this.drawHoverReferenceLines(chart),
+  };
 
   ngAfterViewInit() {
     const compact = this.compact();
@@ -96,6 +124,7 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
     this.chart = new Chart(this.canvasRef.nativeElement, {
       type: 'line',
       data: this.toChartData(),
+      plugins: [this.hoverReferenceLinesPlugin],
       options: {
         responsive: true,
         maintainAspectRatio: false,
@@ -138,7 +167,11 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
 
   ngOnChanges(changes: SimpleChanges) {
     if (
-      (changes['points'] || changes['trend'] || changes['comparePoints'] || changes['currency']) &&
+      (changes['points'] ||
+        changes['trend'] ||
+        changes['comparePoints'] ||
+        changes['currency'] ||
+        changes['referenceLines']) &&
       this.chart
     ) {
       this.chart.data = this.toChartData();
@@ -163,6 +196,53 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
       default:
         return '#e45b65';
     }
+  }
+
+  private drawHoverReferenceLines(chart: Chart<'line'>): void {
+    const referenceLines = this.referenceLines();
+    if (!this.isHoveringChart || referenceLines.length === 0) {
+      return;
+    }
+
+    const { ctx, chartArea, scales } = chart;
+    ctx.save();
+    ctx.font = '600 11px sans-serif';
+    ctx.textBaseline = 'middle';
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = '#aeb2b0';
+    ctx.fillStyle = '#e5e7e6';
+    ctx.setLineDash([2, 4]);
+
+    for (const referenceLine of referenceLines) {
+      const y = scales['y'].getPixelForValue(referenceLine.value);
+      if (y < chartArea.top || y > chartArea.bottom) {
+        continue;
+      }
+
+      ctx.beginPath();
+      ctx.moveTo(chartArea.left, y);
+      ctx.lineTo(chartArea.right, y);
+      ctx.stroke();
+
+      const label = `${referenceLine.label} ${this.formatValue(referenceLine.value, false)}`;
+      const padding = 5;
+      const labelWidth = ctx.measureText(label).width + padding * 2;
+      const labelHeight = 18;
+      const labelX = chartArea.right - labelWidth - 4;
+      const labelY = Math.max(
+        chartArea.top,
+        Math.min(chartArea.bottom - labelHeight, y - labelHeight / 2),
+      );
+
+      ctx.setLineDash([]);
+      ctx.fillStyle = 'rgba(32, 34, 33, 0.92)';
+      ctx.fillRect(labelX, labelY, labelWidth, labelHeight);
+      ctx.fillStyle = '#e5e7e6';
+      ctx.fillText(label, labelX + padding, labelY + labelHeight / 2);
+      ctx.setLineDash([2, 4]);
+    }
+
+    ctx.restore();
   }
 
   private toChartData(): ChartData<'line'> {

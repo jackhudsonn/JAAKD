@@ -1,4 +1,5 @@
-<app-widget-card title="Top Movers" [subtitle]="activeMode.label">
+<app-widget-card title="Top Movers">
+  <p class="mode-label">{{ activeMode.label }}</p>
   <div class="mover-list" [class.fading]="fading()">
     @for (mover of activeMovers(); track mover.symbol) {
       <div class="mover-row">
