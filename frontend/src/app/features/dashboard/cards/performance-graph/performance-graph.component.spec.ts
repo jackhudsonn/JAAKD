@@ -13,6 +13,7 @@ class LineChartStubComponent {
   flat = input<boolean>();
   compact = input<boolean>();
   seriesLabel = input<string>();
+  referenceLines = input<unknown>();
 }
 
 const render = (state: 'loading' | 'idle' | 'error', points: { date: string; value: number }[]) => {
@@ -41,6 +42,18 @@ describe('PerformanceGraphWidgetComponent', () => {
     ]);
     expect(element.textContent).toContain('$1,050.00');
     expect(element.textContent).toContain('+$50.00');
+  });
+
+  it('places the time range controls below the chart without a text summary', () => {
+    const element = render('idle', [
+      { date: '2026-10-19', value: 1000 },
+      { date: '2026-10-20', value: 1050 },
+    ]);
+    const body = element.querySelector('.performance-body');
+
+    expect(body?.firstElementChild?.tagName).toBe('APP-LINE-CHART');
+    expect(body?.lastElementChild?.classList.contains('interval-tabs')).toBe(true);
+    expect(element.querySelector('.performance-summary')).toBeNull();
   });
 
   it('shows the loading skeleton', () => {

@@ -5,35 +5,28 @@
     </div>
   } @else {
     <div widget-actions>
-      <button
-        type="button"
-        class="btn btn-secondary currency-toggle"
-        (click)="toggleDisplayCurrency()"
-        aria-label="Toggle allocation display currency"
+      <select
+        id="allocation-currency-select"
+        class="currency-select"
+        [value]="displayCurrency()"
+        (change)="onDisplayCurrencyChange($event)"
+        aria-label="Allocation display currency"
       >
-        {{ displayCurrency() }}
-      </button>
+        @for (currency of displayCurrencies; track currency) {
+          <option [value]="currency">{{ currency }}</option>
+        }
+      </select>
     </div>
   }
 
   @if (displayRateAvailable()) {
     <app-pie-chart
       [slices]="slices()"
-      [tooltipValuePrefix]="tooltipValuePrefix()"
+      [tooltipValueFormatter]="formatAllocationTooltip"
       (sliceClick)="onSliceClick($event)"
     />
   } @else {
     <p class="unavailable-note">FX rate unavailable for {{ displayCurrency() }}.</p>
-  }
-
-  @if (unavailableFxCurrencies().length > 0) {
-    <div class="unavailable-prices">
-      @for (currency of unavailableFxCurrencies(); track currency) {
-        <p class="unavailable-price-row">
-          FX rate unavailable for {{ currency }}; it is excluded from this chart.
-        </p>
-      }
-    </div>
   }
 
   @if (unavailablePriceHoldings().length > 0) {
@@ -49,9 +42,9 @@
 
   @if (!selectedCategory()) {
     <p class="drilldown-hint">
-      Click a slice to see its breakdown. Currency toggle: {{ displayCurrency() }}.
+      Click a slice to see its breakdown.
     </p>
   } @else {
     <p class="drilldown-hint">Click an asset slice for details, or cash to open Transact.</p>
   }
-</app-widget-card>
+</app-widget-card> 

@@ -6,6 +6,7 @@ import {
 import {
   LineChartComponent,
   LineChartPoint,
+  LineChartReferenceLine,
 } from '@shared/components/line-chart/line-chart.component';
 import { REPORTING_CURRENCY } from '@core/models/api.models';
 import { DASHBOARD_STATE_PORT } from '@features/dashboard/services/dashboard-state.port';
@@ -40,6 +41,9 @@ export class PerformanceGraphWidgetComponent {
   readonly status = computed<WidgetStatus>(() => this.state.performanceLoadState?.() ?? 'idle');
   readonly history = computed(() => this.state.performance?.() ?? []);
   readonly selectedInterval = signal<PerformanceInterval>('1M');
+  readonly selectedIntervalIndex = computed(() =>
+    this.intervals.indexOf(this.selectedInterval()),
+  );
 
   readonly visiblePoints = computed(() =>
     filterByInterval(this.history(), this.selectedInterval()),
@@ -48,6 +52,15 @@ export class PerformanceGraphWidgetComponent {
     this.visiblePoints().map((point) => ({ label: toChartLabel(point.date), value: point.value })),
   );
   readonly summary = computed(() => summarize(this.visiblePoints()));
+  readonly chartReferenceLines = computed<LineChartReferenceLine[]>(() => {
+    const summary = this.summary();
+    return summary
+      ? [
+          { label: 'High', value: summary.high },
+          { label: 'Low', value: summary.low },
+        ]
+      : [];
+  });
   // Grey when the change rounds to 0.00, as on the other cards.
   readonly trend = computed<'up' | 'down' | 'flat'>(() => {
     const summary = this.summary();
