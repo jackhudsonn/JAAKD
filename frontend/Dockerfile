@@ -5,7 +5,7 @@
 # npm install, not npm ci: this seeds a live dev container rather than a release
 # artifact, so it should reconcile a package.json that is ahead of the lockfile
 # instead of failing the build. The build stage below keeps npm ci.
-FROM node:24-alpine AS development
+FROM node:26-alpine AS development
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 RUN corepack enable
 WORKDIR /app
@@ -17,7 +17,7 @@ EXPOSE 4200
 CMD ["npm", "start", "--", "--host", "::"]
 
 # ---- Build stage ----
-FROM node:24-alpine AS build
+FROM node:26-alpine AS build
 ARG CONFIGURATION
 ENV CONFIGURATION=${CONFIGURATION}
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
