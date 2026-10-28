@@ -5,7 +5,11 @@ import {
 } from '@features/trade/services/trade-market-data.port';
 import { InstrumentApiService } from '@core/services/instrument-api.service';
 import { InstrumentCandleResponse } from '@core/models/api.models';
-import { AssetPopupComponent, toAveragePricePoints } from './asset-popup.component';
+import {
+  AssetPopupComponent,
+  assetPriceRangeFor,
+  toAveragePricePoints,
+} from './asset-popup.component';
 
 describe('AssetPopupComponent', () => {
   let fixture: ComponentFixture<AssetPopupComponent>;
@@ -15,6 +19,7 @@ describe('AssetPopupComponent', () => {
   let price: number | null;
   let candleRequest: () => Promise<InstrumentCandleResponse[]>;
   let requestedInstrumentId: string | null;
+  let requestedDateRange: { from: string | null; to: string | null } | null;
 
   const marketData = {
     getAsset: (symbol: string) => asset?.symbol === symbol ? asset : undefined,
@@ -29,8 +34,9 @@ describe('AssetPopupComponent', () => {
         {
           provide: InstrumentApiService,
           useValue: {
-            getCandles: (instrumentId: string) => {
+            getCandles: (instrumentId: string, from?: string, to?: string) => {
               requestedInstrumentId = instrumentId;
+              requestedDateRange = { from: from ?? null, to: to ?? null };
               return candleRequest();
             },
           },
@@ -59,6 +65,7 @@ describe('AssetPopupComponent', () => {
     };
     price = 110;
     requestedInstrumentId = null;
+    requestedDateRange = null;
     candleRequest = async () => [];
   });
 
@@ -127,7 +134,41 @@ describe('AssetPopupComponent', () => {
     fixture.detectChanges();
 
     expect(requestedInstrumentId).toBe('instrument-aapl');
+    expect(requestedDateRange).toEqual(assetPriceRangeFor('1M'));
+    expect(component.selectedPriceInterval()).toBe('1M');
     expect(fixture.nativeElement.textContent).toContain('No price history is available');
+  });
+
+  it.each([
+    ['1W', '2026-10-21'],
+    ['1M', '2026-09-28'],
+    ['1Y', '2025-10-28'],
+    ['YTD', '2026-01-01'],
+    ['ALL', '2021-10-28'],
+  ] as const)('calculates the %s request window', (interval, from) => {
+    expect(assetPriceRangeFor(interval, new Date('2026-10-28T15:00:00Z'))).toEqual({
+      from,
+      to: '2026-10-28',
+    });
+  });
+
+  it('clamps a one-month window to the last valid day of the previous month', () => {
+    expect(assetPriceRangeFor('1M', new Date('2026-03-31T12:00:00Z'))).toEqual({
+      from: '2026-02-28',
+      to: '2026-03-31',
+    });
+  });
+
+  it('requests a new date window when another interval is selected', async () => {
+    create();
+    await fixture.whenStable();
+
+    fixture.nativeElement.querySelector('.interval-tab')?.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(requestedDateRange).toEqual(assetPriceRangeFor('1W'));
+    expect(component.selectedPriceInterval()).toBe('1W');
   });
 
   it('plots the average of each candle OHLC as a line-chart point', () => {
@@ -141,7 +182,7 @@ describe('AssetPopupComponent', () => {
         volume: 2400,
         currency: 'USD',
       },
-    ])).toEqual([{ label: '2025-03-04', value: 102 }]);
+    ])).toEqual([{ label: 'Mar 4', value: 102 }]);
   });
 
   it('shows a loading state while candle history is pending', () => {
