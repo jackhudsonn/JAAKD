@@ -33,6 +33,7 @@ export class OrderFormComponent {
   accountCash = input(0);
   showBackButton = input(false);
   backLabel = input('Back');
+  symbol = input('');
 
   placed = output<OrderFormSubmit>();
   backPressed = output<void>();
@@ -107,6 +108,11 @@ export class OrderFormComponent {
       quantity: this.quantity()!,
     });
 
+    this.quantity.set(1);
+  }
+
+  reset() {
+    this.type.set('buy');
     this.quantity.set(1);
   }
 

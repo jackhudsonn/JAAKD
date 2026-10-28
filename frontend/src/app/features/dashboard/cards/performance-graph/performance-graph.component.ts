@@ -8,6 +8,7 @@ import {
   LineChartPoint,
   LineChartReferenceLine,
 } from '@shared/components/line-chart/line-chart.component';
+import { IntervalSelectorComponent } from '@shared/components/interval-selector/interval-selector.component';
 import { REPORTING_CURRENCY } from '@core/models/api.models';
 import { DASHBOARD_STATE_PORT } from '@features/dashboard/services/dashboard-state.port';
 import { formatCurrency } from '@shared/utils/display-format';
@@ -24,7 +25,7 @@ import {
 @Component({
   selector: 'app-performance-graph-widget',
   standalone: true,
-  imports: [WidgetCardComponent, LineChartComponent],
+  imports: [WidgetCardComponent, LineChartComponent, IntervalSelectorComponent],
   templateUrl: './performance-graph.component.html',
   styleUrl: './performance-graph.component.css',
 })
@@ -41,7 +42,6 @@ export class PerformanceGraphWidgetComponent {
   readonly status = computed<WidgetStatus>(() => this.state.performanceLoadState?.() ?? 'idle');
   readonly history = computed(() => this.state.performance?.() ?? []);
   readonly selectedInterval = signal<PerformanceInterval>('1M');
-  readonly selectedIntervalIndex = computed(() => this.intervals.indexOf(this.selectedInterval()));
 
   readonly visiblePoints = computed(() =>
     filterByInterval(this.history(), this.selectedInterval()),

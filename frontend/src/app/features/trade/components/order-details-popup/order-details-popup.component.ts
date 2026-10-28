@@ -13,13 +13,7 @@ import { formatCurrency } from '@shared/utils/display-format';
 @Component({
   selector: 'app-order-details-popup',
   standalone: true,
-  imports: [
-    ModalComponent,
-    StatusBadgeComponent,
-    DatePipe,
-    TitleCasePipe,
-    DisplaySymbolPipe,
-  ],
+  imports: [ModalComponent, StatusBadgeComponent, DatePipe, TitleCasePipe, DisplaySymbolPipe],
   templateUrl: './order-details-popup.component.html',
   styleUrl: './order-details-popup.component.css',
 })
@@ -62,9 +56,7 @@ export class OrderDetailsPopupComponent {
       return '-';
     }
 
-    return this.formatPrice(
-      this.selectedEvent()?.executionPrice ?? this.order().fillPrice,
-    );
+    return this.formatPrice(this.selectedEvent()?.executionPrice ?? this.order().fillPrice);
   });
   readonly selectedReason = computed(() => {
     const event = this.selectedEvent();

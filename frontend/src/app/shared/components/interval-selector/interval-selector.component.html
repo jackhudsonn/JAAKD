@@ -1,0 +1,23 @@
+<div
+  class="interval-tabs"
+  role="group"
+  [attr.aria-label]="ariaLabel()"
+  [style.--interval-count]="intervals().length"
+>
+  <span
+    class="interval-indicator"
+    aria-hidden="true"
+    [style.transform]="'translateX(' + selectedIntervalIndex() * 100 + '%)'"
+  ></span>
+  @for (interval of intervals(); track interval) {
+    <button
+      type="button"
+      class="interval-tab"
+      [class.active]="selectedInterval() === interval"
+      [attr.aria-pressed]="selectedInterval() === interval"
+      (click)="selectedInterval.set(interval)"
+    >
+      {{ interval }}
+    </button>
+  }
+</div>

@@ -734,7 +734,9 @@ async function seedOrders(
   const existingLogs = Array.isArray(list.data) ? list.data : [];
   const existingLogsByMetadata = new Map(
     existingLogs
-      .filter((item) => typeof item.metadata === "string" && item.metadata.length > 0)
+      .filter(
+        (item) => typeof item.metadata === "string" && item.metadata.length > 0,
+      )
       .map((item) => [item.metadata.split(" | ")[0], item]),
   );
 

@@ -5,22 +5,65 @@
   gap: var(--space-md);
 }
 
+.popup-views {
+  display: grid;
+}
+
+/* Both views share one grid cell, so the modal is always as tall as the taller view. */
 .analysis-view,
 .trade-view {
+  grid-area: 1 / 1;
+
   display: flex;
   flex-direction: column;
 
   gap: var(--space-md);
 }
 
+.analysis-view.inactive,
+.trade-view.inactive {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.price-history-header {
+  display: flex;
+  align-items: center;
+
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
 .price-history h3 {
-  margin: 0 0 var(--space-sm);
+  margin: 0;
   color: var(--text-secondary);
   font-size: var(--font-size-sm);
 }
 
+/* The chart frame fills the spare height, so loading, empty and loaded states never resize the modal. */
+.price-history {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.chart-frame {
+  flex: 1 1 auto;
+  min-height: 220px;
+}
+
+.price-chart {
+  height: 100%;
+  transition: opacity 150ms ease;
+}
+
+.price-chart.refreshing {
+  opacity: 0.55;
+}
+
 .history-message {
-  min-height: 280px;
+  height: 100%;
   display: grid;
   place-items: center;
   margin: 0;
@@ -36,10 +79,16 @@
   gap: var(--space-sm);
 }
 
-.asset-symbol {
-  color: var(--secondary-light);
-  font-weight: 700;
-  font-size: var(--font-size-md);
+.asset-title {
+  flex: 1 1 0;
+  display: flex;
+  align-items: center;
+
+  gap: var(--space-sm);
+}
+
+.watchlist-slot {
+  flex: 1 1 0;
 }
 
 .asset-type {
@@ -60,7 +109,7 @@
 }
 
 .asset-price-group {
-  margin-left: auto;
+  flex: 1 1 0;
 
   display: flex;
   flex-direction: column;
@@ -86,69 +135,37 @@
   color: var(--text-muted);
 }
 
-.interval-tabs {
-  display: inline-flex;
-  align-self: flex-start;
-
-  gap: 2px;
-
-  padding: 2px;
-
-  background: var(--tertiary-bg);
-  border: 1px solid var(--quaternary-bg-border);
-  border-radius: var(--radius-md);
-}
-
-.interval-tab {
-  min-height: 24px;
-
-  padding: 0 var(--space-xs);
-
-  background: transparent;
-  border: 0;
-  border-radius: var(--radius-sm);
-
-  color: var(--text-muted);
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-
-  cursor: pointer;
-
-  transition:
-    background-color 120ms ease,
-    color 120ms ease;
-}
-
-.interval-tab:hover {
-  color: var(--secondary-light);
-}
-
-.interval-tab:focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: 1px;
-}
-
-.interval-tab.active {
-  background: var(--primary);
-  color: var(--primary-ink);
-}
-
 .watchlist-selector {
   position: relative;
-
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
+  flex: none;
 }
 
 .watchlist-selector-trigger {
-  width: 100%;
+  min-width: 150px;
+  max-width: 190px;
+  height: 34px;
+  padding: 0 var(--space-sm);
 
   display: flex;
   align-items: center;
   justify-content: space-between;
 
   gap: var(--space-sm);
+
+  font-family: var(--font-base);
+  font-size: var(--font-size-xs);
+  color: var(--secondary-light);
+
+  background: var(--tertiary-bg);
+  border: 1px solid var(--quaternary-bg-border);
+  border-radius: var(--radius-sm);
+
+  cursor: pointer;
+}
+
+.watchlist-selector-trigger:focus-visible {
+  outline: 3px solid rgba(255, 140, 0, 0.24);
+  outline-offset: 1px;
 }
 
 .watchlist-selector-chevron {
@@ -164,7 +181,7 @@
   position: absolute;
   top: calc(100% + var(--space-xs));
   left: 0;
-  right: 0;
+  min-width: 240px;
 
   z-index: 20;
 

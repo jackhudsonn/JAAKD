@@ -31,8 +31,7 @@ const CATEGORY_COLORS: Record<AllocationCategory, string> = {
   etf: '#9B59B6',
   crypto: '#E67E22',
 };
-const isPositiveRate = (rate: number | undefined): rate is number =>
-  rate !== undefined && rate > 0;
+const isPositiveRate = (rate: number | undefined): rate is number => rate !== undefined && rate > 0;
 
 export interface AllocationAssetSelection {
   symbol: string;

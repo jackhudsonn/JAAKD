@@ -62,7 +62,7 @@
       }
     </div>
     <div class="order-preview-row">
-      <span>Max affordable</span>
+      <span>{{ type() === 'buy' ? 'Max affordable' : 'You own' }}</span>
       @if (type() === 'buy') {
         <span class="order-preview-value">
           @if (canPreviewCashImpact) {
@@ -85,14 +85,8 @@
       </button>
     }
 
-    <button
-      type="button"
-      class="btn form-submit"
-      [class.btn-primary]="type() === 'buy'"
-      [class.btn-secondary]="type() === 'sell'"
-      (click)="submit()"
-    >
-      {{ type() === 'buy' ? 'Buy' : 'Sell' }}
+    <button type="button" class="btn btn-primary form-submit" (click)="submit()">
+      {{ type() === 'buy' ? 'Buy' : 'Sell' }}{{ symbol() ? ' ' + symbol() : '' }}
     </button>
   </div>
 </div>
