@@ -8,7 +8,12 @@
     <span class="column-label">Status</span>
   </div>
 
-  <app-scrollable-list [items]="rows()" [trackBy]="trackById" emptyMessage="No transactions yet.">
+  <app-scrollable-list
+    [items]="rows()"
+    [trackBy]="trackById"
+    maxHeight="300px"
+    emptyMessage="No transactions yet."
+  >
     <ng-template let-transaction>
       <button
         type="button"

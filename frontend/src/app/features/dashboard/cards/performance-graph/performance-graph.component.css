@@ -41,20 +41,43 @@
 }
 
 .interval-tabs {
-  display: inline-flex;
-  align-self: flex-start;
+  position: relative;
 
-  gap: 2px;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-self: center;
 
-  padding: 2px;
+  gap: 0;
+  width: min(100%, 20rem);
+
+  padding: 1px;
+  margin-top: var(--space-sm);
 
   background: var(--tertiary-bg);
   border: 1px solid var(--quaternary-bg-border);
   border-radius: var(--radius-md);
 }
 
+.interval-indicator {
+  position: absolute;
+  inset-block: 1px;
+  inset-inline-start: 1px;
+  z-index: 0;
+
+  width: calc((100% - 2px) / 5);
+
+  background: var(--primary);
+  border-radius: var(--radius-sm);
+  pointer-events: none;
+
+  transition: transform 180ms ease;
+}
+
 .interval-tab {
-  min-height: 24px;
+  position: relative;
+  z-index: 1;
+
+  min-height: 22px;
 
   padding: 0 var(--space-xs);
 
@@ -83,8 +106,13 @@
 }
 
 .interval-tab.active {
-  background: var(--primary);
   color: var(--primary-ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .interval-indicator {
+    transition: none;
+  }
 }
 
 /* Overrides the chart's fixed 220px so it shrinks or grows with the card. */
@@ -93,13 +121,6 @@
 
   height: auto;
   min-height: 140px;
-}
-
-.performance-summary {
-  margin: 0;
-
-  color: var(--text-muted);
-  font-size: var(--font-size-xs);
 }
 
 .unavailable-note {

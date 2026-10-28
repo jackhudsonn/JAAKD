@@ -1,17 +1,19 @@
 import { DecimalPipe } from '@angular/common';
-import { Component, computed, inject, output, signal } from '@angular/core';
+import { Component, computed, effect, inject, output, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { WidgetCardComponent } from '@shared/components/widget-card/widget-card.component';
 import { PieChartComponent, PieChartSlice } from '@shared/components/pie-chart/pie-chart.component';
 import { DisplaySymbolPipe } from '@shared/pipes/display-symbol.pipe';
 import { DASHBOARD_STATE_PORT } from '@features/dashboard/services/dashboard-state.port';
 import { CashCurrency, CASH_CURRENCIES, REPORTING_CURRENCY } from '@core/models/api.models';
+import { ToastService } from '@shared/components/toast/toast.service';
 import {
   CashRatesByUsd,
   USD_RATES_BY_USD,
   convertAmountBetweenCurrencies,
 } from '@core/utils/cash-fx';
 import { deterministicColorFromBase } from '@features/dashboard/utils/allocation-colors.util';
+import { formatCurrency } from '@shared/utils/display-format';
 
 const ALLOCATION_CATEGORIES = ['cash', 'equity', 'etf', 'crypto'] as const;
 type AllocationCategory = (typeof ALLOCATION_CATEGORIES)[number];
@@ -29,14 +31,8 @@ const CATEGORY_COLORS: Record<AllocationCategory, string> = {
   etf: '#9B59B6',
   crypto: '#E67E22',
 };
-const CURRENCY_SYMBOLS: Record<CashCurrency, string> = {
-  USD: '$',
-  EUR: '€',
-  GBP: '£',
-  INR: '₹',
-};
-
-const isPositiveRate = (rate: number | undefined): rate is number => rate !== undefined && rate > 0;
+const isPositiveRate = (rate: number | undefined): rate is number =>
+  rate !== undefined && rate > 0;
 
 export interface AllocationAssetSelection {
   symbol: string;
@@ -60,6 +56,8 @@ interface UnavailablePriceHolding {
 })
 export class AllocationByAssetWidgetComponent {
   private readonly state = inject(DASHBOARD_STATE_PORT);
+  private readonly toastService = inject(ToastService);
+  private readonly notifiedUnavailableFxCurrencies = new Set<CashCurrency>();
 
   private readonly accountCash = this.state.accountCash;
   private readonly cashBalances = this.state.cashBalances;
@@ -78,13 +76,39 @@ export class AllocationByAssetWidgetComponent {
   // null == showing the top-level "by type" view.
   selectedCategory = signal<AllocationCategory | null>(null);
 
-  constructor(private readonly router: Router) {}
+  constructor(private readonly router: Router) {
+    effect(() => {
+      const missingCurrencies = new Set(this.unavailableFxCurrencies());
+      for (const currency of this.notifiedUnavailableFxCurrencies) {
+        if (!missingCurrencies.has(currency)) {
+          this.notifiedUnavailableFxCurrencies.delete(currency);
+        }
+      }
+
+      const newlyMissing = [...missingCurrencies].filter(
+        (currency) => !this.notifiedUnavailableFxCurrencies.has(currency),
+      );
+      if (newlyMissing.length === 0) {
+        return;
+      }
+
+      newlyMissing.forEach((currency) => this.notifiedUnavailableFxCurrencies.add(currency));
+      this.toastService.error(
+        `FX rates unavailable for ${newlyMissing.join(', ')}; affected assets are excluded from the allocation chart.`,
+      );
+    });
+  }
 
   title = computed(() => {
     const category = this.selectedCategory();
     return category ? CATEGORY_LABELS[category] : 'Allocation by Asset';
   });
-  readonly tooltipValuePrefix = computed(() => CURRENCY_SYMBOLS[this.displayCurrency()]);
+  readonly formatAllocationTooltip = (usdAmount: number): string => {
+    const displayAmount = this.convertDisplayAmount(usdAmount);
+    return displayAmount === null
+      ? 'Unavailable'
+      : formatCurrency(displayAmount, this.displayCurrency());
+  };
 
   private readonly breakdowns = computed<Record<AllocationCategory, PieChartSlice[]>>(() => {
     const byCategory: Record<AllocationCategory, PieChartSlice[]> = {
@@ -202,16 +226,8 @@ export class AllocationByAssetWidgetComponent {
   });
 
   slices = computed<PieChartSlice[]>(() => {
-    if (!this.displayRateAvailable()) {
-      return [];
-    }
-
     const category = this.selectedCategory();
-    const sourceSlices = !category ? this.topLevelSlices() : this.breakdowns()[category];
-    return sourceSlices.flatMap((slice) => {
-      const value = this.convertDisplayAmount(slice.value);
-      return value === null ? [] : [{ ...slice, value }];
-    });
+    return !category ? this.topLevelSlices() : this.breakdowns()[category];
   });
 
   unavailablePriceHoldings = computed<UnavailablePriceHolding[]>(() => {
@@ -298,11 +314,11 @@ export class AllocationByAssetWidgetComponent {
     this.selectedCategory.set(null);
   }
 
-  toggleDisplayCurrency() {
-    const currentIndex = this.displayCurrencies.indexOf(this.displayCurrency());
-    const nextCurrency =
-      this.displayCurrencies[(currentIndex + 1) % this.displayCurrencies.length] ??
-      REPORTING_CURRENCY;
-    this.displayCurrency.set(nextCurrency);
+  onDisplayCurrencyChange(event: Event) {
+    const target = event.target as HTMLSelectElement;
+    const currency = this.displayCurrencies.find((entry) => entry === target.value);
+    if (currency) {
+      this.displayCurrency.set(currency);
+    }
   }
 }

@@ -8,6 +8,7 @@
 .value-display {
   display: flex;
   flex-direction: column;
+  margin-top: var(--space-sm);
 
   gap: var(--space-xxs);
 }

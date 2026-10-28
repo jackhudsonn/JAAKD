@@ -14,10 +14,10 @@
 }
 
 .exchange-result {
-  margin-top: var(--space-md);
-  padding-top: var(--space-sm);
+  margin-top: var(--space-lg);
+  padding-top: var(--space-xl);
 
-  border-top: 1px solid var(--quaternary-bg-border);
+  border-top: 1px solid var(--secondary-button-border);
 
   display: flex;
   align-items: flex-end;
