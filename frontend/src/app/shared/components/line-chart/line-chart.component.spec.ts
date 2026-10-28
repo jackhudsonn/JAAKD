@@ -21,6 +21,7 @@ describe('LineChartComponent', () => {
     it('shows currency in full for tooltips and compact for axis ticks', () => {
       expect(formatChartValue(1234.5, 'currency', false)).toBe('$1,234.50');
       expect(formatChartValue(1234.5, 'currency', true)).toBe('$1.2K');
+      expect(formatChartValue(1234.5, 'currency', false, 'EUR')).toBe('€1,234.50');
     });
 
     it('shows plain numbers with up to 6 decimals, compact on the axis', () => {

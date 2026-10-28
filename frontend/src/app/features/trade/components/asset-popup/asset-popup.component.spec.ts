@@ -5,7 +5,7 @@ import {
 } from '@features/trade/services/trade-market-data.port';
 import { InstrumentApiService } from '@core/services/instrument-api.service';
 import { InstrumentCandleResponse } from '@core/models/api.models';
-import { AssetPopupComponent } from './asset-popup.component';
+import { AssetPopupComponent, toAveragePricePoints } from './asset-popup.component';
 
 describe('AssetPopupComponent', () => {
   let fixture: ComponentFixture<AssetPopupComponent>;
@@ -128,6 +128,20 @@ describe('AssetPopupComponent', () => {
 
     expect(requestedInstrumentId).toBe('instrument-aapl');
     expect(fixture.nativeElement.textContent).toContain('No price history is available');
+  });
+
+  it('plots the average of each candle OHLC as a line-chart point', () => {
+    expect(toAveragePricePoints([
+      {
+        date: '2025-03-04',
+        open: 100,
+        high: 108,
+        low: 96,
+        close: 104,
+        volume: 2400,
+        currency: 'USD',
+      },
+    ])).toEqual([{ label: '2025-03-04', value: 102 }]);
   });
 
   it('shows a loading state while candle history is pending', () => {

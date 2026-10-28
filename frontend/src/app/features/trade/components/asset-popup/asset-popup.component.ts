@@ -13,7 +13,7 @@ import { DecimalPipe, TitleCasePipe } from '@angular/common';
 import { InstrumentCandleResponse } from '@core/models/api.models';
 import { InstrumentApiService } from '@core/services/instrument-api.service';
 import { ModalComponent } from '@shared/components/modal/modal.component';
-import { CandleChartComponent } from '@shared/components/candle-chart/candle-chart.component';
+import { LineChartComponent, LineChartPoint } from '@shared/components/line-chart/line-chart.component';
 import { DisplaySymbolPipe } from '@shared/pipes/display-symbol.pipe';
 import { ToastService } from '@shared/components/toast/toast.service';
 import {
@@ -42,6 +42,13 @@ export interface AssetSetWatchlistMembershipRequest {
   included: boolean;
 }
 
+export function toAveragePricePoints(candles: InstrumentCandleResponse[]): LineChartPoint[] {
+  return candles.map((candle) => ({
+    label: candle.date,
+    value: (candle.open + candle.high + candle.low + candle.close) / 4,
+  }));
+}
+
 /**
  * Asset details popup opened from the Trade card or ticker search.
  */
@@ -51,7 +58,7 @@ export interface AssetSetWatchlistMembershipRequest {
   imports: [
     ModalComponent,
     OrderFormComponent,
-    CandleChartComponent,
+    LineChartComponent,
     DecimalPipe,
     TitleCasePipe,
     DisplaySymbolPipe,
@@ -78,6 +85,7 @@ export class AssetPopupComponent {
   watchlistDropdownOpen = signal(false);
   activeView = signal<'analysis' | 'trade'>('analysis');
   candles = signal<InstrumentCandleResponse[]>([]);
+  averagePricePoints = computed(() => toAveragePricePoints(this.candles()));
   candleState = signal<'loading' | 'ready' | 'error'>('loading');
   readonly formatCurrency = formatCurrency;
   readonly fallbackCurrency = REPORTING_CURRENCY;

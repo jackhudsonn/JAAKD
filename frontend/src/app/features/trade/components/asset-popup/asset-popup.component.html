@@ -89,7 +89,12 @@
           } @else if (candles().length === 0) {
             <p class="history-message">No price history is available for this asset.</p>
           } @else {
-            <app-candle-chart [candles]="candles()" [currency]="asset()?.currency ?? fallbackCurrency" />
+            <app-line-chart
+              [points]="averagePricePoints()"
+              [seriesLabel]="symbol()"
+              [valueFormat]="'currency'"
+              [currency]="asset()?.currency ?? fallbackCurrency"
+            />
           }
         </section>
 

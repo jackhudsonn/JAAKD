@@ -193,6 +193,8 @@ class InstrumentServiceTest {
         when(instrumentPriceRepository.findByInstrumentIdAndPriceDateBetweenOrderByPriceDateAsc(
             instrumentId, today.minusYears(1), today
         )).thenReturn(List.of(realCandle, syntheticCandle));
+        when(fauxnanceService.getCandles("AAPL", today.minusYears(1), today.minusDays(2)))
+            .thenReturn(new FauxnanceCandleResponse("AAPL", "USD", List.of()));
 
         List<InstrumentCandleResponse> candles = instrumentService.getCandles(instrumentId, null, null);
 
@@ -247,11 +249,12 @@ class InstrumentServiceTest {
         Instrument instrument = new Instrument("AAPL", "NASDAQ", "Apple", InstrumentClass.EQUITY, CashCurrency.USD);
         InstrumentPrice cached = candle(instrumentId, LocalDate.of(2025, 1, 1), false);
         FauxnanceCandle fetched = fauxnanceCandle("2025-01-15", 110.0, 115.0, 108.0, 112.0);
+        LocalDate missingFrom = from.plusDays(1);
         when(instrumentRepository.findById(instrumentId)).thenReturn(Optional.of(instrument));
         when(instrumentPriceRepository.findByInstrumentIdAndPriceDateBetweenOrderByPriceDateAsc(
             instrumentId, from, to
         )).thenReturn(List.of(cached));
-        when(fauxnanceService.getCandles("AAPL", from, to)).thenReturn(
+        when(fauxnanceService.getCandles("AAPL", missingFrom, to)).thenReturn(
             new FauxnanceCandleResponse("AAPL", "USD", List.of(fetched))
         );
         when(clock.instant()).thenReturn(Instant.parse("2025-01-16T00:00:00Z"));
@@ -262,15 +265,64 @@ class InstrumentServiceTest {
         assertEquals(2, candles.size());
         assertEquals(LocalDate.of(2025, 1, 1), candles.get(0).date());
         assertEquals(LocalDate.of(2025, 1, 15), candles.get(1).date());
-        verify(fauxnanceService).getCandles("AAPL", from, to);
+        verify(fauxnanceService).getCandles("AAPL", missingFrom, to);
         verify(priceHistoryTxService).writeCandles(
             instrumentId,
             "USD",
             List.of(fetched),
-            from,
+            missingFrom,
             to,
             LocalDateTime.of(2025, 1, 16, 0, 0)
         );
+    }
+
+    @Test
+    void getCandles_weekendBetweenCachedDatesDoesNotFetchFauxnance() {
+        UUID instrumentId = UUID.randomUUID();
+        LocalDate from = LocalDate.of(2025, 1, 3);
+        LocalDate to = LocalDate.of(2025, 1, 6);
+        Instrument instrument = new Instrument("AAPL", "NASDAQ", "Apple", InstrumentClass.EQUITY, CashCurrency.USD);
+        InstrumentPrice friday = candle(instrumentId, from, false);
+        InstrumentPrice monday = candle(instrumentId, to, false);
+        when(instrumentRepository.findById(instrumentId)).thenReturn(Optional.of(instrument));
+        when(instrumentPriceRepository.findByInstrumentIdAndPriceDateBetweenOrderByPriceDateAsc(
+            instrumentId, from, to
+        )).thenReturn(List.of(friday, monday));
+
+        List<InstrumentCandleResponse> candles = instrumentService.getCandles(instrumentId, from, to);
+
+        assertEquals(2, candles.size());
+        verify(fauxnanceService, never()).getCandles(any(), any(), any());
+    }
+
+    @Test
+    void getCandles_interiorMultiWeekGapFetchesOnlyMissingDates() {
+        UUID instrumentId = UUID.randomUUID();
+        LocalDate from = LocalDate.of(2025, 1, 3);
+        LocalDate to = LocalDate.of(2025, 1, 27);
+        LocalDate missingFrom = LocalDate.of(2025, 1, 6);
+        LocalDate missingTo = LocalDate.of(2025, 1, 24);
+        Instrument instrument = new Instrument("AAPL", "NASDAQ", "Apple", InstrumentClass.EQUITY, CashCurrency.USD);
+        InstrumentPrice beforeGap = candle(instrumentId, from, false);
+        InstrumentPrice afterGap = candle(instrumentId, to, false);
+        FauxnanceCandle fetched = fauxnanceCandle("2025-01-15", 110.0, 115.0, 108.0, 112.0);
+        when(instrumentRepository.findById(instrumentId)).thenReturn(Optional.of(instrument));
+        when(instrumentPriceRepository.findByInstrumentIdAndPriceDateBetweenOrderByPriceDateAsc(
+            instrumentId, from, to
+        )).thenReturn(List.of(beforeGap, afterGap));
+        when(fauxnanceService.getCandles("AAPL", missingFrom, missingTo)).thenReturn(
+            new FauxnanceCandleResponse("AAPL", "USD", List.of(fetched))
+        );
+        when(clock.instant()).thenReturn(Instant.parse("2025-01-16T00:00:00Z"));
+        when(clock.getZone()).thenReturn(ZoneOffset.UTC);
+
+        List<InstrumentCandleResponse> candles = instrumentService.getCandles(instrumentId, from, to);
+
+        assertEquals(3, candles.size());
+        assertEquals(LocalDate.of(2025, 1, 3), candles.get(0).date());
+        assertEquals(LocalDate.of(2025, 1, 15), candles.get(1).date());
+        assertEquals(LocalDate.of(2025, 1, 27), candles.get(2).date());
+        verify(fauxnanceService).getCandles("AAPL", missingFrom, missingTo);
     }
 
     @Test

@@ -36,6 +36,7 @@ import java.util.UUID;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.DayOfWeek;
 import java.time.format.DateTimeParseException;
 import java.math.BigDecimal;
 import java.util.Map;
@@ -57,7 +58,7 @@ public class InstrumentService {
     private static final int MAX_QUOTES_BATCH_SIZE = 25;
     private static final int DEFAULT_CANDLE_SERIES_YEARS = 1;
     private static final int MAX_CANDLE_SERIES_YEARS = 5;
-    private static final int MAX_CACHED_CANDLE_GAP_DAYS = 7;
+    private static final int MAX_MISSING_TRADING_DAYS = 5;
 
     private final InstrumentRepository instrumentRepository;
     private final InstrumentPriceRepository instrumentPriceRepository;
@@ -101,27 +102,100 @@ public class InstrumentService {
             .filter(price -> !price.isSynthetic())
             .toList();
 
-        if (instrument.getInstrumentClass() == InstrumentClass.CASH || hasCompleteCandleCoverage(
-            cachedPrices,
-            resolvedFrom,
-            resolvedTo
-        )) {
+        if (instrument.getInstrumentClass() == InstrumentClass.CASH) {
             return toCandleResponses(cachedPrices);
         }
 
         Map<LocalDate, InstrumentCandleResponse> candlesByDate = new TreeMap<>();
         toCandleResponses(cachedPrices).forEach(candle -> candlesByDate.put(candle.date(), candle));
 
+        for (CandleDateRange missingRange : findMissingCandleRanges(cachedPrices, resolvedFrom, resolvedTo)) {
+            fetchAndMergeCandles(instrument, instrumentId, missingRange, candlesByDate);
+        }
+
+        return List.copyOf(candlesByDate.values());
+    }
+
+    private List<CandleDateRange> findMissingCandleRanges(
+        List<InstrumentPrice> prices,
+        LocalDate from,
+        LocalDate to
+    ) {
+        if (prices.isEmpty()) {
+            return List.of(new CandleDateRange(from, to));
+        }
+
+        List<CandleDateRange> ranges = new ArrayList<>();
+        LocalDate firstDate = prices.get(0).getPriceDate();
+        if (countWeekdays(from, firstDate.minusDays(1)) > MAX_MISSING_TRADING_DAYS) {
+            ranges.add(weekdayRange(from, firstDate.minusDays(1)));
+        }
+
+        for (int index = 1; index < prices.size(); index++) {
+            LocalDate gapFrom = prices.get(index - 1).getPriceDate().plusDays(1);
+            LocalDate gapTo = prices.get(index).getPriceDate().minusDays(1);
+            if (countWeekdays(gapFrom, gapTo) > MAX_MISSING_TRADING_DAYS) {
+                ranges.add(weekdayRange(gapFrom, gapTo));
+            }
+        }
+
+        LocalDate lastDate = prices.get(prices.size() - 1).getPriceDate();
+        if (countWeekdays(lastDate.plusDays(1), to) > MAX_MISSING_TRADING_DAYS) {
+            ranges.add(weekdayRange(lastDate.plusDays(1), to));
+        }
+
+        return ranges;
+    }
+
+    private static int countWeekdays(LocalDate from, LocalDate to) {
+        int weekdays = 0;
+        for (LocalDate date = from; !date.isAfter(to); date = date.plusDays(1)) {
+            DayOfWeek day = date.getDayOfWeek();
+            if (day != DayOfWeek.SATURDAY && day != DayOfWeek.SUNDAY) {
+                weekdays++;
+            }
+        }
+        return weekdays;
+    }
+
+    private static CandleDateRange weekdayRange(LocalDate from, LocalDate to) {
+        LocalDate firstWeekday = from;
+        while (isWeekend(firstWeekday)) {
+            firstWeekday = firstWeekday.plusDays(1);
+        }
+
+        LocalDate lastWeekday = to;
+        while (isWeekend(lastWeekday)) {
+            lastWeekday = lastWeekday.minusDays(1);
+        }
+
+        return new CandleDateRange(firstWeekday, lastWeekday);
+    }
+
+    private static boolean isWeekend(LocalDate date) {
+        DayOfWeek day = date.getDayOfWeek();
+        return day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY;
+    }
+
+    private void fetchAndMergeCandles(
+        Instrument instrument,
+        UUID instrumentId,
+        CandleDateRange range,
+        Map<LocalDate, InstrumentCandleResponse> candlesByDate
+    ) {
         FauxnanceCandleResponse externalResponse;
         try {
             externalResponse = fauxnanceService.getCandles(
                 FauxnanceSymbols.forInstrument(instrument),
-                resolvedFrom,
-                resolvedTo
+                range.from(),
+                range.to()
             );
         } catch (RuntimeException exception) {
-            log.warn("Fauxnance candle fallback failed for {}: {}", instrument.getTicker(), exception.getMessage());
-            return List.copyOf(candlesByDate.values());
+            log.warn(
+                "Fauxnance candle fallback failed for {} over {} to {}: {}",
+                instrument.getTicker(), range.from(), range.to(), exception.getMessage()
+            );
+            return;
         }
 
         List<FauxnanceCandle> externalCandles = externalResponse == null || externalResponse.candles() == null
@@ -138,8 +212,8 @@ public class InstrumentService {
                     instrumentId,
                     currency,
                     externalCandles,
-                    resolvedFrom,
-                    resolvedTo,
+                    range.from(),
+                    range.to(),
                     LocalDateTime.now(clock)
                 );
             } catch (DataAccessException exception) {
@@ -148,38 +222,11 @@ public class InstrumentService {
         }
 
         for (FauxnanceCandle candle : externalCandles) {
-            InstrumentCandleResponse response = toCandleResponse(candle, currency, resolvedFrom, resolvedTo);
+            InstrumentCandleResponse response = toCandleResponse(candle, currency, range.from(), range.to());
             if (response != null) {
                 candlesByDate.putIfAbsent(response.date(), response);
             }
         }
-
-        return List.copyOf(candlesByDate.values());
-    }
-
-    private static boolean hasCompleteCandleCoverage(
-        List<InstrumentPrice> prices,
-        LocalDate from,
-        LocalDate to
-    ) {
-        if (prices.isEmpty()) {
-            return false;
-        }
-
-        if (prices.get(0).getPriceDate().isAfter(from.plusDays(MAX_CACHED_CANDLE_GAP_DAYS))
-            || prices.get(prices.size() - 1).getPriceDate().isBefore(to.minusDays(MAX_CACHED_CANDLE_GAP_DAYS))) {
-            return false;
-        }
-
-        for (int index = 1; index < prices.size(); index++) {
-            if (prices.get(index).getPriceDate().isAfter(
-                prices.get(index - 1).getPriceDate().plusDays(MAX_CACHED_CANDLE_GAP_DAYS)
-            )) {
-                return false;
-            }
-        }
-
-        return true;
     }
 
     private static List<InstrumentCandleResponse> toCandleResponses(List<InstrumentPrice> prices) {
@@ -225,6 +272,9 @@ public class InstrumentService {
         } catch (DateTimeParseException exception) {
             return null;
         }
+    }
+
+    private record CandleDateRange(LocalDate from, LocalDate to) {
     }
 
     public List<Instrument> getAllInstruments() {
