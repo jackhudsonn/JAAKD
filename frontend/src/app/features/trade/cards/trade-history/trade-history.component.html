@@ -7,7 +7,12 @@
     <span class="column-label">Status</span>
   </div>
 
-  <app-scrollable-list [items]="rows()" [trackBy]="trackById" emptyMessage="No trade history yet.">
+  <app-scrollable-list
+    [items]="rows()"
+    [trackBy]="trackById"
+    maxHeight="300px"
+    emptyMessage="No trade history yet."
+  >
     <ng-template let-row>
       <button type="button" class="trade-row" (click)="selectOrder.emit(row.order.id)">
         <span class="trade-date">{{ row.order.createdAt | date: 'MMM d, y' }}</span>

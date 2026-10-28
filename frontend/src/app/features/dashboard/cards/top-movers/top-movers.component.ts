@@ -7,8 +7,8 @@ import { toTopMovers } from './top-movers.util';
 import { formatCurrency } from '@shared/utils/display-format';
 
 const MODES: { label: string; positive: boolean }[] = [
-  { label: 'Top Winners', positive: true },
-  { label: 'Top Losers', positive: false },
+  { label: 'Winners', positive: true },
+  { label: 'Losers', positive: false },
 ];
 
 @Component({
