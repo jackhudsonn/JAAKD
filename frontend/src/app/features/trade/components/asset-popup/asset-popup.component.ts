@@ -1,6 +1,5 @@
 import {
   Component,
-  ElementRef,
   HostListener,
   computed,
   effect,
@@ -8,11 +7,13 @@ import {
   input,
   output,
   signal,
+  viewChild,
 } from '@angular/core';
 import { DecimalPipe, TitleCasePipe } from '@angular/common';
 import { InstrumentCandleResponse } from '@core/models/api.models';
 import { InstrumentApiService } from '@core/services/instrument-api.service';
 import { ModalComponent } from '@shared/components/modal/modal.component';
+import { IntervalSelectorComponent } from '@shared/components/interval-selector/interval-selector.component';
 import {
   LineChartComponent,
   LineChartPoint,
@@ -104,6 +105,7 @@ export function toAveragePricePoints(candles: InstrumentCandleResponse[]): LineC
   standalone: true,
   imports: [
     ModalComponent,
+    IntervalSelectorComponent,
     OrderFormComponent,
     LineChartComponent,
     DecimalPipe,
@@ -114,7 +116,6 @@ export function toAveragePricePoints(candles: InstrumentCandleResponse[]): LineC
   styleUrl: './asset-popup.component.css',
 })
 export class AssetPopupComponent {
-  private readonly elementRef = inject(ElementRef<HTMLElement>);
   private readonly marketData = inject(TRADE_MARKET_DATA_PORT);
   private readonly instrumentApi = inject(InstrumentApiService);
   private readonly toastService = inject(ToastService);
@@ -124,6 +125,8 @@ export class AssetPopupComponent {
   accountCash = input(0);
   watchlists = input<readonly AssetPopupWatchlistOption[]>([]);
   maxWatchlistHoldings = input<number | null>(null);
+
+  private readonly orderForm = viewChild(OrderFormComponent);
 
   closed = output<void>();
   orderPlaced = output<AssetOrderPlaced>();
@@ -142,6 +145,7 @@ export class AssetPopupComponent {
 
   private readonly reportedUnavailableData = new Set<string>();
   private candleRequestId = 0;
+  private loadedInstrumentId: string | undefined;
 
   asset = computed(() => this.marketData.getAsset(this.symbol()));
   currentPrice = computed(() => this.marketData.getPrice(this.symbol()));
@@ -171,7 +175,12 @@ export class AssetPopupComponent {
       const instrumentId = this.asset()?.instrumentId;
       const interval = this.selectedPriceInterval();
       const requestId = ++this.candleRequestId;
-      this.candles.set([]);
+
+      // Keep the previous range on screen while a new interval loads; only a different asset clears it.
+      if (instrumentId !== this.loadedInstrumentId) {
+        this.candles.set([]);
+        this.loadedInstrumentId = instrumentId;
+      }
 
       if (!instrumentId) {
         this.candleState.set('ready');
@@ -210,13 +219,10 @@ export class AssetPopupComponent {
       this.candleState.set('ready');
     } catch {
       if (requestId === this.candleRequestId) {
+        this.candles.set([]);
         this.candleState.set('error');
       }
     }
-  }
-
-  selectPriceInterval(interval: AssetPriceInterval) {
-    this.selectedPriceInterval.set(interval);
   }
 
   @HostListener('document:click', ['$event'])
@@ -226,7 +232,10 @@ export class AssetPopupComponent {
       return;
     }
 
-    if (this.watchlistDropdownOpen() && !this.elementRef.nativeElement.contains(target)) {
+    const insideSelector =
+      target instanceof Element && target.closest('.watchlist-selector') !== null;
+
+    if (this.watchlistDropdownOpen() && !insideSelector) {
       this.watchlistDropdownOpen.set(false);
     }
   }
@@ -239,6 +248,7 @@ export class AssetPopupComponent {
 
   openTradeView() {
     this.watchlistDropdownOpen.set(false);
+    this.orderForm()?.reset();
     this.activeView.set('trade');
   }
 

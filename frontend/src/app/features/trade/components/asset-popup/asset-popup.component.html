@@ -1,9 +1,58 @@
 <app-modal [title]="asset()?.name ?? (symbol() | displaySymbol)" (closed)="closed.emit()">
   <div class="asset-popup">
-    <div class="asset-header">
-      <span class="asset-symbol">{{ symbol() | displaySymbol }}</span>
-      @if (asset()) {
-        <span class="asset-type">{{ asset()!.instrumentType | titlecase }}</span>
+    <div class="asset-header" [class.analysis]="activeView() === 'analysis'">
+      @if (activeView() === 'trade' && asset()) {
+        <div class="asset-title">
+          <span class="asset-type">{{ asset()!.instrumentType | titlecase }}</span>
+        </div>
+      }
+      @if (activeView() === 'analysis') {
+        <div class="watchlist-slot">
+          @if (watchlists().length > 0) {
+            <div class="watchlist-selector">
+              <button
+                type="button"
+                class="watchlist-selector-trigger"
+                (click)="toggleWatchlistDropdown()"
+                [attr.aria-expanded]="watchlistDropdownOpen()"
+                aria-label="Toggle watchlist selector"
+              >
+                <span>In {{ watchlistMembershipCount() }} watchlist(s)</span>
+                <span class="watchlist-selector-chevron" [class.open]="watchlistDropdownOpen()"
+                  >▾</span
+                >
+              </button>
+
+              <div
+                class="watchlist-selector-panel"
+                [class.open]="watchlistDropdownOpen()"
+                [attr.aria-hidden]="!watchlistDropdownOpen()"
+              >
+                @for (watchlist of watchlists(); track watchlist.id) {
+                  <label
+                    class="watchlist-selector-option"
+                    [class.disabled]="isOptionDisabled(watchlist)"
+                    [attr.title]="isOptionDisabled(watchlist) ? watchlist.disabledReason : null"
+                  >
+                    <input
+                      #watchlistToggle
+                      type="checkbox"
+                      [checked]="watchlist.containsSymbol"
+                      [disabled]="isOptionDisabled(watchlist)"
+                      (change)="onWatchlistOptionChange(watchlist, watchlistToggle.checked)"
+                    />
+                    <span class="watchlist-selector-name">{{ watchlist.name }}</span>
+                    @if (maxWatchlistHoldings() !== null) {
+                      <span class="watchlist-selector-count"
+                        >{{ watchlist.symbolCount }}/{{ maxWatchlistHoldings() }}</span
+                      >
+                    }
+                  </label>
+                }
+              </div>
+            </div>
+          }
+        </div>
       }
       <div class="asset-price-group">
         @if (currentPrice() === null) {
@@ -33,92 +82,51 @@
       </div>
     </div>
 
-    @if (activeView() === 'analysis') {
-      @if (watchlists().length > 0) {
-        <div class="watchlist-selector">
-          <button
-            type="button"
-            class="btn btn-secondary watchlist-selector-trigger"
-            (click)="toggleWatchlistDropdown()"
-            [attr.aria-expanded]="watchlistDropdownOpen()"
-            aria-label="Toggle watchlist selector"
-          >
-            <span
-              >{{ symbol() | displaySymbol }} is in
-              {{ watchlistMembershipCount() }} watchlist(s)</span
-            >
-            <span class="watchlist-selector-chevron" [class.open]="watchlistDropdownOpen()">▾</span>
-          </button>
-
-          <div
-            class="watchlist-selector-panel"
-            [class.open]="watchlistDropdownOpen()"
-            [attr.aria-hidden]="!watchlistDropdownOpen()"
-          >
-            @for (watchlist of watchlists(); track watchlist.id) {
-              <label
-                class="watchlist-selector-option"
-                [class.disabled]="isOptionDisabled(watchlist)"
-                [attr.title]="isOptionDisabled(watchlist) ? watchlist.disabledReason : null"
-              >
-                <input
-                  #watchlistToggle
-                  type="checkbox"
-                  [checked]="watchlist.containsSymbol"
-                  [disabled]="isOptionDisabled(watchlist)"
-                  (change)="onWatchlistOptionChange(watchlist, watchlistToggle.checked)"
-                />
-                <span class="watchlist-selector-name">{{ watchlist.name }}</span>
-                <span class="watchlist-selector-count"
-                  >{{ watchlist.symbolCount }}/{{
-                    maxWatchlistHoldings() === null ? '∞' : maxWatchlistHoldings()
-                  }}</span
-                >
-              </label>
-            }
-          </div>
-        </div>
-      }
-      <div class="analysis-view">
+    <div class="popup-views">
+      <div
+        class="analysis-view"
+        [class.inactive]="activeView() !== 'analysis'"
+        [attr.aria-hidden]="activeView() !== 'analysis'"
+      >
         <section class="price-history" aria-label="Price history">
-          <h3>Daily price history</h3>
-          <div class="interval-tabs" role="group" aria-label="Price history range">
-            @for (interval of priceIntervals; track interval) {
-              <button
-                type="button"
-                class="interval-tab"
-                [class.active]="selectedPriceInterval() === interval"
-                [attr.aria-pressed]="selectedPriceInterval() === interval"
-                (click)="selectPriceInterval(interval)"
-              >
-                {{ interval }}
-              </button>
+          <app-interval-selector
+            [intervals]="priceIntervals"
+            [(selectedInterval)]="selectedPriceInterval"
+            ariaLabel="Price history range"
+          />
+          <div class="chart-frame" [attr.aria-busy]="candleState() === 'loading'">
+            @if (candles().length > 0) {
+              <app-line-chart
+                class="price-chart"
+                [class.refreshing]="candleState() === 'loading'"
+                [points]="averagePricePoints()"
+                [trend]="priceTrend()"
+                [seriesLabel]="symbol()"
+                [valueFormat]="'currency'"
+                [currency]="asset()?.currency ?? fallbackCurrency"
+              />
+            } @else if (candleState() === 'loading') {
+              <p class="history-message" role="status">Loading price history...</p>
+            } @else if (candleState() === 'error') {
+              <p class="history-message" role="alert">Price history couldn't be loaded.</p>
+            } @else {
+              <p class="history-message">No price history is available for this asset.</p>
             }
           </div>
-          @if (candleState() === 'loading') {
-            <p class="history-message" role="status">Loading price history...</p>
-          } @else if (candleState() === 'error') {
-            <p class="history-message" role="alert">Price history couldn't be loaded.</p>
-          } @else if (candles().length === 0) {
-            <p class="history-message">No price history is available for this asset.</p>
-          } @else {
-            <app-line-chart
-              [points]="averagePricePoints()"
-              [trend]="priceTrend()"
-              [seriesLabel]="symbol()"
-              [valueFormat]="'currency'"
-              [currency]="asset()?.currency ?? fallbackCurrency"
-            />
-          }
         </section>
 
         <button type="button" class="btn btn-primary trade-cta" (click)="openTradeView()">
           Trade {{ symbol() | displaySymbol }}
         </button>
       </div>
-    } @else {
-      <div class="trade-view">
+      <div
+        class="trade-view"
+        [class.inactive]="activeView() !== 'trade'"
+        [attr.aria-hidden]="activeView() !== 'trade'"
+        [attr.inert]="activeView() !== 'trade' ? '' : null"
+      >
         <app-order-form
+          [symbol]="symbol() | displaySymbol"
           [currentPrice]="currentPrice() ?? 0"
           [currency]="asset()?.currency ?? fallbackCurrency"
           [ownedQuantity]="ownedQuantity()"
@@ -129,6 +137,6 @@
           (placed)="onOrderPlaced($event)"
         />
       </div>
-    }
+    </div>
   </div>
 </app-modal>

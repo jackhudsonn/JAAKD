@@ -51,7 +51,8 @@ describe('PerformanceGraphWidgetComponent', () => {
     const body = element.querySelector('.performance-body');
 
     expect(body?.firstElementChild?.tagName).toBe('APP-LINE-CHART');
-    expect(body?.lastElementChild?.classList.contains('interval-tabs')).toBe(true);
+    expect(body?.lastElementChild?.tagName).toBe('APP-INTERVAL-SELECTOR');
+    expect(body?.querySelector('.interval-tabs')).not.toBeNull();
     expect(element.querySelector('.performance-summary')).toBeNull();
   });
 

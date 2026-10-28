@@ -21,24 +21,11 @@
         [referenceLines]="chartReferenceLines()"
       />
 
-      <div class="interval-tabs" role="group" aria-label="Time range">
-        <span
-          class="interval-indicator"
-          aria-hidden="true"
-          [style.transform]="'translateX(' + selectedIntervalIndex() * 100 + '%)'"
-        ></span>
-        @for (interval of intervals; track interval) {
-          <button
-            type="button"
-            class="interval-tab"
-            [class.active]="selectedInterval() === interval"
-            [attr.aria-pressed]="selectedInterval() === interval"
-            (click)="selectedInterval.set(interval)"
-          >
-            {{ interval }}
-          </button>
-        }
-      </div>
+      <app-interval-selector
+        [intervals]="intervals"
+        [(selectedInterval)]="selectedInterval"
+        ariaLabel="Time range"
+      />
     </div>
   } @else {
     <p class="unavailable-note">No history yet.</p>
