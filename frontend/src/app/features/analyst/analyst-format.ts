@@ -1,6 +1,7 @@
 import { InstrumentClass } from '@core/models/api.models';
 import { DateRange, MAX_SERIES_YEARS, SortDirection } from '@core/models/analytics.models';
 import { LineChartPoint } from '@shared/components/line-chart/line-chart.component';
+import { toDateChartPoints } from '@shared/utils/chart-date-label';
 import { PieChartSlice } from '@shared/components/pie-chart/pie-chart.component';
 
 export const INSTRUMENT_CLASSES: InstrumentClass[] = ['EQUITY', 'ETF', 'CRYPTO', 'FX', 'CASH'];
@@ -206,7 +207,12 @@ export function rebaseCumulative(
     return [];
   }
 
-  return points
-    .filter((point) => point.value != null)
-    .map((point) => ({ label: point.date, value: (1 + point.value!) / (1 + start) - 1 }));
+  return toDateChartPoints(
+    points
+      .filter((point) => point.value != null)
+      .map((point) => ({
+        date: point.date,
+        value: (1 + point.value!) / (1 + start) - 1,
+      })),
+  );
 }

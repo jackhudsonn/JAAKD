@@ -213,7 +213,7 @@ describe('AssetPopupComponent', () => {
           currency: 'USD',
         },
       ]),
-    ).toEqual([{ label: 'Mar 4', value: 102 }]);
+    ).toEqual([{ label: 'Mar 4', tooltipLabel: 'Mar 4, 2025', value: 102 }]);
   });
 
   it('shows a loading state while candle history is pending', () => {

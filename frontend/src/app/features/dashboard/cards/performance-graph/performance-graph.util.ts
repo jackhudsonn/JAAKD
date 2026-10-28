@@ -57,12 +57,3 @@ export function summarize(points: PortfolioPerformancePoint[]) {
     low: Math.min(...values),
   };
 }
-
-// "Oct 20" for chart labels; parsed as UTC so the label never shifts a day in the viewer's timezone.
-export function toChartLabel(date: string): string {
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-    timeZone: 'UTC',
-  }).format(new Date(`${date}T00:00:00Z`));
-}

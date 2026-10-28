@@ -20,6 +20,7 @@ import {
   rebaseCumulative,
   signClass,
 } from '../analyst-format';
+import { toDateChartPoints } from '@shared/utils/chart-date-label';
 import { trendForFraction } from '@shared/utils/format-percentage-change';
 import { LoadState, keepsContent, loadStateFor } from '../analyst-load-state';
 import { LoadStateMessageComponent } from '../load-state-message/load-state-message.component';
@@ -62,7 +63,7 @@ export class InstrumentDetailComponent {
   private seriesRequest = 0;
 
   readonly pricePoints = computed<LineChartPoint[]>(() =>
-    this.series().map((point) => ({ label: point.date, value: point.closeUsd })),
+    toDateChartPoints(this.series().map((point) => ({ date: point.date, value: point.closeUsd }))),
   );
   readonly returnPoints = computed(() =>
     rebaseCumulative(

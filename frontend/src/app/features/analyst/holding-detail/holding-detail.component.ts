@@ -19,6 +19,7 @@ import {
   shortId,
   signClass,
 } from '../analyst-format';
+import { toDateChartPoints } from '@shared/utils/chart-date-label';
 import { trendForValue } from '@shared/utils/format-percentage-change';
 import { LoadState, keepsContent, loadStateFor } from '../analyst-load-state';
 import { LoadStateMessageComponent } from '../load-state-message/load-state-message.component';
@@ -64,16 +65,22 @@ export class HoldingDetailComponent {
     this.series().filter((point) => point.marketValueUsd != null && point.costBasisUsd != null),
   );
   readonly valuePoints = computed<LineChartPoint[]>(() =>
-    this.pricedPoints().map((point) => ({ label: point.date, value: point.marketValueUsd! })),
+    toDateChartPoints(
+      this.pricedPoints().map((point) => ({ date: point.date, value: point.marketValueUsd! })),
+    ),
   );
   readonly costPoints = computed<LineChartPoint[]>(() =>
-    this.pricedPoints().map((point) => ({ label: point.date, value: point.costBasisUsd! })),
+    toDateChartPoints(
+      this.pricedPoints().map((point) => ({ date: point.date, value: point.costBasisUsd! })),
+    ),
   );
   readonly pnlPoints = computed<LineChartPoint[]>(() =>
-    this.pricedPoints().map((point) => ({
-      label: point.date,
-      value: (point.realizedPnlToDateUsd ?? 0) + (point.unrealizedPnlUsd ?? 0),
-    })),
+    toDateChartPoints(
+      this.pricedPoints().map((point) => ({
+        date: point.date,
+        value: (point.realizedPnlToDateUsd ?? 0) + (point.unrealizedPnlUsd ?? 0),
+      })),
+    ),
   );
   readonly latest = computed(() => this.series().at(-1) ?? null);
   readonly totalPnl = computed(() => this.pnlPoints().at(-1)?.value ?? null);

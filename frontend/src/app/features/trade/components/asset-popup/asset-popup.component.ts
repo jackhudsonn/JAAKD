@@ -24,6 +24,7 @@ import {
   OrderFormSubmit,
 } from '@features/trade/components/order-form/order-form.component';
 import { TRADE_MARKET_DATA_PORT } from '@features/trade/services/trade-market-data.port';
+import { toDateChartPoints } from '@shared/utils/chart-date-label';
 import { isFlatChange, trendForSeries } from '@shared/utils/format-percentage-change';
 import { formatCurrency } from '@shared/utils/display-format';
 import { REPORTING_CURRENCY } from '@core/models/api.models';
@@ -86,19 +87,13 @@ export function assetPriceRangeFor(
   return { from: start.toISOString().slice(0, 10), to };
 }
 
-export function toPriceChartLabel(date: string): string {
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-    timeZone: 'UTC',
-  }).format(new Date(`${date}T00:00:00Z`));
-}
-
 export function toAveragePricePoints(candles: InstrumentCandleResponse[]): LineChartPoint[] {
-  return candles.map((candle) => ({
-    label: toPriceChartLabel(candle.date),
-    value: (candle.open + candle.high + candle.low + candle.close) / 4,
-  }));
+  return toDateChartPoints(
+    candles.map((candle) => ({
+      date: candle.date,
+      value: (candle.open + candle.high + candle.low + candle.close) / 4,
+    })),
+  );
 }
 
 /**

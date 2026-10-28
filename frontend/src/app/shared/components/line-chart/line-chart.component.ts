@@ -14,6 +14,8 @@ import { Trend } from '@shared/utils/format-percentage-change';
 export interface LineChartPoint {
   label: string;
   value: number;
+  // Shown as the tooltip title when set; the axis keeps the shorter label.
+  tooltipLabel?: string;
 }
 
 export interface LineChartReferenceLine {
@@ -153,6 +155,10 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
           legend: { display: false },
           tooltip: {
             callbacks: {
+              title: (items) => {
+                const point = this.points()[items[0]?.dataIndex ?? -1];
+                return point?.tooltipLabel ?? point?.label ?? '';
+              },
               label: (context: any) => {
                 const val = context.parsed?.y ?? context.parsed ?? context.raw;
                 const prefix = context.dataset.label ? `${context.dataset.label}: ` : '';
