@@ -19,6 +19,7 @@ import {
   shortId,
   signClass,
 } from '../analyst-format';
+import { trendForValue } from '@shared/utils/format-percentage-change';
 import { LoadState, keepsContent, loadStateFor } from '../analyst-load-state';
 import { LoadStateMessageComponent } from '../load-state-message/load-state-message.component';
 
@@ -38,6 +39,7 @@ export class HoldingDetailComponent {
   readonly formatUsd = formatUsd;
   readonly formatQuantity = formatQuantity;
   readonly signClass = signClass;
+  readonly trendForValue = trendForValue;
   readonly shortId = shortId;
   readonly keepsContent = keepsContent;
 

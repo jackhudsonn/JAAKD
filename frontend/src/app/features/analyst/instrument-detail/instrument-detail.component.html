@@ -85,7 +85,7 @@
       <app-widget-card title="Price (USD)" [subtitle]="range() + ' daily close'">
         <app-line-chart
           [points]="pricePoints()"
-          [positive]="(rangeReturn() ?? 0) >= 0"
+          [trend]="trendForFraction(rangeReturn())"
           seriesLabel="Close"
         />
       </app-widget-card>
@@ -95,7 +95,7 @@
       >
         <app-line-chart
           [points]="returnPoints()"
-          [positive]="(rangeReturn() ?? 0) >= 0"
+          [trend]="trendForFraction(rangeReturn())"
           valueFormat="percent"
           seriesLabel="Return"
         />

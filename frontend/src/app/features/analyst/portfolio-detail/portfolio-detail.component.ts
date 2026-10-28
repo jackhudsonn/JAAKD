@@ -34,6 +34,7 @@ import {
   sortRows,
   topSlices,
 } from '../analyst-format';
+import { trendForFraction, trendForValue } from '@shared/utils/format-percentage-change';
 import { LoadState, keepsContent, loadStateFor } from '../analyst-load-state';
 import { LoadStateMessageComponent } from '../load-state-message/load-state-message.component';
 
@@ -88,6 +89,8 @@ export class PortfolioDetailComponent {
   readonly formatPercent = formatPercent;
   readonly formatQuantity = formatQuantity;
   readonly signClass = signClass;
+  readonly trendForValue = trendForValue;
+  readonly trendForFraction = trendForFraction;
   readonly shortId = shortId;
   readonly keepsContent = keepsContent;
 

@@ -10,7 +10,7 @@ import {
 import { REPORTING_CURRENCY } from '@core/models/api.models';
 import { DASHBOARD_STATE_PORT } from '@features/dashboard/services/dashboard-state.port';
 import { formatCurrency } from '@shared/utils/display-format';
-import { isFlatChange } from '@shared/utils/format-percentage-change';
+import { Trend, trendForValue } from '@shared/utils/format-percentage-change';
 import { formatSignedPct, formatSignedUsd } from '../portfolio-value/portfolio-returns.util';
 import {
   PERFORMANCE_INTERVALS,
@@ -49,13 +49,9 @@ export class PerformanceGraphWidgetComponent {
   );
   readonly summary = computed(() => summarize(this.visiblePoints()));
   // Grey when the change rounds to 0.00, as on the other cards.
-  readonly trend = computed<'up' | 'down' | 'flat'>(() => {
+  readonly trend = computed<Trend>(() => {
     const summary = this.summary();
-    if (!summary || isFlatChange(summary.changePct ?? summary.change)) {
-      return 'flat';
-    }
-
-    return summary.change > 0 ? 'up' : 'down';
+    return summary ? trendForValue(summary.changePct ?? summary.change) : 'flat';
   });
 
   load() {

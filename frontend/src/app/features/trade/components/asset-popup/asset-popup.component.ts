@@ -24,7 +24,7 @@ import {
   OrderFormSubmit,
 } from '@features/trade/components/order-form/order-form.component';
 import { TRADE_MARKET_DATA_PORT } from '@features/trade/services/trade-market-data.port';
-import { isFlatChange } from '@shared/utils/format-percentage-change';
+import { isFlatChange, trendForSeries } from '@shared/utils/format-percentage-change';
 import { formatCurrency } from '@shared/utils/display-format';
 import { REPORTING_CURRENCY } from '@core/models/api.models';
 
@@ -138,6 +138,7 @@ export class AssetPopupComponent {
   activeView = signal<'analysis' | 'trade'>('analysis');
   candles = signal<InstrumentCandleResponse[]>([]);
   averagePricePoints = computed(() => toAveragePricePoints(this.candles()));
+  priceTrend = computed(() => trendForSeries(this.averagePricePoints()));
   priceIntervals = ASSET_PRICE_INTERVALS;
   selectedPriceInterval = signal<AssetPriceInterval>('1M');
   candleState = signal<'loading' | 'ready' | 'error'>('loading');

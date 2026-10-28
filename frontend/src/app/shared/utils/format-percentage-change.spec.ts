@@ -1,4 +1,11 @@
-import { formatPercentageChange, isFlatChange, roundChangePct } from './format-percentage-change';
+import {
+  formatPercentageChange,
+  isFlatChange,
+  roundChangePct,
+  trendForFraction,
+  trendForSeries,
+  trendForValue,
+} from './format-percentage-change';
 
 describe('formatPercentageChange', () => {
   it('shows gains with a plus sign and an up arrow', () => {
@@ -27,6 +34,45 @@ describe('isFlatChange', () => {
 
   it.each([Number.NaN, Number.POSITIVE_INFINITY])('does not treat %s as flat', (value) => {
     expect(isFlatChange(value)).toBe(false);
+  });
+});
+
+describe('trendForValue', () => {
+  it.each([
+    [1.5, 'up'],
+    [0.005, 'up'],
+    [0, 'flat'],
+    [-0.004, 'flat'],
+    [-1.5, 'down'],
+    [null, 'flat'],
+    [undefined, 'flat'],
+    [Number.NaN, 'flat'],
+    [Number.POSITIVE_INFINITY, 'flat'],
+  ] as const)('maps %s to %s', (value, expected) => {
+    expect(trendForValue(value)).toBe(expected);
+  });
+});
+
+describe('trendForFraction', () => {
+  it('treats fractions as percentages', () => {
+    expect(trendForFraction(0.05)).toBe('up');
+    expect(trendForFraction(-0.05)).toBe('down');
+    expect(trendForFraction(0.00004)).toBe('flat');
+    expect(trendForFraction(null)).toBe('flat');
+  });
+});
+
+describe('trendForSeries', () => {
+  it('uses the first and last points', () => {
+    expect(trendForSeries([{ value: 100 }, { value: 90 }, { value: 110 }])).toBe('up');
+    expect(trendForSeries([{ value: 100 }, { value: 110 }, { value: 90 }])).toBe('down');
+  });
+
+  it('is flat when the series has no usable change', () => {
+    expect(trendForSeries([])).toBe('flat');
+    expect(trendForSeries([{ value: 100 }])).toBe('flat');
+    expect(trendForSeries([{ value: 0 }, { value: 10 }])).toBe('flat');
+    expect(trendForSeries([{ value: 100 }, { value: 100.004 }])).toBe('flat');
   });
 });
 

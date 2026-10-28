@@ -20,6 +20,7 @@ import {
   rebaseCumulative,
   signClass,
 } from '../analyst-format';
+import { trendForFraction } from '@shared/utils/format-percentage-change';
 import { LoadState, keepsContent, loadStateFor } from '../analyst-load-state';
 import { LoadStateMessageComponent } from '../load-state-message/load-state-message.component';
 
@@ -44,6 +45,7 @@ export class InstrumentDetailComponent {
   readonly formatUsd = formatUsd;
   readonly formatPercent = formatPercent;
   readonly signClass = signClass;
+  readonly trendForFraction = trendForFraction;
   readonly keepsContent = keepsContent;
 
   // A signal, not a one-off snapshot: Angular reuses this component when only the id in the URL changes.
