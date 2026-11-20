@@ -2,7 +2,7 @@ x-jaakd-app-db-password: &jaakd-app-db-password ${JAAKD_APP_DB_PASSWORD:?JAAKD_A
 
 services:
   jaakd-postgres:
-    image: postgres:18
+    image: postgres:19
     container_name: jaakd-postgres
     restart: unless-stopped
     environment:
@@ -27,7 +27,7 @@ services:
   # Opt-in: start it with `docker compose --profile analytics up -d jaakd-analytics-postgres`,
   # or set COMPOSE_PROFILES=analytics in .env to include it in every `docker compose up`.
   jaakd-analytics-postgres:
-    image: postgres:18
+    image: postgres:19
     container_name: jaakd-analytics-postgres
     profiles: ["analytics"]
     restart: unless-stopped
